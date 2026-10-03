@@ -42,6 +42,9 @@ Research snapshots:
 - [QUX v2.5 guide](https://docs.vectra.ai/configuration/access/api-qux/v25-api-guide-qux), its attached 173-page October-2025-named PDF, and the separately updated release change log.
 - [RUX specification](https://apidocs.vectra.ai/vectraai-rest-api.yaml), SHA-256 `ee93e15a22d5041d1764c6e942ffc7bc359e52feff8cec79a8a6036e89b1a0f3` on the research date.
 
+CLI-01 additionally uses [az-axi at `a7c1ca4bb605f3835d1717dde553f349a81b646f`](https://github.com/knowttl/az-axi/tree/a7c1ca4bb605f3835d1717dde553f349a81b646f) for catalogue-first validation, SDK output and refusal of implicit update.
+The SDK dependency version is pinned in [package.json](../package.json).
+
 Recheck upstream contracts before implementing a slice.
 The public RUX document identifies v3.4 as stable and v3.5 as preview.
 [Preview guidance](https://apidocs.vectra.ai/api-v3-5-preview) warns of potentially incompatible filtering, errors and response tiers.

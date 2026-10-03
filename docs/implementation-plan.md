@@ -92,6 +92,12 @@ Use a leaf version module and defer the command graph so `-v`, `-V` and `--versi
 Completion evidence is a packaged invocation with closed stdin and a clean synthetic home directory, showing version/help, a missing-profile error and an unknown-flag error with the documented stdout/stderr/exit behavior.
 Do not add endpoint dispatch stubs that claim support before an adapter exists.
 
+The CLI-01 handoff uses INV-01 commit `ab4c042` as its prerequisite and changes no inventory records or dispositions.
+Its [packaged acceptance suite](../test/cli.test.ts) packs and unpacks the package, resolves its declared binary and reuses installed local dependencies without fetching packages.
+It invokes the binary with closed stdin and an empty synthetic home under the [shared network guard](../test/network-guard.ts).
+It also checks version with the command graph absent and compares version latency with a Node startup floor measured in the same test process.
+See [README.md](../README.md) for shipped behavior and development commands.
+
 ## Phase 1: prove the session with one real user journey
 
 AUTH-01/02 establish the profile schema and actual credential lifecycle behind the session's implementation.

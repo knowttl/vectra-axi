@@ -25,5 +25,5 @@ API commands remain planned, and the SDK's implicit `update` command is refused.
 Structured data, help and errors use TOON on stdout; stderr is reserved for diagnostics.
 Exit codes are 0 for success, 1 for runtime failure (including a missing profile), and 2 for usage failure.
 There are no prompts, HTTP calls or ordinary-command installation side effects.
-`corepack pnpm pack --out vectra-axi.tgz` packages the built entrypoint, runtime modules and validated inventory.
-The CLI suite unpacks this artifact and invokes its declared binary with closed stdin, a synthetic home and the shared external-network guard.
+`corepack pnpm pack --out vectra-axi.tgz` packages the built entrypoint, runtime modules and inventory.
+See [CLI-01 acceptance](docs/implementation-plan.md#phase-0-turn-design-knowledge-into-one-executable-catalogue) for packaged verification.
