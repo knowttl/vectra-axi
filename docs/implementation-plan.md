@@ -82,7 +82,8 @@ The inventory does not auto-enable an endpoint merely because it exists in a dow
 Credential-export routes are blocked even if they use GET.
 Adopt the published schema as evidence; do not commit proprietary bulk documentation or assume full code generation is valid.
 
-CLI-01 establishes Node/TypeScript packaging, the existing AXI SDK, Vitest conventions and a small test harness that denies external network.
+CLI-01 extends the Node/TypeScript and Vitest tooling introduced by INV-01 with the command shell and existing AXI SDK, reusing the network-denying test harness.
+See [README.md](../README.md) for development commands.
 The command catalogue should drive strict leaf parsing, concise help and capability documentation rather than separate lists drifting apart.
 Start with unconfigured home/setup state and implemented commands only.
 Specify accepted global flags, mutually exclusive flags and unknown-input behavior once, then let individual leaves declare their own parameters.

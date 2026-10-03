@@ -1,0 +1,3318 @@
+{
+  "schemaVersion": 1,
+  "reviewedOn": "2026-10-03",
+  "scope": "INV-01: initial QUX 2.5 / RUX 3.4 read and credential-exchange catalogue. No commands implemented; no API-wide completeness claim.",
+  "sources": [
+    {
+      "id": "qux-guide",
+      "url": "https://docs.vectra.ai/configuration/access/api-qux/v25-api-guide-qux",
+      "revision": "October 2025 QUX v2.5 PDF; 173 pages",
+      "sha256": "3d01319963473a2d22ee4652812e64b5c4a5ab9c4cdbfdcb99d215a3c1bbf65a",
+      "reviewedOn": "2026-10-03"
+    },
+    {
+      "id": "qux-changelog",
+      "url": "https://docs.vectra.ai/configuration/access/api-qux/v25-api-guide-qux",
+      "revision": "Change log through December 2025 / release 9.8",
+      "sha256": null,
+      "reviewedOn": "2026-10-03"
+    },
+    {
+      "id": "qux-oauth",
+      "url": "https://docs.vectra.ai/configuration/access/api-qux/v25-postman-quick-start-guide-using-oauth2",
+      "revision": "QUX v2.5 OAuth quick start",
+      "sha256": null,
+      "reviewedOn": "2026-10-03"
+    },
+    {
+      "id": "rux-spec",
+      "url": "https://apidocs.vectra.ai/vectraai-rest-api.yaml",
+      "revision": "v3.4 stable; v3.5 preview excluded",
+      "sha256": "ee93e15a22d5041d1764c6e942ffc7bc359e52feff8cec79a8a6036e89b1a0f3",
+      "reviewedOn": "2026-10-03"
+    },
+    {
+      "id": "vat-qux",
+      "url": "https://github.com/vectranetworks/vectra_api_tools/blob/c76fd0c5d42e74b199e47dc42923582c2b1dbee7/modules/vectra.py",
+      "revision": "c76fd0c5d42e74b199e47dc42923582c2b1dbee7",
+      "sha256": null,
+      "reviewedOn": "2026-10-03"
+    },
+    {
+      "id": "vat-rux",
+      "url": "https://github.com/vectranetworks/vectra_api_tools/blob/c76fd0c5d42e74b199e47dc42923582c2b1dbee7/modules/platform.py",
+      "revision": "c76fd0c5d42e74b199e47dc42923582c2b1dbee7",
+      "sha256": null,
+      "reviewedOn": "2026-10-03"
+    },
+    {
+      "id": "az-tooling",
+      "url": "https://github.com/knowttl/az-axi/tree/17125324b00cc97e0445d1a7eb170553f707ce9c",
+      "revision": "17125324b00cc97e0445d1a7eb170553f707ce9c; .no-mistakes.yaml and .github/workflows/ci.yml",
+      "sha256": null,
+      "reviewedOn": "2026-10-03"
+    }
+  ],
+  "operations": [
+    {
+      "id": "qux.detection.list",
+      "command": "detection list",
+      "slice": "READ-01",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Base release unconfirmed; reason/groups require 9.3; EDR process context requires 9.8. Threat and certainty remain QUX scores.",
+      "method": "GET",
+      "path": "/api/v2.5/detections",
+      "effect": "read",
+      "query": [
+        "state",
+        "detection_type",
+        "detection_category",
+        "host_id",
+        "tags",
+        "certainty_gte",
+        "threat_gte",
+        "ordering",
+        "min_id",
+        "max_id"
+      ],
+      "fields": [
+        "id",
+        "detection_type",
+        "state",
+        "threat",
+        "certainty"
+      ],
+      "paging": "collection",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp18-23; fields p19 and query table p22"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-01; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response",
+        "empty",
+        "next-page",
+        "limit-inside-page"
+      ]
+    },
+    {
+      "id": "qux.detection.show",
+      "command": "detection show",
+      "slice": "READ-01",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "EDR process context requires appliance 9.8; embedded notes are truncated from 9.3. --full cannot restore omitted upstream content.",
+      "method": "GET",
+      "path": "/api/v2.5/detections/{id}",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "detection_type",
+        "state",
+        "description",
+        "threat",
+        "certainty"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp18-23; Appendix A Detections"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-01; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "qux.host.list",
+      "command": "host list",
+      "slice": "READ-02",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Base release unconfirmed; last_detection_timestamp_gte/lte require 8.2. Wire t_score_gte/c_score_gte differs from display threat/certainty.",
+      "method": "GET",
+      "path": "/api/v2.5/hosts",
+      "effect": "read",
+      "query": [
+        "t_score_gte",
+        "c_score_gte",
+        "tags",
+        "min_id",
+        "max_id"
+      ],
+      "fields": [
+        "id",
+        "name",
+        "state",
+        "threat",
+        "certainty"
+      ],
+      "paging": "collection",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp30-33"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response",
+        "empty",
+        "next-page",
+        "limit-inside-page"
+      ]
+    },
+    {
+      "id": "qux.host.show",
+      "command": "host show",
+      "slice": "READ-02",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires explicit QUX v2.5 profile; base-route minimum appliance release not established.",
+      "method": "GET",
+      "path": "/api/v2.5/hosts/{id}",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "name",
+        "state",
+        "threat",
+        "certainty"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp30-33; VAT get_host_by_id"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "not-found",
+        "host-account-same-numeric-id"
+      ]
+    },
+    {
+      "id": "qux.host.note.list",
+      "command": "host note list",
+      "slice": "READ-03",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Full notes use the dedicated notes resource; embedded ten-note summaries may be truncated. Do not invent a per-note GET.",
+      "method": "GET",
+      "path": "/api/v2.5/hosts/{id}/notes",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "p30; Appendix A host notes; VAT get_host_note"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-03; no runtime support in INV-01.",
+      "fixtureCases": [
+        "full-note-text",
+        "empty",
+        "access-denied",
+        "embedded-summary-truncated"
+      ]
+    },
+    {
+      "id": "qux.host.tag.list",
+      "command": "host tag list",
+      "slice": "READ-03",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires explicit QUX v2.5 profile; base-route minimum appliance release not established.",
+      "method": "GET",
+      "path": "/api/v2.5/tagging/host/{id}",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp40-41; VAT get_host_tags"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-03; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "qux.account.list",
+      "command": "account list",
+      "slice": "READ-02",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Base release unconfirmed; last_detection_timestamp_gte/lte require 8.2. Wire t_score_gte/c_score_gte differs from display threat/certainty.",
+      "method": "GET",
+      "path": "/api/v2.5/accounts",
+      "effect": "read",
+      "query": [
+        "t_score_gte",
+        "c_score_gte",
+        "tags",
+        "min_id",
+        "max_id"
+      ],
+      "fields": [
+        "id",
+        "name",
+        "state",
+        "threat",
+        "certainty"
+      ],
+      "paging": "collection",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp24-27"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response",
+        "empty",
+        "next-page",
+        "limit-inside-page"
+      ]
+    },
+    {
+      "id": "qux.account.show",
+      "command": "account show",
+      "slice": "READ-02",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires explicit QUX v2.5 profile; base-route minimum appliance release not established.",
+      "method": "GET",
+      "path": "/api/v2.5/accounts/{id}",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "name",
+        "state",
+        "threat",
+        "certainty"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp24-27; VAT get_account_by_id"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "not-found",
+        "host-account-same-numeric-id"
+      ]
+    },
+    {
+      "id": "qux.account.note.list",
+      "command": "account note list",
+      "slice": "READ-03",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Full notes use the dedicated notes resource; embedded ten-note summaries may be truncated. Do not invent a per-note GET.",
+      "method": "GET",
+      "path": "/api/v2.5/accounts/{id}/notes",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "p24; Appendix A account notes; VAT get_account_note"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-03; no runtime support in INV-01.",
+      "fixtureCases": [
+        "full-note-text",
+        "empty",
+        "access-denied",
+        "embedded-summary-truncated"
+      ]
+    },
+    {
+      "id": "qux.account.tag.list",
+      "command": "account tag list",
+      "slice": "READ-03",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Account selector is supported by pinned VAT, not enumerated in the guide tagging table; reconfirm wire response during READ-03.",
+      "method": "GET",
+      "path": "/api/v2.5/tagging/account/{id}",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "get_account_tags (lines 2417-2425); guide pp40-41 only documents host/detection"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-03; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "qux.detection.note.list",
+      "command": "detection note list",
+      "slice": "READ-03",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Read full notes through dedicated route; embedded summaries are truncated. No per-note GET established.",
+      "method": "GET",
+      "path": "/api/v2.5/detections/{id}/notes",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "p17; Appendix A Detection (Notes); VAT get_detection_note"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-03; no runtime support in INV-01.",
+      "fixtureCases": [
+        "full-note-text",
+        "empty",
+        "access-denied",
+        "embedded-summary-truncated"
+      ]
+    },
+    {
+      "id": "qux.detection.tag.list",
+      "command": "detection tag list",
+      "slice": "READ-03",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires explicit QUX v2.5 profile; base-route minimum appliance release not established.",
+      "method": "GET",
+      "path": "/api/v2.5/tagging/detection/{id}",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp40-41; VAT get_detection_tags"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-03; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "qux.assignment.list",
+      "command": "assignment list",
+      "slice": "READ-04",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Assignments and resolutions are distinct. Unresolved is not a missing/zero outcome; preserve resource kind.",
+      "method": "GET",
+      "path": "/api/v2.5/assignments",
+      "effect": "read",
+      "query": [
+        "accounts",
+        "hosts",
+        "assignees",
+        "resolution",
+        "resolved",
+        "created_after"
+      ],
+      "fields": [
+        "id",
+        "host_id",
+        "account_id",
+        "date_resolved"
+      ],
+      "paging": "collection",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp59-62"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "unresolved",
+        "resolved-with-outcome",
+        "next-page",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "qux.assignment-outcome.list",
+      "command": "assignment outcome list",
+      "slice": "READ-04",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires explicit QUX v2.5 profile; base-route minimum appliance release not established.",
+      "method": "GET",
+      "path": "/api/v2.5/assignment_outcomes",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "title",
+        "category",
+        "builtin"
+      ],
+      "paging": "collection",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp62-63"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response",
+        "empty",
+        "next-page",
+        "limit-inside-page"
+      ]
+    },
+    {
+      "id": "qux.assignment-outcome.show",
+      "command": "assignment outcome show",
+      "slice": "READ-04",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires explicit QUX v2.5 profile; base-route minimum appliance release not established.",
+      "method": "GET",
+      "path": "/api/v2.5/assignment_outcomes/{id}",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "title",
+        "category",
+        "builtin"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp62-63; VAT get_assignment_outcome_by_id"
+        },
+        {
+          "source": "vat-qux",
+          "locator": "get_assignment_outcome_by_id"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "qux.user.list",
+      "command": "user list",
+      "slice": "READ-04",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires explicit QUX v2.5 profile; base-route minimum appliance release not established.",
+      "method": "GET",
+      "path": "/api/v2.5/users",
+      "effect": "read",
+      "query": [
+        "username"
+      ],
+      "fields": [
+        "id",
+        "username"
+      ],
+      "paging": "collection",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp36-37"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response",
+        "empty",
+        "next-page",
+        "limit-inside-page"
+      ]
+    },
+    {
+      "id": "qux.user.show",
+      "command": "user show",
+      "slice": "READ-04",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires explicit QUX v2.5 profile; base-route minimum appliance release not established.",
+      "method": "GET",
+      "path": "/api/v2.5/users/{id}",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "username"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp36-37; VAT get_user_by_id"
+        },
+        {
+          "source": "vat-qux",
+          "locator": "get_user_by_id; validate_gte_api_v3_3 explicitly accepts v2"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "qux.group.list",
+      "command": "group list",
+      "slice": "READ-05",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Regex groups require 9.0; AD groups and ad_group_dn/is_ad_group filters require 9.6. Embedded members cap at 2000; use member route for complete membership.",
+      "method": "GET",
+      "path": "/api/v2.5/groups",
+      "effect": "read",
+      "query": [
+        "name",
+        "type",
+        "include_members"
+      ],
+      "fields": [
+        "id",
+        "name",
+        "type"
+      ],
+      "paging": "collection",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp41-43"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-05; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response",
+        "empty",
+        "next-page",
+        "limit-inside-page"
+      ]
+    },
+    {
+      "id": "qux.group.show",
+      "command": "group show",
+      "slice": "READ-05",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "AD groups require 9.6; regex groups require 9.0. Embedded membership caps at 2000; use separate member route (9.2).",
+      "method": "GET",
+      "path": "/api/v2.5/groups/{id}",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "name",
+        "type"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp41-43; VAT get_group_by_id"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-05; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "qux.triage-rule.list",
+      "command": "triage rule list",
+      "slice": "READ-05",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires explicit QUX v2.5 profile; base-route minimum appliance release not established.",
+      "method": "GET",
+      "path": "/api/v2.5/rules",
+      "effect": "read",
+      "query": [
+        "contains",
+        "fields",
+        "include_templates",
+        "page",
+        "page_size",
+        "ordering"
+      ],
+      "fields": [
+        "id",
+        "enabled",
+        "triage_category"
+      ],
+      "paging": "collection",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp14-17"
+        },
+        {
+          "source": "vat-qux",
+          "locator": "VectraClientV2_1._generate_rule_params; GET query allowlist"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-05; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response",
+        "empty",
+        "next-page",
+        "limit-inside-page"
+      ]
+    },
+    {
+      "id": "qux.triage-rule.show",
+      "command": "triage rule show",
+      "slice": "READ-05",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires explicit QUX v2.5 profile; base-route minimum appliance release not established.",
+      "method": "GET",
+      "path": "/api/v2.5/rules/{id}",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "enabled",
+        "triage_category"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp14-17; VAT get_rule_by_id"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-05; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "qux.group.member.list",
+      "command": "group member list",
+      "slice": "READ-05",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": "9.2",
+      "constraints": "Members vary by host/account/IP/domain group kind. Preserve kind and use actual member paging; do not rely on the embedded member cap.",
+      "method": "GET",
+      "path": "/api/v2.5/groups/{id}/members",
+      "effect": "read",
+      "query": [
+        "name",
+        "ordering",
+        "page",
+        "page_size",
+        "is_key_asset"
+      ],
+      "fields": [
+        "id",
+        "name"
+      ],
+      "paging": "collection",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp3,44-45"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-05; no runtime support in INV-01.",
+      "fixtureCases": [
+        "host-member",
+        "account-member",
+        "ip-member",
+        "domain-member",
+        "next-page",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "qux.audit.list",
+      "command": "audit list",
+      "slice": "READ-06",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Require bounded inclusive YYYY-MM-DD UTC start/end and byte ceiling; unbounded upstream defaults may return 200 MB.",
+      "method": "GET",
+      "path": "/api/v2.5/audits",
+      "effect": "read",
+      "query": [
+        "start",
+        "end"
+      ],
+      "fields": [
+        "user",
+        "role",
+        "vectra_timestamp",
+        "result",
+        "message"
+      ],
+      "paging": "date-window",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp58-59"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-06; no runtime support in INV-01.",
+      "fixtureCases": [
+        "inclusive-utc-boundaries",
+        "empty",
+        "oversized-window",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "qux.health.list",
+      "command": "health list",
+      "slice": "READ-07",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "cache=true is upstream default; cached response includes updated_at. cache=false requests a fresh check; vlans=false omits VLAN detail.",
+      "method": "GET",
+      "path": "/api/v2.5/health",
+      "effect": "read",
+      "query": [
+        "cache",
+        "vlans"
+      ],
+      "fields": [
+        "network",
+        "system"
+      ],
+      "paging": "none",
+      "permissions": "Requires view health permission (guide p47).",
+      "licence": "No endpoint-specific licence prerequisite established; enabled products determine returned health sections.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp46-51"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-07; no runtime support in INV-01.",
+      "fixtureCases": [
+        "cached",
+        "fresh",
+        "access-denied",
+        "subscription-sensitive-shape"
+      ]
+    },
+    {
+      "id": "qux.health.show",
+      "command": "health show",
+      "slice": "READ-07",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Check selector must be one of cpu, disk, network, memory, power, sensors, system, hostid, connectivity or trafficdrop. Response fields are conditional on the selected check. cache controls cached/fresh results and vlans controls VLAN inclusion; unsupported checks fail explicitly.",
+      "method": "GET",
+      "path": "/api/v2.5/health/{check}",
+      "effect": "read",
+      "query": [
+        "cache",
+        "vlans"
+      ],
+      "fields": [
+        "cpu",
+        "disk",
+        "network",
+        "memory",
+        "power",
+        "sensors",
+        "system",
+        "hostid",
+        "connectivity",
+        "trafficdrop"
+      ],
+      "paging": "none",
+      "permissions": "Requires view health permission (guide p47).",
+      "licence": "Health shape and check availability depend on enabled products/subscriptions.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp46-51; VAT get_health_check"
+        },
+        {
+          "source": "vat-qux",
+          "locator": "get_health_check; individual check route and accepted selectors"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-07; no runtime support in INV-01.",
+      "fixtureCases": [
+        "supported-check",
+        "unsupported-check",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "qux.health.event.list",
+      "command": "health event list",
+      "slice": "READ-07",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": "9.4",
+      "constraints": "Returned checkpoint drives continuation; default batch 500, maximum 1000. remaining_count is not a stable total.",
+      "method": "GET",
+      "path": "/api/v2.5/events/health",
+      "effect": "read",
+      "query": [
+        "from",
+        "limit",
+        "event_timestamp_gte",
+        "event_timestamp_lte",
+        "ordering",
+        "entity_type",
+        "entity_name",
+        "health_check_name",
+        "status"
+      ],
+      "fields": [
+        "next_checkpoint",
+        "remaining_count",
+        "events"
+      ],
+      "paging": "checkpoint",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp75-77; release 9.4 change log"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-07; no runtime support in INV-01.",
+      "fixtureCases": [
+        "returned-checkpoint",
+        "repeated-checkpoint",
+        "mid-batch-limit",
+        "access-denied",
+        "unsupported-release"
+      ]
+    },
+    {
+      "id": "rux.detection.list",
+      "command": "detection list",
+      "slice": "RUX-02",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "v3.4 excludes INFO category by default; include_info_category is explicit. Entity urgency/importance are not detection threat/certainty.",
+      "method": "GET",
+      "path": "/api/v3.4/detections/",
+      "effect": "read",
+      "query": [
+        "state",
+        "detection_type",
+        "detection_category",
+        "host_id",
+        "tags",
+        "certainty_gte",
+        "page",
+        "page_size",
+        "ordering",
+        "fields",
+        "exclude_fields",
+        "include_info_category",
+        "entity_id",
+        "type"
+      ],
+      "fields": [
+        "id",
+        "detection_type",
+        "state",
+        "threat",
+        "certainty"
+      ],
+      "paging": "collection",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/detections/; DetectionSerializerV3_4"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response",
+        "empty",
+        "next-page",
+        "limit-inside-page"
+      ]
+    },
+    {
+      "id": "rux.detection.show",
+      "command": "detection show",
+      "slice": "RUX-02",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Cloud detection ID is scoped to its RUX profile; embedded note summaries are not the full notes resource.",
+      "method": "GET",
+      "path": "/api/v3.4/detections/{id}/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "detection_type",
+        "state",
+        "description",
+        "threat",
+        "certainty"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/detections/{id}/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "rux.host.list",
+      "command": "host list",
+      "slice": "RUX-02",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "RUX host routes arrived in v3.3; pinned to v3.4. No implicit QUX ID mapping.",
+      "method": "GET",
+      "path": "/api/v3.4/hosts/",
+      "effect": "read",
+      "query": [
+        "page",
+        "page_size",
+        "ordering",
+        "state",
+        "tags"
+      ],
+      "fields": [
+        "id",
+        "name",
+        "state",
+        "threat",
+        "certainty"
+      ],
+      "paging": "collection",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/hosts/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response",
+        "empty",
+        "next-page",
+        "limit-inside-page"
+      ]
+    },
+    {
+      "id": "rux.host.show",
+      "command": "host show",
+      "slice": "RUX-02",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires explicit RUX v3.4 profile; no QUX identity or score conversion.",
+      "method": "GET",
+      "path": "/api/v3.4/hosts/{id}/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "name",
+        "state",
+        "threat",
+        "certainty"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/hosts/{id}/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "not-found",
+        "host-account-same-numeric-id"
+      ]
+    },
+    {
+      "id": "rux.host.note.list",
+      "command": "host note list",
+      "slice": "RUX-04",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Full notes use the dedicated notes resource; embedded ten-note summaries may be truncated. Do not invent a per-note GET.",
+      "method": "GET",
+      "path": "/api/v3.4/hosts/{id}/notes/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/{tvui_types}/{type_id}/notes/; tvui_types=hosts"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "full-note-text",
+        "empty",
+        "access-denied",
+        "embedded-summary-truncated"
+      ]
+    },
+    {
+      "id": "rux.host.tag.list",
+      "command": "host tag list",
+      "slice": "RUX-04",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires explicit RUX v3.4 profile; no QUX identity or score conversion.",
+      "method": "GET",
+      "path": "/api/v3.4/tagging/host/{id}/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/tagging/{table}/{entity_id}/; TaggingParamsV3_3/table=host (singular)"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "rux.account.list",
+      "command": "account list",
+      "slice": "RUX-02",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "RUX host routes arrived in v3.3; pinned to v3.4. No implicit QUX ID mapping.",
+      "method": "GET",
+      "path": "/api/v3.4/accounts/",
+      "effect": "read",
+      "query": [
+        "page",
+        "page_size",
+        "ordering",
+        "state",
+        "tags"
+      ],
+      "fields": [
+        "id",
+        "name",
+        "state",
+        "threat",
+        "certainty"
+      ],
+      "paging": "collection",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/accounts/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response",
+        "empty",
+        "next-page",
+        "limit-inside-page"
+      ]
+    },
+    {
+      "id": "rux.account.show",
+      "command": "account show",
+      "slice": "RUX-02",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires explicit RUX v3.4 profile; no QUX identity or score conversion.",
+      "method": "GET",
+      "path": "/api/v3.4/accounts/{id}/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "name",
+        "state",
+        "threat",
+        "certainty"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/accounts/{id}/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "not-found",
+        "host-account-same-numeric-id"
+      ]
+    },
+    {
+      "id": "rux.account.note.list",
+      "command": "account note list",
+      "slice": "RUX-04",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Full notes use the dedicated notes resource; embedded ten-note summaries may be truncated. Do not invent a per-note GET.",
+      "method": "GET",
+      "path": "/api/v3.4/accounts/{id}/notes/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/{tvui_types}/{type_id}/notes/; tvui_types=accounts"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "full-note-text",
+        "empty",
+        "access-denied",
+        "embedded-summary-truncated"
+      ]
+    },
+    {
+      "id": "rux.account.tag.list",
+      "command": "account tag list",
+      "slice": "RUX-04",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires explicit RUX v3.4 profile; no QUX identity or score conversion.",
+      "method": "GET",
+      "path": "/api/v3.4/tagging/account/{id}/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/tagging/{table}/{entity_id}/; TaggingParamsV3_3/table=account (singular)"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "rux.detection.note.list",
+      "command": "detection note list",
+      "slice": "RUX-04",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Read full notes through dedicated route; embedded summaries are truncated. No per-note GET established.",
+      "method": "GET",
+      "path": "/api/v3.4/detections/{id}/notes/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/{tvui_types}/{type_id}/notes/; tvui_types=detections"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "full-note-text",
+        "empty",
+        "access-denied",
+        "embedded-summary-truncated"
+      ]
+    },
+    {
+      "id": "rux.detection.tag.list",
+      "command": "detection tag list",
+      "slice": "RUX-04",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires explicit RUX v3.4 profile; no QUX identity or score conversion.",
+      "method": "GET",
+      "path": "/api/v3.4/tagging/detection/{id}/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/tagging/{table}/{entity_id}/; TaggingParamsV3_3/table=detection (singular)"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "rux.assignment.list",
+      "command": "assignment list",
+      "slice": "RUX-04",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Assignments and resolutions are distinct. Unresolved is not a missing/zero outcome; preserve resource kind.",
+      "method": "GET",
+      "path": "/api/v3.4/assignments/",
+      "effect": "read",
+      "query": [
+        "accounts",
+        "hosts",
+        "assignees",
+        "resolution",
+        "resolved",
+        "created_after"
+      ],
+      "fields": [
+        "id",
+        "host_id",
+        "account_id",
+        "date_resolved"
+      ],
+      "paging": "collection",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/assignments/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "unresolved",
+        "resolved-with-outcome",
+        "next-page",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "rux.assignment-outcome.list",
+      "command": "assignment outcome list",
+      "slice": "RUX-04",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires explicit RUX v3.4 profile; no QUX identity or score conversion.",
+      "method": "GET",
+      "path": "/api/v3.4/assignment_outcomes/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "title",
+        "category",
+        "builtin"
+      ],
+      "paging": "collection",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/assignment_outcomes/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response",
+        "empty",
+        "next-page",
+        "limit-inside-page"
+      ]
+    },
+    {
+      "id": "rux.assignment-outcome.show",
+      "command": "assignment outcome show",
+      "slice": "RUX-04",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires explicit RUX v3.4 profile; no QUX identity or score conversion.",
+      "method": "GET",
+      "path": "/api/v3.4/assignment_outcomes/{id}/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "title",
+        "category",
+        "builtin"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/assignment_outcomes/{id}/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "rux.user.list",
+      "command": "user list",
+      "slice": "RUX-04",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires explicit RUX v3.4 profile; no QUX identity or score conversion.",
+      "method": "GET",
+      "path": "/api/v3.4/users/",
+      "effect": "read",
+      "query": [
+        "page",
+        "page_size",
+        "email",
+        "role",
+        "last_login_gte"
+      ],
+      "fields": [
+        "id",
+        "name"
+      ],
+      "paging": "collection",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/users/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response",
+        "empty",
+        "next-page",
+        "limit-inside-page"
+      ]
+    },
+    {
+      "id": "rux.user.show",
+      "command": "user show",
+      "slice": "RUX-04",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires explicit RUX v3.4 profile; no QUX identity or score conversion.",
+      "method": "GET",
+      "path": "/api/v3.4/users/{id}/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "name"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/users/{id}/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "rux.group.list",
+      "command": "group list",
+      "slice": "RUX-05",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Preserve group kinds and query mappings; embedded membership is not the complete member resource.",
+      "method": "GET",
+      "path": "/api/v3.4/groups/",
+      "effect": "read",
+      "query": [
+        "name",
+        "type",
+        "include_members"
+      ],
+      "fields": [
+        "id",
+        "name",
+        "type"
+      ],
+      "paging": "collection",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/groups/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-05; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response",
+        "empty",
+        "next-page",
+        "limit-inside-page"
+      ]
+    },
+    {
+      "id": "rux.group.show",
+      "command": "group show",
+      "slice": "RUX-05",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires explicit RUX v3.4 profile; no QUX identity or score conversion.",
+      "method": "GET",
+      "path": "/api/v3.4/groups/{id}/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "name",
+        "type"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/groups/{id}/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-05; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "rux.triage-rule.list",
+      "command": "triage rule list",
+      "slice": "RUX-05",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires explicit RUX v3.4 profile; no QUX identity or score conversion.",
+      "method": "GET",
+      "path": "/api/v3.4/rules/",
+      "effect": "read",
+      "query": [
+        "ordering",
+        "page",
+        "page_size",
+        "contains",
+        "fields",
+        "include_templates"
+      ],
+      "fields": [
+        "id",
+        "enabled",
+        "triage_category"
+      ],
+      "paging": "collection",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/rules/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-05; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response",
+        "empty",
+        "next-page",
+        "limit-inside-page"
+      ]
+    },
+    {
+      "id": "rux.triage-rule.show",
+      "command": "triage rule show",
+      "slice": "RUX-05",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires explicit RUX v3.4 profile; no QUX identity or score conversion.",
+      "method": "GET",
+      "path": "/api/v3.4/rules/{rule_id}/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "enabled",
+        "triage_category"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/rules/{rule_id}/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-05; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "rux.group.member.list",
+      "command": "group member list",
+      "slice": "RUX-05",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Members vary by host/account/IP/domain group kind. Preserve kind and use actual member paging; do not rely on the embedded member cap.",
+      "method": "GET",
+      "path": "/api/v3.4/groups/{id}/members/",
+      "effect": "read",
+      "query": [
+        "name",
+        "ordering",
+        "page",
+        "page_size",
+        "is_key_asset"
+      ],
+      "fields": [
+        "id",
+        "name"
+      ],
+      "paging": "collection",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/groups/{id}/members/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-05; no runtime support in INV-01.",
+      "fixtureCases": [
+        "host-member",
+        "account-member",
+        "ip-member",
+        "domain-member",
+        "next-page",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "rux.audit.list",
+      "command": "audit list",
+      "slice": "RUX-03",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Use returned checkpoint; remaining_count is not a stable total. Timestamp bounds are inclusive; no computed event ID.",
+      "method": "GET",
+      "path": "/api/v3.4/events/audits/",
+      "effect": "read",
+      "query": [
+        "from",
+        "limit",
+        "event_timestamp_gte",
+        "event_timestamp_lte",
+        "user_id",
+        "event_object",
+        "event_action",
+        "ordering"
+      ],
+      "fields": [
+        "next_checkpoint",
+        "remaining_count",
+        "events"
+      ],
+      "paging": "checkpoint",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/events/audits/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-03; no runtime support in INV-01.",
+      "fixtureCases": [
+        "returned-checkpoint",
+        "repeated-checkpoint",
+        "mid-batch-limit",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "rux.health.list",
+      "command": "health list",
+      "slice": "RUX-06",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "cache=true is upstream default; cached response includes updated_at. cache=false requests a fresh check; vlans=false omits VLAN detail.",
+      "method": "GET",
+      "path": "/api/v3.4/health/",
+      "effect": "read",
+      "query": [
+        "cache",
+        "vlans"
+      ],
+      "fields": [
+        "network",
+        "system"
+      ],
+      "paging": "none",
+      "permissions": "OAuth resource permission; denied health is an error.",
+      "licence": "Health response varies with Network, AWS and M365 subscriptions.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/health/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "fixtureCases": [
+        "cached",
+        "fresh",
+        "access-denied",
+        "subscription-sensitive-shape"
+      ]
+    },
+    {
+      "id": "rux.health.show",
+      "command": "health show",
+      "slice": "RUX-06",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Check selector must be one of cpu, disk, network, memory, power, sensors, system, hostid, connectivity or trafficdrop. Response fields are conditional on the selected check. cache controls cached/fresh results and vlans controls VLAN inclusion; unsupported checks fail explicitly.",
+      "method": "GET",
+      "path": "/api/v3.4/health/{check_type}/",
+      "effect": "read",
+      "query": [
+        "cache",
+        "vlans"
+      ],
+      "fields": [
+        "cpu",
+        "disk",
+        "network",
+        "memory",
+        "power",
+        "sensors",
+        "system",
+        "hostid",
+        "connectivity",
+        "trafficdrop"
+      ],
+      "paging": "none",
+      "permissions": "OAuth resource permission; denied health is an error.",
+      "licence": "Health shape and check availability depend on enabled products/subscriptions.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/health/{check_type}/; path check_type enum"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "fixtureCases": [
+        "supported-check",
+        "unsupported-check",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "rux.health.event.list",
+      "command": "health event list",
+      "slice": "RUX-06",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Returned checkpoint drives continuation; default batch 500, maximum 1000. remaining_count is not a stable total.",
+      "method": "GET",
+      "path": "/api/v3.4/events/health/",
+      "effect": "read",
+      "query": [
+        "from",
+        "limit",
+        "event_timestamp_gte",
+        "event_timestamp_lte",
+        "ordering",
+        "entity_type",
+        "entity_name",
+        "health_check_name",
+        "status"
+      ],
+      "fields": [
+        "next_checkpoint",
+        "remaining_count",
+        "events"
+      ],
+      "paging": "checkpoint",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/events/health/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "fixtureCases": [
+        "returned-checkpoint",
+        "repeated-checkpoint",
+        "mid-batch-limit",
+        "access-denied",
+        "unsupported-release"
+      ]
+    },
+    {
+      "id": "qux.entity.host.list",
+      "command": "entity list",
+      "slice": "READ-02",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Local type-qualified facade only; --type host is required and selects the hosts route. Mixed listing is unavailable; host/account IDs are distinct.",
+      "method": "GET",
+      "path": "/api/v2.5/hosts",
+      "effect": "read",
+      "query": [
+        "t_score_gte",
+        "c_score_gte",
+        "tags"
+      ],
+      "fields": [
+        "id",
+        "name",
+        "threat",
+        "certainty"
+      ],
+      "paging": "collection",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp30-33"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "type-required",
+        "host-account-same-numeric-id",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "qux.entity.host.show",
+      "command": "entity show",
+      "slice": "READ-02",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Local type-qualified facade only; --type host is required and selects the hosts route. Mixed listing is unavailable; host/account IDs are distinct.",
+      "method": "GET",
+      "path": "/api/v2.5/hosts/{id}",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "name",
+        "threat",
+        "certainty"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp30-33"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "type-required",
+        "host-account-same-numeric-id",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "qux.lockdown.host.list",
+      "command": "lockdown list",
+      "slice": "READ-08",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "--type host selects the route; status only, no lockdown execution.",
+      "method": "GET",
+      "path": "/api/v2.5/lockdown/host",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "host_id",
+        "lock_date",
+        "locked_by",
+        "unlock_date"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "Requires configured Microsoft Defender ATP Lockdown integration; exact licence/role prerequisite not established.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp51-53"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-08; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "qux.entity.account.list",
+      "command": "entity list",
+      "slice": "READ-02",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Local type-qualified facade only; --type account is required and selects the accounts route. Mixed listing is unavailable; host/account IDs are distinct.",
+      "method": "GET",
+      "path": "/api/v2.5/accounts",
+      "effect": "read",
+      "query": [
+        "t_score_gte",
+        "c_score_gte",
+        "tags"
+      ],
+      "fields": [
+        "id",
+        "name",
+        "threat",
+        "certainty"
+      ],
+      "paging": "collection",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp24-27"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "type-required",
+        "host-account-same-numeric-id",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "qux.entity.account.show",
+      "command": "entity show",
+      "slice": "READ-02",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Local type-qualified facade only; --type account is required and selects the accounts route. Mixed listing is unavailable; host/account IDs are distinct.",
+      "method": "GET",
+      "path": "/api/v2.5/accounts/{id}",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "name",
+        "threat",
+        "certainty"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp24-27"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "type-required",
+        "host-account-same-numeric-id",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "qux.lockdown.account.list",
+      "command": "lockdown list",
+      "slice": "READ-08",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "--type account selects the route; status only, no lockdown execution.",
+      "method": "GET",
+      "path": "/api/v2.5/lockdown/account",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "account_id",
+        "lock_date",
+        "locked_by",
+        "unlock_date"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "Requires configured AD Lockdown capability; exact licence/role prerequisite not established.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp51-53"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to READ-08; no runtime support in INV-01.",
+      "fixtureCases": [
+        "success",
+        "access-denied",
+        "malformed-response"
+      ]
+    },
+    {
+      "id": "rux.entity.list",
+      "command": "entity list",
+      "slice": "RUX-02",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Entity route introduced in v3.1; use pinned v3.4. Preserve urgency and importance; host/account IDs remain type-qualified.",
+      "method": "GET",
+      "path": "/api/v3.4/entities/",
+      "effect": "read",
+      "query": [
+        "type",
+        "name",
+        "state",
+        "tags",
+        "ordering",
+        "page",
+        "page_size",
+        "fields",
+        "exclude_fields"
+      ],
+      "fields": [
+        "id",
+        "name",
+        "type",
+        "urgency_score",
+        "importance"
+      ],
+      "paging": "collection",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/entities/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "host-account-same-numeric-id",
+        "urgency-importance",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "rux.entity.show",
+      "command": "entity show",
+      "slice": "RUX-02",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Entity route introduced in v3.1; use pinned v3.4. Preserve urgency and importance; host/account IDs remain type-qualified.",
+      "method": "GET",
+      "path": "/api/v3.4/entities/{id}/",
+      "effect": "read",
+      "query": [
+        "type"
+      ],
+      "fields": [
+        "id",
+        "name",
+        "type",
+        "urgency_score",
+        "importance"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/entities/{id}/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "host-account-same-numeric-id",
+        "urgency-importance",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "rux.lockdown.list",
+      "command": "lockdown list",
+      "slice": "RUX-06",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Type selector differs from QUX's separate routes; status only.",
+      "method": "GET",
+      "path": "/api/v3.4/lockdown/",
+      "effect": "read",
+      "query": [
+        "type"
+      ],
+      "fields": [],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "Response varies with Network, AWS and M365 subscriptions; exact integration permission must be checked.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/lockdown/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "fixtureCases": [
+        "account-status",
+        "host-status",
+        "access-denied",
+        "subscription-sensitive-shape"
+      ]
+    },
+    {
+      "id": "rux.detection.event.list",
+      "command": "detection event list",
+      "slice": "RUX-03",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Follow returned checkpoint; do not infer total or event ID from row count. Detection-event batches default 500/max 1000; scoring limits must be rechecked separately.",
+      "method": "GET",
+      "path": "/api/v3.4/events/detections/",
+      "effect": "read",
+      "query": [
+        "from",
+        "limit",
+        "event_timestamp_gte",
+        "event_timestamp_lte"
+      ],
+      "fields": [
+        "next_checkpoint",
+        "remaining_count",
+        "events"
+      ],
+      "paging": "checkpoint",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/events/detections/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-03; no runtime support in INV-01.",
+      "fixtureCases": [
+        "returned-checkpoint",
+        "repeated-checkpoint",
+        "mid-batch-limit",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "rux.entity.scoring.list",
+      "command": "entity scoring list",
+      "slice": "RUX-03",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "The type query selector is required and must be host or account; omitting it returns HTTP 400. Follow returned checkpoint; do not infer total or event ID from row count. Detection-event batches default 500/max 1000; scoring limits must be rechecked separately.",
+      "method": "GET",
+      "path": "/api/v3.4/events/entity_scoring/",
+      "effect": "read",
+      "query": [
+        "type",
+        "from",
+        "limit",
+        "event_timestamp_gte",
+        "event_timestamp_lte"
+      ],
+      "fields": [
+        "next_checkpoint",
+        "remaining_count",
+        "events"
+      ],
+      "paging": "checkpoint",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/events/entity_scoring/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-03; no runtime support in INV-01.",
+      "fixtureCases": [
+        "type-required",
+        "missing-type-400",
+        "returned-checkpoint",
+        "repeated-checkpoint",
+        "mid-batch-limit",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "rux.health.external-connectors.show",
+      "command": "health show",
+      "slice": "RUX-06",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Generation-specific health check selector; caller must not accept this check on unsupported QUX versions.",
+      "method": "GET",
+      "path": "/api/v3.4/health/external_connectors/",
+      "effect": "read",
+      "query": [
+        "connector_type",
+        "data_type",
+        "live"
+      ],
+      "fields": [
+        "results",
+        "updated_at"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "Shape and availability vary by product subscription and configured connector/EDR integration.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/health/external_connectors/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "fixtureCases": [
+        "subscription-sensitive-shape",
+        "unsupported-check",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "rux.health.external-connectors.details.show",
+      "command": "health show",
+      "slice": "RUX-06",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Generation-specific health check selector; caller must not accept this check on unsupported QUX versions.",
+      "method": "GET",
+      "path": "/api/v3.4/health/external_connectors/details/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "results",
+        "updated_at"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "Shape and availability vary by product subscription and configured connector/EDR integration.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/health/external_connectors/details/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "fixtureCases": [
+        "subscription-sensitive-shape",
+        "unsupported-check",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "rux.health.edr.show",
+      "command": "health show",
+      "slice": "RUX-06",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Generation-specific health check selector; caller must not accept this check on unsupported QUX versions.",
+      "method": "GET",
+      "path": "/api/v3.4/health/edr/",
+      "effect": "read",
+      "query": [
+        "edr_type",
+        "data_type",
+        "live"
+      ],
+      "fields": [
+        "results",
+        "updated_at"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "Shape and availability vary by product subscription and configured connector/EDR integration.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/health/edr/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "fixtureCases": [
+        "subscription-sensitive-shape",
+        "unsupported-check",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "rux.health.edr.details.show",
+      "command": "health show",
+      "slice": "RUX-06",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Generation-specific health check selector; caller must not accept this check on unsupported QUX versions.",
+      "method": "GET",
+      "path": "/api/v3.4/health/edr/details/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "results",
+        "updated_at"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "Shape and availability vary by product subscription and configured connector/EDR integration.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/health/edr/details/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "fixtureCases": [
+        "subscription-sensitive-shape",
+        "unsupported-check",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "rux.health.network-brain.ping.show",
+      "command": "health show",
+      "slice": "RUX-06",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Generation-specific health check selector; caller must not accept this check on unsupported QUX versions.",
+      "method": "GET",
+      "path": "/api/v3.4/health/network_brain/ping/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "results"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "Shape and availability vary by product subscription and configured connector/EDR integration.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/health/network_brain/ping/"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "fixtureCases": [
+        "subscription-sensitive-shape",
+        "unsupported-check",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "qux.oauth.exchange",
+      "command": null,
+      "slice": "AUTH-02",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": "9.1",
+      "constraints": "QUX OAuth requires release 9.1; form grant_type=client_credentials; no documented refresh tokens. Personal token mode remains supported.",
+      "method": "POST",
+      "path": "/api/v2.5/oauth2/token",
+      "effect": "auth-exchange",
+      "query": [],
+      "fields": [
+        "access_token",
+        "expires_in",
+        "token_type"
+      ],
+      "paging": "none",
+      "permissions": "API client creation requires administrative permission; exchange uses Basic client authentication, resources use Bearer.",
+      "licence": "No endpoint-specific licence prerequisite established.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "p3 (release 9.1); pp9-13; official QUX OAuth quick start"
+        },
+        {
+          "source": "qux-oauth",
+          "locator": "Getting Authorized: refresh tokens are not supported; retrieve a new access token after expiry"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to AUTH-02; no runtime support in INV-01.",
+      "fixtureCases": [
+        "returned-expiry",
+        "invalid-client",
+        "redacted-sentinel",
+        "wrong-generation-token-route"
+      ]
+    },
+    {
+      "id": "rux.oauth.exchange",
+      "command": null,
+      "slice": "RUX-01",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "RUX token route is unversioned; expiry and returned refresh fields govern lifecycle. Token response is sensitive authentication material, not ordinary output.",
+      "method": "POST",
+      "path": "/oauth2/token",
+      "effect": "auth-exchange",
+      "query": [],
+      "fields": [
+        "access_token",
+        "expires_in",
+        "token_type",
+        "refresh_token"
+      ],
+      "paging": "none",
+      "permissions": "API client creation requires administrative permission; exchange uses Basic client authentication, resources use Bearer.",
+      "licence": "No endpoint-specific licence prerequisite established.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "POST /oauth2/token; client_credentials and refresh_token responses"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-01; no runtime support in INV-01.",
+      "fixtureCases": [
+        "returned-expiry",
+        "invalid-client",
+        "redacted-sentinel",
+        "wrong-generation-token-route"
+      ]
+    },
+    {
+      "id": "qux.sensor-token.export",
+      "command": null,
+      "slice": "excluded",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "GET can return credentials and must never be authorized as an ordinary read.",
+      "method": "GET",
+      "path": "/api/v2.5/sensor_token",
+      "effect": "credential-export",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp63-64; VAT get_sensor_registration_token"
+        }
+      ],
+      "disposition": "blocked",
+      "rationale": "Credential export is outside the reviewed read surface and blocked from future raw-read access.",
+      "fixtureCases": [
+        "refused-before-http",
+        "no-secret-output"
+      ]
+    },
+    {
+      "id": "qux.aws-credentials.export",
+      "command": null,
+      "slice": "excluded",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "GET can return credentials and must never be authorized as an ordinary read.",
+      "method": "GET",
+      "path": "/api/v2.5/settings/aws_connectors",
+      "effect": "credential-export",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp64-65; credential fields include access_key and secret_key"
+        }
+      ],
+      "disposition": "blocked",
+      "rationale": "Credential export is outside the reviewed read surface and blocked from future raw-read access.",
+      "fixtureCases": [
+        "refused-before-http",
+        "no-secret-output"
+      ]
+    },
+    {
+      "id": "rux.entity.note.list",
+      "command": "entity note list",
+      "slice": "RUX-04",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Entity selector requires type=account or type=host; preserve profile and resource kind. Do not reuse QUX wire selectors.",
+      "method": "GET",
+      "path": "/api/v3.4/entities/{id}/notes/",
+      "effect": "read",
+      "query": [
+        "type"
+      ],
+      "fields": [
+        "id",
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/{tvui_types}/{type_id}/notes/; NotesParamsV3_3/tvui_types=entities and NotesParamsV3_4/type"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "host-account-same-numeric-id",
+        "type-required",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "rux.entity.tag.list",
+      "command": "entity tag list",
+      "slice": "RUX-04",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Entity selector requires type=account or type=host; preserve profile and resource kind. Do not reuse QUX wire selectors.",
+      "method": "GET",
+      "path": "/api/v3.4/tagging/entity/{id}/",
+      "effect": "read",
+      "query": [
+        "type"
+      ],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "GET /api/v3.4/tagging/{table}/{entity_id}/; TaggingParamsV3_3/table=entity and TaggingParamsV3_4/type"
+        }
+      ],
+      "disposition": "planned",
+      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "fixtureCases": [
+        "host-account-same-numeric-id",
+        "type-required",
+        "access-denied"
+      ]
+    }
+  ],
+  "deferredFamilies": [
+    {
+      "id": "qux.long-tail.search",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8 (settings details pp64-67; AD directory pp45-46)"
+        }
+      ]
+    },
+    {
+      "id": "qux.long-tail.campaigns",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8 (settings details pp64-67; AD directory pp45-46)"
+        }
+      ]
+    },
+    {
+      "id": "qux.long-tail.network-stats",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8 (settings details pp64-67; AD directory pp45-46)"
+        }
+      ]
+    },
+    {
+      "id": "qux.long-tail.proxies",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8 (settings details pp64-67; AD directory pp45-46)"
+        }
+      ]
+    },
+    {
+      "id": "qux.long-tail.match",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8 (settings details pp64-67; AD directory pp45-46)"
+        }
+      ]
+    },
+    {
+      "id": "qux.long-tail.feeds",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8 (settings details pp64-67; AD directory pp45-46)"
+        }
+      ]
+    },
+    {
+      "id": "qux.long-tail.settings",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8 (settings details pp64-67; AD directory pp45-46)"
+        }
+      ]
+    },
+    {
+      "id": "qux.long-tail.vsensor",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8 (settings details pp64-67; AD directory pp45-46)"
+        }
+      ]
+    },
+    {
+      "id": "qux.long-tail.ad-group-directory",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8 (settings details pp64-67; AD directory pp45-46)"
+        }
+      ]
+    },
+    {
+      "id": "rux.long-tail.investigations",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 paths; excluded from initial named read tranche"
+        }
+      ]
+    },
+    {
+      "id": "rux.long-tail.connectors",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 paths; excluded from initial named read tranche"
+        }
+      ]
+    },
+    {
+      "id": "rux.long-tail.notifications",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 paths; excluded from initial named read tranche"
+        }
+      ]
+    },
+    {
+      "id": "rux.long-tail.match",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 paths; excluded from initial named read tranche"
+        }
+      ]
+    },
+    {
+      "id": "rux.long-tail.feeds",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 paths; excluded from initial named read tranche"
+        }
+      ]
+    },
+    {
+      "id": "rux.long-tail.saml",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 paths; excluded from initial named read tranche"
+        }
+      ]
+    },
+    {
+      "id": "rux.long-tail.proxies",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 paths; excluded from initial named read tranche"
+        }
+      ]
+    },
+    {
+      "id": "rux.long-tail.unique-host-usage",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 paths; excluded from initial named read tranche"
+        }
+      ]
+    },
+    {
+      "id": "rux.long-tail.ad-group-directory",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "unreviewed",
+      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 paths; excluded from initial named read tranche"
+        }
+      ]
+    },
+    {
+      "id": "qux.later.note-writes",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8; notes in resource sections"
+        }
+      ]
+    },
+    {
+      "id": "qux.later.tag-writes",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8; notes in resource sections"
+        }
+      ]
+    },
+    {
+      "id": "qux.later.assignment-writes",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8; notes in resource sections"
+        }
+      ]
+    },
+    {
+      "id": "qux.later.outcome-writes",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8; notes in resource sections"
+        }
+      ]
+    },
+    {
+      "id": "qux.later.group-writes",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8; notes in resource sections"
+        }
+      ]
+    },
+    {
+      "id": "qux.later.triage-rule-writes",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8; notes in resource sections"
+        }
+      ]
+    },
+    {
+      "id": "qux.later.detection-close-open",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8; notes in resource sections"
+        }
+      ]
+    },
+    {
+      "id": "qux.later.entity-close",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Endpoint overview pp7-8; notes in resource sections"
+        }
+      ]
+    },
+    {
+      "id": "rux.later.note-writes",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 mutation methods in corresponding domain paths"
+        }
+      ]
+    },
+    {
+      "id": "rux.later.tag-writes",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 mutation methods in corresponding domain paths"
+        }
+      ]
+    },
+    {
+      "id": "rux.later.assignment-writes",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 mutation methods in corresponding domain paths"
+        }
+      ]
+    },
+    {
+      "id": "rux.later.outcome-writes",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 mutation methods in corresponding domain paths"
+        }
+      ]
+    },
+    {
+      "id": "rux.later.group-writes",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 mutation methods in corresponding domain paths"
+        }
+      ]
+    },
+    {
+      "id": "rux.later.triage-rule-writes",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 mutation methods in corresponding domain paths"
+        }
+      ]
+    },
+    {
+      "id": "rux.later.detection-close-open",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 mutation methods in corresponding domain paths"
+        }
+      ]
+    },
+    {
+      "id": "rux.later.entity-close",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "disposition": "planned",
+      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 mutation methods in corresponding domain paths"
+        }
+      ]
+    }
+  ]
+}

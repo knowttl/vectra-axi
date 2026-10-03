@@ -1,0 +1,49 @@
+commands:
+  prepare: 'corepack pnpm install --frozen-lockfile --ignore-scripts --config.confirm-modules-purge=false'
+  test: 'corepack pnpm run build && corepack pnpm test'
+  lint: 'corepack pnpm run lint'
+document:
+  instructions: |
+    README.md owns the product introduction, development commands and shipped behavior.
+    docs/design.md owns accepted architecture and upstream evidence.
+    docs/implementation-plan.md owns slice scope, commissioning and acceptance.
+    docs/inventory.md owns the inventory format, evidence rules and disposition meanings.
+    inventory/capabilities.json and src/inventory/schema.ts own capability records and validation.
+    Keep future capabilities explicitly planned; an inventory route never claims runtime support.
+review:
+  path_instructions:
+    - path: "inventory/**"
+      instructions: |
+        Require pinned sources and exact deployment/API/appliance-release constraints.
+        Credential-export GET routes are blocked, never ordinary reads.
+        Long-tail operations remain planned or unreviewed; do not invent coverage percentages.
+        Do not commit proprietary bulk documentation, credentials or customer data.
+    - path: "src/inventory/**"
+      instructions: |
+        Preserve the inventory/disposition contract used by later command catalogues.
+        No operation is enabled merely because upstream documents its route.
+    - path: "src/**/auth*"
+      instructions: |
+        Keep QUX versioned and RUX unversioned OAuth exchanges distinct.
+        Use returned expiry; do not assume QUX refresh-token support or reuse UI login.
+    - path: "src/**/credential*"
+      instructions: |
+        Secrets use references, never argv or emitted values.
+        Validate origin, route, redirects and continuation destinations before attaching credentials.
+        TLS verification is mandatory; only synthetic credentials and .invalid origins in tests.
+    - path: "src/**/redact*"
+      instructions: |
+        Scrub known secrets from results, structured errors, diagnostics and audit metadata.
+        Verify redaction using synthetic sentinel values.
+    - path: "src/**/policy*"
+      instructions: |
+        Read-only includes credentials with upstream write permissions.
+        Unknown operations fail closed; GET alone is not evidence of a safe read.
+    - path: "src/**/write*"
+      instructions: |
+        Named writes require the coordinator, immutable configured scope, preview and execute gates.
+        Durable redacted intent must precede sending; never replay an ambiguous mutation.
+auto_fix:
+  review: 1
+  test: 3
+  lint: 0
