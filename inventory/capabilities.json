@@ -2460,11 +2460,12 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "minimumRelease": null,
-      "constraints": "Follow returned checkpoint; do not infer total or event ID from row count. Detection-event batches default 500/max 1000; scoring limits must be rechecked separately.",
+      "constraints": "The type query selector is required and must be host or account; omitting it returns HTTP 400. Follow returned checkpoint; do not infer total or event ID from row count. Detection-event batches default 500/max 1000; scoring limits must be rechecked separately.",
       "method": "GET",
       "path": "/api/v3.4/events/entity_scoring/",
       "effect": "read",
       "query": [
+        "type",
         "from",
         "limit",
         "event_timestamp_gte",
@@ -2487,6 +2488,8 @@
       "disposition": "planned",
       "rationale": "Deferred to RUX-03; no runtime support in INV-01.",
       "fixtureCases": [
+        "type-required",
+        "missing-type-400",
         "returned-checkpoint",
         "repeated-checkpoint",
         "mid-batch-limit",
