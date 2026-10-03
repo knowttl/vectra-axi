@@ -58,6 +58,9 @@ it.each([{ path: [] }, { path: ["home"] }, { path: ["setup"] }])("provides offli
   const result = invoke([...path, "--help"]);
   expect(result.status).toBe(0);
   expect(result.stdout).toContain("examples[");
+  expect(result.stdout).toContain('"--help": Show concise help; default false');
+  expect(result.stdout).toContain('"--profile <name>": Select a profile by name');
+  expect(result.stdout).toContain("--help cannot be combined with --profile");
   expect(result.stdout).not.toContain("detection list");
   expect(result.stderr).toBe("");
 });
@@ -73,14 +76,12 @@ it("reports a missing profile as a runtime error on stdout", () => {
 it.each([
   ["unknown flag", ["home", "--profil", "lab"], "Unknown flag: --profil"],
   ["unknown flag beside help", ["setup", "--help", "--typo"], "Unknown flag: --typo"],
-  ["conflicting help and selector", ["home", "--profile=lab", "--help"], "cannot be combined"],
   ["missing selector value", ["home", "--profile"], "requires a non-empty value"],
   ["duplicate selector", ["home", "--profile=lab", "--profile=other"], "Repeated flag"],
   ["boolean value", ["setup", "--help=false"], "does not accept a value"],
   ["positional input", ["setup", "extra"], "Unexpected argument"],
   ["literal help", ["setup", "--", "--help"], "Unknown flag: --"],
   ["planned endpoint", ["detection", "list"], "Unknown command: detection"],
-  ["SDK update", ["update"], "Unknown command: update"],
   ["prototype command", ["constructor"], "Unknown command: constructor"],
   ["version combination", ["--version", "--help"], "Unknown flag: --version"],
   ["unknown flag before profile", ["home", "--typo", "--profile=lab"], "Unknown flag: --typo"],
@@ -91,6 +92,41 @@ it.each([
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
   expect(result.stdout).toContain("--help");
   expect(result.stderr).toBe("");
+});
+
+it.each([
+  ["--help", "--profile=lab"],
+  ["--profile=lab", "--help"],
+  ["--help", "--profile", "lab"],
+  ["--profile", "lab", "--help"],
+  ["home", "--help", "--profile=lab"],
+  ["home", "--profile=lab", "--help"],
+  ["home", "--help", "--profile", "lab"],
+  ["home", "--profile", "lab", "--help"],
+  ["setup", "--help", "--profile=lab"],
+  ["setup", "--profile=lab", "--help"],
+  ["setup", "--help", "--profile", "lab"],
+  ["setup", "--profile", "lab", "--help"],
+].map((args) => ({ args })))("rejects mutually exclusive flags for $args", ({ args }) => {
+  const result = invoke(args);
+  expect(result.status).toBe(2);
+  expect(result.stdout).toContain("--help cannot be combined with --profile");
+  expect(result.stdout).toContain("code: VALIDATION_ERROR");
+  expect(result.stderr).toBe("");
+});
+
+it.each([
+  { args: ["update"] },
+  { args: ["update", "--help"] },
+  { args: ["update", "--profile=lab"] },
+])("rejects $args in the catalogue before SDK dispatch", ({ args }) => {
+  const result = invoke(args);
+  expect(result.status).toBe(2);
+  expect(result.stdout).toContain("Unknown command: update");
+  expect(result.stdout).toContain("code: VALIDATION_ERROR");
+  expect(result.stdout).toContain("Available commands: home, setup");
+  expect(result.stderr).toBe("");
+  expect(readdirSync(home)).toEqual([]);
 });
 
 it("answers version without loading the command graph", () => {

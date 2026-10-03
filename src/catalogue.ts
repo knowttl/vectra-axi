@@ -9,11 +9,14 @@ export const inventory = inventorySchema.parse(JSON.parse(readFileSync(
   new URL("../../inventory/capabilities.json", import.meta.url), "utf8",
 )));
 
-type Flag = { kind: "boolean" | "value"; description: string };
+type Flag = { description: string } & (
+  { kind: "boolean" } | { kind: "value"; valueName: string }
+);
 const globals: Readonly<Record<string, Flag>> = {
   help: { kind: "boolean", description: "Show concise help; default false" },
-  profile: { kind: "value", description: "Select a profile by name; none configured in CLI-01" },
+  profile: { kind: "value", valueName: "name", description: "Select a profile by name; none configured in CLI-01" },
 };
+const exclusiveFlags = [["help", "profile"]] as const;
 
 export const catalogue: Readonly<Record<string, {
   description: string;
@@ -32,18 +35,24 @@ export const catalogue: Readonly<Record<string, {
   },
 };
 
+function flagSyntax(name: string, flag: Flag): string {
+  return `--${name}${flag.kind === "value" ? ` <${flag.valueName}>` : ""}`;
+}
+
 export function help(leaf?: string): Record<string, unknown> {
   const entry = leaf === undefined ? undefined : catalogue[leaf];
-  return entry ? {
-    command: `vectra-axi ${leaf}`,
-    description: entry.description,
-    flags: Object.fromEntries(Object.entries(entry.flags).map(([name, flag]) => [`--${name}`, flag.description])),
-    examples: entry.examples,
-  } : {
-    description: DESCRIPTION,
-    commands: Object.fromEntries(Object.entries(catalogue).map(([name, entry]) => [name, entry.description])),
-    flags: { "--help": "Show help", "-v, -V, --version": "Bare flag only; print version" },
-    examples: ["vectra-axi", "vectra-axi setup --help"],
+  return {
+    ...(entry ? {
+      command: `vectra-axi ${leaf}`,
+      description: entry.description,
+    } : {
+      description: DESCRIPTION,
+      commands: Object.fromEntries(Object.entries(catalogue).map(([name, entry]) => [name, entry.description])),
+      version: "-v, -V, --version: Bare flag only; print version",
+    }),
+    flags: Object.fromEntries(Object.entries(entry?.flags ?? globals).map(([name, flag]) => [flagSyntax(name, flag), flag.description])),
+    combinations: exclusiveFlags.map(([left, right]) => `--${left} cannot be combined with --${right}`),
+    examples: entry?.examples ?? ["vectra-axi", "vectra-axi setup --help"],
   };
 }
 
@@ -55,7 +64,7 @@ export function parseInvocation(argv: readonly string[]): {
   const entry = Object.hasOwn(catalogue, leaf) ? catalogue[leaf]! : undefined;
   const usage = (message: string): never => {
     throw new AxiError(message, "VALIDATION_ERROR", [
-      entry ? `Valid flags for ${leaf}: ${Object.keys(entry.flags).map((name) => `--${name}`).join(", ")}`
+      entry ? `Valid flags for ${leaf}: ${Object.entries(entry.flags).map(([name, flag]) => flagSyntax(name, flag)).join(", ")}`
         : `Available commands: ${Object.keys(catalogue).join(", ")}`,
       `Run vectra-axi${entry ? ` ${leaf}` : ""} --help`,
     ]);
@@ -80,6 +89,8 @@ export function parseInvocation(argv: readonly string[]): {
     }
     flags.set(name!, value);
   }
-  if (flags.has("help") && flags.size > 1) usage("--help cannot be combined with --profile");
+  for (const [left, right] of exclusiveFlags) {
+    if (flags.has(left) && flags.has(right)) usage(`--${left} cannot be combined with --${right}`);
+  }
   return { leaf, flags, help: flags.has("help"), home };
 }

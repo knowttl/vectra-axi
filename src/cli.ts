@@ -12,7 +12,6 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     home: () => state(),
     commands: {
       shell: () => invocation.help ? help(invocation.home ? undefined : invocation.leaf) : state(),
-      update: () => { throw new AxiError("Unknown command: update", "VALIDATION_ERROR"); },
     },
   });
 
