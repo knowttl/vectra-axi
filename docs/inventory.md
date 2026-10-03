@@ -76,9 +76,6 @@ The PDF revision history establishes OAuth in appliance 9.1, group members in 9.
 The separately updated guide change log adds detection EDR context in 9.8.
 Individual QUX health checks require the view-health permission; denials must never appear as healthy empty results.
 
-Repository tooling follows az-axi main at `17125324b00cc97e0445d1a7eb170553f707ce9c`, separately pinned from the older design research reference.
-CI builds, tests and type-checks on Ubuntu and Windows with Node 22 and 24.
-The Vitest setup denies fetch and TCP/TLS connections; inventory tests read only repository data and synthetic invalid variants.
-No acceptance step requires Vectra connectivity or credentials.
-The `.no-mistakes.yaml` preparation command uses frozen, non-interactive pnpm installation with lifecycle scripts disabled.
-GitHub Actions is currently disabled by the account billing outage; local validation is the available evidence until checks can run.
+The inventory's `az-tooling` source pins the tooling reference separately from the older design research reference.
+See [README.md](../README.md) for development requirements and commands, [the CI workflow](../.github/workflows/ci.yml) for the validation matrix and [.no-mistakes.yaml](../.no-mistakes.yaml) for gate commands.
+The [Vitest network guard](../test/deny-network.ts) owns automated network denial.
