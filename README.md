@@ -218,7 +218,7 @@ Audit windows use the same 8 MiB ceiling for the reserialized decoded body; exce
 Failed windows return no partial rows or cursor; the CLI never truncates an oversized window and claims completion.
 Empty windows succeed with an explicit zero message.
 On a RUX v3.4 cloud profile the same leaf reads one `events/audits` batch per call through the session, never the collection reader: `--from` starts at a returned checkpoint, server-side `--event-timestamp-gte` and `--event-timestamp-lte` bounds pass through for the server to apply inclusively, and `--limit` (default 100) is an output window only, never the upstream batch limit.
-`--start-date`/`--end-date` expand to whole-day timestamp bounds (`00:00:00Z` to `23:59:59Z` on the respective days); the pair must come together and cannot combine with explicit timestamp filters.
+`--start-date`/`--end-date` expand to whole-day timestamp bounds (`00:00:00Z` to `23:59:59.999999Z` on the respective days); the pair must come together and cannot combine with explicit timestamp filters.
 Output returns the batch's integer `next_checkpoint` as `checkpoint` (including zero) and `remaining_count` as returned, never as a stable total; a `--limit` inside a batch returns an opaque `--cursor` that replays the same checkpoint and skips returned rows.
 Resume with the same profile and filters, without `--from`; the cursor preserves the window size across successive resumes unless an explicit `--limit` replaces it.
 The cursor binds the batch's ordered event contents; changed rows on replay fail with `RESPONSE_INVALID` before applying the saved offset, with guidance to reissue the read without `--cursor`.

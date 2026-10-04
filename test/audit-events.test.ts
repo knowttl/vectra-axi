@@ -102,7 +102,7 @@ it.each([
   expect(resumed.failed).toBe(false);
   expect(new URL(urls[1]!).searchParams.get("from")).toBe(checkpointFlag === "cursor" ? "1" : String(checkpoint));
   expect(new URL(urls[1]!).searchParams.get("event_timestamp_gte")).toBe("2026-10-01T00:00:00Z");
-  expect(new URL(urls[1]!).searchParams.get("event_timestamp_lte")).toBe("2026-10-02T23:59:59Z");
+  expect(new URL(urls[1]!).searchParams.get("event_timestamp_lte")).toBe("2026-10-02T23:59:59.999999Z");
 });
 
 it("reads one event batch and returns its checkpoint for continuation", async () => {
@@ -135,7 +135,7 @@ it("expands a date pair to whole-day timestamp bounds", async () => {
     flags(["audit", "list", "--profile", "cloud", "--from", "1",
       "--start-date", "2026-10-01", "--end-date", "2026-10-02"]));
   expect(url).toBe("https://fixture.invalid/api/v3.4/events/audits/"
-    + "?from=1&event_timestamp_gte=2026-10-01T00%3A00%3A00Z&event_timestamp_lte=2026-10-02T23%3A59%3A59Z");
+    + "?from=1&event_timestamp_gte=2026-10-01T00%3A00%3A00Z&event_timestamp_lte=2026-10-02T23%3A59%3A59.999999Z");
   expect(result.output).toMatchObject({ checkpoint: 3, remaining_count: 4, count: "1 audit events" });
 });
 
@@ -149,7 +149,31 @@ it("expands a single-day pair to the full day", async () => {
     flags(["audit", "list", "--profile", "cloud",
       "--start-date", "2026-10-01", "--end-date", "2026-10-01"]));
   expect(url).toBe("https://fixture.invalid/api/v3.4/events/audits/"
-    + "?event_timestamp_gte=2026-10-01T00%3A00%3A00Z&event_timestamp_lte=2026-10-01T23%3A59%3A59Z");
+    + "?event_timestamp_gte=2026-10-01T00%3A00%3A00Z&event_timestamp_lte=2026-10-01T23%3A59%3A59.999999Z");
+});
+
+it.each([
+  { end: "2026-10-01", nextDay: "2026-10-02" },
+  { end: "2026-10-02", nextDay: "2026-10-03" },
+])("includes the final fractional second of end day $end", async ({ end, nextDay }) => {
+  const finalEvents = [
+    { ...firstEvent, event_timestamp: `${end}T23:59:59.500000Z` },
+    { ...secondEvent, event_timestamp: `${end}T23:59:59.999999Z` },
+  ];
+  const nextDayEvent = { id: 303, event_timestamp: `${nextDay}T00:00:00.000000Z` };
+  const transport = cloudFixture((url) => {
+    const bounds = new URL(url).searchParams;
+    const lower = bounds.get("event_timestamp_gte")!.replace("Z", ".000000Z");
+    const upper = bounds.get("event_timestamp_lte")!;
+    const normalizedUpper = upper.includes(".") ? upper : upper.replace("Z", ".000000Z");
+    return batch([...finalEvents, nextDayEvent].filter((event) =>
+      event.event_timestamp >= lower && event.event_timestamp <= normalizedUpper), 3);
+  });
+  const result = await runAuditEventList(cloudSession(transport),
+    flags(["audit", "list", "--profile", "cloud",
+      "--start-date", "2026-10-01", "--end-date", end]));
+  expect(result.failed).toBe(false);
+  expect(result.output.events).toEqual(finalEvents);
 });
 
 it("passes explicit timestamp bounds through for the server to apply inclusively", async () => {

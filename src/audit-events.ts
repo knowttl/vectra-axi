@@ -63,7 +63,7 @@ export function auditEventQuery(flags: ReadonlyMap<string, string | boolean>): R
   const start = flags.has("start-date") ? parseAuditDay(flags.get("start-date"), "start-date") : undefined;
   const end = flags.has("end-date") ? parseAuditDay(flags.get("end-date"), "end-date") : undefined;
   if (start !== undefined) query.event_timestamp_gte = `${start}T00:00:00Z`;
-  if (end !== undefined) query.event_timestamp_lte = `${end}T23:59:59Z`;
+  if (end !== undefined) query.event_timestamp_lte = `${end}T23:59:59.999999Z`;
   for (const [flag, wire] of [["event-timestamp-gte", "event_timestamp_gte"],
     ["event-timestamp-lte", "event_timestamp_lte"]] as const) {
     const value = nonemptyFlag(flags, flag, wire);
