@@ -200,6 +200,10 @@ RUX-03 (part a) selects the detection-event feed, built on RUX-02 and READ-07; e
 Its [offline acceptance suite](../test/detection-events.test.ts) covers returned checkpoints, mid-batch cursors, repeated-checkpoint refusal, remaining-count reporting, cancellation and denied reads.
 The [packaged cloud journey](../test/cli.test.ts) exercises detection event reads with synthetic profiles and transport fixtures.
 See [README.md](../README.md) for shipped behavior and the [capability records](../inventory/capabilities.json) for exact routes and dispositions.
+RUX-03 (part b) selects the entity-scoring feed, built on RUX-02 and part a's checkpoint grammar with the required type selector; audit events remain the separate part c.
+Its [offline acceptance suite](../test/entity-scoring.test.ts) covers the required type selector, returned checkpoints, mid-batch cursors, repeated-checkpoint refusal, remaining-count reporting, cancellation and denied reads.
+The [packaged cloud journey](../test/cli.test.ts) exercises entity scoring reads with synthetic profiles and transport fixtures.
+See [README.md](../README.md) for shipped behavior and the [capability records](../inventory/capabilities.json) for exact routes and dispositions.
 RUX audit date convenience flags expand to the documented timestamp contract, while lower-level supported time filters remain explicit.
 
 RUX-04/05/06 migrate the remaining named read families through the session interface, with new fixtures rather than assuming QUX response compatibility.
