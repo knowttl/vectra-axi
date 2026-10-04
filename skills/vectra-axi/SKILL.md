@@ -10,10 +10,8 @@ Agent-ergonomic CLI for Vectra AI, read-only by default. On-prem Quadrant UX
 (QUX v2.5) SOC reads through token-efficient TOON output. No business write
 leaf exists: every mutation is refused by the read-only session.
 
-Run `vectra-axi doctor` first. It checks each configured profile with one
-bounded detection read and reports configuration, connectivity,
-authentication and access failures. It never tries passwords, signs in
-interactively or enables writes.
+Run `vectra-axi doctor` first.
+See [README release guidance](../../README.md#release) for its profile selection, bounded checks and recovery behavior.
 
 ## Orientation
 
@@ -22,9 +20,7 @@ are `native` (implemented by a vectra-axi handler) and its Vectra effect is
 `read` for every leaf. The list below records current executable leaves; it
 makes no coverage claim for other Vectra operations. See `docs/coverage.md`
 for the per-operation disposition records.
-`docs/coverage.md` and this table are generated from the same catalogue and
-inventory sources; `node scripts/generate-docs.mjs --check` fails when they
-are stale.
+See [README release guidance](../../README.md#release) for generating and checking this table and the coverage record.
 
 <!-- command-registry:start -->
 | Command | Capability | Vectra effect |
@@ -92,17 +88,13 @@ and a synthetic example; it writes nothing.
 
 ```sh
 vectra-axi setup                  # selected config path and example
-vectra-axi doctor                 # one bounded read per profile
+vectra-axi doctor                 # explicit profile check
 vectra-axi detection list --profile <name> --state active --limit 100
 ```
 
 ## Selecting a profile
 
-Native commands accept `--profile <name>` (also `--profile=<name>`), and it
-never counts as an unknown flag. Selection follows `--profile`,
-`VECTRA_AXI_PROFILE`, configured `defaultProfile`, then the sole configured
-profile. Without profiles, local views show unconfigured state; read leaves
-report `PROFILE_REQUIRED` with setup guidance.
+See [README.md](../../README.md) for profile flags, selection precedence and missing-profile errors, including doctor's multiple-profile behavior.
 
 ## Safety
 

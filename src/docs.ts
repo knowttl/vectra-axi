@@ -7,8 +7,8 @@ import { catalogue, inventory } from "./catalogue.js";
 // writes both files; test/generated.test.ts fails when they are stale.
 
 // One row per executable leaf in catalogue order, matching the home-view
-// help. Every leaf is implemented by a vectra-axi handler (native) and
-// performs a local or QUX read through the read-only session.
+// help. Every leaf is implemented by a vectra-axi handler (native).
+// Local views stay offline; QUX reads use the read-only session.
 export function skillCommandTable(): string {
   return [
     "| Command | Capability | Vectra effect |",

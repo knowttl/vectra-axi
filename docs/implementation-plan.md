@@ -180,6 +180,9 @@ PACK-01 assembles the first useful release, with installation instructions, expl
 Doctor performs only documented bounded reads when explicitly invoked; it never tries passwords, signs in interactively or enables writes.
 Its offline acceptance covers configuration errors and synthetic connectivity/auth/access failures.
 Release notes must call this the supported QUX SOC read surface, not full Vectra coverage.
+See [README release guidance](../README.md#release) for shipped installation, doctor and documentation-generation behavior.
+The [doctor suite](../test/doctor.test.ts) covers profile selection, bounded token/OAuth checks, failure reporting, redaction and context-preserving hints through synthetic transport.
+The [packaged suite](../test/cli.test.ts) covers doctor success, denied access, invalid configuration and offline help; the [generated-record suite](../test/generated.test.ts) checks skill-table and coverage freshness against their sources.
 
 ## Phase 3: adopt RUX without making callers relearn the tool
 
