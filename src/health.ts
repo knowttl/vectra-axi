@@ -43,8 +43,8 @@ export const RUX_HEALTH_NETWORK_BRAIN_PING_OPERATION = "rux.health.network-brain
 export const RUX_HEALTH_SUBSCRIPTION_NOTE =
   "Health response varies with Network, AWS and M365 subscriptions";
 
-// Accepted health selectors from the qux.health.show inventory record
-// (guide pp46-51; VAT get_health_check). Anything else fails before HTTP.
+// Shared check_type selectors from the qux.health.show inventory record
+// (guide pp46-51; VAT get_health_check). RUX fixed-route selectors are separate.
 export const HEALTH_CHECKS = ["cpu", "disk", "network", "memory", "power", "sensors",
   "system", "hostid", "connectivity", "trafficdrop"] as const;
 export type HealthCheck = (typeof HEALTH_CHECKS)[number];
@@ -220,8 +220,8 @@ export async function runHealthShow(
   healthShowFlags(flags);
   const check = healthCheck(flags);
   const rux = session.profile.kind === "rux";
-  // Connector/EDR checks name fixed v3.4 routes with no path parameter
-  // and no freshness flags, so the body passes through with the
+  // RUX-only checks name fixed v3.4 routes with no cache or vlans parameter,
+  // so the body passes through with the
   // subscription note and no cached/fresh claim. Denial propagates.
   if (isRuxConnectorCheck(check)) {
     if (!rux) {

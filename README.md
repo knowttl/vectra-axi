@@ -226,7 +226,7 @@ On a RUX v3.4 cloud profile the same snapshot leaves read the v3.4 health routes
 Cloud snapshot output carries a subscription-variance help note because v3.4 responses vary with Network, AWS and M365 subscriptions; QUX snapshot output is unchanged.
 On a cloud profile `health show` also accepts five RUX-only selectors on their own fixed routes: `--check external-connectors` reads `/api/v3.4/health/external_connectors/` with server-side `--connector-type`, `--data-type` and `--live` filters, and `--check edr` reads `/api/v3.4/health/edr/` with `--edr-type`, `--data-type` and `--live`.
 The corresponding `--check external-connectors-details` and `--check edr-details` routes accept their respective type filter and `--live`, while `--check network-brain-ping` takes no query parameters.
-Mismatched filter or freshness flags fail before HTTP.
+All five selectors reject `--fresh` and `--no-vlans`; mismatched filters and `--data-type` on details routes also fail before profile selection or HTTP.
 These selectors refuse QUX profiles with generation guidance; their bodies pass through untouched with the subscription-variance note and no cached/fresh claim.
 `health event list` reads one QUX `events/health` batch per call through the session: `--from` starts at a returned checkpoint, server-side `--ordering`, `--status`, `--health-check-name`, `--entity-type` and `--entity-name` filters pass through, and `--limit` (default 100) is an output window only, never the upstream batch limit.
 The event feed requires appliance release 9.4 or later when the profile declares one; without a declared release the read proceeds and the server decides.
