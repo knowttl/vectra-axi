@@ -6,8 +6,7 @@ import type { Session } from "./session.js";
 // READ-02: QUX host/account lookup plus the type-qualified entity facade, on
 // the CORE-01 session and CORE-02 collection reader. QUX has no merged entity
 // route: `entity list`/`entity show` require --type and run through the
-// matching qux.entity.* inventory record, whose conservative query/field
-// subset (no min/max ID, no state) the session enforces. An untyped entity
+// matching qux.entity.* inventory record. An untyped entity
 // read is rejected rather than merged into an artificial cross-kind ranking.
 // Numeric IDs stay scoped to their kind: host 7 and account 7 are different
 // objects. Display fields keep the QUX threat/certainty labels while CLI
@@ -83,15 +82,16 @@ function showOperation(kind: EntityKind, facade: boolean): string {
 
 // Validates list flags and maps them to server-side query keys. Score filters
 // keep their display names at the CLI while the wire uses t_score/c_score.
-// The facade subset carries no min/max ID: the catalogue declares no such
-// flags there, and the session rejects them against the entity record.
 // Resuming with --cursor replays the bound query, so the original filters
 // must be repeated; resume() rejects a changed query context explicitly.
-export function listQuery(flags: ReadonlyMap<string, string | boolean>): ListQuery {
+export function listQuery(flags: ReadonlyMap<string, string | boolean>, facade = false): ListQuery {
   const query: ListQuery = {};
   const tags = flags.get("tags");
   if (tags !== undefined) query.tags = tags;
   for (const [flag, key] of [["min-id", "min_id"], ["max-id", "max_id"]] as const) {
+    if (facade && flags.has(flag)) {
+      invalid(`Unsupported entity filter: ${key}`, "Use host list or account list for min/max ID filters");
+    }
     const parsed = integerFlag(flags, flag);
     if (parsed !== undefined) query[key] = parsed;
   }
@@ -180,7 +180,7 @@ export type LeafResult = { output: Record<string, unknown>; failed: boolean };
 async function runKindList(
   session: Session, flags: ReadonlyMap<string, string | boolean>, kind: EntityKind, facade: boolean,
 ): Promise<LeafResult> {
-  const query = listQuery(flags);
+  const query = listQuery(flags, facade);
   const limit = listLimit(flags);
   const fields = listFields(flags, facade);
   const cursor = flags.get("cursor");

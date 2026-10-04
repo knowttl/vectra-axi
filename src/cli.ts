@@ -59,7 +59,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     const facade = leaf.startsWith("entity ");
     if (facade) entityKind(flags);
     if (leaf.endsWith(" list")) {
-      entityListQuery(flags);
+      entityListQuery(flags, facade);
       entityListLimit(flags);
       entityListFields(flags, facade);
     } else {

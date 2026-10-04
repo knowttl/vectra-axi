@@ -145,16 +145,75 @@ it.each([
   expect(calls).toBe(0);
 });
 
-it("rejects facade min/max ID filters against the entity record before any HTTP call", async () => {
+it.each([
+  ["host", "min-id", "min_id"],
+  ["host", "max-id", "max_id"],
+  ["account", "min-id", "min_id"],
+  ["account", "max-id", "max_id"],
+])("rejects facade %s %s filters before any HTTP call", async (kind, flag, key) => {
   let calls = 0;
   const transport: RawTransport = async () => {
     calls += 1;
     return listPage([]);
   };
   await expect(runEntityList(session(transport),
-    new Map([["type", "host"], ["min-id", "1"]])))
-    .rejects.toMatchObject({ code: "VALIDATION_ERROR", message: expect.stringContaining("min_id") });
+    new Map([["type", kind], [flag, "1"]])))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR", message: expect.stringContaining(key) });
   expect(calls).toBe(0);
+});
+
+it.each([
+  ["host", "min_id", "hosts", host],
+  ["host", "max_id", "hosts", host],
+  ["account", "min_id", "accounts", account],
+  ["account", "max_id", "accounts", account],
+])("collects %s facade pages using %s continuation", async (kind, key, route, row) => {
+  const initial = `https://fixture.invalid/api/v2.5/${route}?t_score_gte=5`;
+  const next = `/api/v2.5/${route}?t_score_gte=5&${key}=2`;
+  const urls: string[] = [];
+  const transport: RawTransport = async (request) => {
+    urls.push(request.url);
+    if (request.url === initial) return listPage([row(1)], { count: 2, next });
+    if (request.url === `https://fixture.invalid${next}`) return listPage([row(2)], { count: 2 });
+    throw new Error(`Unexpected synthetic request: ${request.url}`);
+  };
+  const result = await runEntityList(session(transport),
+    flags(["entity", "list", "--type", kind, "--threat-gte", "5"]));
+  expect(result).toMatchObject({ failed: false, output: {
+    type: kind, total: 2, complete: true, entities: [{ id: 1 }, { id: 2 }],
+  } });
+  expect(result.output).not.toHaveProperty("cursor");
+  expect(urls).toEqual([initial, `https://fixture.invalid${next}`]);
+});
+
+it.each([
+  ["host", "min_id", "hosts", host],
+  ["host", "max_id", "hosts", host],
+  ["account", "min_id", "accounts", account],
+  ["account", "max_id", "accounts", account],
+])("resumes %s facade pages using %s continuation", async (kind, key, route, row) => {
+  const initial = `https://fixture.invalid/api/v2.5/${route}?t_score_gte=5`;
+  const next = `https://fixture.invalid/api/v2.5/${route}?t_score_gte=5&${key}=2`;
+  const urls: string[] = [];
+  const transport: RawTransport = async (request) => {
+    urls.push(request.url);
+    if (request.url === initial) return listPage([row(1)], { count: 2, next });
+    if (request.url === next) return listPage([row(2)], { count: 2 });
+    throw new Error(`Unexpected synthetic request: ${request.url}`);
+  };
+  const owned = session(transport);
+  const first = await runEntityList(owned,
+    flags(["entity", "list", "--type", kind, "--threat-gte", "5", "--limit", "1"]));
+  expect(first).toMatchObject({ failed: false, output: {
+    complete: true, entities: [{ id: 1 }], cursor: expect.any(String),
+  } });
+  const second = await runEntityList(owned,
+    flags(["entity", "list", "--type", kind, "--threat-gte", "5", "--cursor", first.output.cursor as string]));
+  expect(second).toMatchObject({ failed: false, output: {
+    type: kind, total: 2, complete: true, entities: [{ id: 2 }],
+  } });
+  expect(second.output).not.toHaveProperty("cursor");
+  expect(urls).toEqual([initial, next]);
 });
 
 it("keeps QUX threat/certainty labels and null scores instead of zero", async () => {
@@ -334,6 +393,9 @@ it.each([
   [["host", "show", "--limit", "5"], "Unknown flag: --limit"],
   [["account", "list", "--id", "7"], "Unknown flag: --id"],
   [["entity", "list", "--type", "host", "--min-id", "1"], "Unknown flag: --min-id"],
+  [["entity", "list", "--type", "host", "--max-id", "1"], "Unknown flag: --max-id"],
+  [["entity", "list", "--type", "account", "--min-id", "1"], "Unknown flag: --min-id"],
+  [["entity", "list", "--type", "account", "--max-id", "1"], "Unknown flag: --max-id"],
   [["entity", "list", "--type", "host", "--state", "active"], "Unknown flag: --state"],
 ])("rejects %s at the catalogue", (argv, message) => {
   expect(() => parseInvocation(argv)).toThrow(expect.objectContaining({
