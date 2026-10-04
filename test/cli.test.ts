@@ -625,7 +625,7 @@ it.each([
   ["boolean value", ["setup", "--help=false"], "does not accept a value"],
   ["positional input", ["setup", "extra"], "Unexpected argument"],
   ["literal help", ["setup", "--", "--help"], "Unknown flag: --"],
-  ["planned endpoint", ["health", "show"], "Unknown command: health show"],
+  ["planned endpoint", ["lockdown", "show"], "Unknown command: lockdown show"],
   ["prototype command", ["constructor"], "Unknown command: constructor"],
   ["version combination", ["--version", "--help"], "Unknown flag: --version"],
   ["unknown flag before profile", ["home", "--typo", "--profile=lab"], "Unknown flag: --typo"],
@@ -668,7 +668,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, host note list, host tag list, account note list, account tag list, assignment list, assignment outcome list, assignment outcome show, user list, user show, audit list, health list, health show, health event list");
+  expect(result.stdout).toContain("Available commands: home, setup, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, host note list, host tag list, account note list, account tag list, assignment list, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });
