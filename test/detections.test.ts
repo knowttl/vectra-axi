@@ -589,14 +589,18 @@ it("refuses an on-prem cursor on a cloud profile", async () => {
   expect(calls).toBe(1);
 });
 
-it("surfaces an embedded note summary without a note-list hint on a cloud profile", async () => {
+// RUX-04 serves detection notes on cloud profiles, so the embedded
+// summary points at the note list leaf there too.
+it("surfaces an embedded note summary with a note-list hint on a cloud profile", async () => {
   const transport = cloudFixture(() => ({
     status: 200, bodyText: JSON.stringify({ ...ruxDetection(1), description: "cloud detail", note: "cloud summary" }),
   }));
   const result = await runDetectionShow(cloudSession(transport),
     flags(["detection", "show", "--profile", "cloud", "--id", "1"]));
   expect(result.output).toMatchObject({ profile: "cloud", id: 1, note_summary: "cloud summary" });
-  expect(result.output).not.toHaveProperty("help");
+  expect(result.output.help).toEqual([
+    "Run `vectra-axi detection note list --profile cloud --id 1` for the full notes",
+  ]);
 });
 
 it("reports a denied cloud detection window with its error and cursor", async () => {

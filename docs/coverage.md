@@ -8,9 +8,9 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 
 ## Counts
 
-- named: 51
+- named: 57
 - reviewed-raw: 0
-- planned: 27
+- planned: 21
 - blocked: 2
 - unavailable: 0
 - deprecated: 0
@@ -56,14 +56,14 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 | `rux.detection.show` | detection show | RUX-02 | rux 3.4 | none | named |
 | `rux.host.list` | host list | RUX-02 | rux 3.4 | collection | named |
 | `rux.host.show` | host show | RUX-02 | rux 3.4 | none | named |
-| `rux.host.note.list` | host note list | RUX-04 | rux 3.4 | none | planned |
-| `rux.host.tag.list` | host tag list | RUX-04 | rux 3.4 | none | planned |
+| `rux.host.note.list` | host note list | RUX-04 | rux 3.4 | none | named |
+| `rux.host.tag.list` | host tag list | RUX-04 | rux 3.4 | none | named |
 | `rux.account.list` | account list | RUX-02 | rux 3.4 | collection | named |
 | `rux.account.show` | account show | RUX-02 | rux 3.4 | none | named |
-| `rux.account.note.list` | account note list | RUX-04 | rux 3.4 | none | planned |
-| `rux.account.tag.list` | account tag list | RUX-04 | rux 3.4 | none | planned |
-| `rux.detection.note.list` | detection note list | RUX-04 | rux 3.4 | none | planned |
-| `rux.detection.tag.list` | detection tag list | RUX-04 | rux 3.4 | none | planned |
+| `rux.account.note.list` | account note list | RUX-04 | rux 3.4 | none | named |
+| `rux.account.tag.list` | account tag list | RUX-04 | rux 3.4 | none | named |
+| `rux.detection.note.list` | detection note list | RUX-04 | rux 3.4 | none | named |
+| `rux.detection.tag.list` | detection tag list | RUX-04 | rux 3.4 | none | named |
 | `rux.assignment.list` | assignment list | RUX-04 | rux 3.4 | collection | planned |
 | `rux.assignment-outcome.list` | assignment outcome list | RUX-04 | rux 3.4 | collection | planned |
 | `rux.assignment-outcome.show` | assignment outcome show | RUX-04 | rux 3.4 | none | planned |

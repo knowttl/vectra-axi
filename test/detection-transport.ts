@@ -151,6 +151,12 @@ const responses = new Map<string, { status: number; body: unknown }>([
     { status: 200, body: { results: [ruxRule7], count: 1 } }],
   ["https://fixture.invalid/api/v3.4/rules/7/",
     { status: 200, body: ruxRule7 }],
+  // RUX-04 (part a): the packaged cloud journey reads notes through the
+  // plural tvui_types segment and tags through the singular table segment.
+  ["https://fixture.invalid/api/v3.4/detections/1/notes/",
+    { status: 200, body: [{ id: 1, note: "synthetic cloud note" }] }],
+  ["https://fixture.invalid/api/v3.4/tagging/host/7/",
+    { status: 200, body: { status: "success", tag_id: 9, tags: ["synthetic-cloud-tag"] } }],
 ]);
 
 // WRITE-01: the gated host tag replace sends one PATCH after its preview

@@ -18,9 +18,11 @@ const token = "fake-token-SENTINEL";
 
 beforeEach(() => {
   process.env.SENTINEL_TOKEN = token;
+  process.env.CLOUD_SECRET = "fake-cloud-secret-SENTINEL";
 });
 afterEach(() => {
   delete process.env.SENTINEL_TOKEN;
+  delete process.env.CLOUD_SECRET;
   rmSync(path, { force: true });
 });
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
@@ -92,6 +94,180 @@ it.each(["detection", "host", "account"] as const)("reads %s tags through the ve
     tags: ["synthetic-a", "synthetic-b"],
     complete: true,
   } });
+});
+
+// RUX-04 (part a): the same note/tag leaves run against the documented
+// v3.4 routes on a cloud profile. Notes select the plural tvui_types
+// segment; tags select the singular table segment. The fake answers the
+// named unversioned exchange, then delegates resource GETs to the per-test
+// responder.
+const ruxProfile = {
+  kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth",
+  clientId: "synthetic-client", secretEnv: "CLOUD_SECRET",
+};
+
+function cloudSession(transport: RawTransport): Session {
+  writeFileSync(path, JSON.stringify({ profiles: { cloud: ruxProfile } }));
+  const loaded = loadConfig(path, new SecretRedactor());
+  return createSession({ profile: selectProfile(loaded.config, "cloud"), configPath: loaded.path,
+    redactor: new SecretRedactor(), transport });
+}
+
+function cloudFixture(respond: (url: string) => { status: number; bodyText: string }): RawTransport {
+  return async (request) => {
+    if (request.method === "POST") {
+      expect(request.url).toBe("https://fixture.invalid/oauth2/token");
+      return { status: 200, bodyText: JSON.stringify(
+        { access_token: "fake-cloud-access-token", token_type: "Bearer", expires_in: 3600 }) };
+    }
+    return respond(request.url);
+  };
+}
+
+const ruxRoutes: Record<NoteKind, { notes: string; tags: string }> = {
+  detection: {
+    notes: "https://fixture.invalid/api/v3.4/detections/42/notes/",
+    tags: "https://fixture.invalid/api/v3.4/tagging/detection/42/",
+  },
+  host: {
+    notes: "https://fixture.invalid/api/v3.4/hosts/7/notes/",
+    tags: "https://fixture.invalid/api/v3.4/tagging/host/7/",
+  },
+  account: {
+    notes: "https://fixture.invalid/api/v3.4/accounts/7/notes/",
+    tags: "https://fixture.invalid/api/v3.4/tagging/account/7/",
+  },
+};
+
+it.each(["detection", "host", "account"] as const)("reads %s notes through the v3.4 notes route on a cloud profile", async (kind) => {
+  const id = ids[kind];
+  let url = "";
+  const transport = cloudFixture((next) => {
+    url = next;
+    // The v3.4 NoteSerializerV2_2 carries author/timestamp metadata the
+    // recorded id/note projection ignores.
+    return { status: 200, bodyText: JSON.stringify([
+      { id: 1, note: "synthetic cloud note", created_by: "synthetic-analyst",
+        date_created: "2026-10-01T12:00:00Z", date_modified: "2026-10-01T12:00:00Z",
+        modified_by: "synthetic-analyst" },
+    ]) };
+  });
+  const result = await runNoteList(cloudSession(transport),
+    flags([kind, "note", "list", "--profile", "cloud", "--id", id]), kind);
+  expect(url).toBe(ruxRoutes[kind].notes);
+  expect(result).toEqual({ failed: false, output: {
+    profile: "cloud",
+    type: kind,
+    id: Number(id),
+    count: "1 notes",
+    notes: [{ id: 1, note: "synthetic cloud note" }],
+    complete: true,
+  } });
+});
+
+it.each(["detection", "host", "account"] as const)("reads %s tags through the v3.4 tagging route on a cloud profile", async (kind) => {
+  const id = ids[kind];
+  let url = "";
+  const transport = cloudFixture((next) => {
+    url = next;
+    // The v3.4 TaggingSerializerV3 carries status/tag_id metadata the
+    // shared tags decoder ignores.
+    return { status: 200, bodyText: JSON.stringify(
+      { status: "success", tag_id: 9, tags: ["synthetic-cloud-tag"] }) };
+  });
+  const result = await runTagList(cloudSession(transport),
+    flags([kind, "tag", "list", "--profile", "cloud", "--id", id]), kind);
+  expect(url).toBe(ruxRoutes[kind].tags);
+  expect(result).toEqual({ failed: false, output: {
+    profile: "cloud",
+    type: kind,
+    id: Number(id),
+    count: "1 tags",
+    tags: ["synthetic-cloud-tag"],
+    complete: true,
+  } });
+});
+
+it("keeps same-numeric-ID host and account notes on distinct v3.4 routes", async () => {
+  const seen: string[] = [];
+  const transport = cloudFixture((next) => {
+    seen.push(next);
+    return { status: 200, bodyText: next.includes("/notes/") ? "[]" : JSON.stringify({ tags: [] }) };
+  });
+  const owned = cloudSession(transport);
+  await runNoteList(owned, flags(["host", "note", "list", "--profile", "cloud", "--id", "7"]), "host");
+  await runNoteList(owned, flags(["account", "note", "list", "--profile", "cloud", "--id", "7"]), "account");
+  await runTagList(owned, flags(["host", "tag", "list", "--profile", "cloud", "--id", "7"]), "host");
+  await runTagList(owned, flags(["account", "tag", "list", "--profile", "cloud", "--id", "7"]), "account");
+  expect(seen).toEqual([
+    "https://fixture.invalid/api/v3.4/hosts/7/notes/",
+    "https://fixture.invalid/api/v3.4/accounts/7/notes/",
+    "https://fixture.invalid/api/v3.4/tagging/host/7/",
+    "https://fixture.invalid/api/v3.4/tagging/account/7/",
+  ]);
+});
+
+it("points the cloud --full hint at the cloud note list leaf", async () => {
+  const text = "synthetic cloud note ".repeat(100);
+  const transport = cloudFixture(() => ({
+    status: 200, bodyText: JSON.stringify([{ id: 1, note: text }]),
+  }));
+  const result = await runNoteList(cloudSession(transport),
+    flags(["detection", "note", "list", "--profile", "cloud", "--id", "42"]), "detection");
+  expect(result.output.help).toEqual([
+    "Run `vectra-axi detection note list --profile cloud --id 42 --full` for the complete returned text",
+  ]);
+});
+
+it("states explicit empty cloud notes and tags with their owner", async () => {
+  const transport = cloudFixture((next) => ({
+    status: 200, bodyText: next.includes("/notes/") ? "[]" : JSON.stringify({ tags: [] }),
+  }));
+  const owned = cloudSession(transport);
+  const notes = await runNoteList(owned,
+    flags(["host", "note", "list", "--profile", "cloud", "--id", "7"]), "host");
+  expect(notes.output).toMatchObject({ profile: "cloud", count: "0 notes", notes: "0 notes found for host 7" });
+  const tags = await runTagList(owned,
+    flags(["host", "tag", "list", "--profile", "cloud", "--id", "7"]), "host");
+  expect(tags.output).toMatchObject({ profile: "cloud", count: "0 tags", tags: "0 tags found for host 7" });
+});
+
+it("surfaces denied cloud note and tag reads as access errors", async () => {
+  const seen: string[] = [];
+  const transport = cloudFixture((next) => {
+    seen.push(next);
+    return { status: 403, bodyText: "{}" };
+  });
+  const owned = cloudSession(transport);
+  await expect(runNoteList(owned,
+    flags(["account", "note", "list", "--profile", "cloud", "--id", "7"]), "account"))
+    .rejects.toMatchObject({ code: "ACCESS_DENIED" });
+  await expect(runTagList(owned,
+    flags(["account", "tag", "list", "--profile", "cloud", "--id", "7"]), "account"))
+    .rejects.toMatchObject({ code: "ACCESS_DENIED" });
+  expect(seen).toEqual([
+    "https://fixture.invalid/api/v3.4/accounts/7/notes/",
+    "https://fixture.invalid/api/v3.4/tagging/account/7/",
+  ]);
+});
+
+it.each([
+  ["notes envelope", "{\"notes\":[]}", "expected a list of notes"],
+  ["note entry", '[{"id":1,"note":7}]', "valid note fields"],
+  ["tags envelope", "[]", "tags list"],
+  ["tags entry", '{"tags":["ok",7]}', "tags list"],
+])("rejects a malformed cloud %s before shaping output", async (_name, bodyText, message) => {
+  const transport = cloudFixture(() => ({ status: 200, bodyText }));
+  const owned = cloudSession(transport);
+  if (_name.startsWith("note")) {
+    await expect(runNoteList(owned,
+      flags(["detection", "note", "list", "--profile", "cloud", "--id", "42"]), "detection"))
+      .rejects.toMatchObject({ code: "RESPONSE_INVALID", message: expect.stringContaining(message) });
+  } else {
+    await expect(runTagList(owned,
+      flags(["detection", "tag", "list", "--profile", "cloud", "--id", "42"]), "detection"))
+      .rejects.toMatchObject({ code: "RESPONSE_INVALID", message: expect.stringContaining(message) });
+  }
 });
 
 it("previews long note text with its total and a --full hint for the returned text", async () => {
