@@ -13,7 +13,6 @@ The event feed is paging:checkpoint and owns its own single-batch runner for the
 The session exposes the profile's declared `applianceRelease` on its snapshot so release-gated leaves can refuse before HTTP; absent means undeclared and the read proceeds.
 [cli.ts](../src/cli.ts) validates flags before profile selection, enforces the release gate after selection, and dispatches the leaves from one runner.
 [catalogue.ts](../src/catalogue.ts) owns leaf grammar and command resolution; see [README.md](../README.md) for the shipped authorization policy.
-RUX-06 maps the same leaves to the v3.4 health, check and event routes on a cloud profile: subscription-sensitive bodies pass through untouched, integer event checkpoints normalize to their decimal form, and a cursor binds its generation's operation so a QUX cursor never resumes a cloud read.
 
 ## Convention for later read slices
 

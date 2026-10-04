@@ -221,7 +221,7 @@ The cursor binds the batch's ordered event contents; changed rows or ordering on
 Drain the batch with `--cursor` before using `--from <checkpoint>` to continue past it.
 A batch that returns rows without advancing past the requested checkpoint fails with `CONTINUATION_REPEATED`, retaining only the requested window after the saved offset and counting those retained rows, instead of handing back a resumption loop.
 Empty batches succeed with an explicit zero; denial reports `ACCESS_DENIED` with exit 1, never an empty healthy result.
-On a cloud profile `health event list` reads `/api/v3.4/events/health/` with the same flags: integer `next_checkpoint` values normalize to their decimal form, so `--from` must be a positive integer on RUX and a non-numeric checkpoint fails before HTTP.
+On a cloud profile `health event list` reads `/api/v3.4/events/health/` with the same flags: integer `next_checkpoint` values normalize to their decimal form, and `--from` must contain only decimal digits on RUX; a non-numeric checkpoint fails before HTTP.
 No appliance-release gate applies to cloud profiles, which carry no declared release.
 A cursor binds its generation's operation: a QUX cursor never resumes a cloud read and vice versa.
 No health or configuration mutation exists: the session authorizes read GETs only.
@@ -230,9 +230,9 @@ No health or configuration mutation exists: the session authorizes read GETs onl
 On a RUX v3.4 cloud profile `lockdown list` reads the single `/api/v3.4/lockdown/` endpoint with its `type` selector, including the RUX-only `traffic` value.
 Cloud rows carry `entity_id` and `type` with optional lock metadata; unrecorded fields are stripped, nulls stay null, and output carries a subscription-variance help note because v3.4 responses vary with Network, AWS and M365 subscriptions.
 `--type traffic` on a QUX profile fails before HTTP with guidance to use a cloud profile; QUX host and account routes and output are unchanged.
-Host rows carry `host_id` and account rows carry `account_id`, each with optional `lock_date`, `locked_by` and `unlock_date` metadata; null fields stay null, unrecorded fields are stripped, and malformed bodies report `RESPONSE_INVALID`.
+QUX host rows carry `host_id` and account rows carry `account_id`, each with optional `lock_date`, `locked_by` and `unlock_date` metadata; null fields stay null, unrecorded fields are stripped, and malformed bodies report `RESPONSE_INVALID` on either generation.
 Status only: no lockdown execution leaf exists, and the session authorizes read GETs only.
-Host status requires the configured Microsoft Defender ATP Lockdown integration and account status requires the configured AD Lockdown capability; the selected kind's prerequisite is repeated in the output help.
+QUX host status requires the configured Microsoft Defender ATP Lockdown integration and account status requires the configured AD Lockdown capability; the selected kind's prerequisite is repeated in the output help.
 Empty status succeeds with an explicit zero message; permission or licence denial reports `ACCESS_DENIED` with exit 1, never an empty healthy result.
 
 For OAuth, replace `auth` and `tokenEnv` with `"auth": "oauth"`, `"clientId": "synthetic-client"` and `"secretEnv": "VECTRA_LAB_SECRET"`.
