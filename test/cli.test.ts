@@ -729,6 +729,42 @@ it("reads cloud detection events through the packaged RUX journey", () => {
   ]);
 });
 
+it("reads cloud entity scoring events through the packaged RUX journey", () => {
+  const config = join(scratch, "rux-scoring.json");
+  const trace = join(scratch, "rux-scoring-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { cloud: { kind: "rux", origin: "https://fixture.invalid",
+    apiVersion: "3.4", auth: "oauth", clientId: "synthetic-client", secretEnv: "RUX_SECRET" } } }));
+  const fixtureEnv = { RUX_SECRET: "packaged-rux-secret", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "cloud", "--type", "host"];
+  const events = invoke(["entity", "scoring", "list", ...context], fixtureEnv);
+  expect(events.status).toBe(0);
+  expect(events.stderr).toBe("");
+  expect(decode(events.stdout)).toMatchObject({ profile: "cloud", checkpoint: 2,
+    remaining_count: 1, count: "2 entity scoring events", complete: true,
+    events: [{ id: 301, entity_id: 7 }, { id: 302, entity_id: 7 }] });
+  expect(events.stdout).toContain(`vectra-axi entity scoring list --config ${config} --profile cloud --type host --from 2`);
+  const continued = invoke(["entity", "scoring", "list", ...context, "--from", "2"], fixtureEnv);
+  expect(continued.status).toBe(0);
+  expect(continued.stderr).toBe("");
+  expect(continued.stdout).toContain("0 entity scoring events found");
+  expect(continued.stdout).toContain("complete: true");
+  const denied = invoke(["entity", "scoring", "list", ...context, "--from", "9"], fixtureEnv);
+  expect(denied.status).toBe(1);
+  expect(denied.stderr).toBe("");
+  expect(denied.stdout).toContain("code: ACCESS_DENIED");
+  expect(denied.stdout).not.toContain("packaged-rux-secret");
+  expect(denied.stdout).not.toContain("packaged-rux-token");
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/events/entity_scoring/?type=host" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/events/entity_scoring/?type=host&from=2" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/events/entity_scoring/?type=host&from=9" },
+  ]);
+});
+
 it("reads cloud groups, members and triage rules through the packaged RUX journey", () => {
   const config = join(scratch, "rux-groups.json");
   const trace = join(scratch, "rux-groups-requests.jsonl");
@@ -1021,6 +1057,7 @@ it.each([
   { path: ["triage", "rule", "show"], flag: '"--id <id>"' },
   { path: ["lockdown", "list"], flag: '"--type <kind>"' },
   { path: ["detection", "event", "list"], flag: '"--from <checkpoint>"' },
+  { path: ["entity", "scoring", "list"], flag: '"--type <kind>"' },
   { path: ["doctor"], flag: '"--profile <name>"' },
 ])("provides offline help for $path", ({ path, flag }) => {
   const result = invoke([...path, "--help"]);
@@ -1090,6 +1127,10 @@ it.each([
   { args: ["account", "note", "list", "--id", "7", "--limit", "5"], message: "Unknown flag: --limit" },
   { args: ["detection", "event", "list", "--limit", "0"], message: "--limit must be a positive integer" },
   { args: ["detection", "event", "list", "--from", "1", "--cursor", "opaque"], message: "cannot combine --from with --cursor" },
+  { args: ["entity", "scoring", "list"], message: "entity scoring list requires --type" },
+  { args: ["entity", "scoring", "list", "--type", "sensor"], message: "--type must be one of" },
+  { args: ["entity", "scoring", "list", "--type", "host", "--limit", "0"], message: "--limit must be a positive integer" },
+  { args: ["entity", "scoring", "list", "--type", "host", "--from", "1", "--cursor", "opaque"], message: "cannot combine --from with --cursor" },
   { args: ["lockdown", "list"], message: "lockdown list requires --type" },
   { args: ["lockdown", "list", "--type", "sensor"], message: "--type must be one of" },
 ].flatMap(({ args, message }) => [
@@ -1112,6 +1153,7 @@ it.each([
   ["unknown list flag", ["detection", "list", "--stat", "active"], "Unknown flag: --stat"],
   ["unknown show flag", ["detection", "show", "--id", "7", "--limit", "5"], "Unknown flag: --limit"],
   ["unknown detection event flag", ["detection", "event", "list", "--state", "active"], "Unknown flag: --state"],
+  ["unknown entity scoring flag", ["entity", "scoring", "list", "--state", "active"], "Unknown flag: --state"],
   ["unknown doctor flag", ["doctor", "--limit", "1"], "Unknown flag: --limit"],
   ["unknown assignment flag", ["assignment", "list", "--state", "active"], "Unknown flag: --state"],
   ["unknown outcome leaf", ["assignment", "outcome", "delete"], "Unknown command: assignment outcome delete"],
@@ -1187,7 +1229,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, doctor, detection list, detection show, detection event list, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, detection tag set, detection note add, host note list, host tag list, host tag set, host note add, account note list, account tag list, account tag set, account note add, assignment list, assignment set, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
+  expect(result.stdout).toContain("Available commands: home, setup, doctor, detection list, detection show, detection event list, host list, host show, account list, account show, entity list, entity show, entity scoring list, detection note list, detection tag list, detection tag set, detection note add, host note list, host tag list, host tag set, host note add, account note list, account tag list, account tag set, account note add, assignment list, assignment set, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
   expect(result.stdout).toContain("lockdown list");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);

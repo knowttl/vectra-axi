@@ -38,6 +38,7 @@ See [README release guidance](../../README.md#release) for generating and checki
 | `vectra-axi account show` | native | read |
 | `vectra-axi entity list` | native | read |
 | `vectra-axi entity show` | native | read |
+| `vectra-axi entity scoring list` | native | read |
 | `vectra-axi detection note list` | native | read |
 | `vectra-axi detection tag list` | native | read |
 | `vectra-axi detection tag set` | native | write |

@@ -196,9 +196,13 @@ Cloud IDs remain scoped to their cloud profile; no implicit on-prem identity tra
 Split RUX-03 into detection events and entity-scoring/audit events if the response or filter mappings require separate review.
 Each feed uses its returned checkpoint and tests a non-advancing checkpoint, inclusive boundary behavior, remaining-count interpretation and an output limit inside an upstream batch.
 Never infer the next event ID from the number of returned events.
-RUX-03 (part a) selects the detection-event feed, built on RUX-02 and READ-07; entity-scoring and audit events remain separate planned follow-ups.
+RUX-03 (part a) selects the detection-event feed, built on RUX-02 and READ-07.
 Its [offline acceptance suite](../test/detection-events.test.ts) covers returned checkpoints, mid-batch cursors, repeated-checkpoint refusal, remaining-count reporting, cancellation and denied reads.
 The [packaged cloud journey](../test/cli.test.ts) exercises detection event reads with synthetic profiles and transport fixtures.
+See [README.md](../README.md) for shipped behavior and the [capability records](../inventory/capabilities.json) for exact routes and dispositions.
+RUX-03 (part b) selects the entity-scoring feed, built on RUX-02 and part a's checkpoint grammar with the required type selector; audit events remain the separate part c.
+Its [offline acceptance suite](../test/entity-scoring.test.ts) covers the required type selector, returned checkpoints, mid-batch cursors, repeated-checkpoint refusal, remaining-count reporting, cancellation and denied reads.
+The [packaged cloud journey](../test/cli.test.ts) exercises entity scoring reads with synthetic profiles and transport fixtures.
 See [README.md](../README.md) for shipped behavior and the [capability records](../inventory/capabilities.json) for exact routes and dispositions.
 RUX audit date convenience flags expand to the documented timestamp contract, while lower-level supported time filters remain explicit.
 
