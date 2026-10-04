@@ -93,6 +93,28 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi detection show --profile <name> --id 42 --full",
     ],
   },
+  "detection event list": {
+    // RUX-03 (part a): checkpoint feed on the RUX v3.4 detection-events
+    // route. --from starts at a returned checkpoint, --limit is an output
+    // window only (never the upstream batch limit), timestamp bounds pass
+    // through for the server to apply inclusively, and --cursor resumes a
+    // capped batch with its original filters. remaining_count is reported
+    // as returned, never as a stable total.
+    description: "List RUX detection events from a checkpoint with a bounded window",
+    flags: {
+      ...globals,
+      from: { kind: "value", valueName: "checkpoint", description: "Start from a returned checkpoint; default reads the earliest batch" },
+      limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
+      "event-timestamp-gte": { kind: "value", valueName: "timestamp", description: "Filter by server-side minimum event timestamp, applied inclusively" },
+      "event-timestamp-lte": { kind: "value", valueName: "timestamp", description: "Filter by server-side maximum event timestamp, applied inclusively" },
+      cursor: { kind: "value", valueName: "cursor", description: "Resume a capped batch with its original filters" },
+    },
+    examples: [
+      "vectra-axi detection event list --profile <name>",
+      "vectra-axi detection event list --profile <name> --from <checkpoint> --limit 20",
+      "vectra-axi detection event list --profile <name> --cursor <cursor>",
+    ],
+  },
   "host list": {
     // Filter flags cover the inventory's conservative qux.host.list query
     // subset. Score filters keep QUX display names while mapping to the wire

@@ -199,8 +199,9 @@ it("drives an OAuth profile through the named exchange before the bounded read",
   }
 });
 
-// RUX-01: cloud profiles have no reads yet, so doctor runs the named OAuth
-// exchange alone and points at RUX-02 instead of a detection journey.
+// RUX-01 established the exchange-only cloud check; RUX-02 and later
+// slices shipped resource reads, so the check stays the named OAuth
+// exchange alone while its strings point at the shipped leaves.
 const ruxProfile = { kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth",
   clientId: "synthetic-client", secretEnv: "CLOUD_SECRET" };
 const ruxSecret = "fake-cloud-secret-SENTINEL";
@@ -236,9 +237,9 @@ it("checks a cloud profile with the named exchange and no resource read", async 
       check: expect.stringContaining("rux.oauth.exchange"),
       count: "1 of 1 profiles ok",
       profiles: [{ name: "cloud", auth: "oauth", check: expect.stringContaining("rux.oauth.exchange"),
-        status: "ok", detail: "OAuth exchange ok; RUX reads arrive in RUX-02" }],
+        status: "ok", detail: "OAuth exchange ok" }],
       complete: true,
-      help: [expect.stringContaining("RUX reads arrive in RUX-02")],
+      help: [expect.stringContaining("detection list")],
     } });
     expect(JSON.stringify(result.output)).not.toContain(ruxSecret);
     expect(JSON.stringify(result.output)).not.toContain(ruxAccess);

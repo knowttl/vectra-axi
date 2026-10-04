@@ -626,7 +626,7 @@ it("checks a cloud profile through the packaged doctor exchange", () => {
   expect(result.status).toBe(0);
   expect(result.stderr).toBe("");
   expect(decode(result.stdout)).toMatchObject({ count: "1 of 1 profiles ok", complete: true,
-    profiles: [{ name: "cloud", auth: "oauth", status: "ok", detail: "OAuth exchange ok; RUX reads arrive in RUX-02" }] });
+    profiles: [{ name: "cloud", auth: "oauth", status: "ok", detail: "OAuth exchange ok" }] });
   expect(result.stdout).not.toContain("packaged-rux-secret");
   expect(result.stdout).not.toContain("packaged-rux-token");
   expect(result.stdout).not.toContain("packaged-rux-refresh");
@@ -686,6 +686,42 @@ it("reads cloud detections, entities, notes and tags through the packaged RUX jo
     { method: "GET", url: "https://fixture.invalid/api/v3.4/detections/1/notes/" },
     { method: "POST", url: "https://fixture.invalid/oauth2/token" },
     { method: "GET", url: "https://fixture.invalid/api/v3.4/tagging/host/7/" },
+  ]);
+});
+
+it("reads cloud detection events through the packaged RUX journey", () => {
+  const config = join(scratch, "rux-events.json");
+  const trace = join(scratch, "rux-events-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { cloud: { kind: "rux", origin: "https://fixture.invalid",
+    apiVersion: "3.4", auth: "oauth", clientId: "synthetic-client", secretEnv: "RUX_SECRET" } } }));
+  const fixtureEnv = { RUX_SECRET: "packaged-rux-secret", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "cloud"];
+  const events = invoke(["detection", "event", "list", ...context], fixtureEnv);
+  expect(events.status).toBe(0);
+  expect(events.stderr).toBe("");
+  expect(decode(events.stdout)).toMatchObject({ profile: "cloud", checkpoint: 2,
+    remaining_count: 1, count: "2 detection events", complete: true,
+    events: [{ id: 201, detection_id: 1 }, { id: 202, detection_id: 1 }] });
+  expect(events.stdout).toContain(`vectra-axi detection event list --config ${config} --profile cloud --from 2`);
+  const continued = invoke(["detection", "event", "list", ...context, "--from", "2"], fixtureEnv);
+  expect(continued.status).toBe(0);
+  expect(continued.stderr).toBe("");
+  expect(continued.stdout).toContain("0 detection events found");
+  expect(continued.stdout).toContain("complete: true");
+  const denied = invoke(["detection", "event", "list", ...context, "--from", "9"], fixtureEnv);
+  expect(denied.status).toBe(1);
+  expect(denied.stderr).toBe("");
+  expect(denied.stdout).toContain("code: ACCESS_DENIED");
+  expect(denied.stdout).not.toContain("packaged-rux-secret");
+  expect(denied.stdout).not.toContain("packaged-rux-token");
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/events/detections/" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/events/detections/?from=2" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/events/detections/?from=9" },
   ]);
 });
 
@@ -965,6 +1001,7 @@ it.each([
   { path: ["triage", "rule", "list"], flag: '"--contains <text>"' },
   { path: ["triage", "rule", "show"], flag: '"--id <id>"' },
   { path: ["lockdown", "list"], flag: '"--type <kind>"' },
+  { path: ["detection", "event", "list"], flag: '"--from <checkpoint>"' },
   { path: ["doctor"], flag: '"--profile <name>"' },
 ])("provides offline help for $path", ({ path, flag }) => {
   const result = invoke([...path, "--help"]);
@@ -1032,6 +1069,8 @@ it.each([
   { args: ["detection", "note", "list", "--id", "0"], message: "--id must be a positive integer" },
   { args: ["host", "tag", "list", "--id", "1.5"], message: "--id must be a positive integer" },
   { args: ["account", "note", "list", "--id", "7", "--limit", "5"], message: "Unknown flag: --limit" },
+  { args: ["detection", "event", "list", "--limit", "0"], message: "--limit must be a positive integer" },
+  { args: ["detection", "event", "list", "--from", "1", "--cursor", "opaque"], message: "cannot combine --from with --cursor" },
   { args: ["lockdown", "list"], message: "lockdown list requires --type" },
   { args: ["lockdown", "list", "--type", "sensor"], message: "--type must be one of" },
 ].flatMap(({ args, message }) => [
@@ -1053,6 +1092,7 @@ it.each([
   ["bare detection group", ["detection"], "Unknown command: detection"],
   ["unknown list flag", ["detection", "list", "--stat", "active"], "Unknown flag: --stat"],
   ["unknown show flag", ["detection", "show", "--id", "7", "--limit", "5"], "Unknown flag: --limit"],
+  ["unknown detection event flag", ["detection", "event", "list", "--state", "active"], "Unknown flag: --state"],
   ["unknown doctor flag", ["doctor", "--limit", "1"], "Unknown flag: --limit"],
   ["unknown assignment flag", ["assignment", "list", "--state", "active"], "Unknown flag: --state"],
   ["unknown outcome leaf", ["assignment", "outcome", "delete"], "Unknown command: assignment outcome delete"],
@@ -1128,7 +1168,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, doctor, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, detection tag set, detection note add, host note list, host tag list, host tag set, host note add, account note list, account tag list, account tag set, account note add, assignment list, assignment set, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
+  expect(result.stdout).toContain("Available commands: home, setup, doctor, detection list, detection show, detection event list, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, detection tag set, detection note add, host note list, host tag list, host tag set, host note add, account note list, account tag list, account tag set, account note add, assignment list, assignment set, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
   expect(result.stdout).toContain("lockdown list");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
