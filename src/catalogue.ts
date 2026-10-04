@@ -538,9 +538,13 @@ export const catalogue: Readonly<Record<string, {
     description: "Show one QUX or RUX health check snapshot with cached or fresh semantics",
     flags: {
       ...globals,
-      check: { kind: "value", valueName: "name", description: "Health check to show: cpu, disk, network, memory, power, sensors, system, hostid, connectivity or trafficdrop (required)" },
-      fresh: { kind: "boolean", description: "Request a fresh check (sends cache=false); default uses the cached snapshot" },
-      "no-vlans": { kind: "boolean", description: "Omit VLAN detail (sends vlans=false); default includes it" },
+      check: { kind: "value", valueName: "name", description: "Health check to show: cpu, disk, network, memory, power, sensors, system, hostid, connectivity or trafficdrop; external-connectors, external-connectors-details, edr, edr-details or network-brain-ping on a RUX profile only (required)" },
+      fresh: { kind: "boolean", description: "Request a fresh check (sends cache=false); default uses the cached snapshot; rejected on RUX connector/EDR checks" },
+      "no-vlans": { kind: "boolean", description: "Omit VLAN detail (sends vlans=false); default includes it; rejected on RUX connector/EDR checks" },
+      "connector-type": { kind: "value", valueName: "type", description: "Filter by server-side connector type; --check external-connectors on a RUX profile only" },
+      "edr-type": { kind: "value", valueName: "type", description: "Filter by server-side EDR type; --check edr on a RUX profile only" },
+      "data-type": { kind: "value", valueName: "type", description: "Filter by server-side data type; --check external-connectors or edr on a RUX profile only" },
+      live: { kind: "boolean", description: "Request live connector/EDR data; --check external-connectors or edr on a RUX profile only" },
     },
     examples: [
       "vectra-axi health show --profile <name> --check cpu",

@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, expect, it } from "vitest";
 import { parseInvocation } from "../src/catalogue.js";
-import { healthCheck, healthEventFlags, healthEventRelease, runHealthEventList, runHealthList,
+import { healthCheck, healthEventFlags, healthEventRelease, healthShowFlags, runHealthEventList, runHealthList,
   runHealthShow } from "../src/health.js";
 import { createSession, type RawTransport, type Session } from "../src/session.js";
 import { loadConfig, selectProfile } from "../src/profiles.js";
@@ -622,6 +622,141 @@ it("reports cloud event denial as a thrown error rather than an empty result", a
   await expect(runHealthEventList(cloudSession(transport),
     flags(["health", "event", "list"]))).rejects.toMatchObject({
     code: "ACCESS_DENIED",
+  });
+});
+
+// RUX-06b: the five generation-specific connector/EDR/network-brain checks
+// share the `health show` leaf on cloud profiles only. Fixtures carry
+// subscription-shaped keys on purpose and the runner passes them through
+// with the variance note and no cached/fresh claim: these routes declare
+// no freshness parameters.
+it("reads connector health through the v3.4 route with filter passthrough", async () => {
+  let url = "";
+  const connectorBody = { results: [{ connector: "synthetic-connector", status: "ok" }],
+    updated_at: "2026-10-01T12:00:00Z" };
+  const transport = cloudFixture((seen) => {
+    url = seen;
+    return body(connectorBody);
+  });
+  const result = await runHealthShow(cloudSession(transport), flags(["health", "show",
+    "--check", "external-connectors", "--connector-type", "synthetic-connector",
+    "--data-type", "synthetic-data", "--live"]));
+  expect(url).toBe("https://fixture.invalid/api/v3.4/health/external_connectors/"
+    + "?connector_type=synthetic-connector&data_type=synthetic-data&live=true");
+  expect(result).toEqual({ failed: false, output: {
+    profile: "cloud",
+    check: "external-connectors",
+    health: connectorBody,
+    help: ["Health response varies with Network, AWS and M365 subscriptions"],
+  } });
+  expect(result.output).not.toHaveProperty("cached");
+});
+
+it("reads EDR health through the v3.4 route with filter passthrough", async () => {
+  let url = "";
+  const edrBody = { results: [{ edr: "synthetic-edr", status: "degraded" }] };
+  const transport = cloudFixture((seen) => {
+    url = seen;
+    return body(edrBody);
+  });
+  const result = await runHealthShow(cloudSession(transport), flags(["health", "show",
+    "--check", "edr", "--edr-type", "synthetic-edr"]));
+  expect(url).toBe("https://fixture.invalid/api/v3.4/health/edr/?edr_type=synthetic-edr");
+  expect(result).toEqual({ failed: false, output: {
+    profile: "cloud",
+    check: "edr",
+    health: edrBody,
+    help: ["Health response varies with Network, AWS and M365 subscriptions"],
+  } });
+});
+
+it.each([
+  ["external-connectors-details", "https://fixture.invalid/api/v3.4/health/external_connectors/details/"],
+  ["edr-details", "https://fixture.invalid/api/v3.4/health/edr/details/"],
+  ["network-brain-ping", "https://fixture.invalid/api/v3.4/health/network_brain/ping/"],
+] as const)("reads %s through its fixed v3.4 route with no query", async (check, expected) => {
+  let url = "";
+  const transport = cloudFixture((seen) => {
+    url = seen;
+    return body({ results: [{ status: "ok" }] });
+  });
+  const result = await runHealthShow(cloudSession(transport),
+    flags(["health", "show", "--check", check]));
+  expect(url).toBe(expected);
+  expect(result).toMatchObject({ failed: false, output: { profile: "cloud", check } });
+  expect(result.output).not.toHaveProperty("cached");
+});
+
+it.each([
+  "external-connectors", "external-connectors-details", "edr", "edr-details", "network-brain-ping",
+] as const)("refuses connector check %s on a QUX profile before any HTTP", async (check) => {
+  let calls = 0;
+  const transport: RawTransport = async () => {
+    calls += 1;
+    return body({});
+  };
+  await expect(runHealthShow(session(transport),
+    flags(["health", "show", "--check", check]))).rejects.toMatchObject({
+    code: "VALIDATION_ERROR",
+    message: expect.stringContaining(`Health check '${check}' requires a RUX v3.4 cloud profile`),
+  });
+  expect(calls).toBe(0);
+});
+
+it.each([
+  ["connector filter on a base check", ["health", "show", "--check", "cpu", "--connector-type", "x"],
+    "--connector-type applies only to the RUX connector/EDR checks"],
+  ["connector filter on the EDR check", ["health", "show", "--check", "edr", "--connector-type", "x"],
+    "--connector-type applies only to --check external-connectors"],
+  ["EDR filter on the connector check", ["health", "show", "--check", "external-connectors", "--edr-type", "x"],
+    "--edr-type applies only to --check edr"],
+  ["data filter on a details check", ["health", "show", "--check", "edr-details", "--data-type", "x"],
+    "--data-type applies only to --check external-connectors or --check edr"],
+  ["live flag on the ping check", ["health", "show", "--check", "network-brain-ping", "--live"],
+    "--live applies only to --check external-connectors or --check edr"],
+  ["fresh flag on a connector check", ["health", "show", "--check", "edr", "--fresh"],
+    "uses its fixed upstream query"],
+  ["VLAN flag on a connector check", ["health", "show", "--check", "external-connectors", "--no-vlans"],
+    "uses its fixed upstream query"],
+] as const)("rejects %s before any HTTP", async (_name, argv, message) => {
+  let calls = 0;
+  const owned = cloudSession(cloudFixture(() => {
+    calls += 1;
+    return body({});
+  }));
+  await expect(runHealthShow(owned, flags([...argv]))).rejects.toMatchObject({
+    code: "VALIDATION_ERROR", message: expect.stringContaining(message),
+  });
+  expect(calls).toBe(0);
+});
+
+it.each([
+  ["denied", { status: 403, bodyText: "{}" }, "ACCESS_DENIED"],
+  ["malformed", { status: 200, bodyText: "[]" }, "RESPONSE_INVALID"],
+] as const)("reports a %s connector response as an error rather than an empty healthy result", async (
+  _name, response, code,
+) => {
+  const transport = cloudFixture(() => response);
+  const owned = cloudSession(transport);
+  await expect(runHealthShow(owned,
+    flags(["health", "show", "--check", "edr"]))).rejects.toMatchObject({ code });
+});
+
+it.each([
+  ["connector-type", "external-connectors"],
+  ["edr-type", "edr"],
+  ["data-type", "edr"],
+] as const)("rejects an empty --%s value before profile selection", (name, check) => {
+  expect(() => healthShowFlags(new Map([["check", check], [name, "  "]])))
+    .toThrowError(`--${name} requires a non-empty value`);
+});
+
+it("points malformed connector responses to the RUX contract", async () => {
+  const transport = cloudFixture(() => body([]));
+  await expect(runHealthShow(cloudSession(transport),
+    flags(["health", "show", "--check", "network-brain-ping"]))).rejects.toMatchObject({
+    code: "RESPONSE_INVALID",
+    suggestions: ["Check the RUX v3.4 API contract for this operation"],
   });
 });
 

@@ -463,6 +463,10 @@ it("reads health snapshots and checkpoint events with truthful empty and denied 
   expect(unsupported.status).toBe(2);
   expect(unsupported.stderr).toBe("");
   expect(unsupported.stdout).toContain("Unsupported health check");
+  const connector = invoke(["health", "show", ...context, "--check", "edr"], fixtureEnv);
+  expect(connector.status).toBe(2);
+  expect(connector.stderr).toBe("");
+  expect(connector.stdout).toContain("requires a RUX v3.4 cloud profile");
   const events = invoke(["health", "event", "list", ...context], fixtureEnv);
   expect(events.status).toBe(0);
   expect(events.stderr).toBe("");
@@ -708,6 +712,17 @@ it("reads cloud health and lockdown status through the packaged RUX journey", ()
   expect(shown.stderr).toBe("");
   expect(decode(shown.stdout)).toMatchObject({ profile: "cloud", check: "cpu",
     health: { cpu: { status: "ok" } } });
+  const edr = invoke(["health", "show", ...context, "--check", "edr",
+    "--edr-type", "synthetic-edr"], fixtureEnv);
+  expect(edr.status).toBe(0);
+  expect(edr.stderr).toBe("");
+  expect(decode(edr.stdout)).toMatchObject({ profile: "cloud", check: "edr",
+    health: { edr: { status: "ok" } } });
+  const ping = invoke(["health", "show", ...context, "--check", "network-brain-ping"], fixtureEnv);
+  expect(ping.status).toBe(0);
+  expect(ping.stderr).toBe("");
+  expect(decode(ping.stdout)).toMatchObject({ profile: "cloud", check: "network-brain-ping",
+    health: { ping: { status: "ok" } } });
   const events = invoke(["health", "event", "list", ...context], fixtureEnv);
   expect(events.status).toBe(0);
   expect(events.stderr).toBe("");
@@ -734,6 +749,10 @@ it("reads cloud health and lockdown status through the packaged RUX journey", ()
     { method: "GET", url: "https://fixture.invalid/api/v3.4/health/" },
     { method: "POST", url: "https://fixture.invalid/oauth2/token" },
     { method: "GET", url: "https://fixture.invalid/api/v3.4/health/cpu/" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/health/edr/?edr_type=synthetic-edr" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/health/network_brain/ping/" },
     { method: "POST", url: "https://fixture.invalid/oauth2/token" },
     { method: "GET", url: "https://fixture.invalid/api/v3.4/events/health/" },
     { method: "POST", url: "https://fixture.invalid/oauth2/token" },

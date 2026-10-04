@@ -15,8 +15,9 @@ import type { Session } from "./session.js";
 // Lockdown status stays READ-08. RUX-06 maps the same leaves to the
 // documented v3.4 routes on a cloud profile: subscription-sensitive bodies
 // pass through untouched and integer event checkpoints normalize to their
-// decimal form. Generation-specific connector/EDR routes stay a separate
-// decision.
+// decimal form. Generation-specific connector/EDR/network-brain routes ship
+// as RUX-only `health show` selectors (RUX-06b) with their recorded filter
+// flags; QUX profiles refuse them with generation guidance.
 
 export const HEALTH_LIST_OPERATION = "qux.health.list";
 export const HEALTH_SHOW_OPERATION = "qux.health.show";
@@ -27,6 +28,14 @@ export const HEALTH_EVENT_LIST_OPERATION = "qux.health.event.list";
 export const RUX_HEALTH_LIST_OPERATION = "rux.health.list";
 export const RUX_HEALTH_SHOW_OPERATION = "rux.health.show";
 export const RUX_HEALTH_EVENT_LIST_OPERATION = "rux.health.event.list";
+// RUX-06b: fixed-route connector/EDR/network-brain checks. Each selector
+// names its own operation because the v3.4 routes carry no check_type path
+// parameter; the inventory query keys are the only filter contract.
+export const RUX_HEALTH_EXTERNAL_CONNECTORS_OPERATION = "rux.health.external-connectors.show";
+export const RUX_HEALTH_EXTERNAL_CONNECTORS_DETAILS_OPERATION = "rux.health.external-connectors.details.show";
+export const RUX_HEALTH_EDR_OPERATION = "rux.health.edr.show";
+export const RUX_HEALTH_EDR_DETAILS_OPERATION = "rux.health.edr.details.show";
+export const RUX_HEALTH_NETWORK_BRAIN_PING_OPERATION = "rux.health.network-brain.ping.show";
 
 // The v3.4 health routes state that responses vary with Network, AWS and
 // M365 subscriptions, so cloud snapshot output carries the variance note
@@ -39,6 +48,25 @@ export const RUX_HEALTH_SUBSCRIPTION_NOTE =
 export const HEALTH_CHECKS = ["cpu", "disk", "network", "memory", "power", "sensors",
   "system", "hostid", "connectivity", "trafficdrop"] as const;
 export type HealthCheck = (typeof HEALTH_CHECKS)[number];
+
+// RUX-only selectors, kebab-cased from their v3.4 route segments. They
+// share the `health show` leaf but never the QUX check_type route: a QUX
+// profile refuses them with generation guidance before any HTTP.
+export const RUX_CONNECTOR_CHECKS = ["external-connectors", "external-connectors-details",
+  "edr", "edr-details", "network-brain-ping"] as const;
+export type RuxConnectorCheck = (typeof RUX_CONNECTOR_CHECKS)[number];
+
+const RUX_CONNECTOR_OPERATIONS: Readonly<Record<RuxConnectorCheck, string>> = {
+  "external-connectors": RUX_HEALTH_EXTERNAL_CONNECTORS_OPERATION,
+  "external-connectors-details": RUX_HEALTH_EXTERNAL_CONNECTORS_DETAILS_OPERATION,
+  "edr": RUX_HEALTH_EDR_OPERATION,
+  "edr-details": RUX_HEALTH_EDR_DETAILS_OPERATION,
+  "network-brain-ping": RUX_HEALTH_NETWORK_BRAIN_PING_OPERATION,
+};
+
+export function isRuxConnectorCheck(check: string): check is RuxConnectorCheck {
+  return (RUX_CONNECTOR_CHECKS as readonly string[]).includes(check);
+}
 
 // Health events arrived in appliance release 9.4 (guide change log); the
 // snapshots carry no release prerequisite.
@@ -64,20 +92,102 @@ export function healthQuery(flags: ReadonlyMap<string, string | boolean>): {
 }
 
 // The show leaf names its check up front; an unsupported selector fails
-// before configuration, profile selection or any HTTP call.
-export function healthCheck(flags: ReadonlyMap<string, string | boolean>): HealthCheck {
+// before configuration, profile selection or any HTTP call. The RUX-only
+// selectors pass this gate on either generation so the runner can refuse
+// them on QUX with generation guidance instead of an unsupported-check
+// error; truly unknown names still fail here.
+export function healthCheck(flags: ReadonlyMap<string, string | boolean>): HealthCheck | RuxConnectorCheck {
   const raw = flags.get("check");
   if (raw === undefined) {
     invalid("health show requires --check <name>",
       `Supported checks: ${HEALTH_CHECKS.join(", ")}`,
+      `RUX-only checks: ${RUX_CONNECTOR_CHECKS.join(", ")}`,
       "Example: vectra-axi health show --profile <name> --check cpu");
   }
-  if (typeof raw !== "string" || !(HEALTH_CHECKS as readonly string[]).includes(raw)) {
+  if (typeof raw !== "string"
+    || (!(HEALTH_CHECKS as readonly string[]).includes(raw) && !isRuxConnectorCheck(raw))) {
     invalid(`Unsupported health check: ${String(raw)}`,
       `Supported checks: ${HEALTH_CHECKS.join(", ")}`,
+      `RUX-only checks: ${RUX_CONNECTOR_CHECKS.join(", ")}`,
       "Check availability also depends on enabled products/subscriptions");
   }
-  return raw as HealthCheck;
+  return raw as HealthCheck | RuxConnectorCheck;
+}
+
+function nonemptyShowFlag(flags: ReadonlyMap<string, string | boolean>, name: string, wire: string): string | undefined {
+  const raw = flags.get(name);
+  if (raw === undefined) return undefined;
+  if (typeof raw !== "string" || !raw.trim()) {
+    invalid(`--${name} requires a non-empty value`, `Example: --${name} <value> (sent as ${wire})`);
+  }
+  return raw;
+}
+
+// Validates `health show` flag/check compatibility without a session, so
+// cli.ts rejects bad input before configuration or profile selection. The
+// runner calls it again first, keeping one validation path for both entry
+// points. Generation gating stays in the runner, which owns the profile.
+export function healthShowFlags(flags: ReadonlyMap<string, string | boolean>): void {
+  const check = healthCheck(flags);
+  if (!isRuxConnectorCheck(check)) {
+    for (const name of ["connector-type", "edr-type", "data-type", "live"] as const) {
+      if (flags.has(name)) {
+        invalid(`--${name} applies only to the RUX connector/EDR checks`,
+          "external-connectors accepts --connector-type, --data-type and --live;"
+          + " edr accepts --edr-type, --data-type and --live",
+          "Example: vectra-axi health show --profile <name> --check edr --edr-type <type>");
+      }
+    }
+    return;
+  }
+  if (flags.has("fresh") || flags.has("no-vlans")) {
+    invalid(`Health check '${check}' uses its fixed upstream query`,
+      "The connector/EDR routes declare no cache or vlans parameter;"
+      + " drop --fresh and --no-vlans for this check");
+  }
+  const connectorType = nonemptyShowFlag(flags, "connector-type", "connector_type");
+  if (connectorType !== undefined && check !== "external-connectors") {
+    invalid("--connector-type applies only to --check external-connectors",
+      "Example: vectra-axi health show --profile <name> --check external-connectors"
+      + " --connector-type <type>");
+  }
+  const edrType = nonemptyShowFlag(flags, "edr-type", "edr_type");
+  if (edrType !== undefined && check !== "edr") {
+    invalid("--edr-type applies only to --check edr",
+      "Example: vectra-axi health show --profile <name> --check edr --edr-type <type>");
+  }
+  const dataType = nonemptyShowFlag(flags, "data-type", "data_type");
+  if (dataType !== undefined && check !== "external-connectors" && check !== "edr") {
+    invalid("--data-type applies only to --check external-connectors or --check edr",
+      "The details and ping routes take no query parameters");
+  }
+  if (flags.has("live") && check !== "external-connectors" && check !== "edr") {
+    invalid("--live applies only to --check external-connectors or --check edr",
+      "The details and ping routes take no query parameters");
+  }
+}
+
+// Maps the validated show flags to the operation's declared query keys.
+// The details and ping routes declare no query parameters, so any filter
+// flag there has already failed in healthShowFlags; values pass through
+// and the server applies them.
+export function healthConnectorQuery(
+  flags: ReadonlyMap<string, string | boolean>, check: RuxConnectorCheck,
+): Record<string, string | number | boolean> {
+  const query: Record<string, string | number | boolean> = {};
+  if (check === "external-connectors") {
+    const connectorType = nonemptyShowFlag(flags, "connector-type", "connector_type");
+    if (connectorType !== undefined) query.connector_type = connectorType;
+  } else if (check === "edr") {
+    const edrType = nonemptyShowFlag(flags, "edr-type", "edr_type");
+    if (edrType !== undefined) query.edr_type = edrType;
+  }
+  if (check === "external-connectors" || check === "edr") {
+    const dataType = nonemptyShowFlag(flags, "data-type", "data_type");
+    if (dataType !== undefined) query.data_type = dataType;
+    if (flags.has("live")) query.live = true;
+  }
+  return query;
 }
 
 function decodeSnapshot(body: unknown, operation: string, rux: boolean): Record<string, unknown> {
@@ -110,8 +220,28 @@ export async function runHealthList(
 export async function runHealthShow(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
+  healthShowFlags(flags);
   const check = healthCheck(flags);
   const rux = session.profile.kind === "rux";
+  // Connector/EDR checks name fixed v3.4 routes with no path parameter
+  // and no freshness flags, so the body passes through with the
+  // subscription note and no cached/fresh claim. Denial propagates.
+  if (isRuxConnectorCheck(check)) {
+    if (!rux) {
+      invalid(`Health check '${check}' requires a RUX v3.4 cloud profile`,
+        "QUX exposes cpu, disk, network, memory, power, sensors, system, hostid,"
+        + " connectivity and trafficdrop checks only",
+        "Create a RUX profile for connector/EDR health, or rerun with a QUX-supported --check");
+    }
+    const { body } = await session.request(RUX_CONNECTOR_OPERATIONS[check],
+      { query: healthConnectorQuery(flags, check) });
+    return { failed: false, output: {
+      profile: session.profile.name,
+      check,
+      health: decodeSnapshot(body, "health show", true),
+      help: [RUX_HEALTH_SUBSCRIPTION_NOTE],
+    } };
+  }
   const { query, cached } = healthQuery(flags);
   // The v3.4 check route names its path selector check_type and keeps the
   // trailing slash from the documented route; the ten check names match.
