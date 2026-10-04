@@ -181,6 +181,76 @@ function httpResponse(): EventEmitter {
 it.each([
   ["token", tokenProfile, "TRANSPORT_FAILED"],
   ["OAuth", oauthProfile, "AUTH_EXCHANGE_FAILED"],
+])("clears the deadline when %s request construction throws", async (_name, profile, code) => {
+  vi.useFakeTimers();
+  vi.stubEnv("SENTINEL_TOKEN", "synthetic-\u0100-token");
+  vi.mocked(httpsRequest).mockImplementationOnce(() => {
+    throw Object.assign(new Error("Invalid character in header content"), { code: "ERR_INVALID_CHAR" });
+  });
+  await expect(session(nodeTransport(), profile).request("qux.health.list")).rejects.toMatchObject({ code });
+  expect(vi.getTimerCount()).toBe(0);
+  await vi.advanceTimersByTimeAsync(30_000);
+});
+
+it("clears the deadline when writing an OAuth request body throws", async () => {
+  vi.useFakeTimers();
+  const pending = Object.assign(new EventEmitter(), {
+    write: () => { throw new Error("body write failed"); },
+    end: vi.fn(),
+  });
+  vi.mocked(httpsRequest).mockReturnValueOnce(pending as unknown as ClientRequest);
+  await expect(session(nodeTransport(), oauthProfile).request("qux.health.list"))
+    .rejects.toMatchObject({ code: "AUTH_EXCHANGE_FAILED" });
+  expect(vi.getTimerCount()).toBe(0);
+  await vi.advanceTimersByTimeAsync(30_000);
+});
+
+it("clears the deadline when ending a resource request throws", async () => {
+  vi.useFakeTimers();
+  const pending = Object.assign(new EventEmitter(), { end: () => { throw new Error("request end failed"); } });
+  vi.mocked(httpsRequest).mockReturnValueOnce(pending as unknown as ClientRequest);
+  await expect(session(nodeTransport()).request("qux.health.list")).rejects.toMatchObject({ code: "TRANSPORT_FAILED" });
+  expect(vi.getTimerCount()).toBe(0);
+  await vi.advanceTimersByTimeAsync(30_000);
+});
+
+it.each([
+  ["DNS", "https://fixture.invalid", "fixture.invalid", 443],
+  ["IPv4", "https://192.0.2.10", "192.0.2.10", 443],
+  ["IPv6", "https://[2001:db8::10]", "2001:db8::10", 443],
+  ["IPv6 with a port", "https://[2001:db8::10]:8443", "2001:db8::10", "8443"],
+])("passes a connection-ready %s hostname to Node", async (_name, origin, hostname, port) => {
+  vi.useFakeTimers();
+  const response = httpResponse();
+  const result = session(nodeTransport(), { ...tokenProfile, origin }).request("qux.health.list");
+  await Promise.resolve();
+  response.emit("data", Buffer.from('{"ok":true}'));
+  response.emit("end");
+  expect(await result).toEqual({ status: 200, body: { ok: true } });
+  expect(vi.mocked(httpsRequest).mock.calls[0]![0]).toMatchObject({ hostname, port, method: "GET", path: "/api/v2.5/health" });
+});
+
+it("uses the IPv6 literal for both the OAuth exchange and resource read", async () => {
+  vi.useFakeTimers();
+  const origin = "https://[2001:db8::10]";
+  const exchangeResponse = httpResponse();
+  const result = session(nodeTransport(), { ...oauthProfile, origin }).request("qux.health.list");
+  const resourceResponse = httpResponse();
+  exchangeResponse.emit("data", Buffer.from(JSON.stringify({ access_token: access, expires_in: 60, token_type: "Bearer" })));
+  exchangeResponse.emit("end");
+  await vi.advanceTimersByTimeAsync(0);
+  resourceResponse.emit("data", Buffer.from('{"ok":true}'));
+  resourceResponse.emit("end");
+  expect(await result).toEqual({ status: 200, body: { ok: true } });
+  expect(vi.mocked(httpsRequest).mock.calls.map(([options]) => options)).toMatchObject([
+    { hostname: "2001:db8::10", method: "POST", path: "/api/v2.5/oauth2/token" },
+    { hostname: "2001:db8::10", method: "GET", path: "/api/v2.5/health" },
+  ]);
+});
+
+it.each([
+  ["token", tokenProfile, "TRANSPORT_FAILED"],
+  ["OAuth", oauthProfile, "AUTH_EXCHANGE_FAILED"],
 ])("settles an aborted %s response without waiting for the deadline", async (_name, profile, code) => {
   vi.useFakeTimers();
   const response = httpResponse();

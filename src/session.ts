@@ -256,52 +256,54 @@ export function createSession(args: {
 // Production adapter behind the single seam. Synthetic fixtures and fake
 // transports cover tests; this function never runs against a real instance there.
 export function nodeTransport(): RawTransport {
-  return (request) => new Promise((resolve, reject) => {
-    const url = new URL(request.url);
-    const fail = (error: Error) => {
-      clearTimeout(timer);
-      reject(error);
-    };
-    const timer = setTimeout(() => {
-      const error = new Error(`request to ${url.origin} timed out after ${REQUEST_TIMEOUT_MS}ms`);
-      fail(error);
-      pending.destroy(error);
-    }, REQUEST_TIMEOUT_MS);
-    const pending = nodeRequest({
-      hostname: url.hostname,
-      port: url.port || 443,
-      path: `${url.pathname}${url.search}`,
-      method: request.method,
-      headers: request.headers,
-      ca: request.tls.ca,
-      rejectUnauthorized: true,
-    }, (response) => {
-      let bytes = 0;
-      const chunks: Buffer[] = [];
-      response.on("error", fail);
-      response.on("aborted", () => fail(new Error("response terminated before completion")));
-      response.on("data", (chunk: Buffer) => {
-        bytes += chunk.length;
-        if (bytes > RESPONSE_BODY_LIMIT_BYTES) {
-          const error = new Error(`response exceeded the ${RESPONSE_BODY_LIMIT_BYTES}-byte ceiling`);
-          fail(error);
+  return async (request) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await new Promise<Awaited<ReturnType<RawTransport>>>((resolve, reject) => {
+        const url = new URL(request.url);
+        timer = setTimeout(() => {
+          const error = new Error(`request to ${url.origin} timed out after ${REQUEST_TIMEOUT_MS}ms`);
+          reject(error);
           pending.destroy(error);
-        } else {
-          chunks.push(chunk);
-        }
-      });
-      response.on("end", () => {
-        clearTimeout(timer);
-        const location = response.headers.location;
-        resolve({
-          status: response.statusCode ?? 0,
-          ...(location ? { location: Array.isArray(location) ? location[0] : location } : {}),
-          bodyText: Buffer.concat(chunks).toString("utf8"),
+        }, REQUEST_TIMEOUT_MS);
+        const pending = nodeRequest({
+          hostname: url.hostname.replace(/^\[|\]$/g, ""),
+          port: url.port || 443,
+          path: `${url.pathname}${url.search}`,
+          method: request.method,
+          headers: request.headers,
+          ca: request.tls.ca,
+          rejectUnauthorized: true,
+        }, (response) => {
+          let bytes = 0;
+          const chunks: Buffer[] = [];
+          response.on("error", reject);
+          response.on("aborted", () => reject(new Error("response terminated before completion")));
+          response.on("data", (chunk: Buffer) => {
+            bytes += chunk.length;
+            if (bytes > RESPONSE_BODY_LIMIT_BYTES) {
+              const error = new Error(`response exceeded the ${RESPONSE_BODY_LIMIT_BYTES}-byte ceiling`);
+              reject(error);
+              pending.destroy(error);
+            } else {
+              chunks.push(chunk);
+            }
+          });
+          response.on("end", () => {
+            const location = response.headers.location;
+            resolve({
+              status: response.statusCode ?? 0,
+              ...(location ? { location: Array.isArray(location) ? location[0] : location } : {}),
+              bodyText: Buffer.concat(chunks).toString("utf8"),
+            });
+          });
         });
+        pending.on("error", reject);
+        if (request.body !== undefined) pending.write(request.body);
+        pending.end();
       });
-    });
-    pending.on("error", fail);
-    if (request.body !== undefined) pending.write(request.body);
-    pending.end();
-  });
+    } finally {
+      clearTimeout(timer);
+    }
+  };
 }
