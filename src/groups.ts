@@ -163,10 +163,31 @@ const groupDetailSchema = groupSchema.extend({
   is_ad_group: z.boolean().optional(),
   ad_group_dn: z.string().nullable().optional(),
 });
+const conditionValueSchema = z.strictObject({
+  value: z.union([z.string(), z.number()]),
+  label: z.string(),
+});
+const conditionLeafSchema = z.strictObject({
+  field: z.string(),
+  values: z.array(conditionValueSchema),
+  groups: z.array(conditionValueSchema),
+  label: z.string(),
+});
+type Condition =
+  | { AND: Condition[] }
+  | { OR: Condition[] }
+  | { ANY_OF: z.infer<typeof conditionLeafSchema> }
+  | { NONE_OF: z.infer<typeof conditionLeafSchema> };
+const conditionSchema: z.ZodType<Condition> = z.lazy(() => z.union([
+  z.strictObject({ AND: z.array(conditionSchema) }),
+  z.strictObject({ OR: z.array(conditionSchema) }),
+  z.strictObject({ ANY_OF: conditionLeafSchema }),
+  z.strictObject({ NONE_OF: conditionLeafSchema }),
+]));
 const ruleDetailSchema = ruleSchema.extend({
   description: z.string().nullable().optional(),
-  source_conditions: z.record(z.string(), z.json()).nullable().optional(),
-  additional_conditions: z.record(z.string(), z.json()).nullable().optional(),
+  source_conditions: conditionSchema.nullable().optional(),
+  additional_conditions: conditionSchema.nullable().optional(),
   detection: z.string().nullable().optional(),
   is_whitelist: z.boolean().optional(),
 });

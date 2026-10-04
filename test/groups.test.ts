@@ -1,6 +1,6 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterAll, afterEach, beforeEach, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { parseInvocation } from "../src/catalogue.js";
 import { BENIGN_DISCLAIMER, GROUP_LIST_FIELDS, groupQuery, listFields, listLimit,
   MEMBER_LIST_FIELDS, memberQuery, RULE_LIST_FIELDS, ruleQuery,
@@ -257,6 +257,46 @@ it.each([
     bodyText: JSON.stringify({ ...rule7, [field]: value }) });
   await expect(runRuleShow(session(transport), flags(["triage", "rule", "show", "--id", "7"])))
     .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+});
+
+const conditionLeaf = { field: "host", values: [{ value: "synthetic-host", label: "Synthetic host" }],
+  groups: [{ value: 8, label: "Synthetic group" }], label: "Host" };
+
+it.each(["source_conditions", "additional_conditions"])("validates every node in %s", async (field) => {
+  const tree = { AND: [{ OR: [{ ANY_OF: conditionLeaf }, { NONE_OF: conditionLeaf }] }] };
+  const transport: RawTransport = async () => ({ status: 200,
+    bodyText: JSON.stringify({ ...rule7, [field]: tree }) });
+  const result = await runRuleShow(session(transport), flags(["triage", "rule", "show", "--id", "7"]));
+  expect(result.output[field]).toEqual(tree);
+  expect(result.output.help).toEqual([BENIGN_DISCLAIMER]);
+});
+
+describe.each(["source_conditions", "additional_conditions"])("%s condition validation", (field) => {
+  it.each([
+    { OR: 42 },
+    { AND: false },
+    { AND: [null] },
+    { OR: [{ AND: [42] }] },
+    { AND: [], OR: [] },
+    {},
+    { UNKNOWN: [] },
+    { ANY_OF: null },
+    { NONE_OF: [] },
+    { ANY_OF: { ...conditionLeaf, field: 42 } },
+    { NONE_OF: { ...conditionLeaf, label: false } },
+    { ANY_OF: { ...conditionLeaf, values: "synthetic-host" } },
+    { NONE_OF: { ...conditionLeaf, groups: {} } },
+    { ANY_OF: { ...conditionLeaf, values: [{ value: [], label: "Synthetic host" }] } },
+    { NONE_OF: { ...conditionLeaf, groups: [{ value: 8, label: false }] } },
+    { ANY_OF: { ...conditionLeaf, values: [{ label: "Synthetic host" }] } },
+    { NONE_OF: { ...conditionLeaf, groups: [{ value: 8 }] } },
+    { OR: [{ AND: [{ ANY_OF: { ...conditionLeaf, groups: [null] } }] }] },
+  ])("rejects malformed tree %j", async (tree) => {
+    const transport: RawTransport = async () => ({ status: 200,
+      bodyText: JSON.stringify({ ...rule7, [field]: tree }) });
+    await expect(runRuleShow(session(transport), flags(["triage", "rule", "show", "--id", "7"])))
+      .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+  });
 });
 
 it.each([
