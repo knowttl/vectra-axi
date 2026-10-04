@@ -68,10 +68,9 @@ function numberFlag(flags: ReadonlyMap<string, string | boolean>, name: string):
   return Number(raw);
 }
 
-// The entity facade has no route of its own: --type selects the host or
-// account operation before any credential or HTTP work. Anything else,
-// including a missing --type, is rejected so no merged host/account ranking
-// can be constructed.
+// Require --type before profile selection so neither generation constructs
+// a merged host/account ranking. QUX selects a host/account operation; RUX
+// passes the selector to its entities route before credential or HTTP work.
 export function entityKind(flags: ReadonlyMap<string, string | boolean>): EntityKind {
   const raw = flags.get("type");
   if (raw === undefined) {

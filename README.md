@@ -3,7 +3,7 @@ Agent-ergonomic CLI for Vectra AI, read-only by default
 
 The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, READ-07 health-snapshot and health-event leaves, READ-08 host/account lockdown status leaf, PACK-01 read-release packaging, doctor and generated documentation, WRITE-00 mutation coordinator, WRITE-01 gated detection/host/account tag replaces, the RUX-01 cloud OAuth/session adapter (unversioned token exchange, v3.4 profile contract and exchange-only doctor check) and the RUX-02 cloud detection, host, account and type-qualified entity reads (urgency/importance apart from QUX scores; later RUX slices still pending) are implemented.
 `detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list` and `entity show` call the session on either generation; `detection note list`, `detection tag list`, `detection tag set`, `host note list`, `host tag list`, `host tag set`, `account note list`, `account tag list`, `account tag set`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show`, `group list`, `group show`, `group member list`, `triage rule list`, `triage rule show`, `audit list`, `health list`, `health show`, `health event list` and `lockdown list` call the session on QUX; every Vectra resource operation outside those leaves remains planned or blocked.
-The CLI uses TypeScript, with on-prem QUX reads and a RUX authentication/session adapter for cloud migration.
+The CLI uses TypeScript, with on-prem QUX reads and cloud RUX detection, host, account and entity reads.
 
 - [Design and source evidence](docs/design.md)
 - [Implementation slices and offline acceptance](docs/implementation-plan.md)
@@ -107,7 +107,7 @@ Runtime failures retain validated rows with `complete: false`, an error and a cu
 Caller usage errors throw before HTTP; checkpoint and date-window operations are rejected rather than decoded as collections.
 See the [CORE-02 handoff](docs/core-02-handoff.md) for the integration interface and the [implementation plan](docs/implementation-plan.md#session-and-investigation-slices) for acceptance and later slices.
 
-`detection list --profile <name>` reads QUX v2.5 detections through the session and the bounded collection reader.
+`detection list --profile <name>` reads QUX v2.5 or RUX v3.4 detections through the session and the bounded collection reader.
 Filter flags map one-to-one to the recorded server-side query keys: `--state`, `--detection-type`, `--detection-category`, `--host-id`, `--tags`, `--certainty-gte`, `--threat-gte`, `--ordering`, `--min-id` and `--max-id`.
 Filtering is server-side; numeric filter shapes are validated locally, while unsupported server-side values surface as read errors rather than silent client-side scans.
 Values beginning with a dash use inline syntax, such as `--ordering=-id`.
@@ -121,17 +121,22 @@ Long descriptions are previewed with their total length and a `--full` hint; `--
 Both leaves validate flag values before loading configuration or selecting a profile, and reject unknown commands and combinations before credential or HTTP work.
 Missing profiles fail before HTTP; API access denials report `ACCESS_DENIED` with exit 1, never an empty success.
 
-`host list`, `host show`, `account list` and `account show` read QUX v2.5 entities through the same session and bounded collection reader.
+`host list`, `host show`, `account list` and `account show` read QUX v2.5 or RUX v3.4 hosts and accounts through the same session and bounded collection reader.
 List filter flags map to the recorded server-side query keys: `--threat-gte`, `--certainty-gte`, `--tags`, `--min-id` and `--max-id`.
-Filtering is server-side; score filters keep their QUX display names at the CLI while the wire uses `t_score_gte`/`c_score_gte`.
-List rows project the recorded field subset `id`, `name`, `state`, `threat` and `certainty`; threat and certainty stay QUX scores and keep null instead of zero.
-`entity list --type <host|account>` and `entity show --type <host|account> --id <id>` are a type-qualified facade over the same routes: `--type` is required and selects one kind's operation, never a merged ranking.
-The facade CLI accepts only the score and tag filters above and projects `id`, `name`, `threat` and `certainty`; min/max ID flags and `state` projections fail before HTTP.
-Its session allowlist still accepts `min_id` and `max_id` in server-returned continuation links.
+Filtering is server-side; score filters keep their display names at the CLI while the wire uses `t_score_gte`/`c_score_gte` on both generations.
+List rows project the recorded field subset `id`, `name`, `state`, `threat` and `certainty`; threat and certainty retain their labels and keep null instead of zero on both generations.
+`entity list --type <host|account>` and `entity show --type <host|account> --id <id>` require `--type` on both generations, never a merged ranking.
+On QUX the facade selects the matching host/account route, accepts score and tag filters, and projects `id`, `name`, `threat` and `certainty`.
+On RUX it selects the `/api/v3.4/entities` route with the type selector, accepts the tag filter, and projects `id`, `name`, `type`, `urgency_score` and `importance` in lists.
+RUX entity show returns `id`, `name`, `urgency_score` and `importance` with profile and the requested type.
+Urgency and importance remain distinct from threat/certainty; the RUX entity facade refuses `--threat-gte` and `--certainty-gte` with `VALIDATION_ERROR` before credential or HTTP work.
+Use `host list` or `account list` on the cloud profile for threat/certainty filters.
+Both generations' entity facade refuses min/max ID flags and `state` projections before HTTP; only QUX facade continuation links may carry `min_id` and `max_id`.
 All three list leaves accept `--fields`, `--limit` (default 100) and `--cursor`; resuming requires the same filters and entity type.
 Empty lists explicitly report zero hosts or accounts; partial reads retain validated rows, an error and a cursor, and exit 1.
-All three show leaves require a positive integer `--id` and return their corresponding list field subset with profile and type; null fields stay null, omitted fields stay omitted, and malformed fields report `RESPONSE_INVALID`.
-These leaves validate flag values before profile selection and reject unsupported flags before credential or HTTP work.
+All three show leaves require a positive integer `--id`; null fields stay null, omitted fields stay omitted, and malformed fields report `RESPONSE_INVALID`.
+Host/account show and QUX entity show return their corresponding list field subset with profile and type.
+These leaves validate flag shapes before configuration or profile selection, then check generation-specific entity fields and filters before credential or HTTP work.
 Host 7 and account 7 are different objects, and every show output retains its resource kind for the next command.
 Type-qualified entity, note, tag, assignment, group, member, triage rule, audit, health and lockdown reads stay in this release; the only business write leaves are the three gated `tag set` replaces.
 
@@ -142,7 +147,8 @@ Malformed responses report `RESPONSE_INVALID`; note text retains null and omitte
 Long note text is previewed at 1200 characters with its total length and a `--full` hint; `--full` prints the complete returned text but cannot restore content the upstream response never returned.
 `<kind> tag list --profile <name> --id <id>` reads the complete tag set through the versioned tagging route in one body.
 Empty reads explicitly report zero notes or tags for their owner; denied reads report `ACCESS_DENIED`, never an empty success.
-Detail responses may carry an embedded note summary: detection, host, account and type-qualified entity show leaves surface it under `note_summary` with a pointer to the matching note list leaf, never as full notes.
+QUX detection, host, account and type-qualified entity show leaves surface embedded note summaries under `note_summary` with a pointer to the matching note list leaf, never as full notes.
+RUX detection, host and account show retain embedded summaries without a note-list hint while RUX notes remain planned; RUX entity show projects only the entity fields documented above.
 Only `detection show` accepts `--full`, which expands returned descriptions, not embedded note summaries.
 No note write leaf exists: the session authorizes read GETs only, and note mutations stay deferred families until a separately selected write slice.
 `<kind> tag set --profile <name> --id <id> --tags a,b` replaces the owner's tag set with exactly the desired tags through the WRITE-00 gate pipeline: the profile must hand-enable `qux.<kind>.tag.set` in its `writes` scope, the dry run previews added and removed tags, and `--execute --confirm '<kind> <id>'` sends a PATCH only when the diff is non-empty (an already-matching set is an exit-0 no-op).
@@ -230,7 +236,8 @@ At access-token expiry, RUX spends an available refresh token once using form `g
 An expired refresh token or refresh rejection (HTTP 400, 401 or 403) causes a fresh client-credentials exchange; transport and service failures do not trigger automatic retries.
 Returned rotated refresh tokens can renew subsequent credentials, but a previously spent token is never reused, even if returned again.
 All credential material stays in invocation memory, is registered for redaction, and is never written to persistent storage or exposed in command results.
-RUX detection, host, account and entity read commands ship in RUX-02; RUX notes/tags, events, assignments, groups/rules, health and lockdown arrive in later RUX slices. See [Release](#release) for the current RUX doctor check.
+RUX detection, host, account and entity read commands ship in RUX-02; RUX notes/tags, events, assignments, groups/rules, health and lockdown arrive in later RUX slices.
+See [Release](#release) for the current RUX doctor check.
 See [AUTH-02 handoff](docs/auth-02-handoff.md) for the credential seam, [CORE-01 handoff](docs/core-01-handoff.md) for the session interface, [CORE-02 handoff](docs/core-02-handoff.md) for bounded collections and [CORE-01 acceptance](docs/implementation-plan.md#core-01-handoff-and-acceptance) for fixture evidence.
 
 ## Release
