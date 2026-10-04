@@ -4,14 +4,16 @@
   "private": true,
   "description": "Read-only-first Vectra AXI CLI",
   "bin": { "vectra-axi": "bin/vectra-axi.js" },
-  "files": ["bin", "dist/src", "inventory/capabilities.json"],
+  "files": ["bin", "dist/src", "inventory/capabilities.json", "skills/vectra-axi"],
   "type": "module",
   "engines": { "node": ">=22.12.0" },
   "packageManager": "pnpm@10.34.6",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "lint": "tsc --noEmit -p tsconfig.json"
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "docs:generate": "node scripts/generate-docs.mjs",
+    "docs:check": "node scripts/generate-docs.mjs --check"
   },
   "dependencies": {
     "axi-sdk-js": "0.1.13",

@@ -405,6 +405,35 @@ it("reads host and account lockdown status without a lockdown action", () => {
   ]);
 });
 
+it("checks profiles through the packaged doctor command", () => {
+  const config = join(scratch, "doctor.json");
+  const trace = join(scratch, "doctor-requests.jsonl");
+  const profile = { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5",
+    auth: "token", tokenEnv: "SENTINEL_TOKEN" };
+  writeFileSync(config, JSON.stringify({ profiles: { lab: profile,
+    denied: { ...profile, origin: "https://denied.invalid" } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const checked = invoke(["doctor", "--config", config, "--profile", "lab"], fixtureEnv);
+  expect(checked.status).toBe(0);
+  expect(checked.stderr).toBe("");
+  expect(decode(checked.stdout)).toMatchObject({ count: "1 of 1 profiles ok", complete: true,
+    profiles: [{ name: "lab", auth: "token", status: "ok", detail: "1 of 2 detections" }] });
+  const refused = invoke(["doctor", "--config", config, "--profile", "denied"], fixtureEnv);
+  expect(refused.status).toBe(1);
+  expect(refused.stderr).toBe("");
+  expect(decode(refused.stdout)).toMatchObject({ count: "0 of 1 profiles ok", complete: false,
+    profiles: [{ name: "denied", auth: "token", status: "failed", code: "ACCESS_DENIED" }] });
+  const invalid = invoke(["doctor", "--config", join(scratch, "absent.json")]);
+  expect(invalid.status).toBe(1);
+  expect(invalid.stderr).toBe("");
+  expect(invalid.stdout).toContain("code: CONFIG_INVALID");
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections" },
+    { method: "GET", url: "https://denied.invalid/api/v2.5/detections" },
+  ]);
+});
+
 it("forwards inline descending ordering through the packaged list command", () => {
   const config = join(scratch, "ordering.json");
   const trace = join(scratch, "ordering-requests.jsonl");
@@ -559,6 +588,7 @@ it.each([
   { path: ["triage", "rule", "list"], flag: '"--contains <text>"' },
   { path: ["triage", "rule", "show"], flag: '"--id <id>"' },
   { path: ["lockdown", "list"], flag: '"--type <kind>"' },
+  { path: ["doctor"], flag: '"--profile <name>"' },
 ])("provides offline help for $path", ({ path, flag }) => {
   const result = invoke([...path, "--help"]);
   expect(result.status).toBe(0);
@@ -578,6 +608,7 @@ it.each([
   ["entity show help with an invalid ID", ["entity", "show", "--help", "--id", "nope"]],
   ["note list help with an invalid explicit config", ["detection", "note", "list", "--help", "--config", join(scratch, "absent.json")]],
   ["tag list help with an invalid ID", ["host", "tag", "list", "--help", "--id", "nope"]],
+  ["doctor help with an invalid explicit config", ["doctor", "--help", "--config", join(scratch, "absent.json")]],
 ])("keeps %s offline", (_name, args) => {
   const result = invoke(args);
   expect(result.status).toBe(0);
@@ -645,6 +676,7 @@ it.each([
   ["bare detection group", ["detection"], "Unknown command: detection"],
   ["unknown list flag", ["detection", "list", "--stat", "active"], "Unknown flag: --stat"],
   ["unknown show flag", ["detection", "show", "--id", "7", "--limit", "5"], "Unknown flag: --limit"],
+  ["unknown doctor flag", ["doctor", "--limit", "1"], "Unknown flag: --limit"],
   ["unknown assignment flag", ["assignment", "list", "--state", "active"], "Unknown flag: --state"],
   ["unknown outcome leaf", ["assignment", "outcome", "delete"], "Unknown command: assignment outcome delete"],
   ["bare assignment outcome group", ["assignment", "outcome"], "Unknown command: assignment outcome"],
@@ -719,7 +751,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, host note list, host tag list, account note list, account tag list, assignment list, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
+  expect(result.stdout).toContain("Available commands: home, setup, doctor, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, host note list, host tag list, account note list, account tag list, assignment list, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
   expect(result.stdout).toContain("lockdown list");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);

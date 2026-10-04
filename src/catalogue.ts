@@ -43,6 +43,17 @@ export const catalogue: Readonly<Record<string, {
     flags: globals,
     examples: ["vectra-axi setup", "vectra-axi setup --help"],
   },
+  doctor: {
+    // One documented bounded read per profile when explicitly invoked:
+    // detection list with a one-row window. No password, interactive
+    // sign-in or write policy lives behind this leaf; see src/doctor.ts.
+    description: "Check profile configuration with one bounded detection read per profile",
+    flags: globals,
+    examples: [
+      "vectra-axi doctor",
+      "vectra-axi doctor --profile <name>",
+    ],
+  },
   "detection list": {
     // Filter flags cover the inventory's conservative qux.detection.list
     // query subset. Kebab-case names map to snake_case keys in

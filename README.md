@@ -1,7 +1,7 @@
 # vectra-axi
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
-The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, READ-07 health-snapshot and health-event leaves, and READ-08 host/account lockdown status leaf are implemented.
+The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, READ-07 health-snapshot and health-event leaves, READ-08 host/account lockdown status leaf, and PACK-01 read-release packaging, doctor and generated documentation are implemented.
 `detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `host note list`, `host tag list`, `account note list`, `account tag list`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show`, `group list`, `group show`, `group member list`, `triage rule list`, `triage rule show`, `audit list`, `health list`, `health show`, `health event list` and `lockdown list` call the session; every other Vectra API operation remains planned or blocked.
 The selected direction is TypeScript, on-prem QUX reads first, and a later RUX adapter for cloud migration.
 
@@ -15,29 +15,30 @@ Tests deny external network and require no Vectra credentials.
 
 Run `node bin/vectra-axi.js` after building for the local home view.
 `home` and `setup` are local, read-only status views; `setup` installs nothing.
+See [Release](#release) for the explicit `doctor` check.
 Run `node bin/vectra-axi.js --help` or `node bin/vectra-axi.js setup --help` for catalogue-generated help and examples.
 Bare `-v`, `-V` and `--version` print only the package version without loading the command graph.
 Every local leaf accepts `--help` or `--profile <name>` (also `--profile=<name>`); these flags are mutually exclusive.
 Profile selection follows `--profile`, `VECTRA_AXI_PROFILE`, configured `defaultProfile`, then the sole configured profile.
 Without profiles or a selection, local views show unconfigured state successfully.
-Selecting a profile when none are configured reports `PROFILE_REQUIRED`; unknown selections among configured profiles report `PROFILE_NOT_FOUND`, and multiple profiles without a selection report `PROFILE_AMBIGUOUS`.
+Selecting a profile when none are configured reports `PROFILE_REQUIRED`; unknown selections among configured profiles report `PROFILE_NOT_FOUND`, and multiple profiles without a selection report `PROFILE_AMBIGUOUS` except for `doctor` (see [Release](#release)).
 Unknown commands, flags, positional arguments, repeated flags and version combinations fail before profile or network work.
 The SDK's implicit `update` command is refused.
 
 Structured data, help and errors use TOON on stdout; stderr is reserved for diagnostics.
 Exit codes are 0 for success, 1 for runtime failure (including a missing profile), and 2 for usage failure.
 There are no prompts or ordinary-command installation side effects.
-Home, setup, help and version remain offline; detection, entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health and lockdown reads make authenticated HTTP requests.
-`corepack pnpm pack --out vectra-axi.tgz` packages the built entrypoint, runtime modules and inventory.
+Home, setup, help and version remain offline; doctor, detection, entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health and lockdown reads make authenticated HTTP requests.
+`corepack pnpm pack --out vectra-axi.tgz` packages the built entrypoint, runtime modules, inventory and installable skill.
 See [CLI-01 acceptance](docs/implementation-plan.md#phase-0-turn-design-knowledge-into-one-executable-catalogue) for packaged verification.
 
 Profiles live in `~/.vectra-axi/config.json`, or a file explicitly selected with `--config <path>` or `VECTRA_AXI_CONFIG`.
-`--config` takes precedence over `VECTRA_AXI_CONFIG`; both local leaves also accept `--config=<path>`.
+`--config` takes precedence over `VECTRA_AXI_CONFIG`; every leaf also accepts `--config=<path>`.
 An absent default config means unconfigured state; unreadable or malformed files, including an absent explicitly selected file, report `CONFIG_INVALID`.
 Help and bare version flags do not read configuration.
 Repository-local configuration is never discovered automatically.
 `setup` shows a synthetic example and the selected config path; hand-edit the file to configure a profile.
-There is no credential prompt, config writer, browser login reuse or connectivity check.
+There is no credential prompt, config writer or browser login reuse.
 
 ```json
 {
@@ -211,3 +212,20 @@ The provider registers the client secret, encoded Basic credential and returned 
 Malformed Unicode remains redacted in raw and JSON-escaped forms; an unused malformed refresh token does not prevent authentication.
 The named OAuth exchange runs over the same session adapter and destination checks as resource requests and never follows redirects.
 See [AUTH-02 handoff](docs/auth-02-handoff.md) for the credential seam, [CORE-01 handoff](docs/core-01-handoff.md) for the session interface, [CORE-02 handoff](docs/core-02-handoff.md) for bounded collections and [CORE-01 acceptance](docs/implementation-plan.md#core-01-handoff-and-acceptance) for fixture evidence.
+
+## Release
+
+This is the supported QUX SOC read surface, not full Vectra API coverage.
+See the shipped read leaves above and the generated [coverage record](docs/coverage.md) for per-operation dispositions.
+Install from a release tarball with `npm install --global ./vectra-axi.tgz` after `corepack pnpm pack --out vectra-axi.tgz`, or run `node bin/vectra-axi.js` from a built checkout.
+The package is private and has no publish workflow; publishing needs a separate explicit instruction.
+Setup is explicit only: hand-edit `~/.vectra-axi/config.json` (see `vectra-axi setup`), set the referenced secret variables outside the CLI, then run `vectra-axi doctor`.
+Doctor selects a profile using the precedence above; only when multiple profiles have no explicit, environment or default selection does it check every configured profile.
+Without any configured profiles it reports `PROFILE_REQUIRED` before HTTP.
+`doctor` performs one bounded `detection list --limit 1` window per selected profile and reports configuration, connectivity, authentication and access failures with a nonzero exit status when any profile fails.
+The window uses the normal bounded collection retries and budgets; OAuth profiles may also perform their named credential exchange.
+Success and recovery commands preserve the checked config path and profile, using shell quoting and inline `--profile=<name>` syntax.
+It never tries passwords, signs in interactively or enables writes.
+The static skill at `skills/vectra-axi/SKILL.md` is installed only by explicit setup (`npx skills add knowttl/vectra-axi --skill vectra-axi`); no ordinary command installs hooks, plugins or configuration.
+The command table in `skills/vectra-axi/SKILL.md` and all of `docs/coverage.md` are generated from the executable catalogue and capability inventory; the skill's surrounding guidance is maintained manually.
+After `corepack pnpm run build`, regenerate these projections with `corepack pnpm run docs:generate` and verify freshness with `corepack pnpm run docs:check` (also enforced by the test suite).
