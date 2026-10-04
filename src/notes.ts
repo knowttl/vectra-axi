@@ -47,6 +47,17 @@ const noteSchema = z.object({
 
 const tagBodySchema = z.object({ tags: z.string().array() });
 
+// Shared tag-body decoder: the single source for the tagging response
+// shape, used by the tag list read and the WRITE-01 desired-state write.
+export function decodeTags(body: unknown): string[] {
+  const result = tagBodySchema.safeParse(body);
+  if (!result.success) {
+    throw new AxiError("Vectra tags response is malformed: expected a tags list",
+      "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
+  }
+  return result.data.tags;
+}
+
 function shellQuote(value: string): string {
   return /^[a-zA-Z0-9_./-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\"'\"'")}'`;
 }
@@ -126,12 +137,7 @@ export async function runTagList(
   const leaf = `${kind} tag list`;
   const id = noteOwnerId(flags, leaf, kind);
   const { body } = await session.request(`qux.${kind}.tag.list`, { pathParams: { id } });
-  const result = tagBodySchema.safeParse(body);
-  if (!result.success) {
-    throw new AxiError("Vectra tags response is malformed: expected a tags list",
-      "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
-  }
-  const tags = result.data.tags;
+  const tags = decodeTags(body);
   const profile = session.profile.name;
   return { failed: false, output: {
     profile,

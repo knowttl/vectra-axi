@@ -1,8 +1,8 @@
 # vectra-axi
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
-The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, READ-07 health-snapshot and health-event leaves, READ-08 host/account lockdown status leaf, PACK-01 read-release packaging, doctor and generated documentation, WRITE-00 fixture-only mutation coordinator, and the RUX-01 cloud OAuth/session adapter (unversioned token exchange, v3.4 profile contract and exchange-only doctor check; RUX reads arrive in RUX-02 and later slices) are implemented.
-`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `host note list`, `host tag list`, `account note list`, `account tag list`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show`, `group list`, `group show`, `group member list`, `triage rule list`, `triage rule show`, `audit list`, `health list`, `health show`, `health event list` and `lockdown list` call the session; every other Vectra resource operation remains planned or blocked.
+The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, READ-07 health-snapshot and health-event leaves, READ-08 host/account lockdown status leaf, PACK-01 read-release packaging, doctor and generated documentation, WRITE-00 fixture-only mutation coordinator, WRITE-01 gated detection/host/account tag replaces, and the RUX-01 cloud OAuth/session adapter (unversioned token exchange, v3.4 profile contract and exchange-only doctor check; RUX reads arrive in RUX-02 and later slices) are implemented.
+`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `detection tag set`, `host note list`, `host tag list`, `host tag set`, `account note list`, `account tag list`, `account tag set`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show`, `group list`, `group show`, `group member list`, `triage rule list`, `triage rule show`, `audit list`, `health list`, `health show`, `health event list` and `lockdown list` call the session; every other Vectra resource operation remains planned or blocked.
 The CLI uses TypeScript, with on-prem QUX reads and a RUX authentication/session adapter for cloud migration.
 
 - [Design and source evidence](docs/design.md)
@@ -60,7 +60,7 @@ There is no credential prompt, config writer or browser login reuse.
 `applianceRelease` is optional for QUX profiles; `caBundle` is optional for both generations.
 An optional hand-edited `writes` object requires a boolean `allowWrites` and a nonempty `operations` array of nonempty operation names; unknown fields are rejected.
 Absent `writes` or `allowWrites: false` disables coordinator mutations; `VECTRA_AXI_READ_ONLY=1` overrides any opt-in.
-This policy enables no business mutation family or CLI command; see the [mutation architecture](docs/design.md#later-mutation-coordinator) for the internal coordinator contract.
+This policy enables only the configured operations as CLI commands; the first business family is the WRITE-01 tag replace (`qux.detection.tag.set`, `qux.host.tag.set`, `qux.account.tag.set`). See the [mutation architecture](docs/design.md#later-mutation-coordinator) for the internal coordinator contract.
 Verification: WRITE-00 was verified locally (build, lint and the full offline test suite) under the GitHub billing-outage posture with hosted Actions disabled; per-head results are recorded on the pull request.
 Profile names and `defaultProfile` must be nonempty identifiers without surrounding whitespace; selections match exactly without trimming.
 `defaultProfile`, when present, must name an existing profile.
@@ -82,7 +82,7 @@ The session itself does not retry: unmapped failure statuses report `REQUEST_FAI
 Same-origin redirects and continuation links must retain the operation's bound pathname and declared query keys.
 Redirects are followed up to 3 hops; continuation links are validated and fetched by the bounded collection reader in `src/collections.ts`, which keeps every page inside the session's same-operation authorization.
 The production adapter verifies TLS, applies a 30-second deadline per HTTP request and limits each response body to 8 MiB, reporting `BYTE_BUDGET_EXCEEDED` when that limit is exceeded.
-Write policy configuration and enforcement live in the fixture-only mutation coordinator in `src/writes.ts`; no business writes are available and no mutation command ships.
+Write policy configuration and enforcement live in the mutation coordinator in `src/writes.ts`; the only business writes available are the gated `tag set` replaces in `src/tags.ts`.
 See [AUTH-01 handoff](docs/auth-01-handoff.md) for integration constraints and offline acceptance links.
 
 The internal collection reader defaults to a 100-row window; a successful bounded window returns `complete: true` and may still carry a cursor for more rows.
@@ -131,7 +131,7 @@ Empty lists explicitly report zero hosts or accounts; partial reads retain valid
 All three show leaves require a positive integer `--id` and return their corresponding list field subset with profile and type; null fields stay null, omitted fields stay omitted, and malformed fields report `RESPONSE_INVALID`.
 These leaves validate flag values before profile selection and reject unsupported flags before credential or HTTP work.
 Host 7 and account 7 are different objects, and every show output retains its resource kind for the next command.
-Type-qualified entity, note, tag, assignment, group, member, triage rule, audit, health and lockdown reads stay in this release; no business write leaf exists.
+Type-qualified entity, note, tag, assignment, group, member, triage rule, audit, health and lockdown reads stay in this release; the only business write leaves are the three gated `tag set` replaces.
 
 `<kind> note list --profile <name> --id <id>` reads full QUX notes through the dedicated versioned notes resource for detections, hosts and accounts.
 Note/tag leaves require a positive integer owner `--id`, validated before configuration or profile selection.
@@ -142,7 +142,10 @@ Long note text is previewed at 1200 characters with its total length and a `--fu
 Empty reads explicitly report zero notes or tags for their owner; denied reads report `ACCESS_DENIED`, never an empty success.
 Detail responses may carry an embedded note summary: detection, host, account and type-qualified entity show leaves surface it under `note_summary` with a pointer to the matching note list leaf, never as full notes.
 Only `detection show` accepts `--full`, which expands returned descriptions, not embedded note summaries.
-No note or tag write leaf exists: the session authorizes read GETs only, and note/tag mutations stay deferred families until a separately selected write slice.
+No note write leaf exists: the session authorizes read GETs only, and note mutations stay deferred families until a separately selected write slice.
+`<kind> tag set --profile <name> --id <id> --tags a,b` replaces the owner's tag set with exactly the desired tags through the WRITE-00 gate pipeline: the profile must hand-enable `qux.<kind>.tag.set` in its `writes` scope, the dry run previews added and removed tags, `--execute` sends a PATCH only when the diff is non-empty (an already-matching set is an exit-0 no-op), and the pre-send re-read refuses a concurrently moved tag set with `VERSION_CONFLICT`.
+Desired tags come from `--tags` (comma-separated, at least one) or `--tags-file` (one tag per line, `-` for stdin); an empty file or empty stdin clears all tags.
+Intent and outcome are journaled durably; server rejections report `failed` with the audit id, and ambiguous timeouts report the audit id with read-back guidance instead of replaying.
 
 `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list` and `user show` read QUX v2.5 assignments, outcomes and users through the same session and bounded collection reader.
 Assignments and outcomes are distinct resources: an assignment row carries its target `host_id` or `account_id` plus a CLI-derived `status` of `unresolved` when `date_resolved` is null and `resolved` when it is set, never a missing or zero outcome.

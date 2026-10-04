@@ -290,6 +290,45 @@
       ]
     },
     {
+      "id": "qux.host.tag.set",
+      "command": "host tag set",
+      "slice": "WRITE-01",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled tag-set scope; PATCH replaces the full tag set and an empty set clears all tags.",
+      "method": "PATCH",
+      "path": "/api/v2.5/tagging/host/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "set_host_tags: PATCH /tagging/host/{id} with full-replace {\"tags\"} payload; empty list clears"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "pp40-41 tagging routes"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-01; `host tag set` drives the coordinator desired-state tag replace with its kind retained.",
+      "fixtureCases": [
+        "dry-run-diff",
+        "no-op",
+        "version-conflict",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
       "id": "qux.account.list",
       "command": "account list",
       "slice": "READ-02",
@@ -438,6 +477,45 @@
       ]
     },
     {
+      "id": "qux.account.tag.set",
+      "command": "account tag set",
+      "slice": "WRITE-01",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled tag-set scope; PATCH replaces the full tag set and an empty set clears all tags.",
+      "method": "PATCH",
+      "path": "/api/v2.5/tagging/account/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "set_account_tags: PATCH /tagging/account/{id} with full-replace {\"tags\"} payload; empty list clears"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "pp40-41 tagging routes"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-01; `account tag set` drives the coordinator desired-state tag replace with its kind retained.",
+      "fixtureCases": [
+        "dry-run-diff",
+        "no-op",
+        "version-conflict",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
       "id": "qux.detection.note.list",
       "command": "detection note list",
       "slice": "READ-03",
@@ -501,6 +579,45 @@
         "success",
         "access-denied",
         "malformed-response"
+      ]
+    },
+    {
+      "id": "qux.detection.tag.set",
+      "command": "detection tag set",
+      "slice": "WRITE-01",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled tag-set scope; PATCH replaces the full tag set and an empty set clears all tags.",
+      "method": "PATCH",
+      "path": "/api/v2.5/tagging/detection/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "set_detection_tags: PATCH /tagging/detection/{id} with full-replace {\"tags\"} payload; empty list clears"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "pp40-41 tagging routes"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-01; `detection tag set` drives the coordinator desired-state tag replace with its kind retained.",
+      "fixtureCases": [
+        "dry-run-diff",
+        "no-op",
+        "version-conflict",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
       ]
     },
     {
@@ -3159,7 +3276,7 @@
       "deployment": "qux",
       "apiVersion": "2.5",
       "disposition": "planned",
-      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "rationale": "Per-object tag replace is a named WRITE-01 operation (qux.detection.tag.set, qux.host.tag.set, qux.account.tag.set); bulk set/delete remain planned with no authorized route.",
       "evidence": [
         {
           "source": "qux-guide",

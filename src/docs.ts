@@ -8,12 +8,16 @@ import { catalogue, inventory } from "./catalogue.js";
 
 // One row per executable leaf in catalogue order, matching the home-view
 // help. Every leaf is implemented by a vectra-axi handler (native).
-// Local views stay offline; QUX reads use the read-only session.
+// Local views stay offline; QUX reads use the read-only session and tag
+// replaces use the gated WRITE-00 coordinator.
 export function skillCommandTable(): string {
   return [
     "| Command | Capability | Vectra effect |",
     "|---|---|---|",
-    ...Object.keys(catalogue).map((leaf) => `| \`vectra-axi ${leaf}\` | native | read |`),
+    ...Object.keys(catalogue).map((leaf) => {
+      const effect = inventory.operations.find((operation) => operation.command === leaf)?.effect ?? "read";
+      return `| \`vectra-axi ${leaf}\` | native | ${effect} |`;
+    }),
   ].join("\n");
 }
 
@@ -32,7 +36,7 @@ export function coverageDocument(): string {
     "",
     "# vectra-axi coverage",
     "",
-    "This is the supported QUX SOC read surface, not full Vectra API coverage.",
+    "This is the supported QUX SOC read surface with one gated tag-write family, not full Vectra API coverage.",
     "Only `named` operations have an implemented, tested command leaf; every other",
     "operation remains planned, blocked or unreviewed until its own slice ships.",
     "",
