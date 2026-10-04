@@ -1,6 +1,6 @@
 import { runAxiCli } from "axi-sdk-js";
 import { catalogue, DESCRIPTION, help, inventory, parseInvocation } from "./catalogue.js";
-import { runDetectionList, runDetectionShow, type LeafResult } from "./detections.js";
+import { listFields, listLimit, listQuery, runDetectionList, runDetectionShow, showId, type LeafResult } from "./detections.js";
 import { loadConfig, selectProfile } from "./profiles.js";
 import { SecretRedactor } from "./redact.js";
 import { createSession, nodeTransport, type RawTransport } from "./session.js";
@@ -50,6 +50,13 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
   async function runDetection(
     leaf: "detection list" | "detection show", flags: ReadonlyMap<string, string | boolean>,
   ): Promise<Record<string, unknown>> {
+    if (leaf === "detection list") {
+      listQuery(flags);
+      listLimit(flags);
+      listFields(flags);
+    } else {
+      showId(flags);
+    }
     const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
     const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
     const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });

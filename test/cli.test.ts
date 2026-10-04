@@ -227,6 +227,8 @@ it.each([
 it.each([
   ["list help with an invalid explicit config", ["detection", "list", "--help", "--config", join(scratch, "absent.json")]],
   ["show help with an invalid explicit config", ["detection", "show", "--help", "--config", join(scratch, "absent.json")]],
+  ["list help with invalid fields", ["detection", "list", "--help", "--fields", "score"]],
+  ["show help with an invalid ID", ["detection", "show", "--help", "--id", "nope"]],
 ])("keeps %s offline", (_name, args) => {
   const result = invoke(args);
   expect(result.status).toBe(0);
@@ -239,6 +241,30 @@ it("reports a missing profile for detection reads as a runtime error on stdout",
   expect(result.status).toBe(1);
   expect(result.stdout).toContain("code: PROFILE_REQUIRED");
   expect(result.stderr).toBe("");
+});
+
+it.each([
+  { args: ["detection", "show"], message: "detection show requires --id" },
+  { args: ["detection", "show", "--id", "0"], message: "--id must be a positive integer" },
+  { args: ["detection", "show", "--id", "1.5"], message: "--id must be a positive integer" },
+  { args: ["detection", "list", "--host-id", "1.5"], message: "--host-id must be a non-negative integer" },
+  { args: ["detection", "list", "--min-id", "1.5"], message: "--min-id must be a non-negative integer" },
+  { args: ["detection", "list", "--max-id", "1.5"], message: "--max-id must be a non-negative integer" },
+  { args: ["detection", "list", "--certainty-gte", "high"], message: "--certainty-gte must be a number" },
+  { args: ["detection", "list", "--threat-gte", "high"], message: "--threat-gte must be a number" },
+  { args: ["detection", "list", "--limit", "0"], message: "--limit must be a positive integer" },
+  { args: ["detection", "list", "--fields", "score"], message: "Unknown --fields value: score" },
+  { args: ["detection", "list", "--fields", ","], message: "Unknown --fields value: (empty)" },
+  { args: ["detection", "list", "--cursor", "opaque", "--fields", "score"], message: "Unknown --fields value: score" },
+].flatMap(({ args, message }) => [
+  { context: "unconfigured", args, message },
+  { context: "unreadable config", args: [...args, "--config", join(scratch, "absent.json")], message },
+]))("validates $args before $context selection", ({ args, message }) => {
+  const result = invoke(args);
+  expect(result.status).toBe(2);
+  expect(result.stderr).toBe("");
+  const output = decode(result.stdout) as Record<string, unknown>;
+  expect(output).toMatchObject({ code: "VALIDATION_ERROR", error: expect.stringContaining(message) });
 });
 
 it.each([
