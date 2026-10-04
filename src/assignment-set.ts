@@ -148,7 +148,9 @@ function decodeRow(kind: AssignmentSetKind, id: number, row: unknown): {
 // Reads the current open assignment through the READ-04 list route with the
 // entity filter. More than one open row for one entity is ambiguous (no
 // single PUT/DELETE target), so it is refused rather than guessed.
-async function readCurrent(session: Session, kind: AssignmentSetKind, id: number): Promise<CurrentState> {
+async function readCurrent(
+  session: Session, kind: AssignmentSetKind, id: number, previewCommand: string,
+): Promise<CurrentState> {
   // The entity filter plus resolved=false keeps the window on this
   // entity's open assignments; resolved rows are closed history and can
   // never select a PUT/DELETE target.
@@ -165,7 +167,7 @@ async function readCurrent(session: Session, kind: AssignmentSetKind, id: number
     throw new AxiError(
       `blocked: ${kind} ${id} has ${open.length} open assignments; refusing to choose between them`,
       "VALIDATION_ERROR",
-      [`Resolve the duplicate assignments before re-running \`vectra-axi assignment set --${kind} ${id}\``],
+      [`Resolve the duplicate assignments before re-running \`${previewCommand}\``],
     );
   }
   const [only] = open;
@@ -190,11 +192,13 @@ function owner(kind: AssignmentSetKind, id: number): string {
 
 function setCommand(
   session: Session, flags: ReadonlyMap<string, string | boolean>, kind: AssignmentSetKind, id: number,
+  desired: AssignmentDesired,
 ): string {
   const config = flags.get("config");
   return "vectra-axi assignment set"
     + `${typeof config === "string" ? ` --config ${shellQuote(config)}` : ""}`
-    + ` --profile ${shellQuote(session.profile.name)} --${kind} ${id}`;
+    + ` --profile ${shellQuote(session.profile.name)} --${kind} ${id}`
+    + ("user" in desired ? ` --user ${desired.user}` : " --unassign");
 }
 
 function listCommand(
@@ -204,12 +208,6 @@ function listCommand(
   return "vectra-axi assignment list"
     + `${typeof config === "string" ? ` --config ${shellQuote(config)}` : ""}`
     + ` --profile ${shellQuote(session.profile.name)} --${kind} ${id}`;
-}
-
-function conflictHint(
-  session: Session, flags: ReadonlyMap<string, string | boolean>, kind: AssignmentSetKind, id: number,
-): string[] {
-  return [`Re-run \`${setCommand(session, flags, kind, id)}\` without --execute to preview the current assignment`];
 }
 
 function pastAction(current: CurrentState, desired: AssignmentDesired, target: string): string {
@@ -285,11 +283,12 @@ export async function runAssignmentSet(
     ]);
   }
   const target = owner(kind, id);
+  const previewCommand = setCommand(session, flags, kind, id, desired);
   // The routing read runs before the coordinator: it selects the POST, PUT
   // or DELETE definition and validates the target user ahead of the
   // preview. The coordinator's preview read reuses it, and the pre-send
   // re-read repeats both reads for the conflict and existence checks.
-  const routed = await readCurrent(session, kind, id);
+  const routed = await readCurrent(session, kind, id, previewCommand);
   if ("user" in desired) await readUser(session, desired.user);
   const definition = definitionFor(session, kind, id, routed, desired);
   let baseline: CurrentState | undefined;
@@ -298,13 +297,13 @@ export async function runAssignmentSet(
       baseline = routed;
       return routed;
     }
-    const fresh = await readCurrent(session, kind, id);
+    const fresh = await readCurrent(session, kind, id, previewCommand);
     if ("user" in desired) await readUser(session, desired.user);
     if (!sameState(baseline, fresh) && !isDesired(fresh, desired)) {
       throw new AxiError(
         `blocked: assignment for ${target} changed since the preview; re-run to preview the new state`,
         "VERSION_CONFLICT",
-        conflictHint(session, flags, kind, id),
+        [`Re-run \`${previewCommand}\` without --execute to preview the current assignment`],
       );
     }
     return fresh;

@@ -305,6 +305,48 @@ it("refuses the send when the assignment moves between preview and pre-send re-r
     .toEqual([expect.objectContaining({ httpStatus: 0, outcome: "NOT_SENT" })]);
 });
 
+it.each([
+  ["host", ["--user", "3"], "user 3", openHost],
+  ["host", ["--unassign"], "unassigned", openHost],
+  ["account", ["--user", "3"], "user 3", openAccount],
+  ["account", ["--unassign"], "unassigned", openAccount],
+] as const)("preserves %s desired state %s in conflict retry commands", async (kind, desiredFlags, desired, row) => {
+  const seen: SeenCall[] = [];
+  let calls = 0;
+  const { run } = harness({ transport: assignmentTransport({
+    assignments: () => (calls++ < 2 ? [row] : [{ ...row, assigned_to: { id: 9 } }]),
+    seen,
+  }) });
+  const retry = ["assignment", "set", "--config", configPath, "--profile", "lab", `--${kind}`, "7", ...desiredFlags];
+  await expect(run([...retry, "--execute", "--confirm", `${kind} 7`])).rejects.toMatchObject({
+    code: "VERSION_CONFLICT",
+    suggestions: [`Re-run \`vectra-axi ${retry.join(" ")}\` without --execute to preview the current assignment`],
+  });
+  const preview = await run(retry);
+  expect(preview.output).toMatchObject({ type: kind, id: 7, desired, current: "user 9" });
+  expect(sends(seen)).toEqual([]);
+});
+
+it.each([
+  ["host", ["--user", "3"], "user 3", openHost],
+  ["host", ["--unassign"], "unassigned", openHost],
+  ["account", ["--user", "3"], "user 3", openAccount],
+  ["account", ["--unassign"], "unassigned", openAccount],
+] as const)("preserves %s desired state %s in duplicate retry commands", async (kind, desiredFlags, desired, row) => {
+  const seen: SeenCall[] = [];
+  let rows = [row, { ...row, id: 14 }];
+  const { run } = harness({ transport: assignmentTransport({ assignments: () => rows, seen }) });
+  const retry = ["assignment", "set", "--config", configPath, "--profile", "lab", `--${kind}`, "7", ...desiredFlags];
+  await expect(run([...retry, "--execute", "--confirm", `${kind} 7`])).rejects.toMatchObject({
+    code: "VALIDATION_ERROR",
+    suggestions: [`Resolve the duplicate assignments before re-running \`vectra-axi ${retry.join(" ")}\``],
+  });
+  rows = [row];
+  const preview = await run(retry);
+  expect(preview.output).toMatchObject({ type: kind, id: 7, desired, current: "user 5" });
+  expect(sends(seen)).toEqual([]);
+});
+
 it("treats a concurrent change that already matches as a no-op", async () => {
   const seen: SeenCall[] = [];
   let calls = 0;
