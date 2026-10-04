@@ -8,9 +8,10 @@ The [session](../src/session.ts) is the only authenticated path command handlers
 `createSession({ profile, configPath, redactor, transport })` returns `{ profile, request, resolveContinuation }`: a secret-free profile snapshot, an operation-scoped request and a continuation validator.
 No transport, fetch handle or credential material is exposed on that object.
 `request(operation, { pathParams, query })` authorizes the operation against the inventory (known QUX reads only), builds the URL from the record's route template and allowlisted query keys, validates the destination, then resolves the credential (personal token or the named OAuth exchange over the same adapter) and sends one GET.
-Same-origin HTTPS redirects under the profile's version prefix are re-validated and followed up to 3 hops; anything outside the origin reports `DESTINATION_DENIED` before a credential is sent or a further call is made.
+Same-origin HTTPS redirects retain the original operation's bound pathname and declared query keys and are followed up to 3 hops; destinations outside that scope report `DESTINATION_DENIED` before a credential is forwarded or a further call is made.
 Resource responses map 401/403 through the AUTH-01 failure classifier, report unmapped statuses as `REQUEST_FAILED` without retry, and require valid JSON (`RESPONSE_INVALID`).
-`resolveContinuation(operation, next)` validates a next link's destination without fetching it.
+`resolveContinuation(operation, next, { pathParams })` validates a next link against the same operation's bound pathname and declared query keys without fetching it.
+Supply the original path parameters for parameterized operations; omit the options for routes without parameters.
 `nodeTransport()` is the production adapter (verified TLS, 30s deadline, 8MB body ceiling, manual redirect handling); tests inject fakes and deny external network.
 AUTH-02's `TokenTransport` type is unchanged, but its sole implementation now lives in the session, so there is one HTTP path, not two.
 

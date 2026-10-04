@@ -6,7 +6,7 @@ import type { ClientRequest, IncomingMessage } from "node:http";
 import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
 import { loadConfig, selectProfile, type SelectedProfile } from "../src/profiles.js";
 import { SecretRedactor } from "../src/redact.js";
-import { createSession, nodeTransport, type RawTransport, type Session } from "../src/session.js";
+import { createSession, nodeTransport, type RawTransport, type Session, type SessionRequestOptions } from "../src/session.js";
 
 vi.mock("node:https", () => ({ request: vi.fn() }));
 
@@ -247,7 +247,7 @@ it("maps exchange rejection through a resource request", async () => {
 
 it("follows a same-origin redirect and keeps the credential on the origin", async () => {
   const transport = vi.fn<RawTransport>()
-    .mockResolvedValueOnce({ status: 302, location: "/api/v2.5/health?fresh=true", bodyText: "" })
+    .mockResolvedValueOnce({ status: 302, location: "/api/v2.5/health?cache=true", bodyText: "" })
     .mockResolvedValueOnce(ok({ ok: true }));
   const result = await session(transport).request("qux.health.list");
   expect(result).toEqual({ status: 200, body: { ok: true } });
@@ -256,7 +256,70 @@ it("follows a same-origin redirect and keeps the credential on the origin", asyn
     expect(call.url.startsWith("https://fixture.invalid/")).toBe(true);
     expect(call.headers.Authorization).toBe(`Token ${token}`);
   }
-  expect(transport.mock.calls[1]![0].url).toBe("https://fixture.invalid/api/v2.5/health?fresh=true");
+  expect(transport.mock.calls[1]![0].url).toBe("https://fixture.invalid/api/v2.5/health?cache=true");
+});
+
+const deniedDestinations: [string, string, SessionRequestOptions["pathParams"], string][] = [
+  ["sensor token export", "qux.health.list", undefined, "/api/v2.5/sensor_token"],
+  ["connector credential export", "qux.health.list", undefined, "https://fixture.invalid/api/v2.5/settings/aws_connectors"],
+  ["OAuth exchange", "qux.health.list", undefined, "/api/v2.5/oauth2/token"],
+  ["another read operation", "qux.health.list", undefined, "/api/v2.5/hosts"],
+  ["unsupported query", "qux.health.list", undefined, "/api/v2.5/health?fresh=true"],
+  ["encoded unsupported query", "qux.health.list", undefined, "/api/v2.5/health?%66resh=true"],
+  ["normalized traversal", "qux.health.list", undefined, "/api/v2.5/health/../sensor_token"],
+  ["encoded route", "qux.health.list", undefined, "/api/v2.5/%73ensor_token"],
+  ["different detection", "qux.detection.show", { id: 7 }, "/api/v2.5/detections/8"],
+  ["different host", "qux.host.show", { id: 7 }, "/api/v2.5/hosts/8"],
+  ["different account", "qux.account.show", { id: 7 }, "/api/v2.5/accounts/8"],
+  ["different note owner", "qux.host.note.list", { id: 7 }, "/api/v2.5/hosts/8/notes"],
+  ["different tag owner", "qux.account.tag.list", { id: 7 }, "/api/v2.5/tagging/account/8"],
+  ["different group", "qux.group.member.list", { id: 7 }, "/api/v2.5/groups/8/members?page=2"],
+  ["different health check", "qux.health.show", { check: "cpu" }, "/api/v2.5/health/disk"],
+  ["query from a sibling operation", "qux.entity.host.list", undefined, "/api/v2.5/hosts?min_id=9"],
+];
+
+it.each(deniedDestinations)("rejects a redirect to %s before forwarding credentials", async (_name, operation, pathParams, location) => {
+  const transport = vi.fn<RawTransport>().mockResolvedValueOnce({ status: 302, location, bodyText: "" });
+  await expect(session(transport).request(operation, { pathParams })).rejects.toMatchObject({ code: "DESTINATION_DENIED" });
+  expect(transport).toHaveBeenCalledTimes(1);
+});
+
+it.each(deniedDestinations)("rejects a continuation to %s without fetching it", (_name, operation, pathParams, next) => {
+  const transport = vi.fn<RawTransport>();
+  expect(() => session(transport).resolveContinuation(operation, next, { pathParams }))
+    .toThrow(expect.objectContaining({ code: "DESTINATION_DENIED" }));
+  expect(transport).not.toHaveBeenCalled();
+});
+
+it("checks every redirect hop against the original operation", async () => {
+  const transport = vi.fn<RawTransport>()
+    .mockResolvedValueOnce({ status: 302, location: "?cache=true", bodyText: "" })
+    .mockResolvedValueOnce({ status: 302, location: "/api/v2.5/sensor_token", bodyText: "" });
+  await expect(session(transport).request("qux.health.list")).rejects.toMatchObject({ code: "DESTINATION_DENIED" });
+  expect(transport).toHaveBeenCalledTimes(2);
+});
+
+it("follows a redirect within the same bound resource with declared query keys", async () => {
+  const transport = vi.fn<RawTransport>()
+    .mockResolvedValueOnce({ status: 302, location: "?page=2", bodyText: "" })
+    .mockResolvedValueOnce(ok({ results: [] }));
+  expect(await session(transport).request("qux.group.member.list", { pathParams: { id: "synthetic#7" } }))
+    .toEqual({ status: 200, body: { results: [] } });
+  expect(transport.mock.calls[1]![0]).toMatchObject({
+    url: "https://fixture.invalid/api/v2.5/groups/synthetic%237/members?page=2",
+    headers: { Authorization: `Token ${token}` },
+  });
+});
+
+it("validates a continuation within the original bound resource", () => {
+  expect(session(vi.fn<RawTransport>()).resolveContinuation(
+    "qux.group.member.list", "/api/v2.5/groups/synthetic%237/members?page=2", { pathParams: { id: "synthetic#7" } },
+  )).toBe("https://fixture.invalid/api/v2.5/groups/synthetic%237/members?page=2");
+});
+
+it("requires original path parameters to validate a parameterized continuation", () => {
+  expect(() => session(vi.fn<RawTransport>()).resolveContinuation("qux.group.member.list", "/api/v2.5/groups/7/members?page=2"))
+    .toThrow(expect.objectContaining({ code: "VALIDATION_ERROR" }));
 });
 
 it("stops a cross-origin redirect before the denied destination sees a credential or call", async () => {

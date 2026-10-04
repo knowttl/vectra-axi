@@ -72,7 +72,8 @@ Known referenced secret values are scrubbed from output and from error metadata 
 Session failures distinguish `AUTH_REQUIRED`, `AUTH_EXPIRED` (explicit expiry evidence), `AUTH_FAILED` (HTTP 401), `ACCESS_DENIED` (HTTP 403) and `TLS_TRUST_ERROR` (CA loading or known certificate verification errors); all are runtime failures with exit 1.
 Only known QUX v2.5 read operations from the capability inventory are authorized; unknown, blocked, credential-export and other-generation operations report `OPERATION_UNKNOWN` or `OPERATION_BLOCKED` before any credential is resolved or HTTP call is made.
 Unmapped failure statuses report `REQUEST_FAILED` without retry, malformed success bodies report `RESPONSE_INVALID`, unreachable origins report `TRANSPORT_FAILED`, and any destination outside the profile's HTTPS origin and version prefix - including cross-origin redirects and continuation links - reports `DESTINATION_DENIED` with no credential sent.
-Same-origin redirects are re-validated and followed up to 3 hops; continuation links are validated but never fetched, leaving paging and retries to CORE-02.
+Same-origin redirects and continuation links must retain the operation's bound pathname and declared query keys.
+Redirects are followed up to 3 hops; continuation links are validated but never fetched, leaving paging and retries to CORE-02.
 Write policy configuration and enforcement remain assigned to WRITE-00; no business writes are available.
 See [AUTH-01 handoff](docs/auth-01-handoff.md) for integration constraints and offline acceptance links.
 

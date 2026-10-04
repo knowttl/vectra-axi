@@ -29,7 +29,7 @@ export type SessionResponse = { status: number; body: unknown };
 export type Session = {
   readonly profile: Pick<SelectedProfile, "name" | "kind" | "origin" | "apiVersion">;
   request(operation: string, options?: SessionRequestOptions): Promise<SessionResponse>;
-  resolveContinuation(operation: string, next: string): string;
+  resolveContinuation(operation: string, next: string, options?: Pick<SessionRequestOptions, "pathParams">): string;
 };
 
 const MAX_REDIRECTS = 3;
@@ -104,32 +104,39 @@ function buildOperationUrl(
     }
     url.searchParams.set(key, String(value));
   }
-  assertDestination(profile, url, `operation ${record.id}`);
+  assertDestination(profile, record, url, path);
   return url.href;
 }
 
 // Destination enforcement shared by initial requests, redirects and next links.
 // A credentialed request never leaves the profile's HTTPS origin, so a denied
 // destination fails before credential resolution and before any HTTP call.
-function assertDestination(profile: SelectedProfile, url: URL, what: string): void {
+function assertDestination(profile: SelectedProfile, record: CapabilityOperation, url: URL, path: string): void {
   if (url.protocol !== "https:" || url.origin !== profile.origin
     || !url.pathname.startsWith(versionPrefix(profile))) {
-    throw new AxiError(`Refusing destination outside the profile origin for ${what}`, "DESTINATION_DENIED", [
+    throw new AxiError(`Refusing destination outside the profile origin for operation ${record.id}`, "DESTINATION_DENIED", [
       `Destinations must stay under ${profile.origin}${versionPrefix(profile)}; no credential was sent`,
+    ]);
+  }
+  if (url.pathname !== path || [...url.searchParams.keys()].some((key) => !record.query.includes(key))) {
+    throw new AxiError(`Refusing destination outside operation ${record.id}`, "DESTINATION_DENIED", [
+      "Destinations must retain the operation's bound route and use only its declared query keys; no credential was sent",
     ]);
   }
 }
 
-function resolveLink(profile: SelectedProfile, current: string, location: string, what: string): string {
+function resolveLink(
+  profile: SelectedProfile, record: CapabilityOperation, path: string, current: string, location: string,
+): string {
   let url: URL;
   try {
     url = new URL(location, current);
   } catch {
-    throw new AxiError(`Invalid redirect or continuation destination for ${what}`, "DESTINATION_DENIED", [
+    throw new AxiError(`Invalid redirect destination for operation ${record.id}`, "DESTINATION_DENIED", [
       "The server returned a destination that cannot be parsed as a URL; no credential was sent",
     ]);
   }
-  assertDestination(profile, url, what);
+  assertDestination(profile, record, url, path);
   return url.href;
 }
 
@@ -205,9 +212,10 @@ export function createSession(args: {
   async function request(operation: string, options?: SessionRequestOptions): Promise<SessionResponse> {
     const record = authorizeOperation(profile, operation);
     let current = buildOperationUrl(profile, record, options);
+    const path = new URL(current).pathname;
     const authorization = (await credentials()).header;
     for (let hops = 0; ; hops++) {
-      assertDestination(profile, new URL(current), `operation ${record.id}`);
+      assertDestination(profile, record, new URL(current), path);
       const response = await sendRaw(profile, configPath, redactor, transport,
         { method: "GET", url: current, headers: { Authorization: authorization, Accept: "application/json" } });
       if (response.status < 300 || response.status > 399) return { status: 200, body: decodeResourceBody(response) };
@@ -221,14 +229,15 @@ export function createSession(args: {
           "The session follows at most 3 same-origin redirects; no credential was forwarded further",
         ]);
       }
-      current = resolveLink(profile, current, response.location, `redirect for ${record.id}`);
+      current = resolveLink(profile, record, path, current, response.location);
     }
   }
 
   // CORE-02 follows collection and checkpoint links through this validator;
   // the session fetches nothing here, so validation alone cannot leak a credential.
-  function resolveContinuation(operation: string, next: string): string {
+  function resolveContinuation(operation: string, next: string, options?: Pick<SessionRequestOptions, "pathParams">): string {
     const record = authorizeOperation(profile, operation);
+    const path = new URL(buildOperationUrl(profile, record, options)).pathname;
     let url: URL;
     try {
       url = new URL(next, profile.origin);
@@ -237,7 +246,7 @@ export function createSession(args: {
         "Continuation links must be absolute HTTPS URLs or server-relative paths",
       ]);
     }
-    assertDestination(profile, url, `continuation for ${record.id}`);
+    assertDestination(profile, record, url, path);
     return url.href;
   }
 
