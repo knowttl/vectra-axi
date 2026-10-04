@@ -33,9 +33,8 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     },
   });
 
-  // Async rejections skip the synchronous redactor boundary above, so
-  // detection failures are scrubbed through it explicitly before the SDK
-  // formats them.
+  // Await async failures before applying the synchronous redactor boundary,
+  // so the SDK only receives scrubbed errors.
   async function guarded<T>(work: () => Promise<T>): Promise<T> {
     try {
       return await work();

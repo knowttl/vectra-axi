@@ -6,7 +6,7 @@ Prerequisite is CORE-02 merged as `2b4af30` (PR https://github.com/knowttl/vectr
 
 ## What shipped
 
-`qux.detection.list` and `qux.detection.show` are the only `named` inventory operations; every other record stays `planned` or `blocked`.
+See the [capability records](../inventory/capabilities.json) for operation dispositions.
 The [detection module](../src/detections.ts) owns flag-to-query mapping, row decoding, field projection, truncation and output shaping.
 `runDetectionList(session, flags)` returns `{ output, failed }`: shaped AXI output plus whether the caller must exit nonzero.
 `runDetectionShow(session, flags)` returns the same shape for one detail read.
@@ -20,11 +20,6 @@ Two-word leaves resolve from the first two argv tokens in `parseInvocation`; unk
 Map each new flag to its inventory query key in the domain module and pass values through; validate shapes (integers, numbers, required selectors) before any session call.
 Project rows to the inventory's field subset and reject unknown `--fields` values before HTTP.
 Return `{ output, failed }` from the runner and dispatch it from `runDetection`-style CLI glue; never expose the transport or credentials to output shaping.
-Partial collection results keep validated rows with `complete: false`, an inline error and a cursor, and exit 1.
-Empty windows succeed with an explicit zero message; denied windows fail with the session's access error, never an empty success.
-Cursors bind their query context: resumed reads repeat the original filters, and `resume()` rejects anything else.
-Detail leaves preview long text with its total and a `--full` hint; `--full` reveals only what the server returned.
+Follow [README.md](../README.md) for shipped partial, empty, denied, cursor and truncation behavior and the [collection interface](core-02-handoff.md) for row decoding before commit.
 Cover the leaf in the domain test file through the real session with a fake `RawTransport` and synthetic `.invalid` fixtures under the [external-network guard](../test/network-guard.ts).
-Extend the packaged [CLI suite](../test/cli.test.ts) with the list/show/full/resume investigation journey, empty and access errors, offline help, unknown-input rejection and missing-profile cases.
-Run the declared packaged binary with synthetic profiles and a test-only fake transport under the external-network guard; no packaged test performs network calls.
-Hosts/accounts are READ-02 and notes/tags are READ-03: do not widen this module to adjacent families.
+See the [implementation plan](implementation-plan.md#session-and-investigation-slices) for the required packaged investigation journey and deferred family scope.
