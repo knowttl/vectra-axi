@@ -228,6 +228,22 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi detection tag set --profile <name> --id 42 --tags a,b --execute --confirm 'detection 42'",
     ],
   },
+  "detection note add": {
+    description: "Append one QUX detection note through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Detection ID to append the note to (positive integer, required)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target detection <id> when executing a change" },
+      note: { kind: "value", valueName: "text", description: "Note text to append (non-empty)" },
+      "note-file": { kind: "value", valueName: "path", description: "Read the note to append from a file exactly as stored; use - for stdin" },
+      execute: { kind: "boolean", description: "Send the append after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi detection note add --profile <name> --id 42 --note <text>",
+      "vectra-axi detection note add --profile <name> --id 42 --note <text> --execute --confirm 'detection 42'",
+    ],
+  },
   "host note list": {
     description: "List full QUX host notes through the versioned notes route",
     flags: {
@@ -266,6 +282,22 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi host tag set --profile <name> --id 19 --tags a,b --execute --confirm 'host 19'",
     ],
   },
+  "host note add": {
+    description: "Append one QUX host note through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Host ID to append the note to (positive integer, required)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target host <id> when executing a change" },
+      note: { kind: "value", valueName: "text", description: "Note text to append (non-empty)" },
+      "note-file": { kind: "value", valueName: "path", description: "Read the note to append from a file exactly as stored; use - for stdin" },
+      execute: { kind: "boolean", description: "Send the append after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi host note add --profile <name> --id 19 --note <text>",
+      "vectra-axi host note add --profile <name> --id 19 --note <text> --execute --confirm 'host 19'",
+    ],
+  },
   "account note list": {
     description: "List full QUX account notes through the versioned notes route",
     flags: {
@@ -302,6 +334,22 @@ export const catalogue: Readonly<Record<string, {
     examples: [
       "vectra-axi account tag set --profile <name> --id 19 --tags a,b",
       "vectra-axi account tag set --profile <name> --id 19 --tags a,b --execute --confirm 'account 19'",
+    ],
+  },
+  "account note add": {
+    description: "Append one QUX account note through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Account ID to append the note to (positive integer, required)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target account <id> when executing a change" },
+      note: { kind: "value", valueName: "text", description: "Note text to append (non-empty)" },
+      "note-file": { kind: "value", valueName: "path", description: "Read the note to append from a file exactly as stored; use - for stdin" },
+      execute: { kind: "boolean", description: "Send the append after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi account note add --profile <name> --id 19 --note <text>",
+      "vectra-axi account note add --profile <name> --id 19 --note <text> --execute --confirm 'account 19'",
     ],
   },
   "assignment list": {
@@ -598,7 +646,7 @@ export function parseInvocation(argv: readonly string[]): {
       if (inline.length) usage(`--${name} does not accept a value`);
     } else {
       const next = inline.length ? inline.join("=") : args[++index];
-      if (!next?.trim() || (!inline.length && next.startsWith("-") && !(name === "tags-file" && next === "-"))) usage(`--${name} requires a non-empty value`);
+      if (!next?.trim() || (!inline.length && next.startsWith("-") && !((name === "tags-file" || name === "note-file") && next === "-"))) usage(`--${name} requires a non-empty value`);
       value = next!;
     }
     flags.set(name!, value);

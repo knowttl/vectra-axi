@@ -264,18 +264,21 @@ it("rejects a malformed embedded summary", async () => {
     .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
 });
 
-it("constructs no write request for notes; only the WRITE-01 tag replace writes", async () => {
+it("routes note appends through the coordinator, never the read session", async () => {
   expect(Object.keys(catalogue).filter((leaf) =>
     leaf.includes("note") || leaf.includes("tag"))).toEqual([
     "detection note list",
     "detection tag list",
     "detection tag set",
+    "detection note add",
     "host note list",
     "host tag list",
     "host tag set",
+    "host note add",
     "account note list",
     "account tag list",
     "account tag set",
+    "account note add",
   ]);
   const deferred = inventory.deferredFamilies
     .filter((family) => family.id.endsWith("note-writes") || family.id.endsWith("tag-writes"));
@@ -291,6 +294,8 @@ it("constructs no write request for notes; only the WRITE-01 tag replace writes"
     calls += 1;
     return { status: 200, bodyText: "{}" };
   };
+  await expect(session(transport).request("qux.detection.note.add", { pathParams: { id: 42 } }))
+    .rejects.toMatchObject({ code: "OPERATION_BLOCKED" });
   await expect(session(transport).request("qux.detection.note.create", { pathParams: { id: 42 } }))
     .rejects.toMatchObject({ code: "OPERATION_UNKNOWN" });
   expect(calls).toBe(0);

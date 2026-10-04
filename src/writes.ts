@@ -32,7 +32,8 @@ export function resolveWriteLogPath(env: NodeJS.ProcessEnv = process.env): strin
 export type MutationEffect = "write" | "disruptive";
 
 // A named mutation bound by its domain caller. The operation must fall
-// inside the profile's configured scope; WRITE-01 also requires confirmation.
+// inside the profile's configured scope; tag replaces and note appends also
+// require confirmation.
 export type MutationDefinition = {
   operation: string;
   method: MutationMethod;
@@ -164,7 +165,7 @@ export function createMutationCoordinator(args: {
         "WRITES_DISABLED",
         [
           "Writes are disabled for this profile",
-          "WRITE-00 supports fixture-driven coordinator tests only; no mutation command is available",
+          "Gated `tag set` replaces and `note add` appends need a hand-edited writes scope on this profile",
         ],
       );
     }
@@ -175,7 +176,7 @@ export function createMutationCoordinator(args: {
         "OPERATION_NOT_WRITABLE",
         [
           "Writes are limited to this profile's configured operations",
-          "WRITE-00 supports fixture-driven coordinator tests only; no mutation command is available",
+          "Only implemented operations can run: `tag set` replaces and `note add` appends",
         ],
       );
     }

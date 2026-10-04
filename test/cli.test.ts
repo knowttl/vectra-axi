@@ -232,6 +232,54 @@ it("refuses a packaged tag replace without hand opt-in", () => {
   expect(refused.stderr).toBe("");
 });
 
+it("previews and executes a gated note append through the packaged binary", () => {
+  const config = join(scratch, "noteadd.json");
+  const trace = join(scratch, "noteadd-requests.jsonl");
+  const journal = join(scratch, "noteadd-writes.log");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: ["qux.detection.note.add"] } } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    VECTRA_AXI_WRITE_LOG: journal,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const preview = invoke(["detection", "note", "add", ...context, "--id", "42",
+    "--note", "synthetic appended note"], fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(preview.stderr).toBe("");
+  expect(decode(preview.stdout)).toMatchObject({ profile: "lab", type: "detection", id: 42,
+    operation: "qux.detection.note.add", note: "synthetic appended note" });
+  const unconfirmed = invoke(["detection", "note", "add", ...context, "--id", "42",
+    "--note", "synthetic appended note", "--execute"], fixtureEnv);
+  expect(unconfirmed.status).toBe(1);
+  expect(unconfirmed.stdout).toContain("code: CONFIRM_REQUIRED");
+  expect(unconfirmed.stderr).toBe("");
+  expect(() => readFileSync(journal, "utf8")).toThrow();
+  const applied = invoke(["detection", "note", "add", ...context, "--id", "42",
+    "--note", "synthetic appended note", "--execute", "--confirm", "detection 42"], fixtureEnv);
+  expect(applied.status).toBe(0);
+  expect(applied.stderr).toBe("");
+  const appliedOutput = decode(applied.stdout) as Record<string, unknown>;
+  expect(appliedOutput).toMatchObject({ profile: "lab", type: "detection", id: 42,
+    operation: "qux.detection.note.add", note: "synthetic appended note", audit: expect.any(String) });
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/42/notes" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/42/notes" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/42/notes" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/42/notes" },
+    { method: "POST", url: "https://fixture.invalid/api/v2.5/detections/42/notes",
+      body: { note: "synthetic appended note" } },
+  ]);
+  expect(readFileSync(journal, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line)))
+    .toEqual([
+      expect.objectContaining({ kind: "intent", operation: "qux.detection.note.add", method: "POST",
+        target: "detection 42" }),
+      expect.objectContaining({ kind: "outcome", operation: "qux.detection.note.add", httpStatus: 200,
+        outcome: "SUCCESS" }),
+    ]);
+  expect(readFileSync(journal, "utf8")).not.toContain("synthetic appended note");
+});
+
 it.each([
   { path: [] as string[], readOnly: "1", writes: "disabled" },
   { path: ["home"], readOnly: "1", writes: "disabled" },
@@ -904,7 +952,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, doctor, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, detection tag set, host note list, host tag list, host tag set, account note list, account tag list, account tag set, assignment list, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
+  expect(result.stdout).toContain("Available commands: home, setup, doctor, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, detection tag set, detection note add, host note list, host tag list, host tag set, host note add, account note list, account tag list, account tag set, account note add, assignment list, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
   expect(result.stdout).toContain("lockdown list");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);

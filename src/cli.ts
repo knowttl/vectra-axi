@@ -18,6 +18,7 @@ import { entityKind, listFields as entityListFields, listLimit as entityListLimi
   runAccountList, runAccountShow, runEntityList, runEntityShow, runHostList, runHostShow,
   showId as entityShowId } from "./entities.js";
 import { NOTE_KINDS, noteOwnerId, runNoteList, runTagList, type NoteKind } from "./notes.js";
+import { runNoteAdd } from "./note-add.js";
 import { loadConfig, selectProfile } from "./profiles.js";
 import { SecretRedactor } from "./redact.js";
 import { createSession, nodeTransport, type RawTransport } from "./session.js";
@@ -77,6 +78,10 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         if (invocation.leaf === "detection tag set" || invocation.leaf === "host tag set"
           || invocation.leaf === "account tag set") {
           return runTagSets(invocation.leaf, invocation.flags);
+        }
+        if (invocation.leaf === "detection note add" || invocation.leaf === "host note add"
+          || invocation.leaf === "account note add") {
+          return runNoteAdds(invocation.leaf, invocation.flags);
         }
         if (invocation.leaf === "assignment list" || invocation.leaf === "assignment outcome list"
           || invocation.leaf === "assignment outcome show"
@@ -150,6 +155,26 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
     const coordinator = createMutationCoordinator({ profile: selected, configPath: loaded.path, redactor, transport });
     const result: LeafResult = await runTagSet(session, coordinator, flags, kind);
+    if (result.failed) process.exitCode = 1;
+    return result.output;
+  }
+  // One dispatch for every note append leaf: validate the owner ID, select
+  // the profile, build the session and a WRITE-00 coordinator on the
+  // injected transport, and run the action-shaped append through the full
+  // gate pipeline. Reads stay on the session; the POST travels only with
+  // a coordinator authorization after the gates pass.
+  type NoteAddLeaf = "detection note add" | "host note add" | "account note add";
+  async function runNoteAdds(leaf: NoteAddLeaf, flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
+    const kind = leaf.split(" ")[0] as NoteKind;
+    if (!(NOTE_KINDS as readonly string[]).includes(kind)) {
+      throw new Error(`Unknown note add leaf: ${leaf}`);
+    }
+    noteOwnerId(flags, leaf, kind);
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
+    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+    const coordinator = createMutationCoordinator({ profile: selected, configPath: loaded.path, redactor, transport });
+    const result: LeafResult = await runNoteAdd(session, coordinator, flags, kind);
     if (result.failed) process.exitCode = 1;
     return result.output;
   }

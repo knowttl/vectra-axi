@@ -2,13 +2,13 @@
 
 # vectra-axi coverage
 
-This is the supported QUX SOC read surface with one gated tag-write family, not full Vectra API coverage.
+This is the supported QUX SOC read surface with gated tag-write and note-write families, not full Vectra API coverage.
 Only `named` operations have an implemented, tested command leaf; every other
 operation remains planned, blocked or unreviewed until its own slice ships.
 
 ## Counts
 
-- named: 43
+- named: 46
 - reviewed-raw: 0
 - planned: 32
 - blocked: 2
@@ -25,14 +25,17 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 | `qux.host.list` | host list | READ-02 | qux 2.5 | collection | named |
 | `qux.host.show` | host show | READ-02 | qux 2.5 | none | named |
 | `qux.host.note.list` | host note list | READ-03 | qux 2.5 | none | named |
+| `qux.host.note.add` | host note add | WRITE-02 | qux 2.5 | none | named |
 | `qux.host.tag.list` | host tag list | READ-03 | qux 2.5 | none | named |
 | `qux.host.tag.set` | host tag set | WRITE-01 | qux 2.5 | none | named |
 | `qux.account.list` | account list | READ-02 | qux 2.5 | collection | named |
 | `qux.account.show` | account show | READ-02 | qux 2.5 | none | named |
 | `qux.account.note.list` | account note list | READ-03 | qux 2.5 | none | named |
+| `qux.account.note.add` | account note add | WRITE-02 | qux 2.5 | none | named |
 | `qux.account.tag.list` | account tag list | READ-03 | qux 2.5 | none | named |
 | `qux.account.tag.set` | account tag set | WRITE-01 | qux 2.5 | none | named |
 | `qux.detection.note.list` | detection note list | READ-03 | qux 2.5 | none | named |
+| `qux.detection.note.add` | detection note add | WRITE-02 | qux 2.5 | none | named |
 | `qux.detection.tag.list` | detection tag list | READ-03 | qux 2.5 | none | named |
 | `qux.detection.tag.set` | detection tag set | WRITE-01 | qux 2.5 | none | named |
 | `qux.assignment.list` | assignment list | READ-04 | qux 2.5 | collection | named |
@@ -118,7 +121,7 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 - `rux.long-tail.proxies` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.unique-host-usage` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.ad-group-directory` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
-- `qux.later.note-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
+- `qux.later.note-writes` (qux 2.5, planned): Per-object note append is a named WRITE-02 operation (qux.detection.note.add, qux.host.note.add, qux.account.note.add); edits and deletes remain planned with no authorized route.
 - `qux.later.tag-writes` (qux 2.5, planned): Per-object tag replace is a named WRITE-01 operation (qux.detection.tag.set, qux.host.tag.set, qux.account.tag.set); bulk set/delete remain planned with no authorized route.
 - `qux.later.assignment-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `qux.later.outcome-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.

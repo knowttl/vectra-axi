@@ -258,6 +258,45 @@
       ]
     },
     {
+      "id": "qux.host.note.add",
+      "command": "host note add",
+      "slice": "WRITE-02",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled note-add scope; POST appends one note with a {\"note\"} payload and never edits or deletes.",
+      "method": "POST",
+      "path": "/api/v2.5/hosts/{id}/notes",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "set_host_note: POST /hosts/{id}/notes with {\"note\"} payload"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "p30; Appendix A host notes"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-02; `host note add` drives the coordinator action-shaped note append with its kind retained.",
+      "fixtureCases": [
+        "dry-run-preview",
+        "exact-appended-body",
+        "confirmation-required",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
       "id": "qux.host.tag.list",
       "command": "host tag list",
       "slice": "READ-03",
@@ -445,6 +484,45 @@
       ]
     },
     {
+      "id": "qux.account.note.add",
+      "command": "account note add",
+      "slice": "WRITE-02",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled note-add scope; POST appends one note with a {\"note\"} payload and never edits or deletes.",
+      "method": "POST",
+      "path": "/api/v2.5/accounts/{id}/notes",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "set_account_note: POST /accounts/{id}/notes with {\"note\"} payload"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "p24; Appendix A account notes"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-02; `account note add` drives the coordinator action-shaped note append with its kind retained.",
+      "fixtureCases": [
+        "dry-run-preview",
+        "exact-appended-body",
+        "confirmation-required",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
       "id": "qux.account.tag.list",
       "command": "account tag list",
       "slice": "READ-03",
@@ -547,6 +625,45 @@
         "empty",
         "access-denied",
         "embedded-summary-truncated"
+      ]
+    },
+    {
+      "id": "qux.detection.note.add",
+      "command": "detection note add",
+      "slice": "WRITE-02",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled note-add scope; POST appends one note with a {\"note\"} payload and never edits or deletes.",
+      "method": "POST",
+      "path": "/api/v2.5/detections/{id}/notes",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "set_detection_note: POST /detections/{id}/notes with {\"note\"} payload"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "p17; Appendix A Detection (Notes)"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-02; `detection note add` drives the coordinator action-shaped note append with its kind retained.",
+      "fixtureCases": [
+        "dry-run-preview",
+        "exact-appended-body",
+        "confirmation-required",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
       ]
     },
     {
@@ -3274,7 +3391,7 @@
       "deployment": "qux",
       "apiVersion": "2.5",
       "disposition": "planned",
-      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "rationale": "Per-object note append is a named WRITE-02 operation (qux.detection.note.add, qux.host.note.add, qux.account.note.add); edits and deletes remain planned with no authorized route.",
       "evidence": [
         {
           "source": "qux-guide",
