@@ -104,7 +104,7 @@ const assignmentSchema = z.object({
   id: z.number().int().positive(),
   host_id: z.number().int().nullable().optional(),
   account_id: z.number().int().nullable().optional(),
-  date_resolved: z.string().nullable().optional(),
+  date_resolved: z.string().nullable(),
 });
 const outcomeSchema = z.object({
   id: z.number().int().positive(),
@@ -223,7 +223,7 @@ async function runCollectionList(
 // means it was resolved. The status string keeps that distinction explicit
 // instead of leaving a bare null that reads as missing data.
 function withStatus(row: Record<string, unknown>): Record<string, unknown> {
-  return { ...row, status: row.date_resolved == null ? "unresolved" : "resolved" };
+  return { ...row, status: row.date_resolved === null ? "unresolved" : "resolved" };
 }
 
 export async function runAssignmentList(

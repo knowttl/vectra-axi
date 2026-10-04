@@ -79,6 +79,23 @@ it("marks null date_resolved unresolved and keeps the null instead of a zero", a
   expect(open).not.toHaveProperty("resolution");
 });
 
+it.each([
+  { target: "host", row: { id: 11, host_id: 7, account_id: null } },
+  { target: "account", row: { id: 12, host_id: null, account_id: 7 } },
+])("rejects missing resolution state for $target assignments on initial and resumed reads", async ({ row }) => {
+  const transport: RawTransport = async () => listPage([row], { count: 1 });
+  const owned = session(transport);
+  const first = await runAssignmentList(owned, flags(["assignment", "list"]));
+  expect(first).toMatchObject({ failed: true, output: {
+    complete: false, code: "RESPONSE_INVALID", assignments: [], cursor: expect.any(String),
+  } });
+  const second = await runAssignmentList(owned,
+    flags(["assignment", "list", "--cursor", first.output.cursor as string, "--fields", "status"]));
+  expect(second).toMatchObject({ failed: true, output: {
+    complete: false, code: "RESPONSE_INVALID", assignments: [],
+  } });
+});
+
 it("keeps host-targeted and account-targeted assignments kind-scoped", async () => {
   const transport: RawTransport = async () => listPage([openAssignment, resolvedAssignment], { count: 2 });
   const result = await runAssignmentList(session(transport), flags(["assignment", "list"]));
