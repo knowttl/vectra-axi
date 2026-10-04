@@ -132,6 +132,10 @@ function encodeCursor(cursor: DetectionEventCursor): string {
   return Buffer.from(JSON.stringify(cursor), "utf8").toString("base64url");
 }
 
+function shellQuote(value: string): string {
+  return /^[a-zA-Z0-9_./-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\"'\"'")}'`;
+}
+
 // Validates event flags without a session, so cli.ts rejects bad input
 // before configuration or profile selection. The runner calls it again
 // first, keeping one validation path for both entry points.
@@ -200,6 +204,15 @@ export async function runDetectionEventList(
       "RESPONSE_INVALID", ["Continuation follows the returned checkpoint; without one the window cannot resume"]);
   }
   const profileName = session.profile.name;
+  const config = flags.get("config");
+  const context = `${typeof config === "string" ? ` --config ${shellQuote(config)}` : ""}`
+    + ` --profile ${shellQuote(profileName)}`
+    + (["event-timestamp-gte", "event-timestamp-lte", "limit"] as const).map((flag) => {
+      const value = flags.get(flag);
+      return typeof value === "string" ? ` --${flag} ${shellQuote(value)}` : "";
+    }).join("");
+  const continuation = (flag: "from" | "cursor", value: string): string =>
+    `vectra-axi detection event list${context} --${flag} ${shellQuote(value)}`;
   const base = {
     profile: profileName,
     checkpoint,
@@ -243,7 +256,7 @@ export async function runDetectionEventList(
       events: `0 detection events found${scope}`,
       complete: true,
       ...(typeof checkpoint === "string" && checkpoint
-        ? { help: [`Pass --from ${checkpoint} to continue from the returned checkpoint`] } : {}),
+        ? { help: [`Run \`${continuation("from", checkpoint)}\` to continue from the returned checkpoint`] } : {}),
     } };
   }
   const viewer = session.profile;
@@ -273,9 +286,9 @@ export async function runDetectionEventList(
       events: window,
       complete: true,
       cursor,
-      help: ["Pass --cursor <cursor> with the same filters for the rest of this batch",
+      help: [`Run \`${continuation("cursor", cursor)}\` for the rest of this batch`,
         ...(typeof checkpoint === "string" && checkpoint
-          ? [`Pass --from ${checkpoint} to continue past this batch`] : [])],
+          ? [`Run \`${continuation("from", checkpoint)}\` to continue past this batch`] : [])],
     } };
   }
   return { failed: false, output: {
@@ -284,6 +297,6 @@ export async function runDetectionEventList(
     events: window,
     complete: true,
     ...(typeof checkpoint === "string" && checkpoint
-      ? { help: [`Pass --from ${checkpoint} to continue from the returned checkpoint`] } : {}),
+      ? { help: [`Run \`${continuation("from", checkpoint)}\` to continue from the returned checkpoint`] } : {}),
   } };
 }

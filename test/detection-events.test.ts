@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -68,6 +69,40 @@ const secondEvent = { id: 202, detection_id: 1, event_timestamp: "2026-10-01T12:
 const batch = (events: unknown[], checkpoint: string | null, remaining = 0): { status: number; bodyText: string } =>
   body({ next_checkpoint: checkpoint, remaining_count: remaining, events });
 
+it.each([
+  { state: "empty batch", events: [], limit: "5", hint: 0, checkpointFlag: "from" },
+  { state: "cursor resume", events: [firstEvent, secondEvent], limit: "1", hint: 0, checkpointFlag: "cursor" },
+  { state: "past-batch continuation", events: [firstEvent, secondEvent], limit: "1", hint: 1, checkpointFlag: "from" },
+  { state: "drained batch", events: [firstEvent], limit: "5", hint: 0, checkpointFlag: "from" },
+])("preserves invocation context in the $state command", async ({ events, limit, hint, checkpointFlag }) => {
+  const urls: string[] = [];
+  const checkpoint = "evt ' \" $(printf literal)";
+  const owned = cloudSession(cloudFixture((url) => {
+    urls.push(url);
+    return batch(events, urls.length === 1 ? checkpoint : "next");
+  }));
+  const config = join(scratch, "config's file.json");
+  const initial = await runDetectionEventList(owned, flags([
+    "detection", "event", "list", "--config", config, "--from", "start", "--limit", limit,
+    "--event-timestamp-gte", "2026-10-01T12:00:00Z", "--event-timestamp-lte", "2026-10-01T12:05:00Z",
+  ]));
+  const command = (initial.output.help as string[])[hint]!.split("`")[1]!;
+  const argv = execFileSync("sh", ["-c", `set -- ${command}; printf '%s\\0' "$@"`],
+    { encoding: "utf8" }).split("\0").slice(1, -1);
+  const resumedFlags = flags(argv);
+  expect(resumedFlags.get("config")).toBe(config);
+  expect(resumedFlags.get("profile")).toBe("cloud");
+  expect(resumedFlags.get("limit")).toBe(limit);
+  expect(resumedFlags.get("event-timestamp-gte")).toBe("2026-10-01T12:00:00Z");
+  expect(resumedFlags.get("event-timestamp-lte")).toBe("2026-10-01T12:05:00Z");
+  expect(resumedFlags.get(checkpointFlag)).toBe(checkpointFlag === "cursor" ? initial.output.cursor : checkpoint);
+  const resumed = await runDetectionEventList(owned, resumedFlags);
+  expect(resumed.failed).toBe(false);
+  expect(new URL(urls[1]!).searchParams.get("from")).toBe(checkpointFlag === "cursor" ? "start" : checkpoint);
+  expect(new URL(urls[1]!).searchParams.get("event_timestamp_gte")).toBe("2026-10-01T12:00:00Z");
+  expect(new URL(urls[1]!).searchParams.get("event_timestamp_lte")).toBe("2026-10-01T12:05:00Z");
+});
+
 it("reads one event batch and returns its checkpoint for continuation", async () => {
   let url = "";
   const transport = cloudFixture((requestUrl) => {
@@ -84,7 +119,7 @@ it("reads one event batch and returns its checkpoint for continuation", async ()
     count: "2 detection events",
     events: [firstEvent, secondEvent],
     complete: true,
-    help: ["Pass --from evt-2 to continue from the returned checkpoint"],
+    help: ["Run `vectra-axi detection event list --profile cloud --from evt-2` to continue from the returned checkpoint"],
   } });
 });
 
@@ -254,7 +289,7 @@ it("reports an empty batch as success with an explicit zero and its checkpoint",
     count: "0 detection events",
     events: "0 detection events found from checkpoint evt-4",
     complete: true,
-    help: ["Pass --from evt-5 to continue from the returned checkpoint"],
+    help: ["Run `vectra-axi detection event list --profile cloud --from evt-5` to continue from the returned checkpoint"],
   } });
 });
 

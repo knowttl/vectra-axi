@@ -650,7 +650,7 @@ it("reads cloud detection events through the packaged RUX journey", () => {
   expect(decode(events.stdout)).toMatchObject({ profile: "cloud", checkpoint: "evt-2",
     remaining_count: 1, count: "2 detection events", complete: true,
     events: [{ id: 201, detection_id: 1 }, { id: 202, detection_id: 1 }] });
-  expect(events.stdout).toContain("Pass --from evt-2 to continue from the returned checkpoint");
+  expect(events.stdout).toContain(`vectra-axi detection event list --config ${config} --profile cloud --from evt-2`);
   const continued = invoke(["detection", "event", "list", ...context, "--from", "evt-2"], fixtureEnv);
   expect(continued.status).toBe(0);
   expect(continued.stderr).toBe("");
