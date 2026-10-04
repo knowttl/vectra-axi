@@ -4,13 +4,8 @@ import { createSession, credentialProvider, type RawTransport } from "./session.
 import { selectProfile, type LoadedConfig } from "./profiles.js";
 import type { SecretRedactor } from "./redact.js";
 
-// PACK-01: explicit release health check over the reviewed read-only session.
-// Doctor performs one documented bounded read per profile
-// (qux.detection.list with a one-row window) and reports configuration,
-// connectivity, authentication and access failures without trying passwords,
-// signing in interactively or enabling writes. Token profiles resolve their
-// configured secret reference exactly as read leaves do; OAuth profiles use
-// the named client-credentials exchange only. See README.md for usage.
+// Explicit checks use the session's credential and transport policy.
+// See README.md#release for generation-specific checks and usage.
 
 export const DOCTOR_OPERATION = "qux.detection.list";
 export const DOCTOR_WINDOW = 1;

@@ -44,9 +44,8 @@ export const catalogue: Readonly<Record<string, {
     examples: ["vectra-axi setup", "vectra-axi setup --help"],
   },
   doctor: {
-    // One documented bounded read per profile when explicitly invoked:
-    // detection list with a one-row window. No password, interactive
-    // sign-in or write policy lives behind this leaf; see src/doctor.ts.
+    // See README.md#release for generation-specific checks and safety
+    // constraints; src/doctor.ts implements the leaf.
     description: "Check profile configuration with one bounded detection read per profile",
     flags: globals,
     examples: [
