@@ -140,7 +140,9 @@ function assertDestination(profile: SelectedProfile, record: CapabilityOperation
       `Destinations must stay under ${profile.origin}${versionPrefix(profile)}; no credential was sent`,
     ]);
   }
-  if (url.pathname !== path || [...url.searchParams.keys()].some((key) => !record.query.includes(key))) {
+  const bound = path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+  const actual = url.pathname.length > 1 && url.pathname.endsWith("/") ? url.pathname.slice(0, -1) : url.pathname;
+  if (actual !== bound || [...url.searchParams.keys()].some((key) => !record.query.includes(key))) {
     throw new AxiError(`Refusing destination outside operation ${record.id}`, "DESTINATION_DENIED", [
       "Destinations must retain the operation's bound route and use only its declared query keys; no credential was sent",
     ]);

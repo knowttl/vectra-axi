@@ -647,3 +647,44 @@ it("surfaces an embedded note summary without a note-list hint on a cloud host",
   expect(result.output).toMatchObject({ profile: "cloud", type: "host", note_summary: "cloud summary" });
   expect(result.output).not.toHaveProperty("help");
 });
+
+it("follows a slashless cloud host continuation to a complete window", async () => {
+  const initial = "https://fixture.invalid/api/v3.4/hosts/?page_size=100";
+  const next = "https://fixture.invalid/api/v3.4/hosts?page=2";
+  const resumed = "https://fixture.invalid/api/v3.4/hosts/?page=2";
+  const urls: string[] = [];
+  const transport = cloudFixture((url) => {
+    urls.push(url);
+    if (url === initial) return ruxListPage([ruxHost(7)], { count: 2, next });
+    if (url === resumed) return ruxListPage([ruxHost(8)], { count: 2 });
+    throw new Error(`Unexpected synthetic request: ${url}`);
+  });
+  const result = await runHostList(cloudSession(transport),
+    flags(["host", "list", "--profile", "cloud"]));
+  expect(result).toMatchObject({ failed: false, output: {
+    profile: "cloud", total: 2, complete: true, hosts: [{ id: 7 }, { id: 8 }],
+  } });
+  expect(result.output).not.toHaveProperty("cursor");
+  expect(urls).toEqual([initial, resumed]);
+});
+
+it("follows a slashless cloud entity continuation to a complete window", async () => {
+  const initial = "https://fixture.invalid/api/v3.4/entities/?type=host&page_size=100";
+  const next = "https://fixture.invalid/api/v3.4/entities?type=host&page=2";
+  const resumed = "https://fixture.invalid/api/v3.4/entities/?type=host&page=2";
+  const urls: string[] = [];
+  const transport = cloudFixture((url) => {
+    urls.push(url);
+    if (url === initial) return ruxListPage([ruxEntity("host", 7)], { count: 2, next });
+    if (url === resumed) return ruxListPage([ruxEntity("host", 8)], { count: 2 });
+    throw new Error(`Unexpected synthetic request: ${url}`);
+  });
+  const result = await runEntityList(cloudSession(transport),
+    flags(["entity", "list", "--profile", "cloud", "--type", "host"]));
+  expect(result).toMatchObject({ failed: false, output: {
+    profile: "cloud", type: "host", total: 2, complete: true,
+    entities: [{ id: 7 }, { id: 8 }],
+  } });
+  expect(result.output).not.toHaveProperty("cursor");
+  expect(urls).toEqual([initial, resumed]);
+});

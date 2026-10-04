@@ -607,3 +607,23 @@ it("reports a denied cloud detection window with its error and cursor", async ()
     profile: "cloud", complete: false, code: "ACCESS_DENIED", cursor: expect.any(String),
   } });
 });
+
+it("follows a slashless cloud detection continuation to a complete window", async () => {
+  const initial = "https://fixture.invalid/api/v3.4/detections/?state=active&page_size=100";
+  const next = "https://fixture.invalid/api/v3.4/detections?state=active&page=2";
+  const resumed = "https://fixture.invalid/api/v3.4/detections/?state=active&page=2";
+  const urls: string[] = [];
+  const transport = cloudFixture((url) => {
+    urls.push(url);
+    if (url === initial) return ruxListPage([ruxDetection(1)], { count: 2, next });
+    if (url === resumed) return ruxListPage([ruxDetection(2)], { count: 2 });
+    throw new Error(`Unexpected synthetic request: ${url}`);
+  });
+  const result = await runDetectionList(cloudSession(transport),
+    flags(["detection", "list", "--profile", "cloud", "--state", "active"]));
+  expect(result).toMatchObject({ failed: false, output: {
+    profile: "cloud", total: 2, complete: true, detections: [{ id: 1 }, { id: 2 }],
+  } });
+  expect(result.output).not.toHaveProperty("cursor");
+  expect(urls).toEqual([initial, resumed]);
+});
