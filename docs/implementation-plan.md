@@ -66,7 +66,7 @@ Do not make every phase one umbrella task or commission the entire catalogue as 
 | 1: first investigation | AUTH-01, AUTH-02, CORE-01, CORE-02, READ-01 | Packaged CLI lists a synthetic detection, shows it, resumes safely and refuses all business writes. |
 | 2: useful QUX release | READ-02 through READ-08, PACK-01 | A complete synthetic on-prem investigation can inspect entities, notes/tags, assignment, rules/groups, audit, health and lockdown status. |
 | 3: cloud adoption | RUX-01 through RUX-06 | Explicit cloud profile passes the shared contracts; QUX output stays stable and generation-specific semantics remain visible. |
-| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
+| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
 | 5: deliberate expansion | Optional API-01 and separately selected long-tail families | The capability map records exact named/raw/blocked/planned dispositions; there is no unrestricted passthrough. |
 
 Phase 1 is sequential because each step establishes a contract used by the next.
