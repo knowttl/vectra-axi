@@ -206,6 +206,11 @@ Run unchanged QUX contract cases alongside each RUX change.
 RUX-04b implements the assignment/outcome/user portion of RUX-04; note/tag reads remain the separate RUX-04a portion.
 Its [synthetic acceptance suite](../test/assignments.test.ts) covers version-specific routes, assignment status and target kinds, distinct outcome/user identities, generation-specific user filters and fields, empty versus denied results, cursor resumption and malformed assignment rows alongside the existing QUX cases.
 See [README.md](../README.md) for shipped behavior and the [capability records](../inventory/capabilities.json) for exact routes, allowlists and dispositions.
+RUX-06 implements the shared health snapshot, individual-check, health-event and lockdown-status leaves, built on RUX-01, READ-07 and READ-08.
+Its [health acceptance suite](../test/health.test.ts) covers subscription-sensitive snapshots, freshness flags, unsupported checks, integer checkpoints, bounded cursor resumption, generation isolation, malformed responses and denied reads alongside the QUX cases.
+Its [lockdown acceptance suite](../test/lockdown.test.ts) covers generation-specific selectors and row shapes, cloud traffic status, refusal of traffic on QUX, empty versus denied results and malformed responses.
+The [packaged CLI suite](../test/cli.test.ts) exercises the cloud health and lockdown journey with synthetic profiles and transport fixtures only.
+Connector status/details, EDR status/details and network-brain ping remain deferred; see the [capability records](../inventory/capabilities.json) for their planned dispositions and [README.md](../README.md) for shipped usage.
 v3.5 support requires its own version-diff assessment after the preview contract becomes suitable; it is not a hidden fallback for missing 3.4 fields.
 
 ## Phase 4: add writes as a new capability, one family at a time

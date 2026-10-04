@@ -8,7 +8,7 @@ Prerequisite is READ-02 merged as `c9acc45` (PR https://github.com/knowttl/vectr
 
 See the [capability records](../inventory/capabilities.json) for operation dispositions, the session query allowlist and supporting evidence.
 The [lockdown module](../src/lockdown.ts) owns kind validation, row decoding and output shaping for the single leaf.
-Lockdown reads are paging:none single responses and use `session.request` directly, never the collection reader: each kind has its own status route with no query parameters, so there is no page to resume and no cursor to bind.
+Lockdown reads are paging:none single responses and use `session.request` directly, never the collection reader, so there is no page to resume and no cursor to bind.
 [cli.ts](../src/cli.ts) validates `--type` before profile selection and dispatches the leaf from one runner.
 [catalogue.ts](../src/catalogue.ts) owns leaf grammar and command resolution; see [README.md](../README.md) for the shipped authorization policy.
 Lockdown execution stays unpromised: no execution leaf is declared, and the session authorizes read GETs only.

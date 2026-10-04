@@ -523,7 +523,7 @@ export const catalogue: Readonly<Record<string, {
     // --fresh sends cache=false for a live check, otherwise the query omits
     // cache and the upstream cached default (with updated_at) applies;
     // --no-vlans sends vlans=false to omit VLAN detail.
-    description: "Show the QUX health snapshot with cached or fresh semantics",
+    description: "Show the QUX or RUX health snapshot with cached or fresh semantics",
     flags: {
       ...globals,
       fresh: { kind: "boolean", description: "Request a fresh check (sends cache=false); default uses the cached snapshot" },
@@ -535,7 +535,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "health show": {
-    description: "Show one QUX health check snapshot with cached or fresh semantics",
+    description: "Show one QUX or RUX health check snapshot with cached or fresh semantics",
     flags: {
       ...globals,
       check: { kind: "value", valueName: "name", description: "Health check to show: cpu, disk, network, memory, power, sensors, system, hostid, connectivity or trafficdrop (required)" },
@@ -551,8 +551,8 @@ export const catalogue: Readonly<Record<string, {
     // Checkpoint feed: --from starts at a returned checkpoint, --limit is an
     // output window only (never the upstream batch limit), and --cursor
     // resumes a capped batch with its original filters. remaining_count is
-    // reported as returned, never as a stable total. Release-gated to 9.4.
-    description: "List QUX health events from a checkpoint with a bounded window",
+    // reported as returned, never as a stable total. QUX is release-gated to 9.4.
+    description: "List QUX or RUX health events from a checkpoint with a bounded window",
     flags: {
       ...globals,
       from: { kind: "value", valueName: "checkpoint", description: "Start from a returned checkpoint; default reads the earliest batch" },
@@ -572,12 +572,12 @@ export const catalogue: Readonly<Record<string, {
   },
 
   "lockdown list": {
-    // The kind selects the host or account status route; there is no
+    // The kind selects a QUX status route or the RUX type query; there is no
     // execution leaf, so no action flag exists to validate here.
-    description: "List QUX host or account lockdown status through the status routes",
+    description: "List QUX host/account or RUX host/account/traffic lockdown status",
     flags: {
       ...globals,
-      type: { kind: "value", valueName: "kind", description: "Lockdown status kind: host or account (required)" },
+      type: { kind: "value", valueName: "kind", description: "Lockdown status kind: host, account, or traffic on a RUX profile (required)" },
     },
     examples: [
       "vectra-axi lockdown list --profile <name> --type host",
