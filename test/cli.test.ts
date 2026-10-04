@@ -168,7 +168,7 @@ it("reads notes and tags through the packaged note, full and tag commands", () =
     { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/7" },
     { method: "GET", url: "https://fixture.invalid/api/v2.5/accounts/7/notes" },
   ]);
-});
+}, 15_000); // Sequential CLI startups can exceed Vitest's default under load.
 
 it("previews and executes a gated tag replace through the packaged binary", () => {
   const config = join(scratch, "tagset.json");
@@ -485,7 +485,7 @@ it("reads health snapshots and checkpoint events with truthful empty and denied 
     { method: "GET", url: "https://fixture.invalid/api/v2.5/events/health?from=chk-2" },
     { method: "GET", url: "https://fixture.invalid/api/v2.5/events/health?from=chk-9" },
   ]);
-});
+}, 15_000);
 
 it("reads host and account lockdown status without a lockdown action", () => {
   const config = join(scratch, "lockdown.json");
@@ -531,7 +531,7 @@ it("reads host and account lockdown status without a lockdown action", () => {
     { method: "GET", url: "https://fixture.invalid/api/v2.5/lockdown/account" },
     { method: "GET", url: "https://denied.invalid/api/v2.5/lockdown/host" },
   ]);
-});
+}, 15_000);
 
 it("checks profiles through the packaged doctor command", () => {
   const config = join(scratch, "doctor.json");
@@ -674,7 +674,7 @@ it("reads cloud groups, members and triage rules through the packaged RUX journe
     { method: "POST", url: "https://fixture.invalid/oauth2/token" },
     { method: "GET", url: "https://fixture.invalid/api/v3.4/rules/7/" },
   ]);
-});
+}, 15_000);
 
 it("reads cloud health and lockdown status through the packaged RUX journey", () => {
   const config = join(scratch, "rux-health.json");
@@ -729,7 +729,7 @@ it("reads cloud health and lockdown status through the packaged RUX journey", ()
     { method: "POST", url: "https://fixture.invalid/oauth2/token" },
     { method: "GET", url: "https://fixture.invalid/api/v3.4/lockdown/?type=account" },
   ]);
-});
+}, 15_000);
 
 it("shows a packaged cloud profile without a credential exchange", () => {
   const config = join(scratch, "rux-home.json");
