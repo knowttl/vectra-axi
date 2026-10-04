@@ -29,6 +29,7 @@ describe("capability inventory", () => {
       "qux.assignment-outcome.list",
       "qux.assignment-outcome.show",
       "qux.assignment.list",
+      "qux.audit.list",
       "qux.detection.list",
       "qux.detection.note.list",
       "qux.detection.show",

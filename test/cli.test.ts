@@ -235,6 +235,41 @@ it("distinguishes an empty user window from a denied assignment window", () => {
   expect(denied.stdout).toContain("complete: false");
 });
 
+it("reads audits in a bounded inclusive window with truthful empty and denied windows", () => {
+  const config = join(scratch, "audits.json");
+  const trace = join(scratch, "audits-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const listed = invoke(["audit", "list", ...context, "--start-date", "2026-10-01", "--end-date", "2026-10-02"], fixtureEnv);
+  expect(listed.status).toBe(0);
+  expect(listed.stderr).toBe("");
+  expect(decode(listed.stdout)).toMatchObject({ profile: "lab",
+    window: "2026-10-01 to 2026-10-02 (inclusive UTC days)", count: "2 audits", complete: true,
+    audits: [{ user: "synthetic-admin", result: "success" }, { user: "synthetic-api-client", result: "failure" }] });
+  const empty = invoke(["audit", "list", ...context, "--start-date", "2026-10-03", "--end-date", "2026-10-03"], fixtureEnv);
+  expect(empty.status).toBe(0);
+  expect(empty.stderr).toBe("");
+  expect(empty.stdout).toContain("0 audits found");
+  expect(empty.stdout).toContain("complete: true");
+  const denied = invoke(["audit", "list", ...context, "--start-date", "2026-10-04", "--end-date", "2026-10-04"], fixtureEnv);
+  expect(denied.status).toBe(1);
+  expect(denied.stderr).toBe("");
+  expect(denied.stdout).toContain("code: ACCESS_DENIED");
+  const unbounded = invoke(["audit", "list", ...context, "--end-date", "2026-10-02"], fixtureEnv);
+  expect(unbounded.status).toBe(2);
+  expect(unbounded.stderr).toBe("");
+  expect(unbounded.stdout).toContain("audit list requires --start-date");
+  expect(unbounded.stdout).toContain("code: VALIDATION_ERROR");
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/audits?start=2026-10-01&end=2026-10-02" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/audits?start=2026-10-03&end=2026-10-03" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/audits?start=2026-10-04&end=2026-10-04" },
+  ]);
+});
+
 it("forwards inline descending ordering through the packaged list command", () => {
   const config = join(scratch, "ordering.json");
   const trace = join(scratch, "ordering-requests.jsonl");
@@ -353,7 +388,7 @@ it("shows unconfigured state with closed stdin and a clean home", () => {
   expect(result.stdout).toContain("bin:");
   expect(result.stdout).toContain("vectra-axi.js");
   expect(result.stdout).toContain("state: unconfigured\nprofiles: 0");
-  expect(result.stdout).toContain("detection, host, account, type-qualified entity, note, tag, assignment, outcome and user reads");
+  expect(result.stdout).toContain("detection, host, account, type-qualified entity, note, tag, assignment, outcome, user and audit reads");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });
@@ -496,7 +531,7 @@ it.each([
   ["boolean value", ["setup", "--help=false"], "does not accept a value"],
   ["positional input", ["setup", "extra"], "Unexpected argument"],
   ["literal help", ["setup", "--", "--help"], "Unknown flag: --"],
-  ["planned endpoint", ["audit", "list"], "Unknown command: audit list"],
+  ["planned endpoint", ["group", "list"], "Unknown command: group list"],
   ["prototype command", ["constructor"], "Unknown command: constructor"],
   ["version combination", ["--version", "--help"], "Unknown flag: --version"],
   ["unknown flag before profile", ["home", "--typo", "--profile=lab"], "Unknown flag: --typo"],
@@ -539,7 +574,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, host note list, host tag list, account note list, account tag list, assignment list, assignment outcome list, assignment outcome show, user list, user show");
+  expect(result.stdout).toContain("Available commands: home, setup, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, host note list, host tag list, account note list, account tag list, assignment list, assignment outcome list, assignment outcome show, user list, user show, audit list");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });

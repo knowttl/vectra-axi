@@ -52,6 +52,19 @@ const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/users/3", { status: 200, body: user3 }],
   ["https://fixture.invalid/api/v2.5/users?username=nobody&page_size=100",
     { status: 200, body: { results: [], count: 0 } }],
+  // READ-06: audits arrive as one date-windowed list, never a paged
+  // collection; both ISO dates are required and applied inclusively.
+  ["https://fixture.invalid/api/v2.5/audits?start=2026-10-01&end=2026-10-02",
+    { status: 200, body: [
+      { user: "synthetic-admin", role: "Super Admin", vectra_timestamp: "2026-10-01T12:00:00Z",
+        result: "success", message: "synthetic audit one" },
+      { user: "synthetic-api-client", role: "Read Only", vectra_timestamp: "2026-10-02T08:30:00Z",
+        result: "failure", message: "synthetic audit two" },
+    ] }],
+  ["https://fixture.invalid/api/v2.5/audits?start=2026-10-03&end=2026-10-03",
+    { status: 200, body: [] }],
+  ["https://fixture.invalid/api/v2.5/audits?start=2026-10-04&end=2026-10-04",
+    { status: 403, body: {} }],
 ]);
 
 https.request = ((options: RequestOptions, callback: (response: IncomingMessage) => void): ClientRequest => {

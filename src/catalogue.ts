@@ -317,6 +317,21 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi user show --profile <name> --id 3",
     ],
   },
+  "audit list": {
+    // Both dates are required ISO calendar days sent unchanged as the
+    // inventory's start/end wire keys; the server applies them as an
+    // inclusive UTC window. No limit/cursor exists: client-side truncation
+    // of an oversized window is refused, so narrow the dates instead.
+    description: "List QUX audits in a bounded inclusive UTC date window",
+    flags: {
+      ...globals,
+      "start-date": { kind: "value", valueName: "date", description: "Window start as YYYY-MM-DD UTC, inclusive (required)" },
+      "end-date": { kind: "value", valueName: "date", description: "Window end as YYYY-MM-DD UTC, inclusive (required)" },
+    },
+    examples: [
+      "vectra-axi audit list --profile <name> --start-date 2026-10-01 --end-date 2026-10-02",
+    ],
+  },
 };
 
 function flagSyntax(name: string, flag: Flag): string {

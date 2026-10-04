@@ -1,4 +1,5 @@
 import { runAxiCli } from "axi-sdk-js";
+import { auditWindow, runAuditList, type LeafResult as AuditLeafResult } from "./audits.js";
 import { ASSIGNMENT_LIST_FIELDS, assignmentQuery, listFields as assignmentListFields, listLimit as assignmentListLimit,
   outcomeId, OUTCOME_LIST_FIELDS, runAssignmentList, runOutcomeList, runOutcomeShow, runUserList, runUserShow,
   userId, USER_LIST_FIELDS, userQuery,
@@ -56,6 +57,9 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
           || invocation.leaf === "assignment outcome show"
           || invocation.leaf === "user list" || invocation.leaf === "user show") {
           return runAssignment(invocation.leaf, invocation.flags);
+        }
+        if (invocation.leaf === "audit list") {
+          return runAudit(invocation.flags);
         }
         return state();
       }),
@@ -171,6 +175,19 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
+  // One dispatch for the audit leaf: validate the bounded window, select
+  // the profile, build the session on the injected transport, and return
+  // the shaped single-window output. Oversized or malformed windows throw
+  // instead of claiming completion; denial propagates from the session.
+  async function runAudit(flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
+    auditWindow(flags);
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
+    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+    const result: AuditLeafResult = await runAuditList(session, flags);
+    if (result.failed) process.exitCode = 1;
+    return result.output;
+  }
   function state(): Record<string, unknown> {
     const loaded = loadConfig(invocation.flags.get("config") as string | undefined, redactor);
     const count = Object.keys(loaded.config.profiles).length;
@@ -190,11 +207,11 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         config: loaded.path,
         guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use tokenEnv or secretEnv references",
         example: { profiles: { lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "VECTRA_LAB_TOKEN" } } },
-        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome and user reads call the session; remaining session integration is planned in PACK-01",
+        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome, user and audit reads call the session; remaining session integration is planned in PACK-01",
       },
       capabilities: {
         implemented: Object.keys(catalogue),
-        api: "QUX v2.5 detection, host, account, type-qualified entity, note, tag, assignment, outcome and user reads; every other operation is planned or blocked",
+        api: "QUX v2.5 detection, host, account, type-qualified entity, note, tag, assignment, outcome, user and audit reads; every other operation is planned or blocked",
         planned: inventory.operations.filter((operation) => operation.disposition === "planned").length,
         blocked: inventory.operations.filter((operation) => operation.disposition === "blocked").length,
       },
