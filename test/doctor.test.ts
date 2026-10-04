@@ -8,7 +8,7 @@ import { loadConfig } from "../src/profiles.js";
 import { SecretRedactor } from "../src/redact.js";
 import { parseInvocation } from "../src/catalogue.js";
 
-const scratch = mkdtempSync(join(import.meta.dirname, ".doctor-test-"));
+const scratch = mkdtempSync(join(import.meta.dirname, ".doctor test-"));
 const path = join(scratch, "config.json");
 const tokenProfile = {
   kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
@@ -58,7 +58,7 @@ it("checks a profile with one bounded detection read", async () => {
     count: "1 of 1 profiles ok",
     profiles: [{ name: "lab", auth: "token", check: expect.any(String), status: "ok", detail: "1 of 2 detections" }],
     complete: true,
-    help: [`Run \`vectra-axi detection list --config ${path} --profile=lab\` to start an investigation`],
+    help: [`Run \`vectra-axi detection list --config '${path}' --profile=lab\` to start an investigation`],
   } });
 });
 
