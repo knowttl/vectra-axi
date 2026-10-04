@@ -284,6 +284,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
+  // One dispatch for every health leaf: validate the flags, select the
   // profile, build the session on the injected transport, and return the
   // shaped output. Snapshots validate the check selector and report cached
   // versus fresh from the request; the event feed enforces its 9.4 release

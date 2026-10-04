@@ -62,8 +62,7 @@ There is no credential prompt, config writer or browser login reuse.
 An optional hand-edited `writes` object requires a boolean `allowWrites` and a nonempty `operations` array of nonempty operation names; unknown fields are rejected.
 Absent `writes` or `allowWrites: false` disables coordinator mutations; `VECTRA_AXI_READ_ONLY=1` overrides any opt-in.
 This policy permits execution only of implemented operations in the configured scope; listing an operation does not implement it.
-The first business family is the WRITE-01 tag replace (`qux.detection.tag.set`, `qux.host.tag.set`, `qux.account.tag.set`).
-The second business family is the WRITE-02 note append (`qux.detection.note.add`, `qux.host.note.add`, `qux.account.note.add`).
+See the write usage below for the operation names to hand-enable for tag replacement, note append and assignment changes.
 See the [mutation architecture](docs/design.md#later-mutation-coordinator) for the internal coordinator contract.
 Verification: WRITE-00 was verified locally (build, lint and the full offline test suite) under the GitHub billing-outage posture with hosted Actions disabled; per-head results are recorded on the pull request.
 Profile names and `defaultProfile` must be nonempty identifiers without surrounding whitespace; selections match exactly without trimming.
@@ -171,6 +170,8 @@ Intent and outcome are journaled durably; server rejections return an error with
 `assignment set --host <id> --user <id>` assigns a QUX host or account to an exact user through the WRITE-00 gate pipeline: the profile must hand-enable the matching `qux.<host|account>.assignment.<create|reassign|unassign>` operations in its `writes` scope, the dry run previews assign, reassign (from user X to user Y) or unassign, and `--execute --confirm '<host|account> <id>'` sends only when the desired state differs (an already-matching assignment is an exit-0 no-op).
 Exactly one of `--host <id>` or `--account <id>` selects the entity and exactly one of `--user <id>` or `--unassign` selects the desired state; detections have no assignment route (they inherit their entity assignment) and resolving stays a separate operation with no leaf.
 The current open assignment is read through the entity-filtered unresolved assignment list, and the target user is validated through `user show` before preview and before send; unknown users are refused and nothing is sent.
+Every returned assignment row must include `assigned_to` (explicit null or a user object), the selected kind's identity field and a valid host or account identity; malformed rows report `RESPONSE_INVALID` before any mutation.
+An empty open-assignment list or an explicitly null assignee establishes an unassigned state; an omitted assignee never does.
 Assign sends POST `/assignments` with `assign_host_id` or `assign_account_id` plus `assign_to_user_id`, reassign sends PUT `/assignments/<assignment-id>` with only `assign_to_user_id` (the analyst moves, never the entity), and unassign sends DELETE `/assignments/<assignment-id>`; resolved history never selects a target and duplicate open assignments are refused rather than guessed.
 The pre-send re-read refuses a moved assignment with `VERSION_CONFLICT`, unless it already equals the desired state, which is a no-op.
 This is a non-atomic comparison of assignment contents, not an ETag or server-side version check; a change after the re-read can still overwrite.
@@ -187,7 +188,7 @@ On QUX, user list accepts a server-side `--username` filter; on RUX that filter 
 All three list leaves accept `--fields`, `--limit` (default 100) and `--cursor`; the session allowlist additionally accepts `page` and `page_size` in server-returned continuation links.
 Empty windows succeed with an explicit zero message; permission or licence denial reports `ACCESS_DENIED` with exit 1, never an empty healthy result.
 Both show leaves require a positive integer `--id` and return their corresponding list field subset with the profile; outcome 3 and user 3 are different objects on different routes.
-There is no resolve or outcome-mutation leaf: resolving stays refused by the read-only session, while host/account assignment changes go through the gated `assignment set` leaf below.
+There is no resolve or outcome-mutation leaf: resolving stays refused by the read-only session, while host/account assignment changes go through the gated `assignment set` leaf above.
 
 `group list`, `group show`, `group member list --id <id>`, `triage rule list` and `triage rule show` read QUX v2.5 or RUX v3.4 groups, members and triage rules through the same session and bounded collection reader.
 Group `type` values pass through verbatim with no client-side kind allowlist on either generation, so host, account, IP and domain kinds survive list and show exactly as returned.
