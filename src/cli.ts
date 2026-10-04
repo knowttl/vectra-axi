@@ -4,7 +4,7 @@ import { healthCheck, healthEventFlags, healthEventRelease, runHealthEventList, 
   runHealthShow, type LeafResult as HealthLeafResult } from "./health.js";
 import { ASSIGNMENT_LIST_FIELDS, assignmentQuery, listFields as assignmentListFields, listLimit as assignmentListLimit,
   outcomeId, OUTCOME_LIST_FIELDS, runAssignmentList, runOutcomeList, runOutcomeShow, runUserList, runUserShow,
-  userId, USER_LIST_FIELDS, userQuery,
+  RUX_USER_LIST_FIELDS, userId, USER_LIST_FIELDS, userQuery,
   type LeafResult as AssignmentLeafResult } from "./assignments.js";
 import { GROUP_LIST_FIELDS, groupQuery, runGroupList, runGroupMemberList, runGroupShow,
   MEMBER_LIST_FIELDS, memberQuery, RULE_LIST_FIELDS, ruleQuery, runRuleList, runRuleShow,
@@ -30,6 +30,11 @@ const ASSIGNMENT_FIELDS = {
   "assignment outcome list": OUTCOME_LIST_FIELDS,
   "user list": USER_LIST_FIELDS,
 } as const;
+
+// Before profile selection, the user list accepts either generation's
+// identity key; the runner validates fields against the selected
+// generation, so QUX rejects RUX-only names and RUX rejects usernames.
+const USER_LIST_PREFLIGHT_FIELDS = [...new Set([...USER_LIST_FIELDS, ...RUX_USER_LIST_FIELDS])];
 
 // Module scope: the shell handler runs inside runAxiCli before main's body
 // reaches any later declaration, so leaf field tables must not live there.
@@ -241,7 +246,9 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     } else if (leaf === "assignment outcome list" || leaf === "user list") {
       if (leaf === "user list") userQuery(flags);
       assignmentListLimit(flags);
-      assignmentListFields(flags, ASSIGNMENT_FIELDS[leaf]);
+      // Before profile selection, accept either generation's user field
+      // names; the runner validates fields against the selected generation.
+      assignmentListFields(flags, leaf === "user list" ? USER_LIST_PREFLIGHT_FIELDS : ASSIGNMENT_FIELDS[leaf]);
     } else if (leaf === "assignment outcome show") {
       outcomeId(flags);
     } else {

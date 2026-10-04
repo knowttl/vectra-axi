@@ -4,24 +4,40 @@ import { collect, DEFAULT_COLLECTION_LIMIT, resume } from "./collections.js";
 import type { Session } from "./session.js";
 
 // READ-04: QUX assignments, assignment outcomes and users on the CORE-01
-// session and CORE-02 collection reader. Assignments (the work item) and
+// session and CORE-02 collection reader, plus the RUX-04b cloud routing:
+// the same leaves run against the documented v3.4 routes on a cloud
+// profile with no QUX wire assumptions. Assignments (the work item) and
 // outcomes (the resolution taxonomy) are distinct resources: an assignment is
 // unresolved exactly when date_resolved is null, never a missing or zero
 // outcome, and each row keeps the host or account ID that names its target
 // kind. No assignment mutation exists: resolve/reassign routes stay blocked
-// and no PUT/POST/DELETE leaf is declared. Notes/tags stay READ-03.
+// and no PUT/POST/DELETE leaf is declared. Notes/tags stay READ-03 and
+// RUX-04a.
 
 export const ASSIGNMENT_LIST_OPERATION = "qux.assignment.list";
 export const OUTCOME_LIST_OPERATION = "qux.assignment-outcome.list";
 export const OUTCOME_SHOW_OPERATION = "qux.assignment-outcome.show";
 export const USER_LIST_OPERATION = "qux.user.list";
 export const USER_SHOW_OPERATION = "qux.user.show";
+// RUX-04b: the same caller leaves run against the documented v3.4 routes
+// on a cloud profile. Assignment rows keep their QUX shape and the
+// CLI-derived unresolved/resolved status on both generations; user rows
+// use the generation's native identity key (username on QUX, name on RUX)
+// with cloud IDs scoped to their cloud profile and no on-prem translation.
+export const RUX_ASSIGNMENT_LIST_OPERATION = "rux.assignment.list";
+export const RUX_OUTCOME_LIST_OPERATION = "rux.assignment-outcome.list";
+export const RUX_OUTCOME_SHOW_OPERATION = "rux.assignment-outcome.show";
+export const RUX_USER_LIST_OPERATION = "rux.user.list";
+export const RUX_USER_SHOW_OPERATION = "rux.user.show";
 
 // Inventory fields name the wire subset; status is CLI-derived from
 // date_resolved so unresolved rows read "unresolved" instead of a bare null.
 export const ASSIGNMENT_LIST_FIELDS = ["id", "host_id", "account_id", "date_resolved", "status"] as const;
 export const OUTCOME_LIST_FIELDS = ["id", "title", "category", "builtin"] as const;
 export const USER_LIST_FIELDS = ["id", "username"] as const;
+// The v3.4 users route returns a name key instead of username, so the RUX
+// projection keeps its native identity key instead of forcing QUX names.
+export const RUX_USER_LIST_FIELDS = ["id", "name"] as const;
 
 type ListQuery = Record<string, string | number | boolean>;
 
@@ -67,10 +83,22 @@ export function assignmentQuery(flags: ReadonlyMap<string, string | boolean>): L
   return query;
 }
 
-export function userQuery(flags: ReadonlyMap<string, string | boolean>): ListQuery {
+// Validates user list flags. The QUX users route documents a username
+// selector; the v3.4 route instead documents email, role and last_login_gte
+// with no CLI flag. The same conservative subset as detections applies: the
+// QUX-only filter is refused explicitly on a cloud profile instead of
+// silently listing unfiltered rows or inventing a username-to-email mapping.
+export function userQuery(flags: ReadonlyMap<string, string | boolean>, rux = false): ListQuery {
   const query: ListQuery = {};
   const username = flags.get("username");
-  if (username !== undefined) query.username = username;
+  if (username !== undefined) {
+    if (rux) {
+      invalid("Unsupported RUX v3.4 user filter: --username",
+        "The users route has no username query; omit the filter to list cloud users",
+        "Use user list without --username on a cloud profile");
+    }
+    query.username = username;
+  }
   return query;
 }
 
@@ -116,12 +144,16 @@ const userSchema = z.object({
   id: z.number().int().positive(),
   username: z.string().nullable().optional(),
 });
+const ruxUserSchema = z.object({
+  id: z.number().int().positive(),
+  name: z.string().nullable().optional(),
+});
 
-function decode<T>(value: unknown, schema: z.ZodType<T>, noun: string): T {
+function decode<T>(value: unknown, schema: z.ZodType<T>, noun: string, contract = "QUX v2.5"): T {
   const result = schema.safeParse(value);
   if (!result.success) {
     throw new AxiError(`Vectra ${noun} response is malformed: expected valid ${noun} fields`,
-      "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
+      "RESPONSE_INVALID", [`Check the ${contract} API contract for this operation`]);
   }
   return result.data;
 }
@@ -230,44 +262,49 @@ export async function runAssignmentList(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
   const query = assignmentQuery(flags);
+  const rux = session.profile.kind === "rux";
   return runCollectionList(session, flags, query, {
-    operation: ASSIGNMENT_LIST_OPERATION,
+    operation: rux ? RUX_ASSIGNMENT_LIST_OPERATION : ASSIGNMENT_LIST_OPERATION,
     noun: "assignments",
     rowsKey: "assignments",
     fields: ASSIGNMENT_LIST_FIELDS,
     emptyHint: "Widen the filters or omit them to list every assignment",
     showHint: (owned, leafFlags) =>
       `Run \`vectra-axi assignment outcome list${contextFlags(leafFlags, owned)}\` for the resolution taxonomy`,
-  }, (row) => withStatus(decode(row, assignmentSchema, "assignment")));
+  }, (row) => withStatus(decode(row, assignmentSchema, "assignment", rux ? "RUX v3.4" : "QUX v2.5")));
 }
 
 export async function runOutcomeList(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
+  const rux = session.profile.kind === "rux";
   return runCollectionList(session, flags, {}, {
-    operation: OUTCOME_LIST_OPERATION,
+    operation: rux ? RUX_OUTCOME_LIST_OPERATION : OUTCOME_LIST_OPERATION,
     noun: "assignment outcomes",
     rowsKey: "outcomes",
     fields: OUTCOME_LIST_FIELDS,
     emptyHint: "No assignment outcomes are defined on this instance",
     showHint: (owned, leafFlags, id) =>
       `Run \`vectra-axi assignment outcome show${contextFlags(leafFlags, owned)} --id ${shellQuote(String(id))}\` for full detail`,
-  }, (row) => decode(row, outcomeSchema, "assignment outcome"));
+  }, (row) => decode(row, outcomeSchema, "assignment outcome", rux ? "RUX v3.4" : "QUX v2.5"));
 }
 
 export async function runUserList(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
-  const query = userQuery(flags);
+  const rux = session.profile.kind === "rux";
+  const query = userQuery(flags, rux);
   return runCollectionList(session, flags, query, {
-    operation: USER_LIST_OPERATION,
+    operation: rux ? RUX_USER_LIST_OPERATION : USER_LIST_OPERATION,
     noun: "users",
     rowsKey: "users",
-    fields: USER_LIST_FIELDS,
+    fields: rux ? RUX_USER_LIST_FIELDS : USER_LIST_FIELDS,
     emptyHint: "Widen the filters or omit them to list every user",
     showHint: (owned, leafFlags, id) =>
       `Run \`vectra-axi user show${contextFlags(leafFlags, owned)} --id ${shellQuote(String(id))}\` for full detail`,
-  }, (row) => decode(row, userSchema, "user"));
+  }, (row) => rux
+    ? decode(row, ruxUserSchema, "user", "RUX v3.4")
+    : decode(row, userSchema, "user"));
 }
 
 export function outcomeId(flags: ReadonlyMap<string, string | boolean>): number {
@@ -296,24 +333,30 @@ export function userId(flags: ReadonlyMap<string, string | boolean>): number {
   return Number(raw);
 }
 
-// Shows one assignment outcome or user. IDs stay scoped to their resource:
-// outcome 3 and user 3 are different objects.
+// Shows one assignment outcome or user. IDs stay scoped to their resource
+// and to their profile: outcome 3 and user 3 are different objects, and a
+// cloud ID never translates to an on-prem object.
 async function runLeafShow<T extends Record<string, unknown>>(
   session: Session, id: number, operation: string, schema: z.ZodType<T>, noun: string,
 ): Promise<LeafResult> {
   const { body } = await session.request(operation, { pathParams: { id } });
-  const detail = decode(body, schema, noun);
+  const detail = decode(body, schema, noun, session.profile.kind === "rux" ? "RUX v3.4" : "QUX v2.5");
   return { failed: false, output: { profile: session.profile.name, ...detail } };
 }
 
 export async function runOutcomeShow(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
-  return runLeafShow(session, outcomeId(flags), OUTCOME_SHOW_OPERATION, outcomeSchema, "assignment outcome");
+  const rux = session.profile.kind === "rux";
+  return runLeafShow(session, outcomeId(flags),
+    rux ? RUX_OUTCOME_SHOW_OPERATION : OUTCOME_SHOW_OPERATION, outcomeSchema, "assignment outcome");
 }
 
 export async function runUserShow(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
-  return runLeafShow(session, userId(flags), USER_SHOW_OPERATION, userSchema, "user");
+  const rux = session.profile.kind === "rux";
+  return runLeafShow(session, userId(flags),
+    rux ? RUX_USER_SHOW_OPERATION : USER_SHOW_OPERATION,
+    rux ? ruxUserSchema : userSchema, "user");
 }
