@@ -94,8 +94,8 @@ export function assignmentDesired(
 
 const assignmentRowSchema = z.object({
   id: z.number().int().positive(),
-  host_id: z.number().int().nullable().optional(),
-  account_id: z.number().int().nullable().optional(),
+  host_id: z.number().int().positive().nullable().optional(),
+  account_id: z.number().int().positive().nullable().optional(),
   date_resolved: z.string().nullable(),
   assigned_to: z.object({ id: z.number().int().positive() }).nullable(),
 });
@@ -128,7 +128,9 @@ function decodeRow(kind: AssignmentSetKind, id: number, row: unknown): {
   assignmentId: number; assignee: number | null;
 } | null {
   const result = assignmentRowSchema.safeParse(row);
-  if (!result.success) {
+  if (!result.success
+    || (kind === "host" ? result.data.host_id : result.data.account_id) === undefined
+    || (result.data.host_id == null && result.data.account_id == null)) {
     throw new AxiError("Vectra assignment response is malformed: expected valid assignment fields",
       "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
   }

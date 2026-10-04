@@ -574,6 +574,62 @@ it.each(["host", "account"] as const)("deletes the assignment with a present ass
   expect(sends(seen)).toEqual([{ method: "DELETE", url: "https://fixture.invalid/api/v2.5/assignments/11" }]);
 });
 
+it.each([
+  ["host", {}],
+  ["account", {}],
+  ["host", { account_id: 7 }],
+  ["account", { host_id: 7 }],
+  ["host", { host_id: null, account_id: null }],
+  ["account", { host_id: null, account_id: null }],
+  ["host", { host_id: 0 }],
+  ["account", { account_id: -1 }],
+] as const)("refuses invalid entity identity for %s: %j", async (kind, identity) => {
+  const seen: SeenCall[] = [];
+  const { run } = harness({ transport: assignmentTransport({
+    assignments: () => [{ id: 11, date_resolved: null, assigned_to: { id: 5 }, ...identity }], seen,
+  }) });
+  await expect(run(["assignment", "set", `--${kind}`, "7", "--user", "3"]))
+    .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+  await expect(run(["assignment", "set", `--${kind}`, "7", "--unassign",
+    "--execute", "--confirm", `${kind} 7`])).rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+  expect(sends(seen)).toEqual([]);
+  expect(() => readFileSync(auditPath, "utf8")).toThrow();
+});
+
+it.each([
+  ["host", ["--user", "3"]],
+  ["host", ["--unassign"]],
+  ["account", ["--user", "3"]],
+  ["account", ["--unassign"]],
+] as const)("refuses omitted identity on the pre-send read for %s with %s", async (kind, desiredFlags) => {
+  const seen: SeenCall[] = [];
+  let calls = 0;
+  const row = { id: 11, date_resolved: null, assigned_to: { id: 5 } };
+  const { run } = harness({ transport: assignmentTransport({
+    assignments: () => (calls++ < 2 ? [{ ...row, [`${kind}_id`]: 7 }] : [row]), seen,
+  }) });
+  await expect(run(["assignment", "set", `--${kind}`, "7", ...desiredFlags,
+    "--execute", "--confirm", `${kind} 7`])).rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+  expect(sends(seen)).toEqual([]);
+  expect(auditLines().filter((line) => line.kind === "outcome"))
+    .toEqual([expect.objectContaining({ httpStatus: 0, outcome: "NOT_SENT" })]);
+});
+
+it.each([
+  ["host", { host_id: null, account_id: 8 }],
+  ["account", { host_id: 8, account_id: null }],
+] as const)("ignores a valid assignment belonging to another entity kind for %s", async (kind, identity) => {
+  const seen: SeenCall[] = [];
+  const { run } = harness({ transport: assignmentTransport({
+    assignments: () => [{ id: 11, date_resolved: null, assigned_to: { id: 5 }, ...identity }], seen,
+  }) });
+  const result = await run(["assignment", "set", `--${kind}`, "7", "--user", "3"]);
+  expect(result).toMatchObject({ failed: false, output: {
+    operation: `qux.${kind}.assignment.create`, current: "unassigned", desired: "user 3",
+  } });
+  expect(sends(seen)).toEqual([]);
+});
+
 it("rejects a malformed assignment read before shaping output", async () => {
   const { run } = harness({ transport: assignmentTransport({
     assignments: () => [{ id: 11, host_id: 7 }], seen: [],
