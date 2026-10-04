@@ -50,7 +50,12 @@ function nonemptyFlag(flags: ReadonlyMap<string, string | boolean>, name: string
 export function detectionEventQuery(flags: ReadonlyMap<string, string | boolean>): Record<string, string> {
   const query: Record<string, string> = {};
   const from = nonemptyFlag(flags, "from", "from");
-  if (from !== undefined) query.from = from;
+  if (from !== undefined) {
+    if (!/^-?\d+$/.test(from) || !Number.isSafeInteger(Number(from))) {
+      invalid("--from must be an integer checkpoint", "Example: --from 2");
+    }
+    query.from = String(Number(from));
+  }
   for (const [flag, wire] of [["event-timestamp-gte", "event_timestamp_gte"],
     ["event-timestamp-lte", "event_timestamp_lte"]] as const) {
     const value = nonemptyFlag(flags, flag, wire);
@@ -60,7 +65,7 @@ export function detectionEventQuery(flags: ReadonlyMap<string, string | boolean>
 }
 
 const detectionEventSchema = z.object({
-  next_checkpoint: z.string().nullable().optional(),
+  next_checkpoint: z.number().int().nullable().optional(),
   remaining_count: z.number().int().nullable().optional(),
   events: z.array(z.record(z.string(), z.unknown())),
 });
@@ -199,7 +204,7 @@ export async function runDetectionEventList(
   }
   const { events, remaining_count: remainingCount = null } = parsed.data;
   const checkpoint = parsed.data.next_checkpoint ?? null;
-  if (events.length > 0 && (typeof checkpoint !== "string" || !checkpoint)) {
+  if (events.length > 0 && checkpoint === null) {
     throw new AxiError("Vectra detection event response is malformed: returned events carry no checkpoint",
       "RESPONSE_INVALID", ["Continuation follows the returned checkpoint; without one the window cannot resume"]);
   }
@@ -231,7 +236,7 @@ export async function runDetectionEventList(
   // A non-advancing checkpoint replays the same batch forever, so a batch
   // that returns rows without advancing fails with its rows retained instead
   // of handing back a resumption loop.
-  if (from !== undefined && events.length > 0 && checkpoint === from) {
+  if (from !== undefined && events.length > 0 && checkpoint === Number(from)) {
     const failure = new AxiError(
       `Vectra detection event feed did not advance past checkpoint ${from}`,
       "CONTINUATION_REPEATED",
@@ -255,8 +260,8 @@ export async function runDetectionEventList(
       count: "0 detection events",
       events: `0 detection events found${scope}`,
       complete: true,
-      ...(typeof checkpoint === "string" && checkpoint
-        ? { help: [`Run \`${continuation("from", checkpoint)}\` to continue from the returned checkpoint`] } : {}),
+      ...(checkpoint !== null
+        ? { help: [`Run \`${continuation("from", String(checkpoint))}\` to continue from the returned checkpoint`] } : {}),
     } };
   }
   const viewer = session.profile;
@@ -294,7 +299,7 @@ export async function runDetectionEventList(
     count: `${window.length} detection events`,
     events: window,
     complete: true,
-    ...(typeof checkpoint === "string" && checkpoint
-      ? { help: [`Run \`${continuation("from", checkpoint)}\` to continue from the returned checkpoint`] } : {}),
+    ...(checkpoint !== null
+      ? { help: [`Run \`${continuation("from", String(checkpoint))}\` to continue from the returned checkpoint`] } : {}),
   } };
 }

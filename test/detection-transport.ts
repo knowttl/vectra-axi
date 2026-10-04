@@ -161,13 +161,13 @@ const responses = new Map<string, { status: number; body: unknown }>([
   // batch per call through the v3.4 events route, continuing from the
   // returned checkpoint and reporting denial as an error.
   ["https://fixture.invalid/api/v3.4/events/detections/",
-    { status: 200, body: { next_checkpoint: "evt-2", remaining_count: 1, events: [
+    { status: 200, body: { next_checkpoint: 2, remaining_count: 1, events: [
       { id: 201, detection_id: 1, event_timestamp: "2026-10-01T12:00:00Z" },
       { id: 202, detection_id: 1, event_timestamp: "2026-10-01T12:05:00Z" },
     ] } }],
-  ["https://fixture.invalid/api/v3.4/events/detections/?from=evt-2",
-    { status: 200, body: { next_checkpoint: "evt-3", remaining_count: 0, events: [] } }],
-  ["https://fixture.invalid/api/v3.4/events/detections/?from=evt-9",
+  ["https://fixture.invalid/api/v3.4/events/detections/?from=2",
+    { status: 200, body: { next_checkpoint: 3, remaining_count: 0, events: [] } }],
+  ["https://fixture.invalid/api/v3.4/events/detections/?from=9",
     { status: 403, body: {} }],
 ]);
 

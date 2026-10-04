@@ -66,7 +66,7 @@ const body = (value: unknown): { status: number; bodyText: string } =>
 // remaining_count and events shape; remaining_count is never a total.
 const firstEvent = { id: 201, detection_id: 1, event_timestamp: "2026-10-01T12:00:00Z" };
 const secondEvent = { id: 202, detection_id: 1, event_timestamp: "2026-10-01T12:05:00Z" };
-const batch = (events: unknown[], checkpoint: string | null, remaining = 0): { status: number; bodyText: string } =>
+const batch = (events: unknown[], checkpoint: number | null, remaining = 0): { status: number; bodyText: string } =>
   body({ next_checkpoint: checkpoint, remaining_count: remaining, events });
 
 it.each([
@@ -75,14 +75,14 @@ it.each([
   { state: "drained batch", events: [firstEvent], limit: "5", checkpointFlag: "from" },
 ])("preserves invocation context in the $state command", async ({ events, limit, checkpointFlag }) => {
   const urls: string[] = [];
-  const checkpoint = "evt ' \" $(printf literal)";
+  const checkpoint = 2;
   const owned = cloudSession(cloudFixture((url) => {
     urls.push(url);
-    return batch(events, urls.length === 1 ? checkpoint : "next");
+    return batch(events, urls.length === 1 ? checkpoint : 3);
   }));
   const config = join(scratch, "config's file.json");
   const initial = await runDetectionEventList(owned, flags([
-    "detection", "event", "list", "--config", config, "--from", "start", "--limit", limit,
+    "detection", "event", "list", "--config", config, "--from", "1", "--limit", limit,
     "--event-timestamp-gte", "2026-10-01T12:00:00Z", "--event-timestamp-lte", "2026-10-01T12:05:00Z",
   ]));
   const command = (initial.output.help as string[])[0]!.split("`")[1]!;
@@ -94,10 +94,10 @@ it.each([
   expect(resumedFlags.get("limit")).toBe(limit);
   expect(resumedFlags.get("event-timestamp-gte")).toBe("2026-10-01T12:00:00Z");
   expect(resumedFlags.get("event-timestamp-lte")).toBe("2026-10-01T12:05:00Z");
-  expect(resumedFlags.get(checkpointFlag)).toBe(checkpointFlag === "cursor" ? initial.output.cursor : checkpoint);
+  expect(resumedFlags.get(checkpointFlag)).toBe(checkpointFlag === "cursor" ? initial.output.cursor : String(checkpoint));
   const resumed = await runDetectionEventList(owned, resumedFlags);
   expect(resumed.failed).toBe(false);
-  expect(new URL(urls[1]!).searchParams.get("from")).toBe(checkpointFlag === "cursor" ? "start" : checkpoint);
+  expect(new URL(urls[1]!).searchParams.get("from")).toBe(checkpointFlag === "cursor" ? "1" : String(checkpoint));
   expect(new URL(urls[1]!).searchParams.get("event_timestamp_gte")).toBe("2026-10-01T12:00:00Z");
   expect(new URL(urls[1]!).searchParams.get("event_timestamp_lte")).toBe("2026-10-01T12:05:00Z");
 });
@@ -106,19 +106,19 @@ it("reads one event batch and returns its checkpoint for continuation", async ()
   let url = "";
   const transport = cloudFixture((requestUrl) => {
     url = requestUrl;
-    return batch([firstEvent, secondEvent], "evt-2", 0);
+    return batch([firstEvent, secondEvent], 2, 0);
   });
   const result = await runDetectionEventList(cloudSession(transport),
     flags(["detection", "event", "list", "--profile", "cloud"]));
   expect(url).toBe("https://fixture.invalid/api/v3.4/events/detections/");
   expect(result).toEqual({ failed: false, output: {
     profile: "cloud",
-    checkpoint: "evt-2",
+    checkpoint: 2,
     remaining_count: 0,
     count: "2 detection events",
     events: [firstEvent, secondEvent],
     complete: true,
-    help: ["Run `vectra-axi detection event list --profile cloud --from evt-2` to continue from the returned checkpoint"],
+    help: ["Run `vectra-axi detection event list --profile cloud --from 2` to continue from the returned checkpoint"],
   } });
 });
 
@@ -126,18 +126,18 @@ it("starts from a requested checkpoint and maps inclusive timestamp bounds", asy
   let url = "";
   const transport = cloudFixture((requestUrl) => {
     url = requestUrl;
-    return batch([firstEvent], "evt-3", 4);
+    return batch([firstEvent], 3, 4);
   });
   const result = await runDetectionEventList(cloudSession(transport),
-    flags(["detection", "event", "list", "--profile", "cloud", "--from", "evt-1",
+    flags(["detection", "event", "list", "--profile", "cloud", "--from", "1",
       "--event-timestamp-gte", "2026-10-01T12:00:00Z", "--event-timestamp-lte", "2026-10-01T12:05:00Z"]));
   expect(url).toBe("https://fixture.invalid/api/v3.4/events/detections/"
-    + "?from=evt-1&event_timestamp_gte=2026-10-01T12%3A00%3A00Z&event_timestamp_lte=2026-10-01T12%3A05%3A00Z");
-  expect(result.output).toMatchObject({ checkpoint: "evt-3", remaining_count: 4, count: "1 detection events" });
+    + "?from=1&event_timestamp_gte=2026-10-01T12%3A00%3A00Z&event_timestamp_lte=2026-10-01T12%3A05%3A00Z");
+  expect(result.output).toMatchObject({ checkpoint: 3, remaining_count: 4, count: "1 detection events" });
 });
 
 it("keeps boundary-timestamped rows exactly as returned without client-side filtering", async () => {
-  const transport = cloudFixture(() => batch([firstEvent, secondEvent], "evt-2", 0));
+  const transport = cloudFixture(() => batch([firstEvent, secondEvent], 2, 0));
   const result = await runDetectionEventList(cloudSession(transport),
     flags(["detection", "event", "list", "--profile", "cloud",
       "--event-timestamp-gte", "2026-10-01T12:00:00Z", "--event-timestamp-lte", "2026-10-01T12:05:00Z"]));
@@ -148,7 +148,7 @@ it("never sends the output limit as the upstream batch limit", async () => {
   let url = "";
   const transport = cloudFixture((requestUrl) => {
     url = requestUrl;
-    return batch([firstEvent, secondEvent], "evt-2", 0);
+    return batch([firstEvent, secondEvent], 2, 0);
   });
   await runDetectionEventList(cloudSession(transport),
     flags(["detection", "event", "list", "--profile", "cloud", "--limit", "1"]));
@@ -159,7 +159,7 @@ it("caps a batch at the output limit and resumes the remainder from its cursor",
   let calls = 0;
   const transport = cloudFixture(() => {
     calls += 1;
-    return batch([firstEvent, secondEvent], "evt-2", 0);
+    return batch([firstEvent, secondEvent], 2, 0);
   });
   const owned = cloudSession(transport);
   const capped = await runDetectionEventList(owned,
@@ -176,7 +176,7 @@ it("caps a batch at the output limit and resumes the remainder from its cursor",
   expect(resumed.output).toMatchObject({ count: "1 detection events", complete: true });
   expect(resumed.output.events).toEqual([secondEvent]);
   expect(resumed.output.help).toEqual([
-    "Run `vectra-axi detection event list --profile cloud --limit 1 --from evt-2` to continue from the returned checkpoint",
+    "Run `vectra-axi detection event list --profile cloud --limit 1 --from 2` to continue from the returned checkpoint",
   ]);
   expect(calls).toBe(2);
 });
@@ -184,7 +184,7 @@ it("caps a batch at the output limit and resumes the remainder from its cursor",
 it("preserves the window size across successive resumes without --limit", async () => {
   const thirdEvent = { id: 203 };
   const fourthEvent = { id: 204 };
-  const owned = cloudSession(cloudFixture(() => batch([firstEvent, secondEvent, thirdEvent, fourthEvent], "evt-2")));
+  const owned = cloudSession(cloudFixture(() => batch([firstEvent, secondEvent, thirdEvent, fourthEvent], 2)));
   const first = await runDetectionEventList(owned,
     flags(["detection", "event", "list", "--profile", "cloud", "--limit", "1"]));
   const second = await runDetectionEventList(owned,
@@ -204,7 +204,7 @@ it("preserves the window size across successive resumes without --limit", async 
     `Run \`vectra-axi detection event list --profile cloud --cursor ${third.output.cursor}\` for the rest of this batch`,
   ]);
   expect(fourth.output.help).toEqual([
-    "Run `vectra-axi detection event list --profile cloud --from evt-2` to continue from the returned checkpoint",
+    "Run `vectra-axi detection event list --profile cloud --from 2` to continue from the returned checkpoint",
   ]);
   expect(fourth.output).not.toHaveProperty("cursor");
 });
@@ -213,24 +213,24 @@ it("resumes a --from cursor without repeating --from and re-sends the checkpoint
   const urls: string[] = [];
   const transport = cloudFixture((requestUrl) => {
     urls.push(requestUrl);
-    return batch([firstEvent, secondEvent], "evt-2", 0);
+    return batch([firstEvent, secondEvent], 2, 0);
   });
   const owned = cloudSession(transport);
   const capped = await runDetectionEventList(owned,
-    flags(["detection", "event", "list", "--profile", "cloud", "--from", "evt-1", "--limit", "1"]));
+    flags(["detection", "event", "list", "--profile", "cloud", "--from", "1", "--limit", "1"]));
   const cursor = capped.output.cursor as string;
   const resumed = await runDetectionEventList(owned,
     new Map([...flags(["detection", "event", "list", "--profile", "cloud"]), ["cursor", cursor]]));
   expect(resumed.output.events).toEqual([secondEvent]);
   expect(urls).toEqual([
-    "https://fixture.invalid/api/v3.4/events/detections/?from=evt-1",
-    "https://fixture.invalid/api/v3.4/events/detections/?from=evt-1",
+    "https://fixture.invalid/api/v3.4/events/detections/?from=1",
+    "https://fixture.invalid/api/v3.4/events/detections/?from=1",
   ]);
 });
 
 it("rejects a replay with changed rows before applying its offset", async () => {
   let events: readonly unknown[] = [firstEvent, secondEvent];
-  const owned = cloudSession(cloudFixture(() => batch([...events], "evt-2")));
+  const owned = cloudSession(cloudFixture(() => batch([...events], 2)));
   const initial = await runDetectionEventList(owned,
     flags(["detection", "event", "list", "--profile", "cloud", "--limit", "1"]));
   expect(initial.output.events).toEqual([firstEvent]);
@@ -243,7 +243,7 @@ it("rejects a replay with changed rows before applying its offset", async () => 
 });
 
 it("rejects resuming with changed filters or a different --from", async () => {
-  const transport = cloudFixture(() => batch([firstEvent, secondEvent], "evt-2", 0));
+  const transport = cloudFixture(() => batch([firstEvent, secondEvent], 2, 0));
   const owned = cloudSession(transport);
   const capped = await runDetectionEventList(owned,
     flags(["detection", "event", "list", "--profile", "cloud", "--limit", "1"]));
@@ -254,33 +254,33 @@ it("rejects resuming with changed filters or a different --from", async () => {
     code: "VALIDATION_ERROR", message: expect.stringContaining("query context changed"),
   });
   await expect(runDetectionEventList(owned,
-    new Map([...flags(["detection", "event", "list", "--profile", "cloud", "--from", "evt-9"]),
+    new Map([...flags(["detection", "event", "list", "--profile", "cloud", "--from", "9"]),
       ["cursor", cursor]]))).rejects.toMatchObject({
     code: "VALIDATION_ERROR", message: expect.stringContaining("cannot combine --from with --cursor"),
   });
 });
 
-it("fails a non-advancing checkpoint with its rows retained instead of a resumption loop", async () => {
-  const transport = cloudFixture(() => batch([firstEvent], "evt-1", 1));
+it.each(["1", "0001"])("fails a non-advancing integer checkpoint requested as %s with its rows retained", async (from) => {
+  const transport = cloudFixture(() => batch([firstEvent], 1, 1));
   const result = await runDetectionEventList(cloudSession(transport),
-    flags(["detection", "event", "list", "--profile", "cloud", "--from", "evt-1"]));
+    flags(["detection", "event", "list", "--profile", "cloud", "--from", from]));
   expect(result.failed).toBe(true);
   expect(result.output).toMatchObject({
     count: "1 detection events",
     events: [firstEvent],
     complete: false,
     code: "CONTINUATION_REPEATED",
-    checkpoint: "evt-1",
+    checkpoint: 1,
   });
   expect(result.output).not.toHaveProperty("cursor");
 });
 
 it("counts only offset rows retained when a resumed checkpoint stops advancing", async () => {
-  let checkpoint = "evt-2";
+  let checkpoint = 2;
   const owned = cloudSession(cloudFixture(() => batch([firstEvent, secondEvent], checkpoint)));
   const first = await runDetectionEventList(owned,
-    flags(["detection", "event", "list", "--profile", "cloud", "--from", "evt-1", "--limit", "1"]));
-  checkpoint = "evt-1";
+    flags(["detection", "event", "list", "--profile", "cloud", "--from", "1", "--limit", "1"]));
+  checkpoint = 1;
   const result = await runDetectionEventList(owned,
     new Map([...flags(["detection", "event", "list", "--profile", "cloud"]),
       ["cursor", first.output.cursor as string]]));
@@ -293,22 +293,38 @@ it("counts only offset rows retained when a resumed checkpoint stops advancing",
 });
 
 it("reports an empty batch as success with an explicit zero and its checkpoint", async () => {
-  const transport = cloudFixture(() => batch([], "evt-5", 0));
+  const transport = cloudFixture(() => batch([], 5, 0));
   const result = await runDetectionEventList(cloudSession(transport),
-    flags(["detection", "event", "list", "--profile", "cloud", "--from", "evt-4"]));
+    flags(["detection", "event", "list", "--profile", "cloud", "--from", "4"]));
   expect(result).toEqual({ failed: false, output: {
     profile: "cloud",
-    checkpoint: "evt-5",
+    checkpoint: 5,
     remaining_count: 0,
     count: "0 detection events",
-    events: "0 detection events found from checkpoint evt-4",
+    events: "0 detection events found from checkpoint 4",
     complete: true,
-    help: ["Run `vectra-axi detection event list --profile cloud --from evt-5` to continue from the returned checkpoint"],
+    help: ["Run `vectra-axi detection event list --profile cloud --from 5` to continue from the returned checkpoint"],
   } });
 });
 
+it.each([{ events: [] }, { events: [firstEvent] }])("retains a zero checkpoint and advertises its continuation for %j", async ({ events }) => {
+  const result = await runDetectionEventList(cloudSession(cloudFixture(() => batch(events, 0))),
+    flags(["detection", "event", "list", "--profile", "cloud"]));
+  expect(result.failed).toBe(false);
+  expect(result.output.checkpoint).toBe(0);
+  expect(result.output.help).toEqual([
+    "Run `vectra-axi detection event list --profile cloud --from 0` to continue from the returned checkpoint",
+  ]);
+});
+
+it.each(["2", 2.5, Number.MAX_SAFE_INTEGER + 1])("rejects a non-integer wire checkpoint %j", async (checkpoint) => {
+  const owned = cloudSession(cloudFixture(() => body({ next_checkpoint: checkpoint, events: [firstEvent] })));
+  await expect(runDetectionEventList(owned,
+    flags(["detection", "event", "list", "--profile", "cloud"]))).rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+});
+
 it("reports remaining_count as returned and never invents a total", async () => {
-  const transport = cloudFixture(() => batch([firstEvent, secondEvent], "evt-2", 37));
+  const transport = cloudFixture(() => batch([firstEvent, secondEvent], 2, 37));
   const result = await runDetectionEventList(cloudSession(transport),
     flags(["detection", "event", "list", "--profile", "cloud"]));
   expect(result.output).toMatchObject({ remaining_count: 37, count: "2 detection events" });
@@ -324,7 +340,7 @@ it("reports event denial as a thrown error rather than an empty result", async (
 });
 
 it("rejects a batch without events or without a checkpoint for returned rows", async () => {
-  const owned = cloudSession(cloudFixture(() => body({ next_checkpoint: "evt-1", remaining_count: 0 })));
+  const owned = cloudSession(cloudFixture(() => body({ next_checkpoint: 1, remaining_count: 0 })));
   await expect(runDetectionEventList(owned,
     flags(["detection", "event", "list", "--profile", "cloud"]))).rejects.toMatchObject({
     code: "RESPONSE_INVALID",
@@ -340,7 +356,7 @@ it("cancels cleanly with no HTTP call when already aborted", async () => {
   let calls = 0;
   const transport = cloudFixture(() => {
     calls += 1;
-    return batch([firstEvent], "evt-1", 0);
+    return batch([firstEvent], 1, 0);
   });
   const controller = new AbortController();
   controller.abort();
@@ -355,7 +371,7 @@ it("refuses the feed on an on-prem profile before any credential or HTTP work", 
   let calls = 0;
   const transport: RawTransport = async () => {
     calls += 1;
-    return batch([firstEvent], "evt-1", 0);
+    return batch([firstEvent], 1, 0);
   };
   await expect(runDetectionEventList(quxSession(transport),
     flags(["detection", "event", "list", "--profile", "lab"]))).rejects.toMatchObject({
@@ -373,10 +389,16 @@ describe("flag validation before profile selection", () => {
       "--limit must be a positive integer"],
     ["empty from", () => detectionEventFlags(new Map([["from", ""]])),
       "--from requires a non-empty value"],
+    ["string checkpoint", () => detectionEventFlags(new Map([["from", "evt-1"]])),
+      "--from must be an integer checkpoint"],
+    ["fractional checkpoint", () => detectionEventFlags(new Map([["from", "1.5"]])),
+      "--from must be an integer checkpoint"],
+    ["unsafe checkpoint", () => detectionEventFlags(new Map([["from", "9007199254740992"]])),
+      "--from must be an integer checkpoint"],
     ["empty timestamp bound", () => detectionEventFlags(new Map([["event-timestamp-gte", "  "]])),
       "--event-timestamp-gte requires a non-empty value"],
     ["from with cursor", () => detectionEventFlags(
-      new Map([...flags(["detection", "event", "list", "--profile", "cloud", "--from", "evt-1"]),
+      new Map([...flags(["detection", "event", "list", "--profile", "cloud", "--from", "1"]),
         ["cursor", "opaque"]])),
       "cannot combine --from with --cursor"],
   ])("rejects %s before profile selection", (_name, run, message) => {
