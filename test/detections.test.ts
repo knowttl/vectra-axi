@@ -1,5 +1,6 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 import { afterAll, afterEach, beforeEach, expect, it } from "vitest";
 import { parseInvocation } from "../src/catalogue.js";
 import { createSession, type RawTransport, type Session } from "../src/session.js";
@@ -23,10 +24,10 @@ afterEach(() => {
 });
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 
-function session(transport: RawTransport): Session {
-  writeFileSync(path, JSON.stringify({ profiles: { lab: tokenProfile } }));
+function session(transport: RawTransport, profile = "lab"): Session {
+  writeFileSync(path, JSON.stringify({ profiles: { [profile]: tokenProfile } }));
   const loaded = loadConfig(path, new SecretRedactor());
-  return createSession({ profile: selectProfile(loaded.config, "lab"), configPath: loaded.path,
+  return createSession({ profile: selectProfile(loaded.config, profile), configPath: loaded.path,
     redactor: new SecretRedactor(), transport });
 }
 
@@ -70,8 +71,31 @@ it("reports an unknown total when the page carries no count", async () => {
 it("projects a --fields subset over the inventory fields", async () => {
   const transport: RawTransport = async () => listPage([detection(1)], { count: 1 });
   const result = await runDetectionList(session(transport),
-    flags(["detection", "list", "--fields", "id,state"]));
-  expect(result.output).toMatchObject({ detections: [{ id: 1, state: "active" }] });
+    flags(["detection", "list", "--fields", "state,threat"]));
+  expect(result.output).toMatchObject({ detections: [{ state: "active", threat: 71 }] });
+  expect(result.output.help).toContain("Run `vectra-axi detection show --profile lab --id 1` for full detail");
+});
+
+it.each([
+  ["list", runDetectionList, [], []],
+  ["show", runDetectionShow, ["--id", "7"], ["--full"]],
+] as const)("preserves shell arguments in the %s follow-up command", async (leaf, run, args, followUp) => {
+  const config = "./lab's config $(printf injected) `printf injected`.json";
+  const profile = "lab's $(printf injected) `printf injected`";
+  const transport: RawTransport = async () => ({
+    status: 200,
+    bodyText: JSON.stringify({ ...detection(7), description: "x".repeat(DETECTION_TRUNCATE_AT + 1),
+      results: [detection(7)], count: 1 }),
+  });
+  const result = await run(session(transport, profile),
+    flags(["detection", leaf, "--config", config, "--profile", profile, ...args]));
+  const [hint] = result.output.help as string[];
+  const command = /^Run `([\s\S]*)` for /.exec(hint!)![1]!;
+  const argv = execFileSync("sh", ["-c", `set -- ${command}; printf '%s\\n' "$@"`],
+    { encoding: "utf8" }).trimEnd().split("\n");
+  expect(argv).toEqual(["vectra-axi", "detection", "show", "--config", config,
+    "--profile", profile, "--id", "7", ...followUp]);
+  expect(parseInvocation(argv.slice(1)).flags.get("config")).toBe(config);
 });
 
 it("rejects an unknown --fields value before any HTTP call", async () => {
@@ -181,10 +205,59 @@ it("rejects a malformed cursor before any HTTP call", async () => {
   expect(calls).toBe(0);
 });
 
-it("rejects a malformed row without inventing field values", async () => {
-  const transport: RawTransport = async () => listPage(["nope"], { count: 1 });
-  await expect(runDetectionList(session(transport), flags(["detection", "list"])))
-    .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+it.each([[null], ["nope"], [[]]])("returns a partial result for malformed row %j", async (row) => {
+  const transport: RawTransport = async () => listPage([row], { count: 1 });
+  const result = await runDetectionList(session(transport), flags(["detection", "list"]));
+  expect(result).toMatchObject({ failed: true, output: {
+    detections: [], complete: false, code: "RESPONSE_INVALID", cursor: expect.any(String),
+  } });
+});
+
+it("retains validated rows across pages and resumes at a malformed row", async () => {
+  const responses = [
+    listPage([detection(1)], { count: 4, next: nextPage }),
+    listPage([detection(2), null, detection(4)], { count: 4 }),
+    listPage([detection(2), detection(3), detection(4)], { count: 4 }),
+  ];
+  const urls: string[] = [];
+  const transport: RawTransport = async (request) => {
+    urls.push(request.url);
+    return responses.shift()!;
+  };
+  const owned = session(transport);
+  const first = await runDetectionList(owned, flags(["detection", "list", "--fields", "id"]));
+  expect(first).toMatchObject({ failed: true, output: {
+    detections: [{ id: 1 }, { id: 2 }], complete: false, code: "RESPONSE_INVALID", cursor: expect.any(String),
+  } });
+  const second = await runDetectionList(owned,
+    flags(["detection", "list", "--fields", "id", "--cursor", first.output.cursor as string]));
+  expect(second).toMatchObject({ failed: false, output: {
+    detections: [{ id: 3 }, { id: 4 }], complete: true,
+  } });
+  expect(urls).toEqual(["https://fixture.invalid/api/v2.5/detections", nextPage, nextPage]);
+});
+
+it("retains validated rows when a resumed split page contains a malformed row", async () => {
+  const responses = [
+    listPage([detection(1), detection(2), null, detection(4)], { count: 4 }),
+    listPage([detection(1), detection(2), null, detection(4)], { count: 4 }),
+    listPage([detection(1), detection(2), detection(3), detection(4)], { count: 4 }),
+  ];
+  const transport: RawTransport = async () => responses.shift()!;
+  const owned = session(transport);
+  const first = await runDetectionList(owned,
+    flags(["detection", "list", "--fields", "id", "--limit", "1"]));
+  expect(first).toMatchObject({ failed: false, output: { detections: [{ id: 1 }], cursor: expect.any(String) } });
+  const second = await runDetectionList(owned,
+    flags(["detection", "list", "--fields", "id", "--cursor", first.output.cursor as string]));
+  expect(second).toMatchObject({ failed: true, output: {
+    detections: [{ id: 2 }], complete: false, code: "RESPONSE_INVALID", cursor: expect.any(String),
+  } });
+  const third = await runDetectionList(owned,
+    flags(["detection", "list", "--fields", "id", "--cursor", second.output.cursor as string]));
+  expect(third).toMatchObject({ failed: false, output: {
+    detections: [{ id: 3 }, { id: 4 }], complete: true,
+  } });
 });
 
 it("previews a long description with its total and a --full hint", async () => {

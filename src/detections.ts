@@ -99,7 +99,7 @@ export function listFields(flags: ReadonlyMap<string, string | boolean>): readon
   return [...new Set(fields)];
 }
 
-function projectRow(row: unknown): Record<string, unknown> {
+function decodeRow(row: unknown): Record<string, unknown> {
   if (typeof row !== "object" || row === null || Array.isArray(row)) {
     throw new AxiError("Vectra detection page is malformed: expected each row to be an object",
       "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
@@ -120,6 +120,16 @@ function summarizeFilters(query: ListQuery): string {
   return `with ${entries.map(([key, value]) => `${key} ${value}`).join(", ")}`;
 }
 
+function shellQuote(value: string): string {
+  return /^[a-zA-Z0-9_./-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\"'\"'")}'`;
+}
+
+function showCommand(session: Session, flags: ReadonlyMap<string, string | boolean>, id: unknown): string {
+  const config = flags.get("config");
+  return `vectra-axi detection show${typeof config === "string" ? ` --config ${shellQuote(config)}` : ""}`
+    + ` --profile ${shellQuote(session.profile.name)} --id ${shellQuote(String(id))}`;
+}
+
 export type LeafResult = { output: Record<string, unknown>; failed: boolean };
 
 // Runs the bounded list window and shapes the AXI output. Partial collection
@@ -133,9 +143,9 @@ export async function runDetectionList(
   const fields = listFields(flags);
   const cursor = flags.get("cursor");
   const result = typeof cursor === "string"
-    ? await resume(session, DETECTION_LIST_OPERATION, cursor, { query, limit })
-    : await collect(session, DETECTION_LIST_OPERATION, { query, limit });
-  const rows = result.rows.map(projectRow).map((row) =>
+    ? await resume(session, DETECTION_LIST_OPERATION, cursor, { query, limit, decodeRow })
+    : await collect(session, DETECTION_LIST_OPERATION, { query, limit, decodeRow });
+  const rows = result.rows.map((row) =>
     Object.fromEntries(fields.map((field) => [field, row[field] ?? ""])));
   const shown = rows.length;
   const count = result.total === null || result.total === shown
@@ -167,7 +177,7 @@ export async function runDetectionList(
       help: ["Widen the filters or omit them to list every detection"],
     } };
   }
-  const firstId = (rows[0] as Record<string, unknown>).id;
+  const firstId = result.rows[0]!.id;
   return { failed: false, output: {
     profile,
     total: result.total,
@@ -177,7 +187,7 @@ export async function runDetectionList(
     ...(result.cursor ? { cursor: result.cursor } : {}),
     help: [
       ...(result.cursor ? ["Pass --cursor <cursor> with the same filters for the next window"] : []),
-      `Run \`vectra-axi detection show --profile ${profile} --id ${firstId}\` for full detail`,
+      `Run \`${showCommand(session, flags, firstId)}\` for full detail`,
     ],
   } };
 }
@@ -227,7 +237,7 @@ export async function runDetectionShow(
       ? `${description.slice(0, DETECTION_TRUNCATE_AT)}\n... (truncated, ${description.length} chars total)`
       : description,
     ...(truncated
-      ? { help: [`Run \`vectra-axi detection show --profile ${profile} --id ${id} --full\` for the complete text`] }
+      ? { help: [`Run \`${showCommand(session, flags, id)} --full\` for the complete text`] }
       : {}),
   } };
 }

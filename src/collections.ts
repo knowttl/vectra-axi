@@ -75,8 +75,8 @@ const TRANSIENT_STATUSES = new Set([429, 502, 503, 504]);
 // Thrown before any HTTP call, so the outer catch rethrows these unchanged.
 const PRE_HTTP_CODES = new Set(["OPERATION_UNKNOWN", "OPERATION_BLOCKED", "VALIDATION_ERROR"]);
 
-export type CollectionResult = {
-  rows: unknown[];
+export type CollectionResult<T = unknown> = {
+  rows: T[];
   // Known server count, or null when the pages carry no usable count.
   // remaining_count is never treated as a stable total.
   total: number | null;
@@ -87,13 +87,14 @@ export type CollectionResult = {
   error?: AxiError;
 };
 
-export type CollectionArgs = {
+export type CollectionArgs<T = unknown> = {
   query?: SessionRequestOptions["query"];
   pathParams?: SessionRequestOptions["pathParams"];
   limit?: number;
   signal?: AbortSignal;
   clock?: Clock;
   policy?: Partial<CollectionPolicy>;
+  decodeRow?: (row: unknown) => T;
 };
 
 type Scalar = string | number | boolean;
@@ -359,7 +360,7 @@ class AdvanceFailed extends Error {
   }
 }
 
-type PageRun = {
+type PageRun<T> = {
   session: Session;
   operation: string;
   record: CapabilityOperation | undefined;
@@ -373,13 +374,14 @@ type PageRun = {
   policy: CollectionPolicy;
   clock: Clock;
   signal: AbortSignal | undefined;
+  decodeRow: (row: unknown) => T;
 };
 
-async function runPages(run: PageRun): Promise<CollectionResult> {
+async function runPages<T>(run: PageRun<T>): Promise<CollectionResult<T>> {
   const { session, operation, pathParams, contextQuery, policy, clock, signal } = run;
   const deadlineAt = clock.now() + policy.deadlineMs;
   const profile = session.profile;
-  const rows: unknown[] = [];
+  const rows: T[] = [];
   let total: number | null = run.startTotal;
   let totalKnown = run.startTotal !== null;
   let usedBytes = 0;
@@ -402,7 +404,7 @@ async function runPages(run: PageRun): Promise<CollectionResult> {
     total,
     visited: [...seen],
   });
-  const partial = (error: unknown): CollectionResult => {
+  const partial = (error: unknown): CollectionResult<T> => {
     const failure = error instanceof AxiError
       ? error
       : new AxiError(`Collection read failed: ${error instanceof Error ? error.message : String(error)}`, "REQUEST_FAILED", [
@@ -439,10 +441,12 @@ async function runPages(run: PageRun): Promise<CollectionResult> {
       }
       const available = page.rows.slice(offset);
       const take = Math.min(available.length, remaining);
-      rows.push(...available.slice(0, take));
-      offset += take;
-      pending.offset = offset;
-      remaining -= take;
+      for (const row of available.slice(0, take)) {
+        rows.push(run.decodeRow(row));
+        offset += 1;
+        pending.offset = offset;
+        remaining -= 1;
+      }
       if (remaining === 0) {
         const rest = available.length - take;
         // The limit is satisfied; a resumed read defaults to a fresh window.
@@ -478,7 +482,9 @@ async function runPages(run: PageRun): Promise<CollectionResult> {
   }
 }
 
-export async function collect(session: Session, operation: string, args: CollectionArgs = {}): Promise<CollectionResult> {
+export async function collect<T = unknown>(
+  session: Session, operation: string, args: CollectionArgs<T> = {},
+): Promise<CollectionResult<T>> {
   const record = collectionRecord(session, operation);
   const policy = { ...DEFAULT_POLICY, ...args.policy };
   const query = { ...(args.query ?? {}) };
@@ -497,12 +503,13 @@ export async function collect(session: Session, operation: string, args: Collect
     policy,
     clock: args.clock ?? realClock,
     signal: args.signal,
+    decodeRow: args.decodeRow ?? ((row) => row as T),
   });
 }
 
-export async function resume(
-  session: Session, operation: string, raw: string, args: CollectionArgs = {},
-): Promise<CollectionResult> {
+export async function resume<T = unknown>(
+  session: Session, operation: string, raw: string, args: CollectionArgs<T> = {},
+): Promise<CollectionResult<T>> {
   const cursor = decodeCursor(raw);
   if (cursor.operation !== operation) {
     throw cursorInvalid(`the cursor belongs to ${cursor.operation}, not ${operation}`);
@@ -536,5 +543,6 @@ export async function resume(
     policy,
     clock: args.clock ?? realClock,
     signal: args.signal,
+    decodeRow: args.decodeRow ?? ((row) => row as T),
   });
 }
