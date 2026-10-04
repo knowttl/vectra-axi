@@ -1,13 +1,22 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { AxiError } from "axi-sdk-js";
 import { inventorySchema } from "./inventory/schema.js";
 
 export const DESCRIPTION = "Inspect Vectra investigations through reviewed read-only commands";
 
 // Inventory evidence never enables a runtime leaf. Endpoint slices bind IDs explicitly.
-export const inventory = inventorySchema.parse(JSON.parse(readFileSync(
-  new URL("../../inventory/capabilities.json", import.meta.url), "utf8",
-)));
+// This module loads both from source (src/catalogue.ts under Vitest) and packaged
+// (dist/src/catalogue.js), so locate the package root instead of assuming depth.
+function inventoryUrl(): URL {
+  let dir = new URL("./", import.meta.url);
+  for (;;) {
+    if (existsSync(new URL("package.json", dir))) return new URL("inventory/capabilities.json", dir);
+    const parent = new URL("../", dir);
+    if (parent.href === dir.href) throw new Error("Cannot locate package root for inventory");
+    dir = parent;
+  }
+}
+export const inventory = inventorySchema.parse(JSON.parse(readFileSync(inventoryUrl(), "utf8")));
 
 type Flag = { description: string } & (
   { kind: "boolean" } | { kind: "value"; valueName: string }

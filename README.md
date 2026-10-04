@@ -1,8 +1,8 @@
 # vectra-axi
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
-The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives and AUTH-02 OAuth credential lifecycle are implemented.
-No Vectra API operations are implemented yet.
+The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle and CORE-01 QUX session with fixture HTTP adapter are implemented.
+No command leaf calls the session yet, so no Vectra API operation is reachable from the CLI.
 The selected direction is TypeScript, on-prem QUX reads first, and a later RUX adapter for cloud migration.
 
 - [Design and source evidence](docs/design.md)
@@ -61,14 +61,20 @@ Profile names and `defaultProfile` must be nonempty identifiers without surround
 The origin must be an exact HTTPS origin without credentials, path, query, fragment or trailing slash.
 Only QUX v2.5 personal-token and OAuth client-credentials profiles are supported; unknown fields, RUX, mixed authentication fields, inline secrets, UI-login settings and TLS bypass settings fail at configuration load, including in unselected profiles.
 Set the environment variable named by `tokenEnv` outside the CLI; never pass a secret in argv or the config file.
-Token resolution provides `Authorization: Token …` to the future session and does not infer a personal token's expiry.
+Token resolution provides `Authorization: Token …` to the session and does not infer a personal token's expiry.
 Unset, empty or whitespace-only token values report `AUTH_REQUIRED`; other whitespace-containing tokens report `AUTH_FAILED`.
 Credential material remains in invocation memory; there is no persistent credential cache.
 Private CA paths resolve relative to the config file and extend system trust while retaining certificate and hostname verification.
-Local status views describe configuration without reading tokens or CA material for authentication; transport integration belongs to CORE-01.
+Local status views describe configuration without reading tokens or CA material for authentication.
+The session in `src/session.ts` owns URL construction, operation authorization, credential attachment and response validation in one path; command handlers receive no raw authenticated fetch object.
 They show profile name/source, kind, origin, API version, optional appliance release, authentication mode, configured trust mode and disabled writes, without claiming connectivity, credential validity or appliance compatibility.
 Known referenced secret values are scrubbed from output and from error metadata before SDK formatting.
-Future session failures distinguish `AUTH_REQUIRED`, `AUTH_EXPIRED` (explicit expiry evidence), `AUTH_FAILED` (HTTP 401), `ACCESS_DENIED` (HTTP 403) and `TLS_TRUST_ERROR` (CA loading or known certificate verification errors); all are runtime failures with exit 1.
+Session failures distinguish `AUTH_REQUIRED`, `AUTH_EXPIRED` (explicit expiry evidence), `AUTH_FAILED` (HTTP 401), `ACCESS_DENIED` (HTTP 403) and `TLS_TRUST_ERROR` (CA loading or known certificate verification errors); all are runtime failures with exit 1.
+Only known QUX v2.5 read operations from the capability inventory are authorized; unknown, blocked, credential-export and other-generation operations report `OPERATION_UNKNOWN` or `OPERATION_BLOCKED` before any credential is resolved or HTTP call is made.
+Unmapped failure statuses report `REQUEST_FAILED` without retry, malformed success bodies report `RESPONSE_INVALID`, unreachable origins report `TRANSPORT_FAILED`, and any destination outside the profile's HTTPS origin and version prefix - including cross-origin redirects and continuation links - reports `DESTINATION_DENIED` with no credential sent.
+Same-origin redirects and continuation links must retain the operation's bound pathname and declared query keys.
+Redirects are followed up to 3 hops; continuation links are validated but never fetched, leaving paging and retries to CORE-02.
+The production adapter verifies TLS, applies a 30-second deadline per HTTP request and limits each response body to 8 MiB.
 Write policy configuration and enforcement remain assigned to WRITE-00; no business writes are available.
 See [AUTH-01 handoff](docs/auth-01-handoff.md) for integration constraints and offline acceptance links.
 
@@ -87,5 +93,5 @@ An exchange failure triggers no automatic retry or business request.
 Remote response bodies and raw transport errors are discarded from exchange errors.
 The provider registers the client secret, encoded Basic credential and returned access/refresh token strings with the existing redactor, including rejected responses.
 Malformed Unicode remains redacted in raw and JSON-escaped forms; an unused malformed refresh token does not prevent authentication.
-Actual HTTP execution, destination/redirect validation and request deadlines remain CORE-01; all current CLI views remain offline.
-See [AUTH-02 handoff](docs/auth-02-handoff.md) for the fixture seam and acceptance evidence.
+The named OAuth exchange runs over the same session adapter and destination checks as resource requests and never follows redirects; all current CLI views remain offline.
+See [AUTH-02 handoff](docs/auth-02-handoff.md) for the credential seam, [CORE-01 handoff](docs/core-01-handoff.md) for the session interface and [CORE-01 acceptance](docs/implementation-plan.md#core-01-handoff-and-acceptance) for fixture evidence.
