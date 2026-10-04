@@ -93,6 +93,24 @@ it("investigates a detection through the packaged list, show, full and resume co
   ]);
 });
 
+it("forwards inline descending ordering through the packaged list command", () => {
+  const config = join(scratch, "ordering.json");
+  const trace = join(scratch, "ordering-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const result = invoke(["detection", "list", "--config", config, "--profile", "lab", "--ordering=-id"], {
+    SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}`,
+  });
+  expect(result.status).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(decode(result.stdout)).toMatchObject({ profile: "lab", complete: true,
+    detections: [{ id: 2 }, { id: 1 }] });
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?ordering=-id" },
+  ]);
+});
+
 it.each([
   ["empty", 0, "0 detections found with state empty", "complete: true"],
   ["denied", 1, "code: ACCESS_DENIED", "complete: false"],
@@ -292,6 +310,8 @@ it.each([
   ["unknown flag", ["home", "--profil", "lab"], "Unknown flag: --profil"],
   ["unknown flag beside help", ["setup", "--help", "--typo"], "Unknown flag: --typo"],
   ["missing selector value", ["home", "--profile"], "requires a non-empty value"],
+  ["missing ordering before another flag", ["detection", "list", "--ordering", "--limit", "1"], "--ordering requires a non-empty value"],
+  ["empty inline ordering", ["detection", "list", "--ordering="], "--ordering requires a non-empty value"],
   ["duplicate selector", ["home", "--profile=lab", "--profile=other"], "Repeated flag"],
   ["boolean value", ["setup", "--help=false"], "does not accept a value"],
   ["positional input", ["setup", "extra"], "Unexpected argument"],

@@ -10,6 +10,8 @@ const first = { id: 1, detection_type: "synthetic-type", state: "active", threat
 const second = { ...first, id: 2, threat: 72 };
 const next = "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2";
 const responses = new Map<string, { status: number; body: unknown }>([
+  ["https://fixture.invalid/api/v2.5/detections?ordering=-id",
+    { status: 200, body: { results: [second, first], count: 2 } }],
   ["https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70",
     { status: 200, body: { results: [first], count: 2, next } }],
   [next, { status: 200, body: { results: [second], count: 2, next: null } }],

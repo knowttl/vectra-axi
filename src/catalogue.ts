@@ -139,7 +139,7 @@ export function parseInvocation(argv: readonly string[]): {
       if (inline.length) usage(`--${name} does not accept a value`);
     } else {
       const next = inline.length ? inline.join("=") : args[++index];
-      if (!next?.trim() || next.startsWith("-")) usage(`--${name} requires a non-empty value`);
+      if (!next?.trim() || (!inline.length && next.startsWith("-"))) usage(`--${name} requires a non-empty value`);
       value = next!;
     }
     flags.set(name!, value);
