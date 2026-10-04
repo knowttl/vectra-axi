@@ -359,6 +359,52 @@ it("reads health snapshots and checkpoint events with truthful empty and denied 
   ]);
 });
 
+it("reads host and account lockdown status without a lockdown action", () => {
+  const config = join(scratch, "lockdown.json");
+  const trace = join(scratch, "lockdown-requests.jsonl");
+  const profile = { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5",
+    auth: "token", tokenEnv: "SENTINEL_TOKEN" };
+  writeFileSync(config, JSON.stringify({ profiles: { lab: profile,
+    denied: { ...profile, origin: "https://denied.invalid" } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const host = invoke(["lockdown", "list", ...context, "--type", "host"], fixtureEnv);
+  expect(host.status).toBe(0);
+  expect(host.stderr).toBe("");
+  const hostOutput = decode(host.stdout) as Record<string, unknown>;
+  expect(hostOutput).toMatchObject({ profile: "lab", type: "host", count: "1 host lockdowns",
+    lockdowns: [{ host_id: 7, locked_by: "synthetic-admin", unlock_date: null }], complete: true });
+  expect(hostOutput.help).toContain(
+    "Lockdown status only; the CLI declares no lockdown execution leaf");
+  expect(hostOutput.help).toContain(
+    "Host lockdown status requires the configured Microsoft Defender ATP Lockdown integration");
+  const account = invoke(["lockdown", "list", ...context, "--type", "account"], fixtureEnv);
+  expect(account.status).toBe(0);
+  expect(account.stderr).toBe("");
+  expect(decode(account.stdout)).toMatchObject({ profile: "lab", type: "account",
+    count: "0 account lockdowns", complete: true });
+  expect(account.stdout).toContain("0 account lockdowns found");
+  const denied = invoke(["lockdown", "list", "--config", config, "--profile", "denied",
+    "--type", "host"], fixtureEnv);
+  expect(denied.status).toBe(1);
+  expect(denied.stderr).toBe("");
+  expect(denied.stdout).toContain("code: ACCESS_DENIED");
+  const untyped = invoke(["lockdown", "list", ...context], fixtureEnv);
+  expect(untyped.status).toBe(2);
+  expect(untyped.stdout).toContain("lockdown list requires --type");
+  expect(untyped.stderr).toBe("");
+  const execute = invoke(["lockdown", "execute", ...context, "--type", "host", "--id", "7"], fixtureEnv);
+  expect(execute.status).toBe(2);
+  expect(execute.stdout).toContain("Unknown command: lockdown execute");
+  expect(execute.stderr).toBe("");
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/lockdown/host" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/lockdown/account" },
+    { method: "GET", url: "https://denied.invalid/api/v2.5/lockdown/host" },
+  ]);
+});
+
 it("forwards inline descending ordering through the packaged list command", () => {
   const config = join(scratch, "ordering.json");
   const trace = join(scratch, "ordering-requests.jsonl");
@@ -477,7 +523,7 @@ it("shows unconfigured state with closed stdin and a clean home", () => {
   expect(result.stdout).toContain("bin:");
   expect(result.stdout).toContain("vectra-axi.js");
   expect(result.stdout).toContain("state: unconfigured\nprofiles: 0");
-  expect(result.stdout).toContain("detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit and health reads");
+  expect(result.stdout).toContain("detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health and lockdown reads");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });
@@ -512,6 +558,7 @@ it.each([
   { path: ["group", "member", "list"], flag: '"--is-key-asset <bool>"' },
   { path: ["triage", "rule", "list"], flag: '"--contains <text>"' },
   { path: ["triage", "rule", "show"], flag: '"--id <id>"' },
+  { path: ["lockdown", "list"], flag: '"--type <kind>"' },
 ])("provides offline help for $path", ({ path, flag }) => {
   const result = invoke([...path, "--help"]);
   expect(result.status).toBe(0);
@@ -577,6 +624,8 @@ it.each([
   { args: ["detection", "note", "list", "--id", "0"], message: "--id must be a positive integer" },
   { args: ["host", "tag", "list", "--id", "1.5"], message: "--id must be a positive integer" },
   { args: ["account", "note", "list", "--id", "7", "--limit", "5"], message: "Unknown flag: --limit" },
+  { args: ["lockdown", "list"], message: "lockdown list requires --type" },
+  { args: ["lockdown", "list", "--type", "sensor"], message: "--type must be one of" },
 ].flatMap(({ args, message }) => [
   { context: "unconfigured", args, message },
   { context: "unreadable config", args: [...args, "--config", join(scratch, "absent.json")], message },
@@ -599,6 +648,8 @@ it.each([
   ["unknown assignment flag", ["assignment", "list", "--state", "active"], "Unknown flag: --state"],
   ["unknown outcome leaf", ["assignment", "outcome", "delete"], "Unknown command: assignment outcome delete"],
   ["bare assignment outcome group", ["assignment", "outcome"], "Unknown command: assignment outcome"],
+  ["lockdown execution leaf", ["lockdown", "execute", "--type", "host"], "Unknown command: lockdown execute"],
+  ["bare lockdown group", ["lockdown"], "Unknown command: lockdown"],
 ])("rejects %s before any profile or network work", (_name, args, message) => {
   const result = invoke(args);
   expect(result.status).toBe(2);
@@ -669,6 +720,7 @@ it.each([
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
   expect(result.stdout).toContain("Available commands: home, setup, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, host note list, host tag list, account note list, account tag list, assignment list, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
+  expect(result.stdout).toContain("lockdown list");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });

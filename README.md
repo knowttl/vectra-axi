@@ -1,8 +1,8 @@
 # vectra-axi
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
-The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, and READ-07 health-snapshot and health-event leaves are implemented.
-`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `host note list`, `host tag list`, `account note list`, `account tag list`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show`, `group list`, `group show`, `group member list`, `triage rule list`, `triage rule show`, `audit list`, `health list`, `health show` and `health event list` call the session; every other Vectra API operation remains planned or blocked.
+The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, READ-07 health-snapshot and health-event leaves, and READ-08 host/account lockdown status leaf are implemented.
+`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `host note list`, `host tag list`, `account note list`, `account tag list`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show`, `group list`, `group show`, `group member list`, `triage rule list`, `triage rule show`, `audit list`, `health list`, `health show`, `health event list` and `lockdown list` call the session; every other Vectra API operation remains planned or blocked.
 The selected direction is TypeScript, on-prem QUX reads first, and a later RUX adapter for cloud migration.
 
 - [Design and source evidence](docs/design.md)
@@ -27,7 +27,7 @@ The SDK's implicit `update` command is refused.
 Structured data, help and errors use TOON on stdout; stderr is reserved for diagnostics.
 Exit codes are 0 for success, 1 for runtime failure (including a missing profile), and 2 for usage failure.
 There are no prompts or ordinary-command installation side effects.
-Home, setup, help and version remain offline; detection, entity, note, tag, assignment, outcome, user, group, member, triage rule, audit and health reads make authenticated HTTP requests.
+Home, setup, help and version remain offline; detection, entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health and lockdown reads make authenticated HTTP requests.
 `corepack pnpm pack --out vectra-axi.tgz` packages the built entrypoint, runtime modules and inventory.
 See [CLI-01 acceptance](docs/implementation-plan.md#phase-0-turn-design-knowledge-into-one-executable-catalogue) for packaged verification.
 
@@ -125,7 +125,7 @@ Empty lists explicitly report zero hosts or accounts; partial reads retain valid
 All three show leaves require a positive integer `--id` and return their corresponding list field subset with profile and type; null fields stay null, omitted fields stay omitted, and malformed fields report `RESPONSE_INVALID`.
 These leaves validate flag values before profile selection and reject unsupported flags before credential or HTTP work.
 Host 7 and account 7 are different objects, and every show output retains its resource kind for the next command.
-Type-qualified entity, note, tag, assignment, group, member, triage rule, audit and health reads stay in this release; lockdown stays READ-08; no business write leaf exists.
+Type-qualified entity, note, tag, assignment, group, member, triage rule, audit, health and lockdown reads stay in this release; no business write leaf exists.
 
 `<kind> note list --profile <name> --id <id>` reads full QUX notes through the dedicated versioned notes resource for detections, hosts and accounts.
 Note/tag leaves require a positive integer owner `--id`, validated before configuration or profile selection.
@@ -187,6 +187,12 @@ Drain the batch with `--cursor` before using `--from <checkpoint>` to continue p
 A batch that returns rows without advancing past the requested checkpoint fails with `CONTINUATION_REPEATED`, retaining only the requested window after the saved offset and counting those retained rows, instead of handing back a resumption loop.
 Empty batches succeed with an explicit zero; denial reports `ACCESS_DENIED` with exit 1, never an empty healthy result.
 No health or configuration mutation exists: the session authorizes read GETs only.
+
+`lockdown list --profile <name> --type <host|account>` reads QUX lockdown status in one unpaged response through the session, never the collection reader: each kind has its own status route with no query parameters, and `--type` is required to select it.
+Host rows carry `host_id` and account rows carry `account_id`, each with optional `lock_date`, `locked_by` and `unlock_date` metadata; null fields stay null, unrecorded fields are stripped, and malformed bodies report `RESPONSE_INVALID`.
+Status only: no lockdown execution leaf exists, and the session authorizes read GETs only.
+Host status requires the configured Microsoft Defender ATP Lockdown integration and account status requires the configured AD Lockdown capability; the selected kind's prerequisite is repeated in the output help.
+Empty status succeeds with an explicit zero message; permission or licence denial reports `ACCESS_DENIED` with exit 1, never an empty healthy result.
 
 For OAuth, replace `auth` and `tokenEnv` with `"auth": "oauth"`, `"clientId": "synthetic-client"` and `"secretEnv": "VECTRA_LAB_SECRET"`.
 Set the variable named by `secretEnv` outside the CLI.

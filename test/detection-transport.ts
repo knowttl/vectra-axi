@@ -100,6 +100,13 @@ const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/groups/8/members?page_size=100",
     { status: 200, body: { results: [member7], count: 1 } }],
   ["https://fixture.invalid/api/v2.5/rules/7", { status: 200, body: rule7 }],
+  // READ-08: lockdown status arrives as one unpaged list per kind through
+  // its own status route; there is no execution leaf to fixture.
+  ["https://fixture.invalid/api/v2.5/lockdown/host",
+    { status: 200, body: [{ host_id: 7, lock_date: "2026-09-30T12:00:00Z",
+      locked_by: "synthetic-admin", unlock_date: null }] }],
+  ["https://fixture.invalid/api/v2.5/lockdown/account", { status: 200, body: [] }],
+  ["https://denied.invalid/api/v2.5/lockdown/host", { status: 403, body: {} }],
 ]);
 
 https.request = ((options: RequestOptions, callback: (response: IncomingMessage) => void): ClientRequest => {
