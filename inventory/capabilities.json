@@ -248,8 +248,8 @@
           "locator": "p30; Appendix A host notes; VAT get_host_note"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-03; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-03; `host note list` reads the dedicated versioned resource with its kind retained.",
       "fixtureCases": [
         "full-note-text",
         "empty",
@@ -281,8 +281,8 @@
           "locator": "pp40-41; VAT get_host_tags"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-03; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-03; `host tag list` reads the dedicated versioned resource with its kind retained.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -396,8 +396,8 @@
           "locator": "p24; Appendix A account notes; VAT get_account_note"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-03; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-03; `account note list` reads the dedicated versioned resource with its kind retained.",
       "fixtureCases": [
         "full-note-text",
         "empty",
@@ -429,8 +429,8 @@
           "locator": "get_account_tags (lines 2417-2425); guide pp40-41 only documents host/detection"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-03; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-03; `account tag list` reads the dedicated versioned resource with its kind retained.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -462,8 +462,8 @@
           "locator": "p17; Appendix A Detection (Notes); VAT get_detection_note"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-03; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-03; `detection note list` reads the dedicated versioned resource with its kind retained.",
       "fixtureCases": [
         "full-note-text",
         "empty",
@@ -495,8 +495,8 @@
           "locator": "pp40-41; VAT get_detection_tags"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-03; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-03; `detection tag list` reads the dedicated versioned resource with its kind retained.",
       "fixtureCases": [
         "success",
         "access-denied",

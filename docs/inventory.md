@@ -69,7 +69,7 @@ The number of records measures this inventory only; no API-wide denominator or c
 The RUX v3.4 specification hash still matches the design snapshot on 2026-10-03.
 RUX parameter names were checked directly against the published schema rather than copied from QUX.
 The QUX PDF and pinned VAT implementation provide differently shaped checks of authentication, notes/tags, entity routes and health checks.
-Where the guide does not enumerate the account tagging selector, the record explicitly cites VAT and requires revalidation in READ-03.
+Where the guide does not enumerate the account tagging selector, see the account tag [capability record](../inventory/capabilities.json) for its supporting evidence.
 RUX tag tables are singular (`host`, `account`, `detection`, `entity`), while note resource selectors are plural.
 RUX user records use `name`, and entity response records expose `urgency_score` alongside `importance`.
 The PDF revision history establishes OAuth in appliance 9.1, group members in 9.2, embedded-note truncation in 9.3, health events in 9.4 and AD groups in 9.6.

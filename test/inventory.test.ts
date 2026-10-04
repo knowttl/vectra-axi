@@ -23,15 +23,21 @@ describe("capability inventory", () => {
       .sort();
     expect(named).toEqual([
       "qux.account.list",
+      "qux.account.note.list",
       "qux.account.show",
+      "qux.account.tag.list",
       "qux.detection.list",
+      "qux.detection.note.list",
       "qux.detection.show",
+      "qux.detection.tag.list",
       "qux.entity.account.list",
       "qux.entity.account.show",
       "qux.entity.host.list",
       "qux.entity.host.show",
       "qux.host.list",
+      "qux.host.note.list",
       "qux.host.show",
+      "qux.host.tag.list",
     ]);
   });
 
