@@ -1,5 +1,6 @@
 import { runAxiCli } from "axi-sdk-js";
-import { auditWindow, runAuditList, type LeafResult as AuditLeafResult } from "./audits.js";
+import { runAuditEventList, type LeafResult as AuditEventLeafResult } from "./audit-events.js";
+import { auditFlagShapes, runAuditList, type LeafResult as AuditLeafResult } from "./audits.js";
 import { healthEventFlags, healthEventRelease, healthShowFlags, runHealthEventList, runHealthList,
   runHealthShow, type LeafResult as HealthLeafResult } from "./health.js";
 import { runAssignmentSet } from "./assignment-set.js";
@@ -345,16 +346,24 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
-  // One dispatch for the audit leaf: validate the bounded window, select
-  // the profile, build the session on the injected transport, and return
-  // the shaped single-window output. Oversized or malformed windows throw
-  // instead of claiming completion; denial propagates from the session.
+  // One dispatch for the audit leaf: validate flag shapes, select the
+  // profile, build the session on the injected transport, and return the
+  // shaped output. On QUX the runner reads one bounded date window:
+  // oversized or malformed windows throw instead of claiming completion.
+  // On RUX the same leaf reads one audit checkpoint batch per call: --from
+  // starts at a returned checkpoint, --start-date/--end-date expand to
+  // whole-day timestamp bounds, and --limit caps the window with an opaque
+  // --cursor for the remainder. A repeated checkpoint fails with its rows
+  // retained and a nonzero exit status, never a loop. Denial propagates
+  // from the session on either generation.
   async function runAudit(flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
-    auditWindow(flags);
+    auditFlagShapes(flags);
     const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
     const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
     const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
-    const result: AuditLeafResult = await runAuditList(session, flags);
+    const result: AuditLeafResult | AuditEventLeafResult = selected.kind === "rux"
+      ? await runAuditEventList(session, flags)
+      : await runAuditList(session, flags);
     if (result.failed) process.exitCode = 1;
     return result.output;
   }

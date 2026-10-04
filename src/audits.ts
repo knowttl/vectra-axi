@@ -9,7 +9,7 @@ import { RESPONSE_BODY_LIMIT_BYTES, type Session } from "./session.js";
 // Both dates are required ISO calendar days; the CLI never falls back to the
 // API's unbounded date defaults, and an oversized window fails with a
 // smaller-range suggestion instead of a silent truncation. RUX checkpoint
-// audits stay RUX-03.
+// audits use the separate audit-events.ts runner.
 
 export const AUDIT_LIST_OPERATION = "qux.audit.list";
 
@@ -28,7 +28,9 @@ const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 // Parses one YYYY-MM-DD flag into its wire value. The pattern alone cannot
 // reject impossible days, so a UTC round-trip confirms the date is real.
-function parseDay(raw: unknown, flag: "start-date" | "end-date"): string {
+// Exported for the RUX audit event feed, which expands the same inclusive
+// UTC calendar days to its timestamp filters.
+export function parseAuditDay(raw: unknown, flag: "start-date" | "end-date"): string {
   const example = `Example: vectra-axi audit list --profile <name> --start-date 2026-10-01 --end-date 2026-10-02`;
   if (typeof raw !== "string" || !DAY_PATTERN.test(raw)) {
     invalid(`--${flag} must be a YYYY-MM-DD UTC calendar day`, example);
@@ -42,8 +44,8 @@ function parseDay(raw: unknown, flag: "start-date" | "end-date"): string {
   return raw;
 }
 
-// Validates the bounded window before any configuration, profile selection
-// or HTTP call. Both dates are required: omitting either would start from
+// Validates the bounded QUX window before HTTP, after profile selection.
+// Both dates are required: omitting either would start from
 // the API's unbounded defaults, which the slice forbids.
 export function auditWindow(flags: ReadonlyMap<string, string | boolean>): { start: string; end: string } {
   const example = "Example: vectra-axi audit list --profile <name> --start-date 2026-10-01 --end-date 2026-10-02";
@@ -55,8 +57,8 @@ export function auditWindow(flags: ReadonlyMap<string, string | boolean>): { sta
     invalid("audit list requires --end-date <YYYY-MM-DD>",
       "The API defaults to an unbounded window; always pass an explicit end date", example);
   }
-  const start = parseDay(flags.get("start-date"), "start-date");
-  const end = parseDay(flags.get("end-date"), "end-date");
+  const start = parseAuditDay(flags.get("start-date"), "start-date");
+  const end = parseAuditDay(flags.get("end-date"), "end-date");
   if (start > end) {
     invalid(`--start-date ${start} is after --end-date ${end}`,
       `Swap the dates or pick a window where the start is on or before the end`, example);
@@ -81,6 +83,65 @@ function decodeRow(row: unknown): Record<string, unknown> {
   return result.data;
 }
 
+// Checkpoint-feed flags accepted on the shared `audit list` leaf for RUX
+// cloud reads. QUX audits are date-windowed single responses with no
+// checkpoint, output window or cursor, so the QUX runner below refuses
+// these explicitly instead of silently ignoring them.
+const RUX_ONLY_AUDIT_FLAGS = ["from", "limit", "cursor",
+  "event-timestamp-gte", "event-timestamp-lte"] as const;
+
+// Rejects RUX-only feed flags on the QUX date-windowed read, which owns no
+// checkpoint to start from and no batch to cap or resume.
+export function auditQuxFlags(flags: ReadonlyMap<string, string | boolean>): void {
+  for (const name of RUX_ONLY_AUDIT_FLAGS) {
+    if (flags.has(name)) {
+      invalid(`--${name} applies only to audit event reads on a RUX v3.4 cloud profile`,
+        "Rerun with a cloud profile, or drop this flag for the QUX date-windowed audit read");
+    }
+  }
+}
+
+// Validates flag shapes without requiring any flag, so cli.ts rejects
+// malformed input before configuration or profile selection on either
+// generation. Presence (the QUX required window, the RUX convenience pair)
+// and generation-specific rejection stay in the runners, which own the
+// profile.
+export function auditFlagShapes(flags: ReadonlyMap<string, string | boolean>): void {
+  for (const name of ["start-date", "end-date"] as const) {
+    const raw = flags.get(name);
+    if (raw !== undefined) parseAuditDay(raw, name);
+  }
+  for (const [flag, wire] of [["event-timestamp-gte", "event_timestamp_gte"],
+    ["event-timestamp-lte", "event_timestamp_lte"]] as const) {
+    const raw = flags.get(flag);
+    if (raw !== undefined && (typeof raw !== "string" || !raw.trim())) {
+      invalid(`--${flag} requires a non-empty value`, `Example: --${flag} <value> (sent as ${wire})`);
+    }
+  }
+  const limit = flags.get("limit");
+  if (limit !== undefined
+    && (typeof limit !== "string" || !/^\d+$/.test(limit) || Number(limit) < 1)) {
+    invalid("--limit must be a positive integer row limit", "Example: --limit 20");
+  }
+  const from = flags.get("from");
+  if (from !== undefined) {
+    if (typeof from !== "string" || !from.trim()) {
+      invalid("--from requires a non-empty value", "Example: --from 2");
+    } else if (!/^-?\d+$/.test(from) || !Number.isSafeInteger(Number(from))) {
+      invalid("--from must be an integer checkpoint", "Example: --from 2");
+    }
+  }
+  const rawCursor = flags.get("cursor");
+  if (rawCursor !== undefined && typeof rawCursor !== "string") {
+    invalid("--cursor requires the opaque cursor value from a capped read",
+      "Pass --cursor <cursor> with the original filters to resume the pending window");
+  }
+  if (typeof rawCursor === "string" && flags.has("from")) {
+    invalid("audit list cannot combine --from with --cursor",
+      "The cursor already binds the checkpoint; resume with the original filters and no --from");
+  }
+}
+
 export type LeafResult = { output: Record<string, unknown>; failed: boolean };
 
 function oversizedWindow(start: string, end: string): never {
@@ -99,6 +160,7 @@ function oversizedWindow(start: string, end: string): never {
 export async function runAuditList(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
+  auditQuxFlags(flags);
   const { start, end } = auditWindow(flags);
   const { body } = await session.request(AUDIT_LIST_OPERATION, { query: { start, end } }).catch((error: unknown) => {
     if (error instanceof AxiError && error.code === "BYTE_BUDGET_EXCEEDED") oversizedWindow(start, end);

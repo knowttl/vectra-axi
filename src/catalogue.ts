@@ -495,18 +495,32 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "audit list": {
-    // Both dates are required ISO calendar days sent unchanged as the
-    // inventory's start/end wire keys; the server applies them as an
+    // On QUX both dates are required ISO calendar days sent unchanged as
+    // the inventory's start/end wire keys; the server applies them as an
     // inclusive UTC window. No limit/cursor exists: client-side truncation
     // of an oversized window is refused, so narrow the dates instead.
-    description: "List QUX audits in a bounded inclusive UTC date window",
+    // On RUX the same leaf reads the v3.4 audit checkpoint feed: --from
+    // starts at a returned checkpoint, --limit is an output window only
+    // (never the upstream batch limit), timestamp bounds pass through for
+    // the server to apply inclusively, --start-date/--end-date expand to
+    // whole-day timestamp bounds, and --cursor resumes a capped batch with
+    // its original filters. remaining_count is reported as returned, never
+    // as a stable total.
+    description: "List QUX audits in a bounded inclusive UTC date window or RUX audit events from a checkpoint",
     flags: {
       ...globals,
-      "start-date": { kind: "value", valueName: "date", description: "Window start as YYYY-MM-DD UTC, inclusive (required)" },
-      "end-date": { kind: "value", valueName: "date", description: "Window end as YYYY-MM-DD UTC, inclusive (required)" },
+      "start-date": { kind: "value", valueName: "date", description: "Window start as YYYY-MM-DD UTC, inclusive (required on QUX; whole-day convenience on RUX)" },
+      "end-date": { kind: "value", valueName: "date", description: "Window end as YYYY-MM-DD UTC, inclusive (required on QUX; whole-day convenience on RUX)" },
+      from: { kind: "value", valueName: "checkpoint", description: "Start from a returned checkpoint on a RUX profile; default reads the earliest batch" },
+      limit: { kind: "value", valueName: "rows", description: "Row window for this read on a RUX profile; default 100" },
+      "event-timestamp-gte": { kind: "value", valueName: "timestamp", description: "Filter by server-side minimum event timestamp on a RUX profile, applied inclusively" },
+      "event-timestamp-lte": { kind: "value", valueName: "timestamp", description: "Filter by server-side maximum event timestamp on a RUX profile, applied inclusively" },
+      cursor: { kind: "value", valueName: "cursor", description: "Resume a capped batch with its original filters on a RUX profile" },
     },
     examples: [
       "vectra-axi audit list --profile <name> --start-date 2026-10-01 --end-date 2026-10-02",
+      "vectra-axi audit list --profile <name> --from <checkpoint> --limit 20",
+      "vectra-axi audit list --profile <name> --cursor <cursor>",
     ],
   },
   "group list": {

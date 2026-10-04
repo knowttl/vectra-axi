@@ -2454,8 +2454,8 @@
           "locator": "GET /api/v3.4/events/audits/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-03; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-03; `audit list` follows the returned checkpoint on a cloud profile with mid-batch cursors, repeated-checkpoint refusal, remaining_count reported as returned, and date flags expanding to whole-day timestamp bounds.",
       "fixtureCases": [
         "returned-checkpoint",
         "repeated-checkpoint",
