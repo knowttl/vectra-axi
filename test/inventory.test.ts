@@ -80,6 +80,7 @@ describe("capability inventory", () => {
       "rux.detection.show",
       "rux.detection.tag.list",
       "rux.entity.list",
+      "rux.entity.scoring.list",
       "rux.entity.show",
       "rux.group.list",
       "rux.group.member.list",

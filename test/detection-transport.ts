@@ -177,6 +177,21 @@ const responses = new Map<string, { status: number; body: unknown }>([
     { status: 200, body: { next_checkpoint: 3, remaining_count: 0, events: [] } }],
   ["https://fixture.invalid/api/v3.4/events/detections/?from=9",
     { status: 403, body: {} }],
+  // RUX-03 (part b): the packaged cloud journey reads one entity-scoring
+  // batch per call through the v3.4 scoring route with its required type
+  // selector, continuing from the returned checkpoint and reporting denial
+  // as an error. Scores pass through untouched.
+  ["https://fixture.invalid/api/v3.4/events/entity_scoring/?type=host",
+    { status: 200, body: { next_checkpoint: 2, remaining_count: 1, events: [
+      { id: 301, entity_id: 7, entity_type: "host", urgency_score: 76,
+        event_timestamp: "2026-10-01T12:00:00Z" },
+      { id: 302, entity_id: 7, entity_type: "host", urgency_score: 81,
+        event_timestamp: "2026-10-01T12:05:00Z" },
+    ] } }],
+  ["https://fixture.invalid/api/v3.4/events/entity_scoring/?type=host&from=2",
+    { status: 200, body: { next_checkpoint: 3, remaining_count: 0, events: [] } }],
+  ["https://fixture.invalid/api/v3.4/events/entity_scoring/?type=host&from=9",
+    { status: 403, body: {} }],
   // RUX-03 (part c): the packaged cloud journey reads one audit-event
   // batch per call through the v3.4 events route, continuing from the
   // returned checkpoint and reporting denial as an error.

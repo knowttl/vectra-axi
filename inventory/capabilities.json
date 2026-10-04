@@ -3003,8 +3003,8 @@
           "locator": "GET /api/v3.4/events/entity_scoring/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-03; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-03; `entity scoring list` follows the returned checkpoint on a cloud profile with the required type selector, mid-batch cursors, repeated-checkpoint refusal and remaining_count reported as returned.",
       "fixtureCases": [
         "type-required",
         "missing-type-400",

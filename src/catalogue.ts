@@ -209,6 +209,30 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi entity show --profile <name> --type host --id 19",
     ],
   },
+  "entity scoring list": {
+    // RUX-03 (part b): checkpoint feed on the RUX v3.4 entity-scoring
+    // route. --type is required and selects the scored kind, --from starts
+    // at a returned checkpoint, --limit is an output window only (never the
+    // upstream batch limit), timestamp bounds pass through for the server
+    // to apply inclusively, and --cursor resumes a capped batch with its
+    // original filters. remaining_count is reported as returned, never as
+    // a stable total. Scores pass through untouched; no conversion happens.
+    description: "List RUX entity scoring events from a checkpoint with a bounded window",
+    flags: {
+      ...globals,
+      type: { kind: "value", valueName: "kind", description: "Scored entity kind: host or account (required)" },
+      from: { kind: "value", valueName: "checkpoint", description: "Start from a returned checkpoint; default reads the earliest batch" },
+      limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
+      "event-timestamp-gte": { kind: "value", valueName: "timestamp", description: "Filter by server-side minimum event timestamp, applied inclusively" },
+      "event-timestamp-lte": { kind: "value", valueName: "timestamp", description: "Filter by server-side maximum event timestamp, applied inclusively" },
+      cursor: { kind: "value", valueName: "cursor", description: "Resume a capped batch with its original filters" },
+    },
+    examples: [
+      "vectra-axi entity scoring list --profile <name> --type host",
+      "vectra-axi entity scoring list --profile <name> --type host --from <checkpoint> --limit 20",
+      "vectra-axi entity scoring list --profile <name> --type host --cursor <cursor>",
+    ],
+  },
   "detection note list": {
     // Notes come only from the dedicated versioned notes resource, never
     // from the embedded detail summary. --full prints the complete returned
