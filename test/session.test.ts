@@ -8,6 +8,7 @@ import { loadConfig, selectProfile, type SelectedProfile } from "../src/profiles
 import { SecretRedactor } from "../src/redact.js";
 import { createSession, nodeTransport, type RawTransport, type Session, type SessionRequestOptions } from "../src/session.js";
 import { collect } from "../src/collections.js";
+import { runAuditList } from "../src/audits.js";
 
 vi.mock("node:https", () => ({ request: vi.fn() }));
 
@@ -353,10 +354,32 @@ it("rejects a response beyond the body ceiling even if destroying it emits no er
   vi.useFakeTimers();
   const response = httpResponse();
   const result = session(nodeTransport()).request("qux.health.list");
-  const rejected = expect(result).rejects.toMatchObject({ code: "TRANSPORT_FAILED" });
+  const rejected = expect(result).rejects.toMatchObject({ code: "BYTE_BUDGET_EXCEEDED" });
   await Promise.resolve();
   response.emit("data", Buffer.alloc(8 * 1024 * 1024 + 1));
   await rejected;
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it("suggests a smaller audit window when the production adapter rejects an oversized response", async () => {
+  vi.useFakeTimers();
+  const response = httpResponse();
+  const result = runAuditList(session(nodeTransport()), new Map([
+    ["start-date", "2026-10-01"], ["end-date", "2026-10-02"],
+  ]));
+  const rejected = expect(result).rejects.toMatchObject({
+    code: "BYTE_BUDGET_EXCEEDED",
+    suggestions: expect.arrayContaining([
+      expect.stringContaining("smaller date range"),
+      expect.stringContaining("--start-date 2026-10-02 --end-date 2026-10-02"),
+    ]),
+  });
+  await Promise.resolve();
+  response.emit("data", Buffer.alloc(8 * 1024 * 1024));
+  response.emit("data", Buffer.from("x"));
+  await rejected;
+  const pending = vi.mocked(httpsRequest).mock.results[0]!.value as ClientRequest;
+  expect(pending.destroy).toHaveBeenCalledTimes(1);
   expect(vi.getTimerCount()).toBe(0);
 });
 

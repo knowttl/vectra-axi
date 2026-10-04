@@ -941,10 +941,14 @@
         {
           "source": "qux-guide",
           "locator": "pp58-59"
+        },
+        {
+          "source": "vat-qux",
+          "locator": "get_audits passes datetime.date isoformat as inclusive start/end; unbounded defaults refused by the CLI"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-06; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-06; runtime support in src/audits.ts.",
       "fixtureCases": [
         "inclusive-utc-boundaries",
         "empty",
