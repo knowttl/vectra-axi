@@ -2042,7 +2042,9 @@
       "method": "GET",
       "path": "/api/v3.4/groups/{id}/",
       "effect": "read",
-      "query": [],
+      "query": [
+        "include_members"
+      ],
       "fields": [
         "id",
         "name",

@@ -461,7 +461,7 @@ describe("RUX groups, members and triage rules", () => {
 
   it("maps group filters to the v3.4 groups route on a cloud profile", async () => {
     const transport = cloudFixture((url) => {
-      expect(url).toBe("https://fixture.invalid/api/v3.4/groups/?name=synthetic&type=account&page_size=100");
+      expect(url).toBe("https://fixture.invalid/api/v3.4/groups/?name=synthetic&type=account&include_members=false&page_size=100");
       return ruxListPage([ruxGroup], { count: 1 });
     });
     const result = await runGroupList(cloudSession(transport),
@@ -492,11 +492,11 @@ describe("RUX groups, members and triage rules", () => {
   it("follows cloud group next links carrying page parameters", async () => {
     const second = { ...ruxGroup, id: 9 };
     const transport = cloudFixture((url) => {
-      if (url === "https://fixture.invalid/api/v3.4/groups/?type=host&page_size=100") {
+      if (url === "https://fixture.invalid/api/v3.4/groups/?type=host&include_members=false&page_size=100") {
         return ruxListPage([ruxGroup], { count: 2,
-          next: "https://fixture.invalid/api/v3.4/groups/?type=host&page=2&page_size=100" });
+          next: "https://fixture.invalid/api/v3.4/groups/?type=host&include_members=false&page=2&page_size=100" });
       }
-      if (url === "https://fixture.invalid/api/v3.4/groups/?type=host&page=2&page_size=100") {
+      if (url === "https://fixture.invalid/api/v3.4/groups/?type=host&include_members=false&page=2&page_size=100") {
         return ruxListPage([second], { count: 2 });
       }
       throw new Error(`Unexpected synthetic request: ${url}`);
@@ -511,11 +511,11 @@ describe("RUX groups, members and triage rules", () => {
   it("resumes cloud group windows at the next page with their filters", async () => {
     const second = { ...ruxGroup, id: 9 };
     const transport = cloudFixture((url) => {
-      if (url === "https://fixture.invalid/api/v3.4/groups/?type=host&page_size=100") {
+      if (url === "https://fixture.invalid/api/v3.4/groups/?type=host&include_members=false&page_size=100") {
         return ruxListPage([ruxGroup], { count: 2,
-          next: "https://fixture.invalid/api/v3.4/groups/?type=host&page=2" });
+          next: "https://fixture.invalid/api/v3.4/groups/?type=host&include_members=false&page=2" });
       }
-      if (url === "https://fixture.invalid/api/v3.4/groups/?type=host&page=2") {
+      if (url === "https://fixture.invalid/api/v3.4/groups/?type=host&include_members=false&page=2") {
         return ruxListPage([second], { count: 2 });
       }
       throw new Error(`Unexpected synthetic request: ${url}`);
@@ -534,7 +534,7 @@ describe("RUX groups, members and triage rules", () => {
 
   it("shows one cloud group with RUX detail names and a paged-membership hint", async () => {
     const transport = cloudFixture((url) => {
-      expect(url).toBe("https://fixture.invalid/api/v3.4/groups/8/");
+      expect(url).toBe("https://fixture.invalid/api/v3.4/groups/8/?include_members=false");
       return { status: 200, bodyText: JSON.stringify({ ...ruxGroupDetail,
         members: [ruxHostMember], rules: [{ id: 7 }] }) };
     });

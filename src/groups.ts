@@ -392,6 +392,7 @@ export async function runGroupList(
 ): Promise<LeafResult> {
   const query = groupQuery(flags);
   const rux = session.profile.kind === "rux";
+  if (rux) query.include_members = false;
   return runCollectionList(session, flags, query, {
     operation: rux ? RUX_GROUP_LIST_OPERATION : GROUP_LIST_OPERATION,
     noun: "groups",
@@ -412,7 +413,8 @@ export async function runGroupShow(
   const id = groupId(flags, "group show");
   const rux = session.profile.kind === "rux";
   const { body } = await session.request(
-    rux ? RUX_GROUP_SHOW_OPERATION : GROUP_SHOW_OPERATION, { pathParams: { id } });
+    rux ? RUX_GROUP_SHOW_OPERATION : GROUP_SHOW_OPERATION,
+    { pathParams: { id }, ...(rux ? { query: { include_members: false } } : {}) });
   const detail = rux
     ? decode(body, ruxGroupDetailSchema, "group", "RUX v3.4")
     : decode(body, groupDetailSchema, "group");

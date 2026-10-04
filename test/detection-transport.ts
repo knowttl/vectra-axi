@@ -141,9 +141,9 @@ const responses = new Map<string, { status: number; body: unknown }>([
   // lists and shows a triage rule through the documented v3.4 routes.
   // Cloud IDs stay scoped to the cloud profile; rule output carries no
   // benign verdict.
-  ["https://fixture.invalid/api/v3.4/groups/?page_size=100",
+  ["https://fixture.invalid/api/v3.4/groups/?include_members=false&page_size=100",
     { status: 200, body: { results: [ruxGroup8], count: 1 } }],
-  ["https://fixture.invalid/api/v3.4/groups/8/",
+  ["https://fixture.invalid/api/v3.4/groups/8/?include_members=false",
     { status: 200, body: { ...ruxGroup8, member_count: 1 } }],
   ["https://fixture.invalid/api/v3.4/groups/8/members/?page_size=100",
     { status: 200, body: { results: [ruxAccountMember], count: 1 } }],

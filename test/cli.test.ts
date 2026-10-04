@@ -664,11 +664,11 @@ it("reads cloud groups, members and triage rules through the packaged RUX journe
   expect(ruleShown.stdout).not.toContain("packaged-rux-token");
   expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
     { method: "POST", url: "https://fixture.invalid/oauth2/token" },
-    { method: "GET", url: "https://fixture.invalid/api/v3.4/groups/?page_size=100" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/groups/?include_members=false&page_size=100" },
     { method: "POST", url: "https://fixture.invalid/oauth2/token" },
     { method: "GET", url: "https://fixture.invalid/api/v3.4/groups/8/members/?page_size=100" },
     { method: "POST", url: "https://fixture.invalid/oauth2/token" },
-    { method: "GET", url: "https://fixture.invalid/api/v3.4/groups/8/" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/groups/8/?include_members=false" },
     { method: "POST", url: "https://fixture.invalid/oauth2/token" },
     { method: "GET", url: "https://fixture.invalid/api/v3.4/rules/?page_size=100" },
     { method: "POST", url: "https://fixture.invalid/oauth2/token" },
