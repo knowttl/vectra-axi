@@ -7,9 +7,7 @@ Prerequisite is READ-02 merged as `c9acc45` (PR https://github.com/knowttl/vectr
 ## What shipped
 
 See the [capability records](../inventory/capabilities.json) for operation dispositions, the session query allowlist and supporting evidence.
-The [audits module](../src/audits.ts) owns window validation, row decoding, byte-ceiling enforcement and output shaping for the single leaf.
-Audit reads are paging:date-window single responses and use `session.request` directly, never the collection reader.
-[cli.ts](../src/cli.ts) validates the window before profile selection and dispatches the leaf from one runner.
+See [README.md](../README.md) for the shared audit leaf's generation-specific behavior and [cli.ts](../src/cli.ts) for dispatch to the QUX and RUX runners.
 [catalogue.ts](../src/catalogue.ts) owns leaf grammar and command resolution; see [README.md](../README.md) for the shipped authorization policy.
 
 ## Convention for later read slices

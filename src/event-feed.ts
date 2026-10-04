@@ -34,7 +34,7 @@ export type CheckpointFeedConfig = {
   // passed, in order: timestamp bounds, date convenience flags, then limit.
   echoFlags: readonly string[];
   // Full per-feed flag validation, run first so bad input fails before
-  // configuration, profile selection or HTTP on every entry point.
+  // HTTP. CLI callers own checks before configuration/profile selection.
   validate(flags: ReadonlyMap<string, string | boolean>): void;
   // Output window for this read; validated above, never sent upstream.
   limit(flags: ReadonlyMap<string, string | boolean>): number;

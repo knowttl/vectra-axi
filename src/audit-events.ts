@@ -72,11 +72,10 @@ export function auditEventQuery(flags: ReadonlyMap<string, string | boolean>): R
   return query;
 }
 
-// Validates event flags without a session, so cli.ts rejects bad shapes
-// before configuration or profile selection. The runner calls it again
-// first, keeping one validation path for both entry points. QUX presence
-// (the required date window) stays in src/audits.ts: this validator owns
-// only the RUX feed contract.
+// Completes RUX validation after profile selection, before HTTP. The CLI
+// uses auditFlagShapes for generation-independent checks before loading
+// configuration. QUX presence (the required date window) stays in
+// src/audits.ts: this validator owns only the RUX feed contract.
 export function auditEventFlags(flags: ReadonlyMap<string, string | boolean>): void {
   auditFlagShapes(flags);
   const hasStart = flags.has("start-date");

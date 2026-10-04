@@ -9,7 +9,7 @@ import { RESPONSE_BODY_LIMIT_BYTES, type Session } from "./session.js";
 // Both dates are required ISO calendar days; the CLI never falls back to the
 // API's unbounded date defaults, and an oversized window fails with a
 // smaller-range suggestion instead of a silent truncation. RUX checkpoint
-// audits stay RUX-03.
+// audits use the separate audit-events.ts runner.
 
 export const AUDIT_LIST_OPERATION = "qux.audit.list";
 
@@ -44,8 +44,8 @@ export function parseAuditDay(raw: unknown, flag: "start-date" | "end-date"): st
   return raw;
 }
 
-// Validates the bounded window before any configuration, profile selection
-// or HTTP call. Both dates are required: omitting either would start from
+// Validates the bounded QUX window before HTTP, after profile selection.
+// Both dates are required: omitting either would start from
 // the API's unbounded defaults, which the slice forbids.
 export function auditWindow(flags: ReadonlyMap<string, string | boolean>): { start: string; end: string } {
   const example = "Example: vectra-axi audit list --profile <name> --start-date 2026-10-01 --end-date 2026-10-02";
