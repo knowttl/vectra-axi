@@ -221,7 +221,8 @@ Empty batches succeed with an explicit zero; denial reports `ACCESS_DENIED` with
 No health or configuration mutation exists: the session authorizes read GETs only.
 
 `detection event list --profile <name>` reads one RUX v3.4 `events/detections` batch per call on a cloud profile through the session, never the collection reader: `--from` starts at a returned checkpoint, server-side `--event-timestamp-gte` and `--event-timestamp-lte` bounds pass through for the server to apply inclusively, and `--limit` (default 100) is an output window only, never the upstream batch limit.
-Output returns the batch's `next_checkpoint` as `checkpoint` and `remaining_count` as returned, never as a stable total; a `--limit` inside a batch returns an opaque `--cursor` that replays the same checkpoint and skips returned rows.
+Output returns the batch's integer `next_checkpoint` as `checkpoint` (including zero) and `remaining_count` as returned, never as a stable total; a `--limit` inside a batch returns an opaque `--cursor` that replays the same checkpoint and skips returned rows.
+`--from` requires an integer checkpoint; equivalent forms such as `0001` and `1` identify the same checkpoint.
 Resume with the same profile and filters, without `--from`; the cursor preserves the window size across successive resumes unless an explicit `--limit` replaces it.
 The cursor binds the batch's ordered event contents; changed rows on replay fail with `RESPONSE_INVALID` before applying the saved offset, with guidance to reissue the read without `--cursor`.
 Drain the batch with `--cursor` before using `--from <checkpoint>` to continue past it.

@@ -244,6 +244,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
+  // One dispatch for every assignment/outcome/user leaf: validate the
   // flags, select the profile, build the session on the injected transport,
   // and report partial reads with their rows and a nonzero exit status.
   // Assignment leaves are read-only; no resolve or reassign leaf exists.
