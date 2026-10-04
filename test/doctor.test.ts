@@ -58,13 +58,13 @@ it("checks a profile with one bounded detection read", async () => {
     count: "1 of 1 profiles ok",
     profiles: [{ name: "lab", auth: "token", check: expect.any(String), status: "ok", detail: "1 of 2 detections" }],
     complete: true,
-    help: [`Run \`vectra-axi detection list --config ${path} --profile lab\` to start an investigation`],
+    help: [`Run \`vectra-axi detection list --config ${path} --profile=lab\` to start an investigation`],
   } });
 });
 
 it.each(["ok", "read failure", "credential failure"])("preserves context in %s follow-ups", async (scenario) => {
   const configPath = join(scratch, "lab's config.json");
-  const names = ["lab's profile", "other profile"];
+  const names = ["lab's profile", "other profile", "-lab", "-lab's profile"];
   writeFileSync(configPath, JSON.stringify({ profiles: Object.fromEntries(names.map((name) => [name, tokenProfile])) }));
   if (scenario === "credential failure") delete process.env.SENTINEL_TOKEN;
   try {
@@ -73,7 +73,7 @@ it.each(["ok", "read failure", "credential failure"])("preserves context in %s f
       ? { status: 403, bodyText: "{}" } : body({ results: [detection], count: 1 });
     const result = await runDoctor({ loaded: owned, names, redactor: new SecretRedactor(), transport });
     const hints = (result.output.help as string[]).filter((hint) => hint.includes("`vectra-axi "));
-    expect(hints).toHaveLength(2);
+    expect(hints).toHaveLength(names.length);
     expect(result.output.help).not.toEqual(expect.arrayContaining([expect.stringContaining("--cursor")]));
     const invocations = hints.map((hint) => {
       const command = /`vectra-axi (.*?)`/.exec(hint)![1]!;

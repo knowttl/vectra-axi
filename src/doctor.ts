@@ -55,7 +55,7 @@ export async function runDoctor(args: {
     const selected = selectProfile(loaded.config, name);
     const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
     const flags = new Map<string, string | boolean>([["limit", String(DOCTOR_WINDOW)]]);
-    const context = ` --config ${shellQuote(loaded.path)} --profile ${shellQuote(name)}`;
+    const context = ` --config ${shellQuote(loaded.path)} --profile=${shellQuote(name)}`;
     const recovery = `[${name}] Check the reported failure, then rerun \`vectra-axi doctor${context}\``;
     try {
       const result = await runDetectionList(session, flags);
@@ -80,7 +80,7 @@ export async function runDoctor(args: {
   const failed = ok !== names.length;
   if (!failed) {
     for (const name of names) {
-      note(`Run \`vectra-axi detection list --config ${shellQuote(loaded.path)} --profile ${shellQuote(name)}\` to start an investigation`);
+      note(`Run \`vectra-axi detection list --config ${shellQuote(loaded.path)} --profile=${shellQuote(name)}\` to start an investigation`);
     }
   }
   return { failed, output: {
