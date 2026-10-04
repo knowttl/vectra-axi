@@ -37,7 +37,7 @@ They must not be reused for a different operation.
 `query: []` and `fields: []` mean no initial subset has been pinned, not that the endpoint accepts no parameters or returns no fields.
 Later slices must recheck supported query values, projection fields, response shapes, budgets and release gates before enabling a leaf.
 Nontrivial transformations and future decoders belong in ordinary code, not inventory expressions.
-The inventory records evidence; the later strict executable catalogue must remain the sole owner of shipped grammar/help/support claims.
+The inventory records evidence; the [strict executable catalogue](../src/catalogue.ts) is the sole owner of shipped grammar/help/support claims.
 
 ## Dispositions and exclusions
 
@@ -78,4 +78,4 @@ Individual QUX health checks require the view-health permission; denials must ne
 
 The inventory's `az-tooling` source pins the tooling reference separately from the older design research reference.
 See [README.md](../README.md) for development requirements and commands, [the CI workflow](../.github/workflows/ci.yml) for the validation matrix and [.no-mistakes.yaml](../.no-mistakes.yaml) for gate commands.
-The [Vitest network guard](../test/deny-network.ts) owns automated network denial.
+The [shared network guard](../test/network-guard.ts) owns automated network denial for Vitest and packaged CLI subprocesses.
