@@ -80,10 +80,12 @@ export function healthCheck(flags: ReadonlyMap<string, string | boolean>): Healt
   return raw as HealthCheck;
 }
 
-function decodeSnapshot(body: unknown, operation: string): Record<string, unknown> {
+function decodeSnapshot(body: unknown, operation: string, rux: boolean): Record<string, unknown> {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
     throw new AxiError(`Vectra health response is malformed: expected a ${operation} snapshot object`,
-      "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
+      "RESPONSE_INVALID", [rux
+        ? "Check the RUX v3.4 API contract for this operation"
+        : "Check the QUX v2.5 API contract for this operation"]);
   }
   return body as Record<string, unknown>;
 }
@@ -100,7 +102,7 @@ export async function runHealthList(
   return { failed: false, output: {
     profile: session.profile.name,
     cached,
-    health: decodeSnapshot(body, "health list"),
+    health: decodeSnapshot(body, "health list", rux),
     ...(rux ? { help: [RUX_HEALTH_SUBSCRIPTION_NOTE] } : {}),
   } };
 }
@@ -119,7 +121,7 @@ export async function runHealthShow(
     profile: session.profile.name,
     check,
     cached,
-    health: decodeSnapshot(body, "health show"),
+    health: decodeSnapshot(body, "health show", rux),
     ...(rux ? { help: [RUX_HEALTH_SUBSCRIPTION_NOTE] } : {}),
   } };
 }

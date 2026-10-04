@@ -261,7 +261,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
   // One dispatch for every health leaf: validate the flags, select the
   // profile, build the session on the injected transport, and return the
   // shaped output. Snapshots validate the check selector and report cached
-  // versus fresh from the request; the event feed enforces its 9.4 release
+  // versus fresh from the request; the QUX event feed enforces its 9.4 release
   // gate and follows returned checkpoints. On a cloud profile the same
   // leaves run against the v3.4 routes with integer checkpoints normalized
   // to their decimal form. Denial propagates from the

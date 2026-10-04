@@ -550,7 +550,7 @@ export const catalogue: Readonly<Record<string, {
     // Checkpoint feed: --from starts at a returned checkpoint, --limit is an
     // output window only (never the upstream batch limit), and --cursor
     // resumes a capped batch with its original filters. remaining_count is
-    // reported as returned, never as a stable total. Release-gated to 9.4.
+    // reported as returned, never as a stable total. QUX is release-gated to 9.4.
     description: "List QUX health events from a checkpoint with a bounded window",
     flags: {
       ...globals,
@@ -571,7 +571,7 @@ export const catalogue: Readonly<Record<string, {
   },
 
   "lockdown list": {
-    // The kind selects the host or account status route; there is no
+    // The kind selects a QUX status route or the RUX type query; there is no
     // execution leaf, so no action flag exists to validate here.
     description: "List QUX host or account lockdown status through the status routes",
     flags: {

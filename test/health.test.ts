@@ -524,6 +524,17 @@ it("rejects an unsupported check on a cloud profile before any HTTP", async () =
   expect(calls).toBe(0);
 });
 
+it.each([
+  ["list", runHealthList, ["health", "list"]],
+  ["show", runHealthShow, ["health", "show", "--check", "cpu"]],
+] as const)("points malformed cloud health %s responses to the RUX contract", async (_leaf, run, argv) => {
+  const transport = cloudFixture(() => body([]));
+  await expect(run(cloudSession(transport), flags([...argv]))).rejects.toMatchObject({
+    code: "RESPONSE_INVALID",
+    suggestions: ["Check the RUX v3.4 API contract for this operation"],
+  });
+});
+
 it("reports cloud snapshot denial as a thrown error rather than an empty healthy result", async () => {
   const transport = cloudFixture(() => ({ status: 403, bodyText: "{}" }));
   const owned = cloudSession(transport);

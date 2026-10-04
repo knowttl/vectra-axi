@@ -152,8 +152,8 @@ async function runRuxLockdownList(
   } };
 }
 
-// Reads one kind's lockdown status. The wire carries no query: the kind
-// selects the route itself. An empty status list is an explicit zero, not an
+// Reads one kind's lockdown status. QUX selects a route without a query;
+// RUX uses the shared endpoint's type selector. An empty list is zero, not an
 // error; denial propagates from the session as ACCESS_DENIED.
 export async function runLockdownList(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
