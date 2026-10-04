@@ -26,6 +26,10 @@ const ruxAccountMember = { uid: "synthetic-account@fixture.invalid" };
 const ruxRule7 = { id: 7, enabled: true, triage_category: "synthetic-triage",
   description: "Synthetic automation", detection: "synthetic-detection", is_whitelist: false,
   source_conditions: null, additional_conditions: null };
+const ruxHealthEvent1 = { id: 101, health_check_name: "cpu", status: "OK",
+  event_timestamp: "2026-10-01T12:00:00Z" };
+const ruxHealthEvent2 = { id: 102, health_check_name: "disk", status: "WARNING",
+  event_timestamp: "2026-10-01T12:05:00Z" };
 const next = "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2";
 const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/detections?ordering=-id",
@@ -161,6 +165,23 @@ const responses = new Map<string, { status: number; body: unknown }>([
     { status: 200, body: [{ id: 1, note: "synthetic cloud note" }] }],
   ["https://fixture.invalid/api/v3.4/tagging/host/7/",
     { status: 200, body: { status: "success", tag_id: 9, tags: ["synthetic-cloud-tag"] } }],
+  // RUX-06: the packaged cloud health and lockdown journey reads a
+  // snapshot, one check, one integer-checkpoint event batch and per-kind
+  // lockdown status through the documented v3.4 routes with Bearer
+  // resource use. Cloud IDs stay scoped to the cloud profile.
+  ["https://fixture.invalid/api/v3.4/health/",
+    { status: 200, body: { network: { status: "ok" }, updated_at: "2026-10-01T12:00:00Z" } }],
+  ["https://fixture.invalid/api/v3.4/health/cpu/",
+    { status: 200, body: { cpu: { status: "ok", load: 12 } } }],
+  ["https://fixture.invalid/api/v3.4/events/health/",
+    { status: 200, body: { next_checkpoint: 102, remaining_count: 0,
+      events: [ruxHealthEvent1, ruxHealthEvent2] } }],
+  ["https://fixture.invalid/api/v3.4/events/health/?from=102",
+    { status: 200, body: { next_checkpoint: 102, remaining_count: 0, events: [] } }],
+  ["https://fixture.invalid/api/v3.4/lockdown/?type=host",
+    { status: 200, body: [{ entity_id: 7, type: "host", locked_by: "synthetic-admin",
+      lock_event_timestamp: "2026-09-30T12:00:00Z", unlock_event_timestamp: null }] }],
+  ["https://fixture.invalid/api/v3.4/lockdown/?type=account", { status: 200, body: [] }],
 ]);
 
 // WRITE-01: the gated host tag replace sends one PATCH after its preview

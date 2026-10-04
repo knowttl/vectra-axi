@@ -2491,8 +2491,8 @@
           "locator": "GET /api/v3.4/health/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-06; `health list` reads the v3.4 snapshot route on a cloud profile with the same cached/fresh flags, passing the subscription-sensitive body through untouched.",
       "fixtureCases": [
         "cached",
         "fresh",
@@ -2536,8 +2536,8 @@
           "locator": "GET /api/v3.4/health/{check_type}/; path check_type enum"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-06; `health show` reads the v3.4 check_type route on a cloud profile for the ten documented checks; unsupported selectors fail before HTTP.",
       "fixtureCases": [
         "supported-check",
         "unsupported-check",
@@ -2580,8 +2580,8 @@
           "locator": "GET /api/v3.4/events/health/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-06; `health event list` reads the v3.4 events route on a cloud profile, normalizing integer checkpoints to their decimal form; no appliance-release gate applies to cloud profiles.",
       "fixtureCases": [
         "returned-checkpoint",
         "repeated-checkpoint",
@@ -2920,11 +2920,13 @@
           "locator": "GET /api/v3.4/lockdown/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-06; `lockdown list` reads the single v3.4 endpoint with its type selector on a cloud profile, including the RUX-only traffic value; traffic on QUX fails with generation guidance.",
       "fixtureCases": [
         "account-status",
         "host-status",
+        "traffic-status",
+        "unsupported-kind",
         "access-denied",
         "subscription-sensitive-shape"
       ]

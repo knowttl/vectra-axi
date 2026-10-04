@@ -287,8 +287,10 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
   // One dispatch for every health leaf: validate the flags, select the
   // profile, build the session on the injected transport, and return the
   // shaped output. Snapshots validate the check selector and report cached
-  // versus fresh from the request; the event feed enforces its 9.4 release
-  // gate and follows returned checkpoints. Denial propagates from the
+  // versus fresh from the request; the QUX event feed enforces its 9.4 release
+  // gate and follows returned checkpoints. On a cloud profile the same
+  // leaves run against the v3.4 routes with integer checkpoints normalized
+  // to their decimal form. Denial propagates from the
   // session, never as an empty healthy result. No health mutation exists.
   type HealthLeaf = "health list" | "health show" | "health event list";
   async function runHealth(leaf: HealthLeaf, flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
@@ -322,7 +324,9 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
   }
   // One dispatch for the lockdown leaf: validate the status kind, select
   // the profile, build the session on the injected transport, and return
-  // the shaped single-response output. Status only: no execution leaf
+  // the shaped single-response output. On a cloud profile the kind selects
+  // the v3.4 type selector, including the RUX-only traffic value; QUX keeps
+  // its separate host/account status routes. Status only: no execution leaf
   // exists, and denial propagates from the session as an error.
   async function runLockdown(flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
     lockdownKind(flags);

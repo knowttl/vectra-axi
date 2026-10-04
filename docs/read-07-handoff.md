@@ -7,11 +7,11 @@ Prerequisite is READ-06 merged as `703615b` (PR https://github.com/knowttl/vectr
 ## What shipped
 
 See the [capability records](../inventory/capabilities.json) for operation dispositions, the session query allowlist and supporting evidence.
-The [health module](../src/health.ts) owns snapshot validation, freshness/variant flags, the 9.4 release gate, checkpoint decoding and output shaping for the three leaves.
+The [health module](../src/health.ts) owns snapshot validation, freshness/variant flags, checkpoint decoding and output shaping for the three leaves.
 Snapshots are paging:none single responses and use `session.request` directly, never the collection reader.
 The event feed is paging:checkpoint and owns its own single-batch runner for the same reason: the CORE-02 collection reader serves count/results/next collections only.
-The session exposes the profile's declared `applianceRelease` on its snapshot so release-gated leaves can refuse before HTTP; absent means undeclared and the read proceeds.
-[cli.ts](../src/cli.ts) validates flags before profile selection, enforces the release gate after selection, and dispatches the leaves from one runner.
+[cli.ts](../src/cli.ts) validates flags before profile selection and dispatches the leaves from one runner.
+See [README.md](../README.md) for the generation-specific health-event release prerequisite.
 [catalogue.ts](../src/catalogue.ts) owns leaf grammar and command resolution; see [README.md](../README.md) for the shipped authorization policy.
 
 ## Convention for later read slices
