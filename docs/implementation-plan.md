@@ -145,9 +145,11 @@ Do not expose a raw authenticated fetch object to command handlers.
 
 CORE-02 exposes bounded result windows rather than leaking backend page mechanics to callers.
 Its contract covers a limit ending within a page, an empty page with continuation, malformed data, a repeated continuation, a later-page failure and cancellation while waiting for Retry-After.
-Default normal list output is 100, with endpoint-specific page sizes and request/byte/deadline ceilings defined alongside the operation.
+See [README.md](../README.md) for shipped window and policy defaults; endpoint-specific deviations require reviewed evidence.
 The cursor preserves any unreturned rows or offset and validates the original query context before resuming.
 Read retry policy and clock behavior are exercised with fake time.
+The [collection acceptance suite](../test/collections.test.ts) exercises these cases through the real session with synthetic fixtures, a fake `RawTransport` and a manual clock under the [external-network guard](../test/network-guard.ts).
+It also checks cycle history across page-boundary, within-page and failed-page resumes, plus cancellation and deadline handling of pending requests.
 
 READ-01 connects the catalogue and session to detection list/show.
 Use documented server-side state/filter/field mappings, clear truncation metadata and explicit empty results.

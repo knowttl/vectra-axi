@@ -15,15 +15,17 @@ export type TokenTransport = (request: {
   headers: { Authorization: string; "Content-Type": "application/x-www-form-urlencoded" };
   body: "grant_type=client_credentials";
   tls: ReturnType<typeof tlsOptions>;
+  signal?: AbortSignal;
 }) => Promise<{ status: number; body: unknown }>;
 
 export function oauthCredentials(
   profile: OAuthProfile, configPath: LoadedConfig["path"], redactor: SecretRedactor, transport: TokenTransport,
-): () => Promise<OAuthCredential> {
+): (signal?: AbortSignal) => Promise<OAuthCredential> {
   const { origin, apiVersion, clientId, secretEnv } = profile;
   let cached: OAuthCredential | undefined;
 
-  return async () => {
+  return async (signal) => {
+    signal?.throwIfAborted();
     if (cached && Date.now() < cached.expiresAt) return { ...cached };
     cached = undefined;
     const secret = process.env[secretEnv];
@@ -42,9 +44,10 @@ export function oauthCredentials(
       response = await transport({
         operation: "qux.oauth.exchange", method: "POST", url: `${origin}/api/v${apiVersion}/oauth2/token`,
         headers: { Authorization: authorization, "Content-Type": "application/x-www-form-urlencoded" },
-        body: "grant_type=client_credentials", tls,
+        body: "grant_type=client_credentials", tls, ...(signal ? { signal } : {}),
       });
     } catch (error) {
+      signal?.throwIfAborted();
       const code = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : undefined;
       throw authFailure({ code }) ?? new AxiError("OAuth credential exchange could not complete", "AUTH_EXCHANGE_FAILED", [
         "Check connectivity and the QUX API client configuration; no automatic retry was attempted",
@@ -55,6 +58,7 @@ export function oauthCredentials(
     for (const key of ["access_token", "refresh_token"] as const) {
       if (typeof body[key] === "string") redactor.add(body[key]);
     }
+    signal?.throwIfAborted();
     if (response.status === 401 || (response.status === 400 && body.error === "invalid_client")) {
       throw new AxiError("OAuth client credentials were rejected", "AUTH_FAILED", ["Check clientId and the secret referenced by secretEnv"]);
     }

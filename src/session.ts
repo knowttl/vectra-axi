@@ -15,9 +15,11 @@ export type RawTransport = (request: {
   headers: Record<string, string>;
   body?: string;
   tls: ReturnType<typeof tlsOptions>;
-}) => Promise<{ status: number; location?: string; bodyText: string }>;
+  signal?: AbortSignal;
+}) => Promise<{ status: number; location?: string; retryAfter?: string; bodyText: string }>;
 
 export type SessionRequestOptions = {
+  signal?: AbortSignal;
   pathParams?: Readonly<Record<string, string | number>>;
   query?: Readonly<Record<string, string | number | boolean>>;
 };
@@ -35,6 +37,12 @@ export type Session = {
 const MAX_REDIRECTS = 3;
 const REQUEST_TIMEOUT_MS = 30_000;
 const RESPONSE_BODY_LIMIT_BYTES = 8 * 1024 * 1024;
+
+function ensureActive(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) {
+    throw new AxiError("Vectra request was cancelled", "REQUEST_CANCELLED", ["Reissue the read when ready"]);
+  }
+}
 
 function versionPrefix(profile: SelectedProfile): string {
   return `/api/v${profile.apiVersion}/`;
@@ -142,12 +150,16 @@ function resolveLink(
 
 async function sendRaw(
   profile: SelectedProfile, configPath: LoadedConfig["path"], redactor: SecretRedactor, transport: RawTransport,
-  request: { method: "GET" | "POST"; url: string; headers: Record<string, string>; body?: string },
-): Promise<{ status: number; location?: string; bodyText: string }> {
+  request: { method: "GET" | "POST"; url: string; headers: Record<string, string>; body?: string; signal?: AbortSignal },
+): Promise<{ status: number; location?: string; retryAfter?: string; bodyText: string }> {
   const tls = tlsOptions(profile, configPath);
   try {
-    return await transport({ ...request, tls });
+    ensureActive(request.signal);
+    const response = await transport({ ...request, tls });
+    ensureActive(request.signal);
+    return response;
   } catch (error) {
+    ensureActive(request.signal);
     const code = error && typeof error === "object" && "code" in error && typeof error.code === "string"
       ? error.code : undefined;
     throw authFailure({ code })
@@ -158,13 +170,15 @@ async function sendRaw(
   }
 }
 
-function decodeResourceBody(response: { status: number; bodyText: string }): unknown {
+function decodeResourceBody(response: { status: number; bodyText: string; retryAfter?: string }): unknown {
   const mapped = authFailure({ status: response.status });
   if (mapped) throw mapped;
   if (response.status !== 200) {
-    throw new AxiError(`Vectra request returned status ${response.status}`, "REQUEST_FAILED", [
-      "The session does not retry failed reads; bounded retry policy arrives with CORE-02",
+    const failure = new AxiError(`Vectra request returned status ${response.status}`, "REQUEST_FAILED", [
+      "The session sends one read per request; bounded read retries live in the collection reader",
     ]);
+    recordFailure(failure, { status: response.status, retryAfter: response.retryAfter });
+    throw failure;
   }
   try {
     return JSON.parse(response.bodyText);
@@ -173,6 +187,43 @@ function decodeResourceBody(response: { status: number; bodyText: string }): unk
       "Check the QUX v2.5 API contract for this operation; the response body was discarded",
     ]);
   }
+}
+
+// Retry-After is delay seconds or an HTTP date; absent or unparseable means
+// no server-directed wait. Follows the az-axi convention of clamping the past
+// to zero. Delay-seconds form needs no clock, so fake-time tests use it.
+export function parseRetryAfter(value: string | undefined, nowMs: number): number | undefined {
+  if (value === undefined) return undefined;
+  const text = value.trim();
+  if (/^\d+$/.test(text)) {
+    const waitMs = Number(text) * 1000;
+    return Number.isSafeInteger(waitMs) ? waitMs : undefined;
+  }
+  // The asctime HTTP-date form omits a zone but is defined in GMT.
+  const asctimeForm = /^[A-Za-z]{3} [A-Za-z]{3} (?: [1-9]|[12]\d|3[01]) \d{2}:\d{2}:\d{2} \d{4}$/.test(text);
+  const at = Date.parse(asctimeForm ? `${text} GMT` : text);
+  if (Number.isNaN(at)) return undefined;
+  const date = new Date(at);
+  const standard = date.toUTCString();
+  const [weekday, day, month, year, time] = standard.split(" ");
+  const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const obsolete = `${weekdays[date.getUTCDay()]}, ${day}-${month}-${year!.slice(-2)} ${time} GMT`;
+  const asctime = `${weekday!.slice(0, 3)} ${month} ${String(Number(day)).padStart(2, " ")} ${time} ${year}`;
+  if (![standard, obsolete, asctime].includes(text)) return undefined;
+  return Math.max(0, at - nowMs);
+}
+
+// Classifies a thrown read failure without touching its message or code.
+// The Retry-After value stays raw: the collection reader parses it against
+// its injected clock, so fake time governs waits as well as deadlines.
+const failureInfo = new WeakMap<object, { status: number; retryAfter?: string }>();
+
+function recordFailure(error: object, info: { status: number; retryAfter?: string }): void {
+  failureInfo.set(error, info);
+}
+
+export function failedRead(error: unknown): { status: number; retryAfter?: string } | undefined {
+  return typeof error === "object" && error !== null ? failureInfo.get(error) : undefined;
 }
 
 // The sole TokenTransport implementation: the named exchange runs over the same
@@ -186,7 +237,10 @@ function exchangeTransport(profile: SelectedProfile, transport: RawTransport): T
         "The OAuth exchange uses the named versioned token route only; no credential was sent",
       ]);
     }
-    const response = await transport({ method: "POST", url: request.url, headers: request.headers, body: request.body, tls: request.tls });
+    ensureActive(request.signal);
+    const response = await transport({ method: "POST", url: request.url, headers: request.headers, body: request.body,
+      tls: request.tls, ...(request.signal ? { signal: request.signal } : {}) });
+    ensureActive(request.signal);
     let body: unknown = {};
     try {
       body = response.bodyText ? JSON.parse(response.bodyText) as unknown : {};
@@ -213,11 +267,21 @@ export function createSession(args: {
     const record = authorizeOperation(profile, operation);
     let current = buildOperationUrl(profile, record, options);
     const path = new URL(current).pathname;
-    const authorization = (await credentials()).header;
+    const signal = options?.signal;
+    ensureActive(signal);
+    let authorization: string;
+    try {
+      authorization = (await credentials(signal)).header;
+    } catch (error) {
+      ensureActive(signal);
+      throw error;
+    }
     for (let hops = 0; ; hops++) {
+      ensureActive(signal);
       assertDestination(profile, record, new URL(current), path);
       const response = await sendRaw(profile, configPath, redactor, transport,
-        { method: "GET", url: current, headers: { Authorization: authorization, Accept: "application/json" } });
+        { method: "GET", url: current, headers: { Authorization: authorization, Accept: "application/json" },
+          ...(signal ? { signal } : {}) });
       if (response.status < 300 || response.status > 399) return { status: 200, body: decodeResourceBody(response) };
       if (!response.location) {
         throw new AxiError(`Vectra redirect for ${record.id} has no destination`, "REQUEST_FAILED", [
@@ -233,7 +297,7 @@ export function createSession(args: {
     }
   }
 
-  // CORE-02 follows collection and checkpoint links through this validator;
+  // CORE-02 follows collection links through this validator;
   // the session fetches nothing here, so validation alone cannot leak a credential.
   function resolveContinuation(operation: string, next: string, options?: Pick<SessionRequestOptions, "pathParams">): string {
     const record = authorizeOperation(profile, operation);
@@ -258,7 +322,9 @@ export function createSession(args: {
 export function nodeTransport(): RawTransport {
   return async (request) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
     try {
+      ensureActive(request.signal);
       return await new Promise<Awaited<ReturnType<RawTransport>>>((resolve, reject) => {
         const url = new URL(request.url);
         timer = setTimeout(() => {
@@ -291,19 +357,33 @@ export function nodeTransport(): RawTransport {
           });
           response.on("end", () => {
             const location = response.headers.location;
+            const retryAfterHeader = response.headers["retry-after"];
+            const retryAfter = Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader;
             resolve({
               status: response.statusCode ?? 0,
               ...(location ? { location: Array.isArray(location) ? location[0] : location } : {}),
+              ...(retryAfter ? { retryAfter } : {}),
               bodyText: Buffer.concat(chunks).toString("utf8"),
             });
           });
         });
         pending.on("error", reject);
+        onAbort = (): void => {
+          const error = new Error("Vectra request was cancelled");
+          reject(error);
+          pending.destroy(error);
+        };
+        request.signal?.addEventListener("abort", onAbort, { once: true });
+        if (request.signal?.aborted) {
+          onAbort();
+          return;
+        }
         if (request.body !== undefined) pending.write(request.body);
         pending.end();
       });
     } finally {
       clearTimeout(timer);
+      if (onAbort) request.signal?.removeEventListener("abort", onAbort);
     }
   };
 }
