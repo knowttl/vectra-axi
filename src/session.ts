@@ -354,7 +354,7 @@ export function createSession(args: {
   return { profile: snapshot, request, resolveContinuation };
 }
 
-// WRITE-00 fixture-only mutation transport. Reads stay on Session.request;
+// WRITE-00 authorized mutation transport. Reads stay on Session.request;
 // a mutation travels only through this sender with a coordinator
 // authorization minted after the write gates pass. The sender checks that
 // authorization independently: unknown, already-used or retargeted tokens

@@ -170,6 +170,86 @@ it("reads notes and tags through the packaged note, full and tag commands", () =
   ]);
 });
 
+it("previews and executes a gated tag replace through the packaged binary", () => {
+  const config = join(scratch, "tagset.json");
+  const trace = join(scratch, "tagset-requests.jsonl");
+  const journal = join(scratch, "tagset-writes.log");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: ["qux.host.tag.set"] } } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    VECTRA_AXI_WRITE_LOG: journal,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const preview = invoke(["host", "tag", "set", ...context, "--id", "7",
+    "--tags", "synthetic-tag,fresh"], fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(preview.stderr).toBe("");
+  expect(decode(preview.stdout)).toMatchObject({ profile: "lab", type: "host", id: 7,
+    current: ["synthetic-tag"], desired: ["synthetic-tag", "fresh"],
+    added: ["fresh"], removed: "no tags to remove" });
+  const unconfirmed = invoke(["host", "tag", "set", ...context, "--id", "7",
+    "--tags", "synthetic-tag,fresh", "--execute"], fixtureEnv);
+  expect(unconfirmed.status).toBe(1);
+  expect(unconfirmed.stdout).toContain("code: CONFIRM_REQUIRED");
+  expect(unconfirmed.stderr).toBe("");
+  expect(() => readFileSync(journal, "utf8")).toThrow();
+  const applied = invoke(["host", "tag", "set", ...context, "--id", "7",
+    "--tags", "synthetic-tag,fresh", "--execute", "--confirm", "host 7"], fixtureEnv);
+  expect(applied.status).toBe(0);
+  expect(applied.stderr).toBe("");
+  const appliedOutput = decode(applied.stdout) as Record<string, unknown>;
+  expect(appliedOutput).toMatchObject({ profile: "lab", type: "host", id: 7,
+    tags: ["synthetic-tag", "fresh"], audit: expect.any(String) });
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/7" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/7" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/7" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/7" },
+    { method: "PATCH", url: "https://fixture.invalid/api/v2.5/tagging/host/7",
+      body: { tags: ["synthetic-tag", "fresh"] } },
+  ]);
+  expect(readFileSync(journal, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line)))
+    .toEqual([
+      expect.objectContaining({ kind: "intent", operation: "qux.host.tag.set", method: "PATCH",
+        target: "host 7" }),
+      expect.objectContaining({ kind: "outcome", operation: "qux.host.tag.set", httpStatus: 200,
+        outcome: "SUCCESS" }),
+    ]);
+});
+
+it("refuses a packaged tag replace without hand opt-in", () => {
+  const config = join(scratch, "tagset-disabled.json");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: join(scratch, "tagset-disabled.jsonl"),
+    VECTRA_AXI_WRITE_LOG: join(scratch, "tagset-disabled.log"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const refused = invoke(["host", "tag", "set", "--config", config, "--profile", "lab",
+    "--id", "7", "--tags", "fresh", "--execute"], fixtureEnv);
+  expect(refused.status).toBe(1);
+  expect(refused.stdout).toContain("code: WRITES_DISABLED");
+  expect(refused.stderr).toBe("");
+});
+
+it.each([
+  { path: [] as string[], readOnly: "1", writes: "disabled" },
+  { path: ["home"], readOnly: "1", writes: "disabled" },
+  { path: ["setup"], readOnly: "1", writes: "disabled" },
+  { path: ["home"], readOnly: "0", writes: "qux.host.tag.set" },
+])("shows effective writes on $path with forced read-only=$readOnly", ({ path, readOnly, writes }) => {
+  const config = join(scratch, "tagset-home.json");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: ["qux.host.tag.set"] } } } }));
+  const result = invoke([...path, "--config", config], {
+    SENTINEL_TOKEN: "packaged-detection-token", VECTRA_AXI_READ_ONLY: readOnly,
+  });
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain(`writes: ${writes}`);
+  expect(result.stderr).toBe("");
+});
+
 it("reads unresolved assignments, the outcome taxonomy and the assignee as distinct resources", () => {
   const config = join(scratch, "assignments.json");
   const trace = join(scratch, "assignments-requests.jsonl");
@@ -784,7 +864,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, doctor, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, host note list, host tag list, account note list, account tag list, assignment list, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
+  expect(result.stdout).toContain("Available commands: home, setup, doctor, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, detection tag set, host note list, host tag list, host tag set, account note list, account tag list, account tag set, assignment list, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
   expect(result.stdout).toContain("lockdown list");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);

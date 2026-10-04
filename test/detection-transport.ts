@@ -121,25 +121,41 @@ const responses = new Map<string, { status: number; body: unknown }>([
       refresh_token: "packaged-rux-refresh" } }],
 ]);
 
+// WRITE-01: the gated host tag replace sends one PATCH after its preview
+// read; the accepted replace answers 200 with an empty body.
+const mutations = new Map<string, { status: number; body: unknown }>([
+  ["https://fixture.invalid/api/v2.5/tagging/host/7", { status: 200, body: {} }],
+]);
+
 https.request = ((options: RequestOptions, callback: (response: IncomingMessage) => void): ClientRequest => {
   const url = new URL(options.path!, `https://${options.hostname}`).href;
-  const fixture = responses.get(url);
+  const fixture = options.method === "PATCH" ? mutations.get(url) : responses.get(url);
   const headers = options.headers as Record<string, string>;
   const ruxExchange = url === "https://fixture.invalid/oauth2/token" && options.method === "POST"
     && (headers.Authorization ?? "").startsWith("Basic ")
     && headers["Content-Type"] === "application/x-www-form-urlencoded";
-  if (!fixture || !(options.method === "GET" && headers.Authorization === "Token packaged-detection-token"
+  const allowedMethod = options.method === "GET" || options.method === "PATCH";
+  if (!fixture || !(allowedMethod && headers.Authorization === "Token packaged-detection-token"
     || ruxExchange)) {
     throw new Error(`Unexpected synthetic request: ${options.method} ${url}`);
   }
-  appendFileSync(process.env.DETECTION_TRACE!, JSON.stringify({ method: options.method, url }) + "\n");
   const response = Object.assign(new PassThrough(), { statusCode: fixture.status, headers: {} });
+  let sent = "";
   const pending = Object.assign(new EventEmitter(), {
-    write: () => true,
-    end: () => queueMicrotask(() => {
-      callback(response as unknown as IncomingMessage);
-      response.end(JSON.stringify(fixture.body));
-    }),
+    write: (chunk: string): boolean => {
+      sent += chunk;
+      return true;
+    },
+    end: () => {
+      // PATCH trace lines carry the replace payload; GET lines keep the
+      // established shape so existing trace assertions still match.
+      appendFileSync(process.env.DETECTION_TRACE!, JSON.stringify({ method: options.method, url,
+        ...(options.method === "PATCH" ? { body: sent ? JSON.parse(sent) as unknown : {} } : {}) }) + "\n");
+      queueMicrotask(() => {
+        callback(response as unknown as IncomingMessage);
+        response.end(JSON.stringify(fixture.body));
+      });
+    },
     destroy: (error?: Error): EventEmitter => {
       if (error) pending.emit("error", error);
       return pending;

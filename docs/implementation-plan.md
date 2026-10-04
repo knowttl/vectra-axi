@@ -37,7 +37,7 @@ Recheck cited upstream contracts when implementing; record deployment/API/applia
 | RUX-06 | RUX health and lockdown status | RUX-01, READ-07, READ-08 | Subscription-sensitive shapes, generation-specific routes and unsupported-check guidance. |
 | API-01 | Optional reviewed raw-read surface | PACK-01 and explicit scope choice | Allowlisted operation/query/field policy, no arbitrary destination/header/method or sensitive-route bypass. |
 | WRITE-00 | Mutation coordinator, fixture-only enablement | PACK-01 | Forced read-only, hand opt-in, original configured scope, preview/execute/confirm, durable intent/outcome, no ambiguous replay. |
-| WRITE-01 | One selected note/tag/assignment mutation family | WRITE-00, corresponding reads | File/stdin payloads, desired-state/no-op semantics, target and permission tests; choose exact operation before dispatch. |
+| WRITE-01 | Detection/host/account desired-state tag replace | WRITE-00, READ-03 | Exact desired set, file/stdin inputs, dry-run diff, no-op, pre-send state comparison, exact target confirmation, permission and audit tests. |
 | WRITE-N | Remaining separately approved mutation families | WRITE-00, corresponding reads | One reviewed family per change; concurrency evidence, unknown outcome, audit failure and disruptive-confirmation cases. |
 
 PACK-01 is a useful SOC read release, not full Vectra API coverage.
@@ -202,14 +202,15 @@ v3.5 support requires its own version-diff assessment after the preview contract
 
 ## Phase 4: add writes as a new capability, one family at a time
 
-WRITE-00 is entirely fixture-driven until named mutation families are enabled.
-It implements forced read-only, hand-edited opt-in, immutable original origin/operation scope, current-state preview, execute/confirmation requirements and audit intent/outcome.
-The transport independently rejects a mutation without coordinator authorization.
-Read flags, environment profile overrides and later raw-read access cannot widen the configured write scope.
+WRITE-00 established the coordinator with fixture-only acceptance.
+See [the mutation architecture](design.md#later-mutation-coordinator) for its enforcement contract.
 
-The first named write must be selected from note, tag or assignment operations before its crew is commissioned.
-This is a later product choice rather than a blocker for the read release or this design.
-Define whether the command is desired-state or action-shaped and document no-op behavior accordingly.
+WRITE-01 selects per-object detection, host and account tag replacement, built on READ-03 and WRITE-00.
+Its [offline acceptance suite](../test/tags.test.ts) covers desired-state diffs, no-ops, file/stdin inputs and clearing, changed current state, exact target confirmation, policy refusal, denied reads, server rejection and unknown outcomes without replay.
+All acceptance uses synthetic fixtures; no live instance, real credentials or customer data is used.
+See [README.md](../README.md) for shipped usage and concurrency limits, and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+Bulk tag set/delete, note and assignment mutations remain planned and require separately selected WRITE-N slices.
+For each future mutation, define whether the command is desired-state or action-shaped and document no-op behavior accordingly.
 Do not make additive note creation falsely idempotent by dropping repeated intended notes.
 Tests cover changed current state, denied target, missing/mismatched confirmation, failure to write audit intent and a server-accepted mutation followed by a client timeout.
 

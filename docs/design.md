@@ -99,7 +99,7 @@ The RUX specification contains `/detections` at line 4282, `/entities` at 5093, 
 
 The execution path is strict command catalogue -> Vectra session -> selected generation adapter -> HTTPS.
 Validated results return through safe projection/redaction -> AXI TOON output.
-The fixture-only mutation coordinator uses a separate authorized sender in `src/session.ts`, sharing the read session's credential and HTTP transport seams.
+The mutation coordinator uses a separate authorized sender in `src/session.ts`, sharing the read session's credential and HTTP transport seams.
 
 As domain slices land, the session will expose caller-shaped operations such as `listDetections(query, window)`, `getDetection(id)` and `listEntities(kind, query, window)`.
 CORE-01 supplies the operation-scoped foundation described in the [session interface](core-01-handoff.md), and CORE-02 supplies the [collection interface](core-02-handoff.md).
@@ -202,10 +202,11 @@ Do not automatically replay ambiguous mutations.
 
 ## Later mutation coordinator
 
-The first release permits reviewed reads and named authentication exchanges only.
+See [README.md](../README.md) for the shipped operation surface.
 Raw requests are deferred; later reviewed raw reads must use the same operation catalogue and cannot bypass sensitive-route or write policy.
 
-WRITE-00 implements the coordinator in `src/writes.ts` with synthetic fixture definitions only; named business mutation families remain later slices.
+WRITE-00 implements the coordinator in `src/writes.ts`; WRITE-01 binds desired-state tag replaces in `src/tags.ts` to it.
+See [README.md](../README.md) for shipped write behavior and [the implementation plan](implementation-plan.md#phase-4-add-writes-as-a-new-capability-one-family-at-a-time) for selected and future write slices.
 The coordinator keeps its original policy private and exposes a frozen scope snapshot, including the operation allowlist.
 Its sender independently consumes a single-use authorization bound to that sender, method and URL; authorization issuance is private to the coordinator.
 
@@ -215,7 +216,7 @@ The coordinator enforces this order:
 2. Apply forced read-only, hand-enabled profile, immutable configured origin and allowed-operation scope.
 3. Read state and produce a local desired-state/action preview containing redacted serialized current state and proposed payload.
 4. Require `--execute`; `--dry-run` is mutually exclusive with execution.
-5. Require exact target confirmation for disruptive operations and apply the approval hook when supplied; future named mutation skills must require human approval of the reviewed action.
+5. Require exact target confirmation for disruptive operations or definitions with `requiresConfirmation: true`, and apply the approval hook when supplied; future named mutation skills must require human approval of the reviewed action.
 6. Record durable redacted intent, re-read, execute once and record the outcome.
 
 Verified already-desired state is an exit-0 no-op.
@@ -233,7 +234,7 @@ A malformed journal or remaining lock blocks intent recording; reconcile a remai
 Future named text mutations will use file/stdin inputs.
 There is no assumed server-side dry-run capability.
 
-Notes, tags and assignment changes are candidate first writes, each separately reviewed.
+Remaining note, tag and assignment mutations require separately selected slices in the [implementation plan](implementation-plan.md#phase-4-add-writes-as-a-new-capability-one-family-at-a-time).
 Close/open, groups and triage rules require explicit semantic and concurrency analysis.
 Lockdown execution is unpromised until an exact public mutation contract is established.
 [az-axi gates](https://github.com/knowttl/az-axi/blob/7d31138eb82e0fc6adec867e7690be6cf87725b6/src/lib/gates.ts#L68), [client enforcement](https://github.com/knowttl/az-axi/blob/7d31138eb82e0fc6adec867e7690be6cf87725b6/src/lib/client.ts#L106) and [audit serialization](https://github.com/knowttl/az-axi/blob/7d31138eb82e0fc6adec867e7690be6cf87725b6/src/lib/writeLog.ts#L67) are conventions to adapt, not a ready-made Vectra policy implementation.

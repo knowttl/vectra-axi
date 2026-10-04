@@ -8,9 +8,7 @@ import type { SecretRedactor } from "./redact.js";
 import { createMutationSender, mutationNotSent, mutationAccepted, mutationHttpStatus,
   type MutationAuthorization, type MutationMethod, type MutationResponse, type RawTransport } from "./session.js";
 
-// WRITE-00 mutation coordinator: fixture-only enablement for later named
-// mutation families. No user-visible mutation command ships in this piece;
-// tests drive the coordinator through a fixture mutation only. The gate
+// WRITE-00 mutation coordinator shared by named mutation families. The gate
 // order follows az-axi's write gates as the reference: read-only default,
 // allowWrites plus a scope allowlist, dry run, --execute, --confirm,
 // --if-match, a durable write log and an approval hook.
@@ -33,15 +31,15 @@ export function resolveWriteLogPath(env: NodeJS.ProcessEnv = process.env): strin
 
 export type MutationEffect = "write" | "disruptive";
 
-// A fixture-supplied mutation. WRITE-00 enables no real family: the only
-// operable definitions come from tests, and the operation must fall inside
-// the profile's configured scope. WRITE-01 binds real families to this shape.
+// A named mutation bound by its domain caller. The operation must fall
+// inside the profile's configured scope; WRITE-01 also requires confirmation.
 export type MutationDefinition = {
   operation: string;
   method: MutationMethod;
   path: string;
   effect: MutationEffect;
   target: string;
+  requiresConfirmation?: boolean;
   payload?: unknown;
 };
 
@@ -313,11 +311,10 @@ export function createMutationCoordinator(args: {
     if (options.execute !== true) return { kind: "dry-run", preview: seen };
     // Verified already-desired state is a no-op: nothing is sent.
     if (seen.noop) return { kind: "noop", preview: seen };
-    // Gate 5: disruptive mutations need the target name back.
-    if (definition.effect === "disruptive") {
+    if (definition.effect === "disruptive" || definition.requiresConfirmation === true) {
       if (options.confirm === undefined) {
         throw new AxiError(
-          `blocked: disruptive ${definition.method} needs --confirm '${definition.target}' (profile '${scope.name}')`,
+          `blocked: ${definition.method} needs --confirm '${definition.target}' (profile '${scope.name}')`,
           "CONFIRM_REQUIRED",
           [`Re-run with --confirm '${definition.target}'`],
         );

@@ -264,15 +264,18 @@ it("rejects a malformed embedded summary", async () => {
     .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
 });
 
-it("constructs no write request for notes or tags", async () => {
+it("constructs no write request for notes; only the WRITE-01 tag replace writes", async () => {
   expect(Object.keys(catalogue).filter((leaf) =>
     leaf.includes("note") || leaf.includes("tag"))).toEqual([
     "detection note list",
     "detection tag list",
+    "detection tag set",
     "host note list",
     "host tag list",
+    "host tag set",
     "account note list",
     "account tag list",
+    "account tag set",
   ]);
   const deferred = inventory.deferredFamilies
     .filter((family) => family.id.endsWith("note-writes") || family.id.endsWith("tag-writes"));

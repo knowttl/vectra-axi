@@ -1,13 +1,15 @@
 ---
 name: vectra-axi
-description: Use vectra-axi for read-only Vectra SOC inspection - detections, hosts, accounts, notes, tags, assignments, groups, triage rules, audits, health and lockdown status on on-prem Quadrant UX.
+description: Use vectra-axi for Vectra SOC inspection - detections, hosts, accounts, notes, tags, assignments, groups, triage rules, audits, health and lockdown status on on-prem Quadrant UX, plus gated desired-state tag replaces.
 user-invocable: false
 ---
 
 # vectra-axi
 
 Agent-ergonomic CLI for Vectra AI, read-only by default. On-prem Quadrant UX
-(QUX v2.5) SOC reads through token-efficient TOON output.
+(QUX v2.5) SOC reads through token-efficient TOON output, plus gated
+desired-state tag replaces (`detection|host|account tag set`) for
+hand-enabled profiles.
 See [README.md](../../README.md) for shipped write restrictions.
 
 Run `vectra-axi doctor` first.
@@ -17,7 +19,8 @@ See [README release guidance](../../README.md#release) for its profile selection
 
 The exact current leaf registry is `src/catalogue.ts`. Its capability labels
 are `native` (implemented by a vectra-axi handler) and its Vectra effect is
-`read` for every leaf. The list below records current executable leaves; it
+`read` for reads and `write` for the gated tag replaces. The list below
+records current executable leaves; it
 makes no coverage claim for other Vectra operations. See `docs/coverage.md`
 for the per-operation disposition records.
 See [README release guidance](../../README.md#release) for generating and checking this table and the coverage record.
@@ -38,10 +41,13 @@ See [README release guidance](../../README.md#release) for generating and checki
 | `vectra-axi entity show` | native | read |
 | `vectra-axi detection note list` | native | read |
 | `vectra-axi detection tag list` | native | read |
+| `vectra-axi detection tag set` | native | write |
 | `vectra-axi host note list` | native | read |
 | `vectra-axi host tag list` | native | read |
+| `vectra-axi host tag set` | native | write |
 | `vectra-axi account note list` | native | read |
 | `vectra-axi account tag list` | native | read |
+| `vectra-axi account tag set` | native | write |
 | `vectra-axi assignment list` | native | read |
 | `vectra-axi assignment outcome list` | native | read |
 | `vectra-axi assignment outcome show` | native | read |

@@ -12,7 +12,7 @@ Snapshots are paging:none single responses and use `session.request` directly, n
 The event feed is paging:checkpoint and owns its own single-batch runner for the same reason: the CORE-02 collection reader serves count/results/next collections only.
 The session exposes the profile's declared `applianceRelease` on its snapshot so release-gated leaves can refuse before HTTP; absent means undeclared and the read proceeds.
 [cli.ts](../src/cli.ts) validates flags before profile selection, enforces the release gate after selection, and dispatches the leaves from one runner.
-[catalogue.ts](../src/catalogue.ts) owns leaf grammar and command resolution; see [README.md](../README.md) for the shipped read-only policy.
+[catalogue.ts](../src/catalogue.ts) owns leaf grammar and command resolution; see [README.md](../README.md) for the shipped authorization policy.
 
 ## Convention for later read slices
 
