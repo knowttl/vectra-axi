@@ -2731,8 +2731,8 @@
           "locator": "GET /api/v3.4/events/detections/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-03; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-03; `detection event list` follows the returned checkpoint on a cloud profile with mid-batch cursors, repeated-checkpoint refusal and remaining_count reported as returned.",
       "fixtureCases": [
         "returned-checkpoint",
         "repeated-checkpoint",

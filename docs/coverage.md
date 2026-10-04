@@ -2,15 +2,17 @@
 
 # vectra-axi coverage
 
-This is the supported QUX SOC read surface with gated tag-write and note-write families, not full Vectra API coverage.
+This is the supported QUX SOC read surface with gated tag-write and note-write families,
+plus cloud RUX detection, host, account, entity, note, tag, group, member, triage-rule
+and detection-event reads, not full Vectra API coverage.
 Only `named` operations have an implemented, tested command leaf; every other
 operation remains planned, blocked or unreviewed until its own slice ships.
 
 ## Counts
 
-- named: 57
+- named: 58
 - reviewed-raw: 0
-- planned: 21
+- planned: 20
 - blocked: 2
 - unavailable: 0
 - deprecated: 0
@@ -87,7 +89,7 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 | `rux.entity.list` | entity list | RUX-02 | rux 3.4 | collection | named |
 | `rux.entity.show` | entity show | RUX-02 | rux 3.4 | none | named |
 | `rux.lockdown.list` | lockdown list | RUX-06 | rux 3.4 | none | planned |
-| `rux.detection.event.list` | detection event list | RUX-03 | rux 3.4 | checkpoint | planned |
+| `rux.detection.event.list` | detection event list | RUX-03 | rux 3.4 | checkpoint | named |
 | `rux.entity.scoring.list` | entity scoring list | RUX-03 | rux 3.4 | checkpoint | planned |
 | `rux.health.external-connectors.show` | health show | RUX-06 | rux 3.4 | none | planned |
 | `rux.health.external-connectors.details.show` | health show | RUX-06 | rux 3.4 | none | planned |

@@ -25,8 +25,10 @@ describe("generated release records", () => {
     expect(coverage).toBe(coverageDocument());
   });
 
-  it("calls the release the supported QUX SOC read surface with gated tag-write and note-write families, not full coverage", () => {
-    expect(coverage).toContain("the supported QUX SOC read surface with gated tag-write and note-write families, not full Vectra API coverage");
+  it("calls the release the supported QUX SOC read surface with gated writes and shipped RUX reads, not full coverage", () => {
+    expect(coverage).toContain("the supported QUX SOC read surface with gated tag-write and note-write families,");
+    expect(coverage).toContain("plus cloud RUX detection, host, account, entity, note, tag, group, member, triage-rule");
+    expect(coverage).toContain("and detection-event reads, not full Vectra API coverage");
     expect(coverage).not.toMatch(/\d+\s*% (complete|coverage)/);
   });
 

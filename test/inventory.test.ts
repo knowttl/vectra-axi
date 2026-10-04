@@ -64,6 +64,7 @@ describe("capability inventory", () => {
       "rux.account.note.list",
       "rux.account.show",
       "rux.account.tag.list",
+      "rux.detection.event.list",
       "rux.detection.list",
       "rux.detection.note.list",
       "rux.detection.show",

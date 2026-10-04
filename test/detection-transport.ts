@@ -157,6 +157,18 @@ const responses = new Map<string, { status: number; body: unknown }>([
     { status: 200, body: [{ id: 1, note: "synthetic cloud note" }] }],
   ["https://fixture.invalid/api/v3.4/tagging/host/7/",
     { status: 200, body: { status: "success", tag_id: 9, tags: ["synthetic-cloud-tag"] } }],
+  // RUX-03 (part a): the packaged cloud journey reads one detection-event
+  // batch per call through the v3.4 events route, continuing from the
+  // returned checkpoint and reporting denial as an error.
+  ["https://fixture.invalid/api/v3.4/events/detections/",
+    { status: 200, body: { next_checkpoint: "evt-2", remaining_count: 1, events: [
+      { id: 201, detection_id: 1, event_timestamp: "2026-10-01T12:00:00Z" },
+      { id: 202, detection_id: 1, event_timestamp: "2026-10-01T12:05:00Z" },
+    ] } }],
+  ["https://fixture.invalid/api/v3.4/events/detections/?from=evt-2",
+    { status: 200, body: { next_checkpoint: "evt-3", remaining_count: 0, events: [] } }],
+  ["https://fixture.invalid/api/v3.4/events/detections/?from=evt-9",
+    { status: 403, body: {} }],
 ]);
 
 // WRITE-01: the gated host tag replace sends one PATCH after its preview
