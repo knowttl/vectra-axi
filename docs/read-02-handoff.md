@@ -16,8 +16,8 @@ See [README.md](../README.md) for CLI filter restrictions and continuation behav
 
 ## Convention for later read slices
 
-Follow the READ-01 leaf convention: one catalogue entry per `group verb` leaf with kebab-case flags, flag validation before configuration/profile selection, `{ output, failed }` runners dispatched from CLI glue, and domain coverage through the real session with a fake `RawTransport` and synthetic `.invalid` fixtures under the [external-network guard](../test/network-guard.ts).
-See `parseInvocation` in [catalogue.ts](../src/catalogue.ts) for leaf resolution and unknown-command reporting.
+Follow the READ-01 leaf convention: one catalogue entry per leaf with kebab-case flags, flag validation before configuration/profile selection, `{ output, failed }` runners dispatched from CLI glue, and domain coverage through the real session with a fake `RawTransport` and synthetic `.invalid` fixtures under the [external-network guard](../test/network-guard.ts).
+The [catalogue](../src/catalogue.ts)'s `parseInvocation` owns command resolution and unknown-input errors.
 The entity facade is the pattern for kind-qualified reads: require the selector up front, delegate to one existing operation, and never merge independently paged kinds into one ranking.
 Cover one packaged CLI journey per slice through the declared binary with synthetic profiles and the [test-only HTTPS transport](../test/detection-transport.ts); do not duplicate a full journey per endpoint.
-See [README.md](../README.md) for shipped reads and the [implementation plan](implementation-plan.md#phase-2-finish-the-on-prem-soc-read-release) for subsequent read slices.
+See [README.md](../README.md) for shipped read families and the [implementation plan](implementation-plan.md#phase-2-finish-the-on-prem-soc-read-release) for remaining slice scope.

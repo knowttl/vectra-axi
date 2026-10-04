@@ -2,7 +2,7 @@
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
 The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, and READ-04 assignment/outcome/user leaves are implemented.
-`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `host note list`, `host tag list`, `account note list` and `account tag list`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list` and `user show` call the session; every other Vectra API operation remains planned or blocked.
+`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `host note list`, `host tag list`, `account note list`, `account tag list`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list` and `user show` call the session; every other Vectra API operation remains planned or blocked.
 The selected direction is TypeScript, on-prem QUX reads first, and a later RUX adapter for cloud migration.
 
 - [Design and source evidence](docs/design.md)
@@ -140,11 +140,13 @@ No note or tag write leaf exists: the session authorizes read GETs only, and not
 
 `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list` and `user show` read QUX v2.5 assignments, outcomes and users through the same session and bounded collection reader.
 Assignments and outcomes are distinct resources: an assignment row carries its target `host_id` or `account_id` plus a CLI-derived `status` of `unresolved` when `date_resolved` is null and `resolved` when it is set, never a missing or zero outcome.
-Assignment list filters map singular CLI names to the recorded plural wire keys: `--account`, `--host`, `--assignee`, `--resolution`, `--resolved true|false` and `--created-after`.
+Assignment list filters map `--account`, `--host` and `--assignee` to `accounts`, `hosts` and `assignees`; `--resolution`, `--resolved true|false` and `--created-after` map to `resolution`, `resolved` and `created_after`.
+Account, host, assignee and resolution filters require non-negative integers; creation timestamps pass through to the server as nonempty values.
+Assignment rows project `id`, `host_id`, `account_id`, `date_resolved` and the derived `status`; a missing `date_resolved` reports `RESPONSE_INVALID` rather than implying resolution.
 Outcome and user rows project their recorded subsets (`id`, `title`, `category`, `builtin` and `id`, `username`); user list accepts a server-side `--username` filter.
 All three list leaves accept `--fields`, `--limit` (default 100) and `--cursor`; the session allowlist additionally accepts `page` and `page_size` in server-returned continuation links.
 Empty windows succeed with an explicit zero message; permission or licence denial reports `ACCESS_DENIED` with exit 1, never an empty healthy result.
-Both show leaves require a positive integer `--id`; outcome 3 and user 3 are different objects on different routes.
+Both show leaves require a positive integer `--id` and return their corresponding list field subset with the profile; outcome 3 and user 3 are different objects on different routes.
 There is no resolve, reassign or outcome-mutation leaf: assignment changes stay refused by the read-only session.
 
 For OAuth, replace `auth` and `tokenEnv` with `"auth": "oauth"`, `"clientId": "synthetic-client"` and `"secretEnv": "VECTRA_LAB_SECRET"`.

@@ -15,8 +15,8 @@ The [detection module](../src/detections.ts) owns flag-to-query mapping, row dec
 
 ## Convention for later read slices
 
-Add one catalogue entry per `group verb` leaf with kebab-case flags, following the `detection list` entry in the [catalogue](../src/catalogue.ts).
-See `parseInvocation` in [catalogue.ts](../src/catalogue.ts) for leaf resolution and unknown-command reporting.
+Add one catalogue entry per leaf with kebab-case flags, following the `detection list` entry in the [catalogue](../src/catalogue.ts).
+The catalogue's `parseInvocation` owns command resolution and unknown-input errors.
 Map each new flag to its inventory query key in the domain module and pass values through; validate shapes (integers, numbers, required selectors) before any session call.
 Project rows to the inventory's field subset and reject unknown `--fields` values before HTTP.
 Return `{ output, failed }` from the runner and dispatch it from `runDetection`-style CLI glue; never expose the transport or credentials to output shaping.
