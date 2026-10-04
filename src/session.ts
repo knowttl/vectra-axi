@@ -3,7 +3,7 @@ import { AxiError } from "axi-sdk-js";
 import { authFailure, resolveToken, tlsOptions } from "./auth.js";
 import { inventory } from "./catalogue.js";
 import type { CapabilityOperation } from "./inventory/schema.js";
-import { oauthCredentials, type TokenTransport } from "./oauth.js";
+import { oauthCredentials, tokenRoute, type OAuthCredential, type TokenTransport } from "./oauth.js";
 import type { LoadedConfig, SelectedProfile } from "./profiles.js";
 import type { SecretRedactor } from "./redact.js";
 import { consumeMutationAuthorization } from "./writes.js";
@@ -34,7 +34,9 @@ export type Session = {
   // so release-gated leaves (health events need 9.4) can refuse before HTTP.
   // Absent means undeclared: the read proceeds and the server decides.
   readonly profile: Pick<SelectedProfile, "name" | "kind" | "origin" | "apiVersion">
-    & Pick<SelectedProfile, "applianceRelease">;
+    // RUX-01: cloud profiles carry no appliance release, so the snapshot
+    // keeps it structurally optional instead of Pick-ing a QUX-only key.
+    & { applianceRelease?: string };
   request(operation: string, options?: SessionRequestOptions): Promise<SessionResponse>;
   resolveContinuation(operation: string, next: string, options?: Pick<SessionRequestOptions, "pathParams">): string;
 };
@@ -53,12 +55,19 @@ function versionPrefix(profile: SelectedProfile): string {
   return `/api/v${profile.apiVersion}/`;
 }
 
-// One path owns operation authorization: known QUX read operations only.
-// The credential-exchange route is blocked here; the session drives it internally.
+// One path owns operation authorization: known read operations for the
+// profile's generation only. The credential-exchange route is blocked here;
+// the session drives it internally.
+function generationLabel(profile: SelectedProfile): string {
+  return profile.kind === "rux" ? "RUX v3.4" : "QUX v2.5";
+}
+
 function authorizeOperation(profile: SelectedProfile, operation: string): CapabilityOperation {
   const record = inventory.operations.find((candidate) => candidate.id === operation);
   if (!record || record.deployment !== profile.kind) {
-    throw new AxiError(`Unknown Vectra operation: ${operation}`, "OPERATION_UNKNOWN", [
+    throw new AxiError(`Unknown Vectra operation: ${operation}`, "OPERATION_UNKNOWN", profile.kind === "rux" ? [
+      "Use a known RUX v3.4 operation from the capability inventory; QUX operations need an on-prem profile",
+    ] : [
       "Use a known QUX v2.5 operation from the capability inventory; RUX operations need a cloud profile",
     ]);
   }
@@ -176,7 +185,7 @@ async function sendRaw(
   }
 }
 
-function decodeResourceBody(response: { status: number; bodyText: string; retryAfter?: string }): unknown {
+function decodeResourceBody(profile: SelectedProfile, response: { status: number; bodyText: string; retryAfter?: string }): unknown {
   const mapped = authFailure({ status: response.status });
   if (mapped) throw mapped;
   if (response.status !== 200) {
@@ -190,7 +199,7 @@ function decodeResourceBody(response: { status: number; bodyText: string; retryA
     return JSON.parse(response.bodyText);
   } catch {
     throw new AxiError("Vectra response is not valid JSON", "RESPONSE_INVALID", [
-      "Check the QUX v2.5 API contract for this operation; the response body was discarded",
+      `Check the ${generationLabel(profile)} API contract for this operation; the response body was discarded`,
     ]);
   }
 }
@@ -234,12 +243,18 @@ export function failedRead(error: unknown): { status: number; retryAfter?: strin
 
 // The sole TokenTransport implementation: the named exchange runs over the same
 // adapter and destination checks as resource requests, never following redirects.
+// The expected destination cross-checks the code route against the inventoried
+// generation route, so either side drifting refuses before any credential is sent.
 function exchangeTransport(profile: SelectedProfile, transport: RawTransport): TokenTransport {
   const exchange = inventory.operations.find((record) => record.id === `${profile.kind}.oauth.exchange`);
-  const expected = exchange ? new URL(exchange.path, profile.origin).href : undefined;
+  const route = profile.auth === "oauth" ? tokenRoute(profile) : undefined;
+  const expected = exchange && route && exchange.path === route.url
+    ? new URL(exchange.path, profile.origin).href : undefined;
   return async (request) => {
     if (request.method !== "POST" || request.url !== expected) {
-      throw new AxiError("Refusing unexpected credential-exchange destination", "DESTINATION_DENIED", [
+      throw new AxiError("Refusing unexpected credential-exchange destination", "DESTINATION_DENIED", profile.kind === "rux" ? [
+        "The OAuth exchange uses the named unversioned token route only; no credential was sent",
+      ] : [
         "The OAuth exchange uses the named versioned token route only; no credential was sent",
       ]);
     }
@@ -257,14 +272,21 @@ function exchangeTransport(profile: SelectedProfile, transport: RawTransport): T
   };
 }
 
-// One credential seam for reads and coordinator-authorized mutations.
-// Both resolve the same profile credential over the same adapter.
-function profileCredentials(
-  profile: SelectedProfile, configPath: LoadedConfig["path"], redactor: SecretRedactor, transport: RawTransport,
-): (signal?: AbortSignal) => Promise<{ header: string }> {
-  return profile.auth === "oauth"
-    ? oauthCredentials(profile, configPath, redactor, exchangeTransport(profile, transport))
-    : async () => ({ header: resolveToken(profile, redactor) });
+// One credential seam for reads, coordinator-authorized mutations and the
+// cloud doctor check. All three resolve the same profile credential over the
+// same adapter; command handlers never receive it, so credential material
+// still cannot reach a caller.
+export function credentialProvider(args: {
+  profile: SelectedProfile;
+  configPath: LoadedConfig["path"];
+  redactor: SecretRedactor;
+  transport: RawTransport;
+}): (signal?: AbortSignal) => Promise<Pick<OAuthCredential, "header">> {
+  const { profile, configPath, redactor, transport } = args;
+  if (profile.auth === "oauth") {
+    return oauthCredentials(profile, configPath, redactor, exchangeTransport(profile, transport));
+  }
+  return async () => ({ header: resolveToken(profile, redactor) });
 }
 
 export function createSession(args: {
@@ -275,8 +297,8 @@ export function createSession(args: {
 }): Session {
   const { profile, configPath, redactor, transport } = args;
   const snapshot = { name: profile.name, kind: profile.kind, origin: profile.origin, apiVersion: profile.apiVersion,
-    ...(profile.applianceRelease ? { applianceRelease: profile.applianceRelease } : {}) };
-  const credentials = profileCredentials(profile, configPath, redactor, transport);
+    ...("applianceRelease" in profile && profile.applianceRelease ? { applianceRelease: profile.applianceRelease } : {}) };
+  const credentials = credentialProvider({ profile, configPath, redactor, transport });
 
   async function request(operation: string, options?: SessionRequestOptions): Promise<SessionResponse> {
     const record = authorizeOperation(profile, operation);
@@ -297,7 +319,7 @@ export function createSession(args: {
       const response = await sendRaw(profile, configPath, redactor, transport,
         { method: "GET", url: current, headers: { Authorization: authorization, Accept: "application/json" },
           ...(signal ? { signal } : {}) });
-      if (response.status < 300 || response.status > 399) return { status: 200, body: decodeResourceBody(response) };
+      if (response.status < 300 || response.status > 399) return { status: 200, body: decodeResourceBody(profile, response) };
       if (!response.location) {
         throw new AxiError(`Vectra redirect for ${record.id} has no destination`, "REQUEST_FAILED", [
           "The redirect response carried no Location header; no credential was forwarded",
@@ -436,7 +458,7 @@ export function createMutationSender(args: {
   // snapshotted: destination math uses this copy, never a later edit.
   // Secret values still resolve live from their environment references.
   const bound = { ...profile };
-  const credentials = profileCredentials(bound, configPath, redactor, transport);
+  const credentials = credentialProvider({ profile: bound, configPath, redactor, transport });
 
   async function send(
     authorization: MutationAuthorization,

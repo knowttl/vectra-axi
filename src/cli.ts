@@ -313,7 +313,8 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
       profiles: count,
       ...(selected ? { profile: {
         name: selected.name, source: selected.source, kind: selected.kind, origin: selected.origin,
-        apiVersion: selected.apiVersion, ...(selected.applianceRelease ? { applianceRelease: selected.applianceRelease } : {}),
+        apiVersion: selected.apiVersion, ...("applianceRelease" in selected && selected.applianceRelease
+          ? { applianceRelease: selected.applianceRelease } : {}),
         auth: selected.auth, tls: selected.caBundle ? "verified with private CA" : "verified with system CAs",
         writes: "disabled",
       } } : {}),
@@ -321,7 +322,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         config: loaded.path,
         guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use tokenEnv or secretEnv references",
         example: { profiles: { lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "VECTRA_LAB_TOKEN" } } },
-        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health and lockdown reads call the session; doctor checks each profile with one bounded detection read; the static skill at skills/vectra-axi/SKILL.md is installed only by explicit setup",
+        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health and lockdown reads call the session; doctor checks each QUX profile with one bounded detection read and each RUX profile with the named OAuth exchange; the static skill at skills/vectra-axi/SKILL.md is installed only by explicit setup",
       },
       capabilities: {
         implemented: Object.keys(catalogue),

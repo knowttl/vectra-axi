@@ -98,9 +98,8 @@ See [README.md](../../README.md) for profile flags, selection precedence and mis
 
 ## Safety
 
-Reads are served through a session that authorizes only known QUX v2.5 read
-operations before resolving credentials. Host 7 and account 7 are different
-objects: `entity show` requires `--type host|account`. Audit windows require
-both `--start-date` and `--end-date` as inclusive UTC days. Health event
-reads start from a returned `--from` checkpoint, never a computed next ID.
+See [README.md](../../README.md) for the session's generation-specific authorization and credential behavior.
+Host 7 and account 7 are different objects: `entity show` requires `--type host|account`.
+Audit windows require both `--start-date` and `--end-date` as inclusive UTC days.
+Health event reads start from a returned `--from` checkpoint, never a computed next ID.
 Lockdown output is status only; no lockdown execution leaf exists.

@@ -114,18 +114,28 @@ const responses = new Map<string, { status: number; body: unknown }>([
       locked_by: "synthetic-admin", unlock_date: null }] }],
   ["https://fixture.invalid/api/v2.5/lockdown/account", { status: 200, body: [] }],
   ["https://denied.invalid/api/v2.5/lockdown/host", { status: 403, body: {} }],
+  // RUX-01: the packaged cloud doctor check performs the named unversioned
+  // exchange only; the returned refresh token is accepted and never spent.
+  ["https://fixture.invalid/oauth2/token",
+    { status: 200, body: { access_token: "packaged-rux-token", token_type: "Bearer", expires_in: 3600,
+      refresh_token: "packaged-rux-refresh" } }],
 ]);
 
 https.request = ((options: RequestOptions, callback: (response: IncomingMessage) => void): ClientRequest => {
   const url = new URL(options.path!, `https://${options.hostname}`).href;
   const fixture = responses.get(url);
   const headers = options.headers as Record<string, string>;
-  if (!fixture || options.method !== "GET" || headers.Authorization !== "Token packaged-detection-token") {
+  const ruxExchange = url === "https://fixture.invalid/oauth2/token" && options.method === "POST"
+    && (headers.Authorization ?? "").startsWith("Basic ")
+    && headers["Content-Type"] === "application/x-www-form-urlencoded";
+  if (!fixture || !(options.method === "GET" && headers.Authorization === "Token packaged-detection-token"
+    || ruxExchange)) {
     throw new Error(`Unexpected synthetic request: ${options.method} ${url}`);
   }
   appendFileSync(process.env.DETECTION_TRACE!, JSON.stringify({ method: options.method, url }) + "\n");
   const response = Object.assign(new PassThrough(), { statusCode: fixture.status, headers: {} });
   const pending = Object.assign(new EventEmitter(), {
+    write: () => true,
     end: () => queueMicrotask(() => {
       callback(response as unknown as IncomingMessage);
       response.end(JSON.stringify(fixture.body));

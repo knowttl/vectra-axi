@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { EventEmitter } from "node:events";
 import { request as httpsRequest } from "node:https";
 import type { ClientRequest, IncomingMessage } from "node:http";
+import { AxiError } from "axi-sdk-js";
 import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
 import { loadConfig, selectProfile, type SelectedProfile } from "../src/profiles.js";
 import { SecretRedactor } from "../src/redact.js";
@@ -16,6 +17,8 @@ const scratch = mkdtempSync(join(import.meta.dirname, ".session-test-"));
 const path = join(scratch, "config.json");
 const tokenProfile = { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" };
 const oauthProfile = { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "oauth",
+  clientId: "synthetic-client", secretEnv: "SENTINEL_SECRET" };
+const ruxProfile = { kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth",
   clientId: "synthetic-client", secretEnv: "SENTINEL_SECRET" };
 const token = "fake-token-SENTINEL";
 const secret = "fake-client-secret-SENTINEL";
@@ -101,6 +104,76 @@ it("refuses another generation's operation under this profile", async () => {
   await expect(session(transport).request("rux.detection.list"))
     .rejects.toMatchObject({ code: "OPERATION_UNKNOWN" });
   expect(transport).not.toHaveBeenCalled();
+});
+
+// RUX-01: the cloud profile keeps the session contract with an unversioned
+// exchange, versioned resource prefix and unchanged credential lifecycle.
+it("drives the unversioned RUX exchange then a versioned resource request", async () => {
+  const transport = vi.fn<RawTransport>()
+    .mockResolvedValueOnce({ status: 200, bodyText: JSON.stringify({ access_token: access, expires_in: 60,
+      token_type: "Bearer", refresh_token: "fake-unused-refresh" }) })
+    .mockResolvedValueOnce(ok({ ok: true }));
+  const result = await session(transport, ruxProfile).request("rux.health.list");
+  expect(result).toEqual({ status: 200, body: { ok: true } });
+  expect(transport).toHaveBeenCalledTimes(2);
+  expect(transport.mock.calls[0]![0]).toEqual({
+    method: "POST", url: "https://fixture.invalid/oauth2/token",
+    headers: { Authorization: `Basic ${Buffer.from(`synthetic-client:${secret}`).toString("base64")}`,
+      "Content-Type": "application/x-www-form-urlencoded" },
+    body: "grant_type=client_credentials", tls: { rejectUnauthorized: true },
+  });
+  expect(transport.mock.calls[1]![0]).toMatchObject({
+    method: "GET", url: "https://fixture.invalid/api/v3.4/health/",
+    headers: { Authorization: `Bearer ${access}`, Accept: "application/json" },
+  });
+});
+
+it("refuses the RUX credential exchange as a resource request", async () => {
+  const transport = vi.fn<RawTransport>();
+  await expect(session(transport, ruxProfile).request("rux.oauth.exchange"))
+    .rejects.toMatchObject({ code: "OPERATION_BLOCKED" });
+  expect(transport).not.toHaveBeenCalled();
+});
+
+it.each([
+  ["QUX session and RUX exchange", tokenProfile, "rux.oauth.exchange"],
+  ["RUX session and QUX exchange", ruxProfile, "qux.oauth.exchange"],
+  ["RUX session and QUX read", ruxProfile, "qux.health.list"],
+])("refuses %s without resolving a credential or calling HTTP", async (_name, profile, operation) => {
+  const transport = vi.fn<RawTransport>();
+  await expect(session(transport, profile).request(operation))
+    .rejects.toMatchObject({ code: "OPERATION_UNKNOWN" });
+  expect(transport).not.toHaveBeenCalled();
+});
+
+it("names the RUX contract when a cloud profile misses its generation", async () => {
+  const transport = vi.fn<RawTransport>();
+  const error: unknown = await session(transport, ruxProfile).request("qux.health.list").catch((error: AxiError) => error);
+  expect(error).toMatchObject({ code: "OPERATION_UNKNOWN" });
+  expect((error as AxiError).suggestions.join(" ")).toContain("RUX v3.4");
+});
+
+it.each([
+  ["versioned token route", "/api/v2.5/oauth2/token"],
+  ["QUX resource prefix", "/api/v2.5/health"],
+  ["unversioned token reuse", "/oauth2/token?refresh=true"],
+])("rejects a RUX redirect to %s without calling it", async (_name, location) => {
+  const transport = vi.fn<RawTransport>()
+    .mockResolvedValueOnce({ status: 200, bodyText: JSON.stringify({ access_token: access, expires_in: 60, token_type: "Bearer" }) })
+    .mockResolvedValueOnce({ status: 302, location, bodyText: "" });
+  await expect(session(transport, ruxProfile).request("rux.health.list"))
+    .rejects.toMatchObject({ code: "DESTINATION_DENIED" });
+  expect(transport).toHaveBeenCalledTimes(2);
+  expect(transport.mock.calls.map(([call]) => call.url)).toEqual([
+    "https://fixture.invalid/oauth2/token", "https://fixture.invalid/api/v3.4/health/",
+  ]);
+});
+
+it("maps a RUX exchange rejection through a resource request", async () => {
+  const transport = vi.fn<RawTransport>().mockResolvedValue({ status: 401, bodyText: "{}" });
+  await expect(session(transport, ruxProfile).request("rux.health.list"))
+    .rejects.toMatchObject({ code: "AUTH_FAILED" });
+  expect(transport).toHaveBeenCalledTimes(1);
 });
 
 it("drives the OAuth exchange then the resource request over one adapter", async () => {
@@ -537,6 +610,13 @@ it("scrubs secret material from transport errors", async () => {
   expect(error).toMatchObject({ code: "TRANSPORT_FAILED" });
   expect(JSON.stringify(error)).not.toContain(token);
   expect(redactor.text(token)).toBe("***redacted***");
+});
+
+it("exposes a cloud snapshot with no appliance release", () => {
+  const owned = session(vi.fn<RawTransport>(), ruxProfile);
+  expect(owned.profile).toEqual({ name: "lab", kind: "rux",
+    origin: "https://fixture.invalid", apiVersion: "3.4" });
+  expect("applianceRelease" in owned.profile).toBe(false);
 });
 
 it("exposes no raw transport, fetch handle or credential material", async () => {

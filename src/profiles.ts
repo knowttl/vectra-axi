@@ -7,6 +7,12 @@ import type { SecretRedactor } from "./redact.js";
 
 const nonempty = z.string().trim().min(1);
 const profileName = z.string().min(1).refine((value) => value === value.trim());
+const originField = z.string().refine((value) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && value === url.origin && !url.username && !url.password;
+  } catch { return false; }
+});
 // WRITE-00 hand-edited opt-in: absent means forced read-only. When present
 // the scope allowlist is always explicit; the coordinator snapshots it at
 // creation, so read flags, environment overrides and later raw reads cannot
@@ -15,25 +21,34 @@ const writePolicy = z.strictObject({
   allowWrites: z.boolean(),
   operations: z.array(nonempty).min(1),
 }).optional();
-const profileFields = {
+const quxFields = {
   kind: z.literal("qux"),
-  origin: z.string().refine((value) => {
-    try {
-      const url = new URL(value);
-      return url.protocol === "https:" && value === url.origin && !url.username && !url.password;
-    } catch { return false; }
-  }),
+  origin: originField,
   apiVersion: z.literal("2.5"),
   applianceRelease: nonempty.optional(),
   caBundle: nonempty.optional(),
   writes: writePolicy,
 };
+// RUX-01: cloud profiles use OAuth only (no personal-token mode), pin API
+// v3.4 and carry no appliance release; the cloud has no release gate.
+const ruxFields = {
+  kind: z.literal("rux"),
+  origin: originField,
+  apiVersion: z.literal("3.4"),
+  caBundle: nonempty.optional(),
+  // The write policy shape is shared so the coordinator compiles against
+  // every generation; it stays inert for RUX until a cloud mutation family
+  // ships, since no RUX operation can pass generation authorization.
+  writes: writePolicy,
+};
 const envReference = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/);
-const profileSchema = z.discriminatedUnion("auth", [
-  z.strictObject({ ...profileFields, auth: z.literal("token"), tokenEnv: envReference }),
-  z.strictObject({ ...profileFields, auth: z.literal("oauth"),
-    clientId: z.string().min(1).refine((value) => value === value.trim() && !/[:\s]/.test(value)),
-    secretEnv: envReference }),
+const clientId = z.string().min(1).refine((value) => value === value.trim() && !/[:\s]/.test(value));
+// A plain union: qux and rux OAuth variants share the auth discriminator,
+// so a discriminated union cannot tell them apart.
+const profileSchema = z.union([
+  z.strictObject({ ...quxFields, auth: z.literal("token"), tokenEnv: envReference }),
+  z.strictObject({ ...quxFields, auth: z.literal("oauth"), clientId, secretEnv: envReference }),
+  z.strictObject({ ...ruxFields, auth: z.literal("oauth"), clientId, secretEnv: envReference }),
 ]);
 const configSchema = z.strictObject({
   defaultProfile: profileName.optional(),
@@ -75,8 +90,8 @@ export function loadConfig(explicit?: string, redactor?: SecretRedactor): Loaded
   const parsed = configSchema.safeParse(raw);
   if (!parsed.success) {
     throw new AxiError("Invalid profile configuration", "CONFIG_INVALID", [
-      "Use kind qux, HTTPS origin and apiVersion 2.5; auth token requires tokenEnv; auth oauth requires clientId and secretEnv",
-      "Remove mixed OAuth/token fields, inline secrets, UI-login fields and TLS bypass settings; RUX is not implemented",
+      "Use kind qux with apiVersion 2.5, or kind rux with apiVersion 3.4 and auth oauth; QUX auth token requires tokenEnv, OAuth requires clientId and secretEnv",
+      "Remove mixed OAuth/token fields, inline secrets, UI-login fields and TLS bypass settings; RUX has no token mode or appliance release",
       "Check defaultProfile names an existing profile; run vectra-axi setup --help",
     ]);
   }
