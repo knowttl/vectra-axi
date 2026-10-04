@@ -31,6 +31,7 @@ See [README release guidance](../../README.md#release) for generating and checki
 | `vectra-axi doctor` | native | read |
 | `vectra-axi detection list` | native | read |
 | `vectra-axi detection show` | native | read |
+| `vectra-axi detection event list` | native | read |
 | `vectra-axi host list` | native | read |
 | `vectra-axi host show` | native | read |
 | `vectra-axi account list` | native | read |

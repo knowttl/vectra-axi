@@ -161,6 +161,18 @@ const responses = new Map<string, { status: number; body: unknown }>([
     { status: 200, body: [{ id: 1, note: "synthetic cloud note" }] }],
   ["https://fixture.invalid/api/v3.4/tagging/host/7/",
     { status: 200, body: { status: "success", tag_id: 9, tags: ["synthetic-cloud-tag"] } }],
+  // RUX-03 (part a): the packaged cloud journey reads one detection-event
+  // batch per call through the v3.4 events route, continuing from the
+  // returned checkpoint and reporting denial as an error.
+  ["https://fixture.invalid/api/v3.4/events/detections/",
+    { status: 200, body: { next_checkpoint: 2, remaining_count: 1, events: [
+      { id: 201, detection_id: 1, event_timestamp: "2026-10-01T12:00:00Z" },
+      { id: 202, detection_id: 1, event_timestamp: "2026-10-01T12:05:00Z" },
+    ] } }],
+  ["https://fixture.invalid/api/v3.4/events/detections/?from=2",
+    { status: 200, body: { next_checkpoint: 3, remaining_count: 0, events: [] } }],
+  ["https://fixture.invalid/api/v3.4/events/detections/?from=9",
+    { status: 403, body: {} }],
   // RUX-06: the packaged cloud health and lockdown journey reads a
   // snapshot, one check, one integer-checkpoint event batch and per-kind
   // lockdown status through the documented v3.4 routes with Bearer

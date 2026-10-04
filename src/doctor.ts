@@ -10,10 +10,12 @@ import type { SecretRedactor } from "./redact.js";
 export const DOCTOR_OPERATION = "qux.detection.list";
 export const DOCTOR_WINDOW = 1;
 export const DOCTOR_CHECK = `detection list --limit ${DOCTOR_WINDOW} (${DOCTOR_OPERATION})`;
-// RUX-01: cloud profiles have no reads yet (RUX-02+), so their check is the
-// named OAuth exchange alone. It proves configuration, connectivity and
+// RUX-01 established the exchange-only cloud check; RUX-02 and later
+// slices shipped resource reads, so the check stays the named OAuth
+// exchange alone while its strings point at the shipped leaves instead of
+// a future slice. It proves configuration, connectivity and
 // authentication without touching a read route.
-export const RUX_DOCTOR_CHECK = "oauth exchange (rux.oauth.exchange); RUX reads arrive in RUX-02";
+export const RUX_DOCTOR_CHECK = "oauth exchange (rux.oauth.exchange)";
 
 // Explicit --profile wins; otherwise environment, configured default and the
 // sole profile select one target. With no selection among several profiles,
@@ -64,7 +66,7 @@ export async function runDoctor(args: {
         await credentialProvider({ profile: selected, configPath: loaded.path, redactor, transport })();
         ok += 1;
         rows.push({ name, auth: selected.auth, check, status: "ok",
-          detail: "OAuth exchange ok; RUX reads arrive in RUX-02" });
+          detail: "OAuth exchange ok" });
       } else {
         const result = await runDetectionList(session, flags);
         if (result.failed) {
@@ -91,7 +93,7 @@ export async function runDoctor(args: {
     for (const name of names) {
       const selected = selectProfile(loaded.config, name);
       if (selected.kind === "rux") {
-        note(`[${name}] RUX reads arrive in RUX-02; rerun \`vectra-axi doctor --config ${shellQuote(loaded.path)} --profile=${shellQuote(name)}\` after upgrading`);
+        note(`[${name}] Run \`vectra-axi detection list --config ${shellQuote(loaded.path)} --profile=${shellQuote(name)}\` to start a cloud investigation`);
       } else {
         note(`Run \`vectra-axi detection list --config ${shellQuote(loaded.path)} --profile=${shellQuote(name)}\` to start an investigation`);
       }

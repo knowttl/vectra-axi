@@ -8,9 +8,9 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 
 ## Counts
 
-- named: 66
+- named: 67
 - reviewed-raw: 0
-- planned: 12
+- planned: 11
 - blocked: 2
 - unavailable: 0
 - deprecated: 0
@@ -87,7 +87,7 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 | `rux.entity.list` | entity list | RUX-02 | rux 3.4 | collection | named |
 | `rux.entity.show` | entity show | RUX-02 | rux 3.4 | none | named |
 | `rux.lockdown.list` | lockdown list | RUX-06 | rux 3.4 | none | named |
-| `rux.detection.event.list` | detection event list | RUX-03 | rux 3.4 | checkpoint | planned |
+| `rux.detection.event.list` | detection event list | RUX-03 | rux 3.4 | checkpoint | named |
 | `rux.entity.scoring.list` | entity scoring list | RUX-03 | rux 3.4 | checkpoint | planned |
 | `rux.health.external-connectors.show` | health show | RUX-06 | rux 3.4 | none | planned |
 | `rux.health.external-connectors.details.show` | health show | RUX-06 | rux 3.4 | none | planned |

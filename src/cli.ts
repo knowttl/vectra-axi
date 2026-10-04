@@ -11,6 +11,7 @@ import { GROUP_LIST_FIELDS, groupQuery, runGroupList, runGroupMemberList, runGro
   RUX_MEMBER_LIST_FIELDS, groupId, ruleId, listFields as groupListFields, listLimit as groupListLimit,
   type LeafResult as GroupLeafResult } from "./groups.js";
 import { catalogue, DESCRIPTION, help, inventory, parseInvocation } from "./catalogue.js";
+import { detectionEventFlags, runDetectionEventList, type LeafResult as DetectionEventLeafResult } from "./detection-events.js";
 import { listFields, listLimit, listQuery, runDetectionList, runDetectionShow, showId, type LeafResult } from "./detections.js";
 import { doctorTargets, runDoctor } from "./doctor.js";
 import { lockdownKind, runLockdownList, type LeafResult as LockdownLeafResult } from "./lockdown.js";
@@ -69,6 +70,9 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         }
         if (invocation.leaf === "detection list" || invocation.leaf === "detection show") {
           return runDetection(invocation.leaf, invocation.flags);
+        }
+        if (invocation.leaf === "detection event list") {
+          return runDetectionEvents(invocation.flags);
         }
         if (invocation.leaf === "host list" || invocation.leaf === "host show"
           || invocation.leaf === "account list" || invocation.leaf === "account show"
@@ -232,6 +236,19 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
+  // One dispatch for the RUX detection event leaf: validate the flags,
+  // select the profile, build the session on the injected transport, and
+  // return the shaped single-batch output. A repeated checkpoint fails
+  // with its rows retained and a nonzero exit status, never a loop.
+  async function runDetectionEvents(flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
+    detectionEventFlags(flags);
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
+    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+    const result: DetectionEventLeafResult = await runDetectionEventList(session, flags);
+    if (result.failed) process.exitCode = 1;
+    return result.output;
+  }
   // One dispatch for every assignment/outcome/user leaf: validate the
   // flags, select the profile, build the session on the injected transport,
   // and report partial reads with their rows and a nonzero exit status.
@@ -387,7 +404,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         config: loaded.path,
         guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use tokenEnv or secretEnv references",
         example: { profiles: { lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "VECTRA_LAB_TOKEN" } } },
-        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health and lockdown reads call the session; doctor checks each QUX profile with one bounded detection read and each RUX profile with the named OAuth exchange; the static skill at skills/vectra-axi/SKILL.md is installed only by explicit setup",
+        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health, lockdown and detection event reads call the session; doctor checks each QUX profile with one bounded detection read and each RUX profile with the named OAuth exchange; the static skill at skills/vectra-axi/SKILL.md is installed only by explicit setup",
       },
       capabilities: {
         implemented: Object.keys(catalogue),
