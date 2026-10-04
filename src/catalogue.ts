@@ -45,8 +45,9 @@ export const catalogue: Readonly<Record<string, {
   },
   doctor: {
     // See README.md#release for generation-specific checks and safety
-    // constraints; src/doctor.ts implements the leaf.
-    description: "Check profile configuration with one bounded detection read per profile",
+    // constraints; src/doctor.ts implements the leaf: one bounded detection
+    // read per QUX profile, the named OAuth exchange alone per RUX profile.
+    description: "Check profile configuration with one bounded detection read per QUX profile or OAuth exchange per RUX profile",
     flags: globals,
     examples: [
       "vectra-axi doctor",

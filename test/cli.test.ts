@@ -534,6 +534,46 @@ it("checks a cloud profile through the packaged doctor exchange", () => {
   ]);
 });
 
+it("reads cloud detections and entities through the packaged RUX journey", () => {
+  const config = join(scratch, "rux-reads.json");
+  const trace = join(scratch, "rux-reads-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { cloud: { kind: "rux", origin: "https://fixture.invalid",
+    apiVersion: "3.4", auth: "oauth", clientId: "synthetic-client", secretEnv: "RUX_SECRET" } } }));
+  const fixtureEnv = { RUX_SECRET: "packaged-rux-secret", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "cloud"];
+  const listed = invoke(["detection", "list", ...context, "--state", "active"], fixtureEnv);
+  expect(listed.status).toBe(0);
+  expect(listed.stderr).toBe("");
+  const listOutput = decode(listed.stdout) as Record<string, unknown>;
+  expect(listOutput).toMatchObject({ profile: "cloud", count: "1 detections", complete: true,
+    detections: [{ id: 1, detection_type: "synthetic-type", state: "active", threat: 71, certainty: 80 }] });
+  const showHint = (listOutput.help as string[]).find((hint) => hint.startsWith("Run `"))!;
+  const showCommand = /^Run `vectra-axi (detection show .*?)` for full detail$/.exec(showHint)![1]!;
+  const showArgs = execFileSync("sh", ["-c", `set -- ${showCommand}; printf '%s\\n' "$@"`],
+    { encoding: "utf8" }).trimEnd().split("\n");
+  const shown = invoke(showArgs, fixtureEnv);
+  expect(shown.status).toBe(0);
+  expect(shown.stderr).toBe("");
+  expect(decode(shown.stdout)).toMatchObject(
+    { profile: "cloud", id: 1, description: "synthetic cloud detail" });
+  const entities = invoke(["entity", "list", ...context, "--type", "host"], fixtureEnv);
+  expect(entities.status).toBe(0);
+  expect(entities.stderr).toBe("");
+  expect(decode(entities.stdout)).toMatchObject({ profile: "cloud", type: "host", count: "1 hosts",
+    entities: [{ id: 7, name: "synthetic-host-7", type: "host", urgency_score: 76, importance: 3 }] });
+  expect(entities.stdout).not.toContain("packaged-rux-secret");
+  expect(entities.stdout).not.toContain("packaged-rux-token");
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/detections/?state=active&page_size=100" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/detections/1/" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/entities/?type=host&page_size=100" },
+  ]);
+});
+
 it("shows a packaged cloud profile without a credential exchange", () => {
   const config = join(scratch, "rux-home.json");
   writeFileSync(config, JSON.stringify({ profiles: { cloud: { kind: "rux", origin: "https://fixture.invalid",

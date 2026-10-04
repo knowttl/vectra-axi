@@ -12,13 +12,23 @@ import type { Session } from "./session.js";
 
 export const DETECTION_LIST_OPERATION = "qux.detection.list";
 export const DETECTION_SHOW_OPERATION = "qux.detection.show";
+// RUX-02: the same caller operations run against the documented v3.4 routes
+// on a cloud profile. Detection threat/certainty keep their labels on both
+// generations; entity urgency/importance never fold into them (see
+// src/entities.ts). Cloud IDs stay scoped to their cloud profile: no
+// on-prem identity translation happens in any show.
+export const RUX_DETECTION_LIST_OPERATION = "rux.detection.list";
+export const RUX_DETECTION_SHOW_OPERATION = "rux.detection.show";
 
 // Longest description kept inline, following the az-axi truncation convention.
 export const DETECTION_TRUNCATE_AT = 1200;
 
-// CLI flag to server-side query key, covering the inventory's conservative
-// query subset for qux.detection.list. Values pass through; the server applies
-// them, so no client-side state enum or range is invented here.
+// CLI flag to server-side query key, covering the inventory's recorded query
+// subset for qux.detection.list and rux.detection.list. The v3.4 route
+// documents every mapped key (including threat_gte/min_id/max_id), so the
+// same mapping serves both generations with no silently dropped filter.
+// Values pass through; the server applies them, so no client-side state enum
+// or range is invented here.
 const FILTER_FLAGS = {
   state: "state",
   "detection-type": "detection_type",
@@ -154,9 +164,10 @@ export async function runDetectionList(
   const fields = listFields(flags);
   const cursor = flags.get("cursor");
   const decodeRow = (row: unknown): Record<string, unknown> => decodeDetection(row, detectionSchema);
+  const operation = session.profile.kind === "rux" ? RUX_DETECTION_LIST_OPERATION : DETECTION_LIST_OPERATION;
   const result = typeof cursor === "string"
-    ? await resume(session, DETECTION_LIST_OPERATION, cursor, { query, limit, decodeRow })
-    : await collect(session, DETECTION_LIST_OPERATION, { query, limit, decodeRow });
+    ? await resume(session, operation, cursor, { query, limit, decodeRow })
+    : await collect(session, operation, { query, limit, decodeRow });
   const rows = result.rows.map((row) =>
     Object.fromEntries(fields.filter((field) => Object.hasOwn(row, field)).map((field) => [field, row[field]])));
   const shown = rows.length;
@@ -228,7 +239,9 @@ export async function runDetectionShow(
 ): Promise<LeafResult> {
   const id = showId(flags);
   const full = flags.has("full");
-  const { body } = await session.request(DETECTION_SHOW_OPERATION, { pathParams: { id } });
+  const rux = session.profile.kind === "rux";
+  const { body } = await session.request(
+    rux ? RUX_DETECTION_SHOW_OPERATION : DETECTION_SHOW_OPERATION, { pathParams: { id } });
   const detail = decodeDetection(body, detailSchema);
   const description = detail.description;
   const truncated = !full && typeof description === "string" && description.length > DETECTION_TRUNCATE_AT;
@@ -236,7 +249,10 @@ export async function runDetectionShow(
   const profile = session.profile.name;
   const help = [
     ...(truncated ? [`Run \`${showCommand(session, flags, id)} --full\` for the complete text`] : []),
-    ...(summary !== undefined ? [`Run \`${noteListCommand(session, flags, id)}\` for the full notes`] : []),
+    // RUX detection notes arrive in RUX-04: the embedded summary stays
+    // visible under its own key, but no note-list hint points at a leaf the
+    // cloud profile cannot serve yet.
+    ...(summary !== undefined && !rux ? [`Run \`${noteListCommand(session, flags, id)}\` for the full notes`] : []),
   ];
   return { failed: false, output: {
     profile,

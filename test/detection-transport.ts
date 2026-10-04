@@ -19,6 +19,8 @@ const member7 = { id: 7, name: "synthetic-host-7" };
 const rule7 = { id: 7, enabled: true, triage_category: "synthetic-triage",
   description: "Synthetic automation", detection: "synthetic-detection", is_whitelist: false,
   source_conditions: { OR: [] }, additional_conditions: null };
+const ruxDetection1 = { id: 1, detection_type: "synthetic-type", state: "active", threat: 71, certainty: 80 };
+const ruxEntity7 = { id: 7, name: "synthetic-host-7", type: "host", urgency_score: 76, importance: 3 };
 const next = "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2";
 const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/detections?ordering=-id",
@@ -119,6 +121,16 @@ const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/oauth2/token",
     { status: 200, body: { access_token: "packaged-rux-token", token_type: "Bearer", expires_in: 3600,
       refresh_token: "packaged-rux-refresh" } }],
+  // RUX-02: the packaged cloud read journey lists detections and entities
+  // through the documented v3.4 routes with Bearer resource use. Cloud IDs
+  // stay scoped to the cloud profile; urgency/importance never fold into
+  // threat/certainty.
+  ["https://fixture.invalid/api/v3.4/detections/?state=active&page_size=100",
+    { status: 200, body: { results: [ruxDetection1], count: 1 } }],
+  ["https://fixture.invalid/api/v3.4/detections/1/",
+    { status: 200, body: { ...ruxDetection1, description: "synthetic cloud detail" } }],
+  ["https://fixture.invalid/api/v3.4/entities/?type=host&page_size=100",
+    { status: 200, body: { results: [ruxEntity7], count: 1 } }],
 ]);
 
 // WRITE-01: the gated host tag replace sends one PATCH after its preview
@@ -135,8 +147,10 @@ https.request = ((options: RequestOptions, callback: (response: IncomingMessage)
     && (headers.Authorization ?? "").startsWith("Basic ")
     && headers["Content-Type"] === "application/x-www-form-urlencoded";
   const allowedMethod = options.method === "GET" || options.method === "PATCH";
+  // RUX-02: cloud resource reads carry the exchanged Bearer token.
+  const ruxResource = options.method === "GET" && headers.Authorization === "Bearer packaged-rux-token";
   if (!fixture || !(allowedMethod && headers.Authorization === "Token packaged-detection-token"
-    || ruxExchange)) {
+    || ruxExchange || ruxResource)) {
     throw new Error(`Unexpected synthetic request: ${options.method} ${url}`);
   }
   const response = Object.assign(new PassThrough(), { statusCode: fixture.status, headers: {} });

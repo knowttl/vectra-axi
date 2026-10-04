@@ -16,9 +16,11 @@ const token = "fake-token-SENTINEL";
 
 beforeEach(() => {
   process.env.SENTINEL_TOKEN = token;
+  process.env.CLOUD_SECRET = "fake-cloud-secret-SENTINEL";
 });
 afterEach(() => {
   delete process.env.SENTINEL_TOKEN;
+  delete process.env.CLOUD_SECRET;
   rmSync(path, { force: true });
 });
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
@@ -401,4 +403,247 @@ it.each([
   expect(() => parseInvocation(argv)).toThrow(expect.objectContaining({
     code: "VALIDATION_ERROR", message: expect.stringContaining(message),
   }));
+});
+
+// RUX-02: the same caller operations run against the documented v3.4 routes
+// on a cloud profile. Host/account threat/certainty keep their labels; the
+// entities route returns urgency_score/importance as distinct fields. The
+// fake answers the named unversioned exchange, then delegates resource GETs
+// to the per-test responder.
+const ruxProfile = {
+  kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth",
+  clientId: "synthetic-client", secretEnv: "CLOUD_SECRET",
+};
+
+function cloudSession(transport: RawTransport): Session {
+  writeFileSync(path, JSON.stringify({ profiles: { cloud: ruxProfile } }));
+  const loaded = loadConfig(path, new SecretRedactor());
+  return createSession({ profile: selectProfile(loaded.config, "cloud"), configPath: loaded.path,
+    redactor: new SecretRedactor(), transport });
+}
+
+function cloudFixture(respond: (url: string) => { status: number; bodyText: string }): RawTransport {
+  return async (request) => {
+    if (request.method === "POST") {
+      expect(request.url).toBe("https://fixture.invalid/oauth2/token");
+      return { status: 200, bodyText: JSON.stringify(
+        { access_token: "fake-cloud-access-token", token_type: "Bearer", expires_in: 3600 }) };
+    }
+    return respond(request.url);
+  };
+}
+
+// Fixtures deliberately give a host, an account and both entity kinds the
+// same numeric ID with different urgency/importance values; the leaves must
+// keep every identity distinct and never fold urgency into threat scores.
+const ruxHost = (id: number, extra: Record<string, unknown> = {}) => ({
+  id, name: `synthetic-host-${id}`, state: "active", threat: 90, certainty: 80, ...extra,
+});
+const ruxAccount = (id: number, extra: Record<string, unknown> = {}) => ({
+  id, name: `synthetic-account-${id}`, state: "active", threat: 10, certainty: 20, ...extra,
+});
+const ruxEntity = (kind: string, id: number, extra: Record<string, unknown> = {}) => ({
+  id, name: kind === "host" ? `synthetic-host-${id}` : `synthetic-account-${id}`,
+  type: kind, urgency_score: kind === "host" ? 76 : 31,
+  importance: kind === "host" ? 3 : 1, ...extra,
+});
+const ruxListPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
+  status: 200, bodyText: JSON.stringify({ results: rows, ...extra }),
+});
+
+it("maps host flags to the v3.4 host route on a cloud profile", async () => {
+  let url = "";
+  const transport = cloudFixture((next) => {
+    url = next;
+    return ruxListPage([ruxHost(1)], { count: 1 });
+  });
+  const result = await runHostList(cloudSession(transport),
+    flags(["host", "list", "--profile", "cloud", "--threat-gte", "70", "--min-id", "1"]));
+  expect(url).toBe("https://fixture.invalid/api/v3.4/hosts/?min_id=1&t_score_gte=70&page_size=100");
+  expect(result).toEqual({ failed: false, output: {
+    profile: "cloud",
+    total: 1,
+    count: "1 hosts",
+    hosts: [{ id: 1, name: "synthetic-host-1", state: "active", threat: 90, certainty: 80 }],
+    complete: true,
+    help: ["Run `vectra-axi host show --profile cloud --id 1` for full detail"],
+  } });
+});
+
+it("maps account flags to the v3.4 account route on a cloud profile", async () => {
+  let url = "";
+  const transport = cloudFixture((next) => {
+    url = next;
+    return ruxListPage([ruxAccount(1)], { count: 1 });
+  });
+  const result = await runAccountList(cloudSession(transport),
+    flags(["account", "list", "--profile", "cloud", "--certainty-gte", "50"]));
+  expect(url).toBe("https://fixture.invalid/api/v3.4/accounts/?c_score_gte=50&page_size=100");
+  expect(result.output).toMatchObject({ profile: "cloud", count: "1 accounts",
+    accounts: [{ id: 1, name: "synthetic-account-1", state: "active", threat: 10, certainty: 20 }] });
+});
+
+it("keeps the same numeric host and account IDs distinct on a cloud profile", async () => {
+  const urls: string[] = [];
+  const transport = cloudFixture((url) => {
+    urls.push(url);
+    if (url === "https://fixture.invalid/api/v3.4/hosts/7/") {
+      return { status: 200, bodyText: JSON.stringify(ruxHost(7)) };
+    }
+    if (url === "https://fixture.invalid/api/v3.4/accounts/7/") {
+      return { status: 200, bodyText: JSON.stringify(ruxAccount(7)) };
+    }
+    throw new Error(`Unexpected synthetic request: ${url}`);
+  });
+  const owned = cloudSession(transport);
+  const shownHost = await runHostShow(owned,
+    flags(["host", "show", "--profile", "cloud", "--id", "7"]));
+  expect(shownHost).toEqual({ failed: false, output: {
+    profile: "cloud", type: "host",
+    id: 7, name: "synthetic-host-7", state: "active", threat: 90, certainty: 80,
+  } });
+  const shownAccount = await runAccountShow(owned,
+    flags(["account", "show", "--profile", "cloud", "--id", "7"]));
+  expect(shownAccount).toEqual({ failed: false, output: {
+    profile: "cloud", type: "account",
+    id: 7, name: "synthetic-account-7", state: "active", threat: 10, certainty: 20,
+  } });
+  expect(urls).toEqual([
+    "https://fixture.invalid/api/v3.4/hosts/7/",
+    "https://fixture.invalid/api/v3.4/accounts/7/",
+  ]);
+});
+
+it("lists cloud entities with urgency and importance apart from scores", async () => {
+  const urls: string[] = [];
+  const transport = cloudFixture((url) => {
+    urls.push(url);
+    const row = url.includes("type=account") ? ruxEntity("account", 7) : ruxEntity("host", 7);
+    return ruxListPage([row], { count: 1 });
+  });
+  const owned = cloudSession(transport);
+  const hosts = await runEntityList(owned,
+    flags(["entity", "list", "--profile", "cloud", "--type", "host"]));
+  expect(urls[0]).toBe("https://fixture.invalid/api/v3.4/entities/?type=host&page_size=100");
+  expect(hosts.output).toMatchObject({ profile: "cloud", type: "host", count: "1 hosts" });
+  expect(hosts.output.entities).toEqual([
+    { id: 7, name: "synthetic-host-7", type: "host", urgency_score: 76, importance: 3 }]);
+  expect(hosts.output.help).toEqual(
+    ["Run `vectra-axi entity show --profile cloud --type host --id 7` for full detail"]);
+  const accounts = await runEntityList(owned,
+    flags(["entity", "list", "--profile", "cloud", "--type", "account"]));
+  expect(urls[1]).toBe("https://fixture.invalid/api/v3.4/entities/?type=account&page_size=100");
+  expect(accounts.output.entities).toEqual([
+    { id: 7, name: "synthetic-account-7", type: "account", urgency_score: 31, importance: 1 }]);
+});
+
+it("shows one cloud entity with its required type selector", async () => {
+  let url = "";
+  const transport = cloudFixture((next) => {
+    url = next;
+    return { status: 200, bodyText: JSON.stringify(ruxEntity("host", 7)) };
+  });
+  const result = await runEntityShow(cloudSession(transport),
+    flags(["entity", "show", "--profile", "cloud", "--type", "host", "--id", "7"]));
+  expect(url).toBe("https://fixture.invalid/api/v3.4/entities/7/?type=host");
+  expect(result).toEqual({ failed: false, output: {
+    profile: "cloud", type: "host",
+    id: 7, name: "synthetic-host-7", urgency_score: 76, importance: 3,
+  } });
+});
+
+it.each([["--threat-gte", "70"], ["--certainty-gte", "50"]])(
+  "refuses the %s entity filter on a cloud profile before any HTTP call", async (flag, value) => {
+    let calls = 0;
+    const transport = cloudFixture(() => {
+      calls += 1;
+      return ruxListPage([]);
+    });
+    await expect(runEntityList(cloudSession(transport),
+      flags(["entity", "list", "--profile", "cloud", "--type", "host", flag, value])))
+      .rejects.toMatchObject({ code: "VALIDATION_ERROR", message: expect.stringContaining("Unsupported RUX v3.4 entity filter") });
+    expect(calls).toBe(0);
+  });
+
+it("projects a cloud entity --fields subset and rejects score fields", async () => {
+  const transport = cloudFixture(() => ruxListPage([ruxEntity("host", 7)], { count: 1 }));
+  const owned = cloudSession(transport);
+  const projected = await runEntityList(owned,
+    flags(["entity", "list", "--profile", "cloud", "--type", "host",
+      "--fields", "id,urgency_score,importance"]));
+  expect(projected.output.entities).toEqual([{ id: 7, urgency_score: 76, importance: 3 }]);
+  await expect(runEntityList(owned,
+    flags(["entity", "list", "--profile", "cloud", "--type", "host", "--fields", "id,threat"])))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR", message: expect.stringContaining("threat") });
+  await expect(runEntityList(owned,
+    flags(["entity", "list", "--profile", "cloud", "--type", "host", "--fields", "id,state"])))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR", message: expect.stringContaining("state") });
+});
+
+it("preserves null urgency and importance instead of zero on a cloud profile", async () => {
+  const row = ruxEntity("host", 7, { urgency_score: null, importance: null });
+  const transport = cloudFixture(() => ({
+    status: 200, bodyText: JSON.stringify({ ...row, results: [row], count: 1 }),
+  }));
+  const owned = cloudSession(transport);
+  const listed = await runEntityList(owned,
+    flags(["entity", "list", "--profile", "cloud", "--type", "host"]));
+  expect(listed.output.entities).toEqual([
+    { id: 7, name: "synthetic-host-7", type: "host", urgency_score: null, importance: null }]);
+  const shown = await runEntityShow(owned,
+    flags(["entity", "show", "--profile", "cloud", "--type", "host", "--id", "7"]));
+  expect(shown.output).toMatchObject({ urgency_score: null, importance: null });
+  expect(shown.output).not.toHaveProperty("threat");
+  expect(shown.output).not.toHaveProperty("certainty");
+});
+
+it("returns a partial cloud entity window for a malformed urgency value", async () => {
+  const transport = cloudFixture(() =>
+    ruxListPage([{ ...ruxEntity("host", 7), urgency_score: "high" }], { count: 1 }));
+  const result = await runEntityList(cloudSession(transport),
+    flags(["entity", "list", "--profile", "cloud", "--type", "host"]));
+  expect(result).toMatchObject({ failed: true, output: {
+    entities: [], complete: false, code: "RESPONSE_INVALID", cursor: expect.any(String),
+  } });
+});
+
+it("caps a cloud entity window with a cursor and resumes without losing a row", async () => {
+  const initial = "https://fixture.invalid/api/v3.4/entities/?type=host&page_size=100";
+  const next = "https://fixture.invalid/api/v3.4/entities/?type=host&page=2";
+  const urls: string[] = [];
+  const transport = cloudFixture((url) => {
+    urls.push(url);
+    if (url === initial) return ruxListPage([ruxEntity("host", 7)], { count: 2, next });
+    if (url === next) return ruxListPage([ruxEntity("host", 8)], { count: 2 });
+    throw new Error(`Unexpected synthetic request: ${url}`);
+  });
+  const owned = cloudSession(transport);
+  const first = await runEntityList(owned,
+    flags(["entity", "list", "--profile", "cloud", "--type", "host", "--limit", "1"]));
+  expect(first.output).toMatchObject({
+    count: "1 of 2 hosts", complete: true, cursor: expect.any(String),
+  });
+  const second = await runEntityList(owned,
+    flags(["entity", "list", "--profile", "cloud", "--type", "host",
+      "--cursor", first.output.cursor as string]));
+  expect(second).toEqual({ failed: false, output: {
+    profile: "cloud",
+    type: "host",
+    total: 2,
+    count: "1 of 2 hosts",
+    entities: [{ id: 8, name: "synthetic-host-8", type: "host", urgency_score: 76, importance: 3 }],
+    complete: true,
+    help: ["Run `vectra-axi entity show --profile cloud --type host --id 8` for full detail"],
+  } });
+  expect(urls).toEqual([initial, next]);
+});
+
+it("surfaces an embedded note summary without a note-list hint on a cloud host", async () => {
+  const transport = cloudFixture(() => ({
+    status: 200, bodyText: JSON.stringify({ ...ruxHost(7), note: "cloud summary" }),
+  }));
+  const result = await runHostShow(cloudSession(transport),
+    flags(["host", "show", "--profile", "cloud", "--id", "7"]));
+  expect(result.output).toMatchObject({ profile: "cloud", type: "host", note_summary: "cloud summary" });
+  expect(result.output).not.toHaveProperty("help");
 });

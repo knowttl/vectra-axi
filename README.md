@@ -1,8 +1,8 @@
 # vectra-axi
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
-The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, READ-07 health-snapshot and health-event leaves, READ-08 host/account lockdown status leaf, PACK-01 read-release packaging, doctor and generated documentation, WRITE-00 mutation coordinator, WRITE-01 gated detection/host/account tag replaces, and the RUX-01 cloud OAuth/session adapter (unversioned token exchange, v3.4 profile contract and exchange-only doctor check; RUX reads arrive in RUX-02 and later slices) are implemented.
-`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `detection tag set`, `host note list`, `host tag list`, `host tag set`, `account note list`, `account tag list`, `account tag set`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show`, `group list`, `group show`, `group member list`, `triage rule list`, `triage rule show`, `audit list`, `health list`, `health show`, `health event list` and `lockdown list` call the session; every other Vectra resource operation remains planned or blocked.
+The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, READ-07 health-snapshot and health-event leaves, READ-08 host/account lockdown status leaf, PACK-01 read-release packaging, doctor and generated documentation, WRITE-00 mutation coordinator, WRITE-01 gated detection/host/account tag replaces, the RUX-01 cloud OAuth/session adapter (unversioned token exchange, v3.4 profile contract and exchange-only doctor check) and the RUX-02 cloud detection, host, account and type-qualified entity reads (urgency/importance apart from QUX scores; later RUX slices still pending) are implemented.
+`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `detection tag set`, `host note list`, `host tag list`, `host tag set`, `account note list`, `account tag list`, `account tag set`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show`, `group list`, `group show`, `group member list`, `triage rule list`, `triage rule show`, `audit list`, `health list`, `health show`, `health event list` and `lockdown list` call the session; every Vectra resource operation outside those leaves remains planned or blocked.
 The CLI uses TypeScript, with on-prem QUX reads and a RUX authentication/session adapter for cloud migration.
 
 - [Design and source evidence](docs/design.md)
@@ -230,11 +230,12 @@ At access-token expiry, RUX spends an available refresh token once using form `g
 An expired refresh token or refresh rejection (HTTP 400, 401 or 403) causes a fresh client-credentials exchange; transport and service failures do not trigger automatic retries.
 Returned rotated refresh tokens can renew subsequent credentials, but a previously spent token is never reused, even if returned again.
 All credential material stays in invocation memory, is registered for redaction, and is never written to persistent storage or exposed in command results.
-RUX read commands arrive in RUX-02 and later slices; see [Release](#release) for the current RUX doctor check.
+RUX detection, host, account and entity read commands ship in RUX-02; RUX notes/tags, events, assignments, groups/rules, health and lockdown arrive in later RUX slices. See [Release](#release) for the current RUX doctor check.
 See [AUTH-02 handoff](docs/auth-02-handoff.md) for the credential seam, [CORE-01 handoff](docs/core-01-handoff.md) for the session interface, [CORE-02 handoff](docs/core-02-handoff.md) for bounded collections and [CORE-01 acceptance](docs/implementation-plan.md#core-01-handoff-and-acceptance) for fixture evidence.
 
 ## Release
 
+This is the supported QUX SOC read surface with gated tag replaces plus the RUX-02 cloud detection, host, account and entity reads, not full Vectra API coverage.
 See the shipped behavior above and the generated [coverage record](docs/coverage.md) for per-operation dispositions and coverage limits.
 Install from a release tarball with `npm install --global ./vectra-axi.tgz` after `corepack pnpm pack --out vectra-axi.tgz`, or run `node bin/vectra-axi.js` from a built checkout.
 The package is private and has no publish workflow; publishing needs a separate explicit instruction.
@@ -243,7 +244,7 @@ Doctor selects a profile using the precedence above; only when multiple profiles
 Without any configured profiles it reports `PROFILE_REQUIRED` before HTTP.
 `doctor` performs one bounded `detection list --limit 1` window per selected QUX profile and reports configuration, connectivity, authentication and access failures with a nonzero exit status when any profile fails.
 The window uses the normal bounded collection retries and budgets; OAuth profiles may also perform their named credential exchange.
-RUX profiles have no reads yet, so `doctor` checks each selected RUX profile with its named OAuth exchange alone and points at RUX-02 instead of a detection journey.
+RUX profiles keep the exchange-only check: `doctor` checks each selected RUX profile with its named OAuth exchange alone rather than a detection journey, while the RUX-02 reads run through the read leaves above.
 Success and recovery commands preserve the checked config path and profile, using shell quoting and inline `--profile=<name>` syntax.
 It never tries passwords, signs in interactively or enables writes.
 The static skill at `skills/vectra-axi/SKILL.md` is installed only by explicit setup (`npx skills add knowttl/vectra-axi --skill vectra-axi`); no ordinary command installs hooks, plugins or configuration.
