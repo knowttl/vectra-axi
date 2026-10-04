@@ -16,10 +16,8 @@ export const AUDIT_LIST_OPERATION = "qux.audit.list";
 // Inventory fields name the wire subset; rows project exactly these keys.
 export const AUDIT_LIST_FIELDS = ["user", "role", "vectra_timestamp", "result", "message"] as const;
 
-// Response-byte ceiling for one decoded audit window. Unbounded upstream
-// audits can reach 200 MB (design.md); the production transport already caps
-// raw bodies at 8 MB, and this module re-checks the decoded body so oversized
-// windows fail truthfully on every transport, including test fakes.
+// Share the transport's ceiling: re-check the reserialized decoded body
+// because injected transports may not enforce the raw-body limit.
 export const AUDIT_MAX_BYTES = RESPONSE_BODY_LIMIT_BYTES;
 
 function invalid(message: string, ...suggestions: string[]): never {

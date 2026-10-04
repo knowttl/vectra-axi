@@ -75,7 +75,7 @@ Only known QUX v2.5 read operations from the capability inventory are authorized
 The session itself does not retry: unmapped failure statuses report `REQUEST_FAILED`, malformed success bodies report `RESPONSE_INVALID`, unreachable origins report `TRANSPORT_FAILED`, and any destination outside the profile's HTTPS origin and version prefix - including cross-origin redirects and continuation links - reports `DESTINATION_DENIED` with no credential sent.
 Same-origin redirects and continuation links must retain the operation's bound pathname and declared query keys.
 Redirects are followed up to 3 hops; continuation links are validated and fetched by the bounded collection reader in `src/collections.ts`, which keeps every page inside the session's same-operation authorization.
-The production adapter verifies TLS, applies a 30-second deadline per HTTP request and limits each response body to 8 MiB.
+The production adapter verifies TLS, applies a 30-second deadline per HTTP request and limits each response body to 8 MiB, reporting `BYTE_BUDGET_EXCEEDED` when that limit is exceeded.
 Write policy configuration and enforcement remain assigned to WRITE-00; no business writes are available.
 See [AUTH-01 handoff](docs/auth-01-handoff.md) for integration constraints and offline acceptance links.
 
@@ -153,7 +153,8 @@ There is no resolve, reassign or outcome-mutation leaf: assignment changes stay 
 Both dates are required and validated before profile selection; omitting either fails instead of starting from the API's unbounded defaults.
 The wire carries the ISO calendar days unchanged as `start`/`end`, which the server applies as an inclusive UTC window.
 Rows project the recorded subset `user`, `role`, `vectra_timestamp`, `result` and `message`; null fields stay null, malformed bodies report `RESPONSE_INVALID`, and denial reports `ACCESS_DENIED` with exit 1, never an empty success.
-A decoded window above the 8 MB response-byte ceiling reports `BYTE_BUDGET_EXCEEDED` with a smaller-range suggestion; the CLI never truncates an oversized window and claims completion.
+Audit windows use the same 8 MiB ceiling for the reserialized decoded body; exceeding either byte check reports `BYTE_BUDGET_EXCEEDED` with a smaller-range suggestion and exit 1.
+Failed windows return no partial rows or cursor; the CLI never truncates an oversized window and claims completion.
 Empty windows succeed with an explicit zero message.
 
 For OAuth, replace `auth` and `tokenEnv` with `"auth": "oauth"`, `"clientId": "synthetic-client"` and `"secretEnv": "VECTRA_LAB_SECRET"`.
