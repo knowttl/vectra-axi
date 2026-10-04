@@ -102,8 +102,8 @@ Validated results return through safe projection/redaction -> AXI TOON output.
 The later mutation coordinator uses the same session and enforced transport.
 
 As domain slices land, the session will expose caller-shaped operations such as `listDetections(query, window)`, `getDetection(id)` and `listEntities(kind, query, window)`.
-CORE-01 supplies the operation-scoped foundation described in the [session interface](core-01-handoff.md); collection windows and domain methods remain planned.
-Its implementation owns profile/version resolution, capability checks, origin enforcement, credential lifecycle, retries, response validation and pagination.
+CORE-01 supplies the operation-scoped foundation described in the [session interface](core-01-handoff.md), and CORE-02 supplies the [collection interface](core-02-handoff.md); domain methods remain planned.
+The session and collection reader own profile/version resolution, capability checks, origin enforcement, credential lifecycle, retries, response validation and pagination.
 Deleting this module would distribute those responsibilities across commands, so it earns its interface through depth and locality.
 Do not add a trivial wrapper class per endpoint or expose arbitrary route/payload execution as the domain interface.
 

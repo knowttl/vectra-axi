@@ -297,7 +297,7 @@ export function createSession(args: {
     }
   }
 
-  // CORE-02 follows collection and checkpoint links through this validator;
+  // CORE-02 follows collection links through this validator;
   // the session fetches nothing here, so validation alone cannot leak a credential.
   function resolveContinuation(operation: string, next: string, options?: Pick<SessionRequestOptions, "pathParams">): string {
     const record = authorizeOperation(profile, operation);

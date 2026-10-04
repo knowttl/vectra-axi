@@ -71,12 +71,32 @@ They show profile name/source, kind, origin, API version, optional appliance rel
 Known referenced secret values are scrubbed from output and from error metadata before SDK formatting.
 Session failures distinguish `AUTH_REQUIRED`, `AUTH_EXPIRED` (explicit expiry evidence), `AUTH_FAILED` (HTTP 401), `ACCESS_DENIED` (HTTP 403) and `TLS_TRUST_ERROR` (CA loading or known certificate verification errors); all are runtime failures with exit 1.
 Only known QUX v2.5 read operations from the capability inventory are authorized; unknown, blocked, credential-export and other-generation operations report `OPERATION_UNKNOWN` or `OPERATION_BLOCKED` before any credential is resolved or HTTP call is made.
-Unmapped failure statuses report `REQUEST_FAILED` without retry, malformed success bodies report `RESPONSE_INVALID`, unreachable origins report `TRANSPORT_FAILED`, and any destination outside the profile's HTTPS origin and version prefix - including cross-origin redirects and continuation links - reports `DESTINATION_DENIED` with no credential sent.
+The session itself does not retry: unmapped failure statuses report `REQUEST_FAILED`, malformed success bodies report `RESPONSE_INVALID`, unreachable origins report `TRANSPORT_FAILED`, and any destination outside the profile's HTTPS origin and version prefix - including cross-origin redirects and continuation links - reports `DESTINATION_DENIED` with no credential sent.
 Same-origin redirects and continuation links must retain the operation's bound pathname and declared query keys.
 Redirects are followed up to 3 hops; continuation links are validated and fetched by the bounded collection reader in `src/collections.ts`, which keeps every page inside the session's same-operation authorization.
 The production adapter verifies TLS, applies a 30-second deadline per HTTP request and limits each response body to 8 MiB.
 Write policy configuration and enforcement remain assigned to WRITE-00; no business writes are available.
 See [AUTH-01 handoff](docs/auth-01-handoff.md) for integration constraints and offline acceptance links.
+
+The internal collection reader defaults to a 100-row window; a successful bounded window returns `complete: true` and may still carry a cursor for more rows.
+Collection pages require a `results` array; `count` may be absent, null or a non-negative integer, and `next` may be absent, null or a nonempty URL string.
+The first usable `count` is retained across pages and resumes; otherwise `total` is `null`, and `remaining_count` never supplies a stable total.
+Malformed pages report `RESPONSE_INVALID`; empty pages with a continuation are skipped.
+A limit inside a page preserves its unreturned offset in an opaque cursor; resumption refetches that page, so mutable collections do not provide snapshot isolation.
+Cursor format v2 binds profile identity, origin, API version, operation, query/path context, pending page, offset, remaining window and last known total, and preserves visited-page history across resumes.
+Repeated continuations, including multi-page cycles across resumes, report `CONTINUATION_REPEATED` before following the repeated link.
+Resumption requires the original query and path context and rejects incompatible cursors with `VALIDATION_ERROR`.
+
+Each collection invocation defaults to 10 session requests including retries, 8 MiB of cumulative reserialized decoded page bodies, a 60-second deadline and 3 attempts per page.
+The default requested `page_size` is 100 where the operation declares that query key; a caller-supplied value is retained, and other routes consume server-sized pages.
+These are shared defaults with per-call policy overrides, not evidenced endpoint-specific ceilings.
+Only HTTP 429, 502, 503 and 504 are retried, honoring valid Retry-After integer delay-seconds or HTTP-date values; past dates mean zero delay.
+Absent or unusable headers use doubling backoff from 500ms capped at 10 seconds.
+A delay beyond the remaining deadline reports `DEADLINE_EXCEEDED` with both delays; request and byte ceilings report `REQUEST_BUDGET_EXCEEDED` and `BYTE_BUDGET_EXCEEDED`.
+Cancellation reports `REQUEST_CANCELLED`; cancellation and deadline expiry abort pending production requests, including OAuth exchanges, prevent later redirect/resource sends and release retry/deadline timers.
+Runtime failures retain validated rows with `complete: false`, an error and a cursor at the pending page, including failures before any rows are returned.
+Caller usage errors throw before HTTP; checkpoint and date-window operations are rejected rather than decoded as collections.
+See the [CORE-02 handoff](docs/core-02-handoff.md) for the integration interface and the [implementation plan](docs/implementation-plan.md#session-and-investigation-slices) for acceptance and deferred command integration.
 
 For OAuth, replace `auth` and `tokenEnv` with `"auth": "oauth"`, `"clientId": "synthetic-client"` and `"secretEnv": "VECTRA_LAB_SECRET"`.
 Set the variable named by `secretEnv` outside the CLI.
