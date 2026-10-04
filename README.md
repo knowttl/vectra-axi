@@ -158,6 +158,7 @@ Membership always comes from the dedicated paged member route, never from embedd
 Member rows project `id` and `name`; the output also identifies the owner group ID.
 Rule list accepts server-side `--contains` and `--ordering` filters and projects `id`, `enabled` and `triage_category`.
 Rule show also returns validated `description`, `source_conditions`, `additional_conditions`, `detection` and `is_whitelist` fields when present.
+Both condition trees validate recursive `AND`/`OR` child arrays and `ANY_OF`/`NONE_OF` leaves with string `field` and `label`, plus `values` and `groups` arrays of string-or-number `value` and string `label` pairs; malformed nested nodes or unknown condition keys report `RESPONSE_INVALID`.
 Rules describe triage automation only: rule output carries no verdict, and a matching rule is never evidence a detection is benign.
 All three list leaves accept `--fields`, `--limit` (default 100) and `--cursor`; both show leaves require a positive integer `--id`.
 Resuming requires the same filters and, for membership, the same group ID; partial reads retain validated rows, an error and a cursor when available, and exit 1.
