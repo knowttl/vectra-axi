@@ -2,7 +2,7 @@
 
 # vectra-axi coverage
 
-This is the supported QUX SOC read surface with gated tag-write and note-write families, not full Vectra API coverage.
+This is the supported QUX and RUX SOC read surface with gated QUX tag-write and note-write families, not full Vectra API coverage.
 Only `named` operations have an implemented, tested command leaf; every other
 operation remains planned, blocked or unreviewed until its own slice ships.
 
