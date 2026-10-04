@@ -10,9 +10,9 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 
 ## Counts
 
-- named: 58
+- named: 63
 - reviewed-raw: 0
-- planned: 20
+- planned: 15
 - blocked: 2
 - unavailable: 0
 - deprecated: 0
@@ -66,11 +66,11 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 | `rux.account.tag.list` | account tag list | RUX-04 | rux 3.4 | none | named |
 | `rux.detection.note.list` | detection note list | RUX-04 | rux 3.4 | none | named |
 | `rux.detection.tag.list` | detection tag list | RUX-04 | rux 3.4 | none | named |
-| `rux.assignment.list` | assignment list | RUX-04 | rux 3.4 | collection | planned |
-| `rux.assignment-outcome.list` | assignment outcome list | RUX-04 | rux 3.4 | collection | planned |
-| `rux.assignment-outcome.show` | assignment outcome show | RUX-04 | rux 3.4 | none | planned |
-| `rux.user.list` | user list | RUX-04 | rux 3.4 | collection | planned |
-| `rux.user.show` | user show | RUX-04 | rux 3.4 | none | planned |
+| `rux.assignment.list` | assignment list | RUX-04 | rux 3.4 | collection | named |
+| `rux.assignment-outcome.list` | assignment outcome list | RUX-04 | rux 3.4 | collection | named |
+| `rux.assignment-outcome.show` | assignment outcome show | RUX-04 | rux 3.4 | none | named |
+| `rux.user.list` | user list | RUX-04 | rux 3.4 | collection | named |
+| `rux.user.show` | user show | RUX-04 | rux 3.4 | none | named |
 | `rux.group.list` | group list | RUX-05 | rux 3.4 | collection | named |
 | `rux.group.show` | group show | RUX-05 | rux 3.4 | none | named |
 | `rux.triage-rule.list` | triage rule list | RUX-05 | rux 3.4 | collection | named |

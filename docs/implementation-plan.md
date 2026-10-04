@@ -202,11 +202,14 @@ See [README.md](../README.md) for shipped behavior and the [capability records](
 RUX audit date convenience flags expand to the documented timestamp contract, while lower-level supported time filters remain explicit.
 
 RUX-04/05/06 migrate the remaining named read families through the session interface, with new fixtures rather than assuming QUX response compatibility.
-RUX-04 (part a) selects detection/host/account note and tag reads, built on RUX-02 and READ-03; assignments/context remain a separate planned follow-up.
+RUX-04 (part a) selects detection/host/account note and tag reads, built on RUX-02 and READ-03; see RUX-04b below for the separate assignment/context portion.
 Its [offline acceptance suite](../test/notes.test.ts) covers version-specific note/tag selectors and response shapes, distinct host/account IDs, long-text hints, empty and denied reads, and malformed responses.
 The [packaged cloud journey](../test/cli.test.ts) exercises note and tag reads with synthetic profiles and transport fixtures.
 See [README.md](../README.md) for shipped behavior and the [capability records](../inventory/capabilities.json) for exact routes and dispositions, including planned entity note/tag leaves.
 Run unchanged QUX contract cases alongside each RUX change.
+RUX-04b implements the assignment/outcome/user portion of RUX-04; note/tag reads remain the separate RUX-04a portion.
+Its [synthetic acceptance suite](../test/assignments.test.ts) covers version-specific routes, assignment status and target kinds, distinct outcome/user identities, generation-specific user filters and fields, empty versus denied results, cursor resumption and malformed assignment rows alongside the existing QUX cases.
+See [README.md](../README.md) for shipped behavior and the [capability records](../inventory/capabilities.json) for exact routes, allowlists and dispositions.
 v3.5 support requires its own version-diff assessment after the preview contract becomes suitable; it is not a hidden fallback for missing 3.4 fields.
 
 ## Phase 4: add writes as a new capability, one family at a time

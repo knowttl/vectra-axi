@@ -375,12 +375,12 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "assignment list": {
-    // Filter flags cover the inventory's qux.assignment.list query subset.
+    // Filter flags cover both generations' assignment.list query subset.
     // Singular CLI names map to the plural wire keys in src/assignments.ts;
     // values pass through to the server. Assignments and outcomes are
     // distinct resources: rows carry the target host/account ID and a
     // CLI-derived unresolved/resolved status, never a merged outcome.
-    description: "List QUX assignments with server-side filters and a bounded window",
+    description: "List QUX or RUX assignments with server-side filters and a bounded window",
     flags: {
       ...globals,
       account: { kind: "value", valueName: "id", description: "Filter by server-side account ID (non-negative integer)" },
@@ -400,7 +400,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "assignment outcome list": {
-    description: "List QUX assignment outcomes with a bounded window",
+    description: "List QUX or RUX assignment outcomes with a bounded window",
     flags: {
       ...globals,
       limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
@@ -413,7 +413,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "assignment outcome show": {
-    description: "Show one QUX assignment outcome in full detail",
+    description: "Show one QUX or RUX assignment outcome in full detail",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Outcome ID to show (positive integer, required)" },
@@ -423,21 +423,22 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "user list": {
-    description: "List QUX users with server-side filters and a bounded window",
+    description: "List QUX or RUX users with a bounded window; username filtering is QUX-only",
     flags: {
       ...globals,
-      username: { kind: "value", valueName: "name", description: "Filter by server-side username" },
+      username: { kind: "value", valueName: "name", description: "Filter by server-side username (QUX-only; unsupported on RUX)" },
       limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
-      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,username" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,username on QUX or id,name on RUX" },
       cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
     },
     examples: [
       "vectra-axi user list --profile <name>",
-      "vectra-axi user list --profile <name> --username soc-analyst",
+      "vectra-axi user list --profile <qux-profile> --username soc-analyst",
+      "vectra-axi user list --profile <rux-profile> --fields id,name",
     ],
   },
   "user show": {
-    description: "Show one QUX user in full detail",
+    description: "Show one QUX or RUX user in full detail",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "User ID to show (positive integer, required)" },

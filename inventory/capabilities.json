@@ -1814,7 +1814,9 @@
         "assignees",
         "resolution",
         "resolved",
-        "created_after"
+        "created_after",
+        "page",
+        "page_size"
       ],
       "fields": [
         "id",
@@ -1831,8 +1833,8 @@
           "locator": "GET /api/v3.4/assignments/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-04b; `assignment list` maps catalogue flags to the recorded query keys on a cloud profile with unresolved/resolved status derived from date_resolved.",
       "fixtureCases": [
         "unresolved",
         "resolved-with-outcome",
@@ -1851,7 +1853,10 @@
       "method": "GET",
       "path": "/api/v3.4/assignment_outcomes/",
       "effect": "read",
-      "query": [],
+      "query": [
+        "page",
+        "page_size"
+      ],
       "fields": [
         "id",
         "title",
@@ -1867,8 +1872,8 @@
           "locator": "GET /api/v3.4/assignment_outcomes/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-04b; `assignment outcome list` projects the recorded subset on a cloud profile with paged windows.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -1905,8 +1910,8 @@
           "locator": "GET /api/v3.4/assignment_outcomes/{id}/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-04b; `assignment outcome show` decodes the recorded detail fields on a cloud profile with the ID scoped to that profile.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -1944,8 +1949,8 @@
           "locator": "GET /api/v3.4/users/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-04b; `user list` projects id and name on a cloud profile; the QUX username filter is refused explicitly with no silent mapping.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -1980,8 +1985,8 @@
           "locator": "GET /api/v3.4/users/{id}/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-04b; `user show` decodes id and name on a cloud profile with the ID scoped to that profile.",
       "fixtureCases": [
         "success",
         "access-denied",
