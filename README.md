@@ -15,6 +15,7 @@ Tests deny external network and require no Vectra credentials.
 
 Run `node bin/vectra-axi.js` after building for the local home view.
 `home` and `setup` are local, read-only status views; `setup` installs nothing.
+`doctor` is the only leaf that performs reads on its own: one bounded `detection list --limit 1` per profile when explicitly invoked.
 Run `node bin/vectra-axi.js --help` or `node bin/vectra-axi.js setup --help` for catalogue-generated help and examples.
 Bare `-v`, `-V` and `--version` print only the package version without loading the command graph.
 Every local leaf accepts `--help` or `--profile <name>` (also `--profile=<name>`); these flags are mutually exclusive.
@@ -27,8 +28,8 @@ The SDK's implicit `update` command is refused.
 Structured data, help and errors use TOON on stdout; stderr is reserved for diagnostics.
 Exit codes are 0 for success, 1 for runtime failure (including a missing profile), and 2 for usage failure.
 There are no prompts or ordinary-command installation side effects.
-Home, setup, help and version remain offline; detection, entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health and lockdown reads make authenticated HTTP requests.
-`corepack pnpm pack --out vectra-axi.tgz` packages the built entrypoint, runtime modules and inventory.
+Home, setup, help and version remain offline; doctor, detection, entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health and lockdown reads make authenticated HTTP requests.
+`corepack pnpm pack --out vectra-axi.tgz` packages the built entrypoint, runtime modules, inventory and installable skill.
 See [CLI-01 acceptance](docs/implementation-plan.md#phase-0-turn-design-knowledge-into-one-executable-catalogue) for packaged verification.
 
 Profiles live in `~/.vectra-axi/config.json`, or a file explicitly selected with `--config <path>` or `VECTRA_AXI_CONFIG`.
@@ -211,3 +212,15 @@ The provider registers the client secret, encoded Basic credential and returned 
 Malformed Unicode remains redacted in raw and JSON-escaped forms; an unused malformed refresh token does not prevent authentication.
 The named OAuth exchange runs over the same session adapter and destination checks as resource requests and never follows redirects.
 See [AUTH-02 handoff](docs/auth-02-handoff.md) for the credential seam, [CORE-01 handoff](docs/core-01-handoff.md) for the session interface, [CORE-02 handoff](docs/core-02-handoff.md) for bounded collections and [CORE-01 acceptance](docs/implementation-plan.md#core-01-handoff-and-acceptance) for fixture evidence.
+
+## Release
+
+This is the supported QUX SOC read surface, not full Vectra API coverage.
+`vectra-axi doctor`, `detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, detection/host/account note and tag lists, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show`, `group list`, `group show`, `group member list`, `triage rule list`, `triage rule show`, `audit list`, `health list`, `health show`, `health event list` and `lockdown list` are implemented and tested against synthetic fixtures; every other Vectra operation remains planned or blocked (see [coverage](docs/coverage.md)).
+Install from a release tarball with `npm install --global ./vectra-axi.tgz` after `corepack pnpm pack --out vectra-axi.tgz`, or run `node bin/vectra-axi.js` from a built checkout.
+The package is private and has no publish workflow; publishing needs a separate explicit instruction.
+Setup is explicit only: hand-edit `~/.vectra-axi/config.json` (see `vectra-axi setup`), set the referenced secret variables outside the CLI, then run `vectra-axi doctor` to check each profile.
+`doctor` performs one bounded `detection list --limit 1` read per profile and reports configuration, connectivity, authentication and access failures with a nonzero exit status when any profile fails.
+It never tries passwords, signs in interactively or enables writes.
+The static skill at `skills/vectra-axi/SKILL.md` is installed only by explicit setup (`npx skills add knowttl/vectra-axi --skill vectra-axi`); no ordinary command installs hooks, plugins or configuration.
+`skills/vectra-axi/SKILL.md` and `docs/coverage.md` are generated from the executable catalogue and the capability inventory; regenerate them with `corepack pnpm run docs:generate` and verify freshness with `corepack pnpm run docs:check` (also enforced by the test suite).

@@ -100,6 +100,13 @@ const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/groups/8/members?page_size=100",
     { status: 200, body: { results: [member7], count: 1 } }],
   ["https://fixture.invalid/api/v2.5/rules/7", { status: 200, body: rule7 }],
+  // PACK-01: doctor checks each profile with one bounded detection read.
+  // The bare list URL returns a first page with a continuation that a
+  // one-row window keeps as evidence without following; the denied origin
+  // exercises the synthetic access-failure journey.
+  ["https://fixture.invalid/api/v2.5/detections",
+    { status: 200, body: { results: [first], count: 2, next } }],
+  ["https://denied.invalid/api/v2.5/detections", { status: 403, body: {} }],
   // READ-08: lockdown status arrives as one unpaged list per kind through
   // its own status route; there is no execution leaf to fixture.
   ["https://fixture.invalid/api/v2.5/lockdown/host",
