@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, renameSync, readdirSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, symlinkSync, renameSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { performance } from "node:perf_hooks";
@@ -30,9 +30,9 @@ beforeAll(() => {
 
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 
-function invoke(args: string[]) {
+function invoke(args: string[], extraEnv: Record<string, string> = {}) {
   return spawnSync(process.execPath, [bin, ...args], {
-    cwd: home, env, encoding: "utf8", input: "", timeout: 5_000,
+    cwd: home, env: { ...env, ...extraEnv }, encoding: "utf8", input: "", timeout: 5_000,
   });
 }
 
@@ -40,6 +40,61 @@ it.each(["-v", "-V", "--version"])("prints only the package version for %s", (fl
   const result = invoke([flag]);
   expect(result.status).toBe(0);
   expect(result.stdout).toBe(`${version}\n`);
+  expect(result.stderr).toBe("");
+});
+
+it("shows a packaged token profile without emitting or resolving its secret", () => {
+  const config = join(scratch, "profile.json");
+  const sentinel = "fake-secret-packaged-SENTINEL";
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN", applianceRelease: "9.4" } } }));
+  const result = invoke(["home", "--config", config], { SENTINEL_TOKEN: sentinel });
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("state: configured");
+  expect(result.stdout).toContain("name: lab");
+  expect(result.stdout).toContain("writes: disabled");
+  expect(result.stdout).not.toContain(sentinel);
+  expect(result.stderr).toBe("");
+});
+
+it("reports packaged ambiguous-profile guidance", () => {
+  const config = join(scratch, "ambiguous.json");
+  const profile = { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" };
+  writeFileSync(config, JSON.stringify({ profiles: { one: profile, two: profile } }));
+  const result = invoke(["--config", config]);
+  expect(result.status).toBe(1);
+  expect(result.stdout).toContain("code: PROFILE_AMBIGUOUS");
+  expect(result.stdout).toContain("Pass --profile <name>");
+  expect(result.stderr).toBe("");
+});
+
+it("scrubs known secrets from packaged profile output", () => {
+  const config = join(scratch, "redaction.json");
+  const sentinel = "fake-secret-profile-SENTINEL";
+  writeFileSync(config, JSON.stringify({ profiles: { [sentinel]: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN", applianceRelease: sentinel } } }));
+  const result = invoke(["setup", "--config", config], { SENTINEL_TOKEN: sentinel });
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("***redacted***");
+  expect(result.stdout).not.toContain(sentinel);
+  expect(result.stderr).toBe("");
+});
+
+it("ignores repository-local credentials unless explicitly selected", () => {
+  const local = join(home, "vectra-axi.config.json");
+  writeFileSync(local, "malformed fake credential config");
+  try {
+    const result = invoke([]);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("state: unconfigured");
+    expect(result.stderr).toBe("");
+  } finally { rmSync(local); }
+});
+
+it("keeps help offline even with an invalid explicit config", () => {
+  const result = invoke(["setup", "--help", "--config", join(scratch, "absent.json")]);
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain('"--config <path>"');
   expect(result.stderr).toBe("");
 });
 
@@ -59,7 +114,7 @@ it.each([{ path: [] }, { path: ["home"] }, { path: ["setup"] }])("provides offli
   expect(result.status).toBe(0);
   expect(result.stdout).toContain("examples[");
   expect(result.stdout).toContain('"--help": Show concise help; default false');
-  expect(result.stdout).toContain('"--profile <name>": Select a profile by name');
+  expect(result.stdout).toContain('"--profile <name>": "Select a profile by name');
   expect(result.stdout).toContain("--help cannot be combined with --profile");
   expect(result.stdout).not.toContain("detection list");
   expect(result.stderr).toBe("");

@@ -45,6 +45,10 @@ Research snapshots:
 CLI-01 additionally uses [az-axi at `a7c1ca4bb605f3835d1717dde553f349a81b646f`](https://github.com/knowttl/az-axi/tree/a7c1ca4bb605f3835d1717dde553f349a81b646f) for catalogue-first validation, SDK output and refusal of implicit update.
 The SDK dependency version is pinned in [package.json](../package.json).
 
+AUTH-01 additionally uses the [official QUX personal-token guide](https://docs.vectra.ai/configuration/access/api-qux/v25-postman-quick-start-guide-using-token-auth) and the `Token` scheme in [pinned VAT vectra.py](https://github.com/vectranetworks/vectra_api_tools/blob/c76fd0c5d42e74b199e47dc42923582c2b1dbee7/modules/vectra.py#L235).
+[az-axi at d02a9739](https://github.com/knowttl/az-axi/tree/d02a9739a50f35a2a69c340e4f8cbe724856fbdf) supplies profile precedence and SDK output/error-boundary conventions.
+Its automatic local config discovery and implicit UI authentication are excluded by the Vectra profile contract below.
+
 Recheck upstream contracts before implementing a slice.
 The public RUX document identifies v3.4 as stable and v3.5 as preview.
 [Preview guidance](https://apidocs.vectra.ai/api-v3-5-preview) warns of potentially incompatible filtering, errors and response tiers.

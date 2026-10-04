@@ -14,7 +14,8 @@ type Flag = { description: string } & (
 );
 const globals: Readonly<Record<string, Flag>> = {
   help: { kind: "boolean", description: "Show concise help; default false" },
-  profile: { kind: "value", valueName: "name", description: "Select a profile by name; none configured in CLI-01" },
+  profile: { kind: "value", valueName: "name", description: "Select a profile by name; default environment, config default, then sole profile" },
+  config: { kind: "value", valueName: "path", description: "Read an explicit config; default VECTRA_AXI_CONFIG or ~/.vectra-axi/config.json" },
 };
 const exclusiveFlags = [["help", "profile"]] as const;
 
