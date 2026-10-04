@@ -92,16 +92,12 @@ export function assignmentDesired(
   return { user: Number(user) };
 }
 
-// The current-state row carries the READ-04 resolution fields plus the
-// assigned analyst. assigned_to is nullable: an unresolved row without an
-// assignee counts as unassigned rather than malformed, since the create
-// contract only constrains what a send must carry.
 const assignmentRowSchema = z.object({
   id: z.number().int().positive(),
   host_id: z.number().int().nullable().optional(),
   account_id: z.number().int().nullable().optional(),
   date_resolved: z.string().nullable(),
-  assigned_to: z.object({ id: z.number().int().positive() }).nullable().nullish(),
+  assigned_to: z.object({ id: z.number().int().positive() }).nullable(),
 });
 
 const userSchema = z.object({
@@ -142,7 +138,7 @@ function decodeRow(kind: AssignmentSetKind, id: number, row: unknown): {
   // never select this command's PUT/DELETE target.
   if (decoded.date_resolved !== null) return null;
   if ((kind === "host" ? decoded.host_id : decoded.account_id) !== id) return null;
-  return { assignmentId: decoded.id, assignee: decoded.assigned_to?.id ?? null };
+  return { assignmentId: decoded.id, assignee: decoded.assigned_to === null ? null : decoded.assigned_to.id };
 }
 
 // Reads the current open assignment through the READ-04 list route with the

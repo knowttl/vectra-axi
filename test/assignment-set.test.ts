@@ -513,6 +513,67 @@ it("refuses duplicate open assignments spread across pages", async () => {
   expect(sends(seen)).toEqual([]);
 });
 
+it.each([
+  ["host", ["--user", "3"]],
+  ["host", ["--unassign"]],
+  ["account", ["--user", "3"]],
+  ["account", ["--unassign"]],
+] as const)("refuses an omitted assignee for %s with %s before preview or send", async (kind, desiredFlags) => {
+  const seen: SeenCall[] = [];
+  const { run } = harness({ transport: assignmentTransport({
+    assignments: () => [{ id: 11, [`${kind}_id`]: 7, date_resolved: null }], seen,
+  }) });
+  await expect(run(["assignment", "set", `--${kind}`, "7", ...desiredFlags]))
+    .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+  await expect(run(["assignment", "set", `--${kind}`, "7", ...desiredFlags,
+    "--execute", "--confirm", `${kind} 7`])).rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+  expect(sends(seen)).toEqual([]);
+  expect(() => readFileSync(auditPath, "utf8")).toThrow();
+});
+
+it.each([
+  ["host", ["--user", "3"]],
+  ["host", ["--unassign"]],
+  ["account", ["--user", "3"]],
+  ["account", ["--unassign"]],
+] as const)("refuses an omitted assignee on the pre-send read for %s with %s", async (kind, desiredFlags) => {
+  const seen: SeenCall[] = [];
+  let calls = 0;
+  const row = { id: 11, [`${kind}_id`]: 7, date_resolved: null };
+  const { run } = harness({ transport: assignmentTransport({
+    assignments: () => (calls++ < 2 ? [{ ...row, assigned_to: { id: 5 } }] : [row]), seen,
+  }) });
+  await expect(run(["assignment", "set", `--${kind}`, "7", ...desiredFlags,
+    "--execute", "--confirm", `${kind} 7`])).rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+  expect(sends(seen)).toEqual([]);
+  expect(auditLines().filter((line) => line.kind === "outcome"))
+    .toEqual([expect.objectContaining({ httpStatus: 0, outcome: "NOT_SENT" })]);
+});
+
+it.each(["host", "account"] as const)("treats an explicit null assignee as unassigned for %s", async (kind) => {
+  const seen: SeenCall[] = [];
+  const { run } = harness({ transport: assignmentTransport({
+    assignments: () => [{ id: 11, [`${kind}_id`]: 7, date_resolved: null, assigned_to: null }], seen,
+  }) });
+  const result = await run(["assignment", "set", `--${kind}`, "7", "--unassign",
+    "--execute", "--confirm", `${kind} 7`]);
+  expect(result).toMatchObject({ failed: false, output: {
+    assignment: `${kind} 7 is already unassigned (no-op)`,
+  } });
+  expect(sends(seen)).toEqual([]);
+});
+
+it.each(["host", "account"] as const)("deletes the assignment with a present assignee for %s", async (kind) => {
+  const seen: SeenCall[] = [];
+  const { run } = harness({ transport: assignmentTransport({
+    assignments: () => [{ id: 11, [`${kind}_id`]: 7, date_resolved: null, assigned_to: { id: 5 } }], seen,
+  }) });
+  const result = await run(["assignment", "set", `--${kind}`, "7", "--unassign",
+    "--execute", "--confirm", `${kind} 7`]);
+  expect(result).toMatchObject({ failed: false, output: { assignment: `unassigned ${kind} 7 (was user 5)` } });
+  expect(sends(seen)).toEqual([{ method: "DELETE", url: "https://fixture.invalid/api/v2.5/assignments/11" }]);
+});
+
 it("rejects a malformed assignment read before shaping output", async () => {
   const { run } = harness({ transport: assignmentTransport({
     assignments: () => [{ id: 11, host_id: 7 }], seen: [],
