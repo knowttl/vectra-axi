@@ -8,7 +8,7 @@ import { ASSIGNMENT_LIST_FIELDS, assignmentQuery, listFields as assignmentListFi
   type LeafResult as AssignmentLeafResult } from "./assignments.js";
 import { GROUP_LIST_FIELDS, groupQuery, runGroupList, runGroupMemberList, runGroupShow,
   MEMBER_LIST_FIELDS, memberQuery, RULE_LIST_FIELDS, ruleQuery, runRuleList, runRuleShow,
-  groupId, ruleId, listFields as groupListFields, listLimit as groupListLimit,
+  RUX_MEMBER_LIST_FIELDS, groupId, ruleId, listFields as groupListFields, listLimit as groupListLimit,
   type LeafResult as GroupLeafResult } from "./groups.js";
 import { catalogue, DESCRIPTION, help, inventory, parseInvocation } from "./catalogue.js";
 import { listFields, listLimit, listQuery, runDetectionList, runDetectionShow, showId, type LeafResult } from "./detections.js";
@@ -322,7 +322,9 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
       groupId(flags, leaf);
       memberQuery(flags);
       groupListLimit(flags);
-      groupListFields(flags, GROUP_FIELDS[leaf]);
+      // Before profile selection, accept either generation's member field
+      // names; the runner validates fields against the selected generation.
+      groupListFields(flags, [...new Set([...MEMBER_LIST_FIELDS, ...RUX_MEMBER_LIST_FIELDS])]);
     } else if (leaf === "triage rule list") {
       ruleQuery(flags);
       groupListLimit(flags);

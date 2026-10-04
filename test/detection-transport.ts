@@ -21,6 +21,11 @@ const rule7 = { id: 7, enabled: true, triage_category: "synthetic-triage",
   source_conditions: { OR: [] }, additional_conditions: null };
 const ruxDetection1 = { id: 1, detection_type: "synthetic-type", state: "active", threat: 71, certainty: 80 };
 const ruxEntity7 = { id: 7, name: "synthetic-host-7", type: "host", urgency_score: 76, importance: 3 };
+const ruxGroup8 = { id: 8, name: "synthetic-cloud-group", type: "account" };
+const ruxAccountMember = { uid: "synthetic-account@fixture.invalid" };
+const ruxRule7 = { id: 7, enabled: true, triage_category: "synthetic-triage",
+  description: "Synthetic automation", detection: "synthetic-detection", is_whitelist: false,
+  source_conditions: null, additional_conditions: null };
 const next = "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2";
 const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/detections?ordering=-id",
@@ -131,6 +136,21 @@ const responses = new Map<string, { status: number; body: unknown }>([
     { status: 200, body: { ...ruxDetection1, description: "synthetic cloud detail" } }],
   ["https://fixture.invalid/api/v3.4/entities/?type=host&page_size=100",
     { status: 200, body: { results: [ruxEntity7], count: 1 } }],
+  // RUX-05: the packaged cloud group journey lists groups, shows one
+  // group, pages account-kind members with their native uid identity, and
+  // lists and shows a triage rule through the documented v3.4 routes.
+  // Cloud IDs stay scoped to the cloud profile; rule output carries no
+  // benign verdict.
+  ["https://fixture.invalid/api/v3.4/groups/?include_members=false&page_size=100",
+    { status: 200, body: { results: [ruxGroup8], count: 1 } }],
+  ["https://fixture.invalid/api/v3.4/groups/8/?include_members=false",
+    { status: 200, body: { ...ruxGroup8, member_count: 1 } }],
+  ["https://fixture.invalid/api/v3.4/groups/8/members/?page_size=100",
+    { status: 200, body: { results: [ruxAccountMember], count: 1 } }],
+  ["https://fixture.invalid/api/v3.4/rules/?page_size=100",
+    { status: 200, body: { results: [ruxRule7], count: 1 } }],
+  ["https://fixture.invalid/api/v3.4/rules/7/",
+    { status: 200, body: ruxRule7 }],
 ]);
 
 // WRITE-01: the gated host tag replace sends one PATCH after its preview

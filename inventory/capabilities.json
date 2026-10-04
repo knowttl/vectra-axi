@@ -2002,7 +2002,9 @@
       "query": [
         "name",
         "type",
-        "include_members"
+        "include_members",
+        "page",
+        "page_size"
       ],
       "fields": [
         "id",
@@ -2018,8 +2020,8 @@
           "locator": "GET /api/v3.4/groups/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-05; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-05; `group list` maps catalogue flags to the recorded query keys on a cloud profile, including the spec-evidenced page/page_size.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -2040,7 +2042,9 @@
       "method": "GET",
       "path": "/api/v3.4/groups/{id}/",
       "effect": "read",
-      "query": [],
+      "query": [
+        "include_members"
+      ],
       "fields": [
         "id",
         "name",
@@ -2055,8 +2059,8 @@
           "locator": "GET /api/v3.4/groups/{id}/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-05; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-05; `group show` decodes the RUX-provided detail fields on a cloud profile with the ID scoped to that profile.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -2096,8 +2100,8 @@
           "locator": "GET /api/v3.4/rules/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-05; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-05; `triage rule list` maps catalogue flags to the recorded query keys on a cloud profile.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -2133,8 +2137,8 @@
           "locator": "GET /api/v3.4/rules/{rule_id}/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-05; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-05; `triage rule show` decodes the same validated detail fields the QUX version exposes, with RUX-tolerant condition values, on a cloud profile.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -2161,7 +2165,10 @@
       ],
       "fields": [
         "id",
-        "name"
+        "name",
+        "uid",
+        "ip",
+        "domain"
       ],
       "paging": "collection",
       "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
@@ -2172,8 +2179,8 @@
           "locator": "GET /api/v3.4/groups/{id}/members/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-05; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-05; `group member list` pages the per-kind member route on a cloud profile, preserving native host/account/IP/domain member identity.",
       "fixtureCases": [
         "host-member",
         "account-member",

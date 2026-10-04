@@ -4,10 +4,12 @@ import { collect, DEFAULT_COLLECTION_LIMIT, resume } from "./collections.js";
 import type { Session } from "./session.js";
 
 // READ-05: QUX groups, paged group members and triage rules on the CORE-01
-// session and CORE-02 collection reader. Group `type` values pass through
+// session and CORE-02 collection reader, plus the RUX-05 cloud routing:
+// the same leaves run against the documented v3.4 routes on a cloud
+// profile with no QUX wire assumptions. Group `type` values pass through
 // verbatim: the CLI keeps no kind allowlist, so host, account, IP, domain
 // and release-dependent AD kinds (appliance 9.6+) all survive list and show.
-// Membership always comes from the paged member route (9.2+), never from an
+// Membership always comes from the paged member route (QUX 9.2+), never from an
 // embedded detail summary capped at 2000 rows; member windows stay scoped to
 // their group ID and are never merged across groups. Triage rules describe
 // automation only: rule output never claims a detection is benign.
@@ -19,9 +21,23 @@ export const GROUP_SHOW_OPERATION = "qux.group.show";
 export const GROUP_MEMBER_LIST_OPERATION = "qux.group.member.list";
 export const RULE_LIST_OPERATION = "qux.triage-rule.list";
 export const RULE_SHOW_OPERATION = "qux.triage-rule.show";
+// RUX-05: the same caller leaves run against the documented v3.4 routes on
+// a cloud profile. Group kinds pass through verbatim on both generations
+// (host, domain, ip, account); cloud IDs stay scoped to their cloud profile
+// with no on-prem identity translation in any show.
+export const RUX_GROUP_LIST_OPERATION = "rux.group.list";
+export const RUX_GROUP_SHOW_OPERATION = "rux.group.show";
+export const RUX_GROUP_MEMBER_LIST_OPERATION = "rux.group.member.list";
+export const RUX_RULE_LIST_OPERATION = "rux.triage-rule.list";
+export const RUX_RULE_SHOW_OPERATION = "rux.triage-rule.show";
 
 export const GROUP_LIST_FIELDS = ["id", "name", "type"] as const;
 export const MEMBER_LIST_FIELDS = ["id", "name"] as const;
+// The v3.4 member route returns per-kind rows: host members carry id/name,
+// account members a uid, IP members an ip and domain members a domain. The
+// RUX projection keeps each row's native identity key instead of forcing
+// every kind into id/name.
+export const RUX_MEMBER_LIST_FIELDS = ["id", "name", "uid", "ip", "domain"] as const;
 export const RULE_LIST_FIELDS = ["id", "enabled", "triage_category"] as const;
 
 export const BENIGN_DISCLAIMER =
@@ -43,10 +59,15 @@ function namedFlag(flags: ReadonlyMap<string, string | boolean>, name: string): 
 }
 
 // Validates group list flags and maps them to the inventory's server-side
-// query keys. Type values pass through to the server untouched, so current
-// and future group kinds (including release-dependent AD groups) are never
-// filtered by a client-side allowlist. Resuming with --cursor replays the
-// bound query, so the original filters must be repeated; resume() rejects a
+// query keys. The mapping serves both generations: the v3.4 groups route
+// documents the same name/type selectors, so no filter is dropped or
+// refused on a cloud profile. Type values pass through to the server
+// untouched, so current and future group kinds (including
+// release-dependent AD groups) are never filtered by a client-side
+// allowlist. The v3.4 include_members selector has no CLI flag: membership
+// always comes from the paged member route, so the flag stays rejected as
+// unknown rather than silently widening list responses. Resuming with
+// --cursor replays the bound query, so the original filters must be repeated; resume() rejects a
 // changed query context explicitly.
 export function groupQuery(flags: ReadonlyMap<string, string | boolean>): ListQuery {
   const query: ListQuery = {};
@@ -57,9 +78,11 @@ export function groupQuery(flags: ReadonlyMap<string, string | boolean>): ListQu
   return query;
 }
 
-// Validates member list flags against the qux.group.member.list query keys.
-// The group ID travels as a path parameter, not a query filter, so member
-// windows always stay scoped to one group.
+// Validates member list flags against the qux.group.member.list and
+// rux.group.member.list query keys: both routes document name, ordering
+// and is_key_asset, so the same mapping serves both generations with no
+// silently dropped filter. The group ID travels as a path parameter, not
+// a query filter, so member windows always stay scoped to one group.
 export function memberQuery(flags: ReadonlyMap<string, string | boolean>): ListQuery {
   const query: ListQuery = {};
   const name = namedFlag(flags, "name");
@@ -76,8 +99,10 @@ export function memberQuery(flags: ReadonlyMap<string, string | boolean>): ListQ
   return query;
 }
 
-// Validates triage rule list flags against the qux.triage-rule.list query
-// keys. The wire `fields` selector has no CLI flag: rows arrive whole and
+// Validates triage rule list flags against the qux.triage-rule.list and
+// rux.triage-rule.list query keys: both routes document contains and
+// ordering, so the same mapping serves both generations. The wire `fields`
+// selector has no CLI flag on either generation: rows arrive whole and
 // the CLI projects its recorded subset client-side like every other leaf.
 export function ruleQuery(flags: ReadonlyMap<string, string | boolean>): ListQuery {
   const query: ListQuery = {};
@@ -163,6 +188,22 @@ const groupDetailSchema = groupSchema.extend({
   is_ad_group: z.boolean().optional(),
   ad_group_dn: z.string().nullable().optional(),
 });
+// The v3.4 group serializer keeps id/name/type/description/importance/
+// last_modified_by/ad_group_dn but names its modification timestamp
+// last_modified, adds member_count, and carries no last_modified_timestamp
+// or is_ad_group: AD membership is conveyed by ad_group_dn presence alone.
+// The show output keeps the RUX names instead of assuming the QUX wire.
+const ruxGroupDetailSchema = z.object({
+  id: z.number().int().positive(),
+  name: z.string().nullable().optional(),
+  type: z.string(),
+  description: z.string().nullable().optional(),
+  importance: z.string().nullable().optional(),
+  last_modified_by: z.string().nullable().optional(),
+  last_modified: z.string().nullable().optional(),
+  ad_group_dn: z.string().nullable().optional(),
+  member_count: z.number().int().nonnegative().nullable().optional(),
+});
 const conditionValueSchema = z.strictObject({
   value: z.union([z.string(), z.number()]),
   label: z.string(),
@@ -191,12 +232,55 @@ const ruleDetailSchema = ruleSchema.extend({
   detection: z.string().nullable().optional(),
   is_whitelist: z.boolean().optional(),
 });
+// The v3.4 rule serializer provides every QUX detail field, but its
+// condition value entries may carry a `url` the QUX wire never sends. The
+// RUX tree tolerates that key while keeping the same recursive shape and
+// strictness everywhere else.
+const ruxConditionValueSchema = z.strictObject({
+  value: z.union([z.string(), z.number()]),
+  label: z.string(),
+  url: z.string().nullable().optional(),
+});
+const ruxConditionLeafSchema = z.strictObject({
+  field: z.string(),
+  values: z.array(ruxConditionValueSchema),
+  groups: z.array(ruxConditionValueSchema),
+  label: z.string(),
+});
+type RuxCondition =
+  | { AND: RuxCondition[] }
+  | { OR: RuxCondition[] }
+  | { ANY_OF: z.infer<typeof ruxConditionLeafSchema> }
+  | { NONE_OF: z.infer<typeof ruxConditionLeafSchema> };
+const ruxConditionSchema: z.ZodType<RuxCondition> = z.lazy(() => z.union([
+  z.strictObject({ AND: z.array(ruxConditionSchema) }),
+  z.strictObject({ OR: z.array(ruxConditionSchema) }),
+  z.strictObject({ ANY_OF: ruxConditionLeafSchema }),
+  z.strictObject({ NONE_OF: ruxConditionLeafSchema }),
+]));
+const ruxRuleDetailSchema = ruleSchema.extend({
+  description: z.string().nullable().optional(),
+  source_conditions: ruxConditionSchema.nullable().optional(),
+  additional_conditions: ruxConditionSchema.nullable().optional(),
+  detection: z.string().nullable().optional(),
+  is_whitelist: z.boolean().optional(),
+});
+// The v3.4 member route returns one row shape per group kind: host
+// members carry id/name, account members a uid, IP members an ip and
+// domain members a domain. Each row keeps its native identity key; kinds
+// are never folded into one artificial id/name ranking.
+const ruxMemberSchema = z.union([
+  z.object({ id: z.number().int().positive(), name: z.string().nullable().optional() }),
+  z.object({ uid: z.string() }),
+  z.object({ ip: z.string() }),
+  z.object({ domain: z.string() }),
+]);
 
-function decode<T>(value: unknown, schema: z.ZodType<T>, noun: string): T {
+function decode<T>(value: unknown, schema: z.ZodType<T>, noun: string, contract = "QUX v2.5"): T {
   const result = schema.safeParse(value);
   if (!result.success) {
     throw new AxiError(`Vectra ${noun} response is malformed: expected valid ${noun} fields`,
-      "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
+      "RESPONSE_INVALID", [`Check the ${contract} API contract for this operation`]);
   }
   return result.data;
 }
@@ -228,6 +312,9 @@ type CollectionLeaf = {
   noun: string;
   rowsKey: string;
   fields: readonly string[];
+  // Optional RUX projection vocabulary: only the member leaf needs one,
+  // since group and rule rows share their field names on both generations.
+  ruxFields?: readonly string[];
   emptyHint: string;
   pathParams?: Readonly<Record<string, string | number>>;
   extra?: Record<string, unknown>;
@@ -245,7 +332,8 @@ async function runCollectionList(
   decodeRow: (row: unknown) => Record<string, unknown>,
 ): Promise<LeafResult> {
   const limit = listLimit(flags);
-  const fields = listFields(flags, leaf.fields);
+  const rux = session.profile.kind === "rux";
+  const fields = listFields(flags, rux && leaf.ruxFields ? leaf.ruxFields : leaf.fields);
   const cursor = flags.get("cursor");
   const window = typeof cursor === "string"
     ? await resume(session, leaf.operation, cursor, { query, limit, decodeRow, ...(leaf.pathParams ? { pathParams: leaf.pathParams } : {}) })
@@ -303,8 +391,10 @@ export async function runGroupList(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
   const query = groupQuery(flags);
+  const rux = session.profile.kind === "rux";
+  if (rux) query.include_members = false;
   return runCollectionList(session, flags, query, {
-    operation: GROUP_LIST_OPERATION,
+    operation: rux ? RUX_GROUP_LIST_OPERATION : GROUP_LIST_OPERATION,
     noun: "groups",
     rowsKey: "groups",
     fields: GROUP_LIST_FIELDS,
@@ -321,8 +411,13 @@ export async function runGroupShow(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
   const id = groupId(flags, "group show");
-  const { body } = await session.request(GROUP_SHOW_OPERATION, { pathParams: { id } });
-  const detail = decode(body, groupDetailSchema, "group");
+  const rux = session.profile.kind === "rux";
+  const { body } = await session.request(
+    rux ? RUX_GROUP_SHOW_OPERATION : GROUP_SHOW_OPERATION,
+    { pathParams: { id }, ...(rux ? { query: { include_members: false } } : {}) });
+  const detail = rux
+    ? decode(body, ruxGroupDetailSchema, "group", "RUX v3.4")
+    : decode(body, groupDetailSchema, "group");
   return { failed: false, output: {
     profile: session.profile.name,
     ...detail,
@@ -338,25 +433,30 @@ export async function runGroupMemberList(
 ): Promise<LeafResult> {
   const id = groupId(flags, "group member list");
   const query = memberQuery(flags);
+  const rux = session.profile.kind === "rux";
   return runCollectionList(session, flags, query, {
-    operation: GROUP_MEMBER_LIST_OPERATION,
+    operation: rux ? RUX_GROUP_MEMBER_LIST_OPERATION : GROUP_MEMBER_LIST_OPERATION,
     noun: "members",
     rowsKey: "members",
     fields: MEMBER_LIST_FIELDS,
+    ruxFields: RUX_MEMBER_LIST_FIELDS,
     emptyHint: `Group ${id} has no members returned for these filters`,
     pathParams: { id },
     extra: { group: id },
     showHint: (owned, leafFlags) =>
       [`Run \`vectra-axi group show${contextFlags(leafFlags, owned)} --id ${shellQuote(String(id))}\` for the group detail`],
-  }, (row) => decode(row, memberSchema, "group member"));
+  }, (row) => rux
+    ? decode(row, ruxMemberSchema, "group member", "RUX v3.4")
+    : decode(row, memberSchema, "group member"));
 }
 
 export async function runRuleList(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
   const query = ruleQuery(flags);
+  const rux = session.profile.kind === "rux";
   return runCollectionList(session, flags, query, {
-    operation: RULE_LIST_OPERATION,
+    operation: rux ? RUX_RULE_LIST_OPERATION : RULE_LIST_OPERATION,
     noun: "triage rules",
     rowsKey: "rules",
     fields: RULE_LIST_FIELDS,
@@ -372,8 +472,15 @@ export async function runRuleShow(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
   const id = ruleId(flags);
-  const { body } = await session.request(RULE_SHOW_OPERATION, { pathParams: { id } });
-  const detail = decode(body, ruleDetailSchema, "triage rule");
+  const rux = session.profile.kind === "rux";
+  // The v3.4 rule route names its path parameter rule_id; sending the QUX
+  // id key would fail session template binding before any HTTP call.
+  const { body } = await session.request(
+    rux ? RUX_RULE_SHOW_OPERATION : RULE_SHOW_OPERATION,
+    rux ? { pathParams: { rule_id: id } } : { pathParams: { id } });
+  const detail = rux
+    ? decode(body, ruxRuleDetailSchema, "triage rule", "RUX v3.4")
+    : decode(body, ruleDetailSchema, "triage rule");
   return { failed: false, output: {
     profile: session.profile.name,
     ...detail,
