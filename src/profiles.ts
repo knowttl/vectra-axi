@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { SecretRedactor } from "./redact.js";
 
 const nonempty = z.string().trim().min(1);
+const profileName = z.string().min(1).refine((value) => value === value.trim());
 const profileSchema = z.strictObject({
   kind: z.literal("qux"),
   origin: z.string().refine((value) => {
@@ -21,8 +22,8 @@ const profileSchema = z.strictObject({
   caBundle: nonempty.optional(),
 });
 const configSchema = z.strictObject({
-  defaultProfile: nonempty.optional(),
-  profiles: z.record(nonempty, profileSchema),
+  defaultProfile: profileName.optional(),
+  profiles: z.record(profileName, profileSchema),
 }).refine((config) => config.defaultProfile === undefined || Object.hasOwn(config.profiles, config.defaultProfile));
 
 export type Profile = z.infer<typeof profileSchema>;

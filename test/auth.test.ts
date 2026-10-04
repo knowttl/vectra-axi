@@ -37,6 +37,22 @@ it("reports ambiguity instead of guessing the deployment", () => {
   expect(() => selectProfile(loaded.config)).toThrow(expect.objectContaining({ code: "PROFILE_AMBIGUOUS" }));
 });
 
+it.each(["", " lab", "lab ", " lab ", "\tlab\n"])("rejects invalid profile identifier %j without collapsing keys", (name) => {
+  expect(() => configure({ profiles: { lab: profile, [name]: { ...profile, origin: "https://other.invalid" } } }))
+    .toThrow(expect.objectContaining({ code: "CONFIG_INVALID" }));
+});
+
+it.each(["", " lab", "lab ", " lab ", "\tlab\n"])("rejects invalid default profile identifier %j", (defaultProfile) => {
+  expect(() => configure({ defaultProfile, profiles: { lab: profile } }))
+    .toThrow(expect.objectContaining({ code: "CONFIG_INVALID" }));
+});
+
+it.each(["flag", "env"])("does not normalize the %s profile selection", (source) => {
+  vi.stubEnv("VECTRA_AXI_PROFILE", source === "env" ? " lab " : undefined);
+  expect(() => selectProfile(configure().config, source === "flag" ? " lab " : undefined))
+    .toThrow(expect.objectContaining({ code: "PROFILE_NOT_FOUND" }));
+});
+
 it.each(["missing", "constructor", "toString"])("rejects an unknown profile %s", (name) => {
   expect(() => selectProfile(configure().config, name)).toThrow(expect.objectContaining({ code: "PROFILE_NOT_FOUND" }));
 });
