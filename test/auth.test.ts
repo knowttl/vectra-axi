@@ -184,6 +184,20 @@ it("redacts nested results, object keys and escaped diagnostic strings", () => {
   expect(redactor.text(JSON.stringify({ secret }))).not.toContain(JSON.stringify(secret).slice(1, -1));
 });
 
+it.each(["\ud800", "\udc00", "prefix\ud800suffix", "prefix\udc00suffix"])("redacts unencodable secrets %j", (secret) => {
+  const redactor = new SecretRedactor();
+  redactor.add(secret);
+  expect(redactor.value({ [secret]: [secret] })).toEqual({ "***redacted***": ["***redacted***"] });
+  expect(redactor.text(JSON.stringify({ secret }))).toBe('{"secret":"***redacted***"}');
+});
+
+it("redacts URI-encoded well-formed secrets", () => {
+  const redactor = new SecretRedactor();
+  const secret = "fake/secret-\ud83d\udd10";
+  redactor.add(secret);
+  expect(redactor.text(encodeURIComponent(secret))).toBe("***redacted***");
+});
+
 it("registers an unselected profile's referenced secret before rejecting its configuration", () => {
   vi.stubEnv("SENTINEL_SECRET", sentinel);
   const redactor = new SecretRedactor();

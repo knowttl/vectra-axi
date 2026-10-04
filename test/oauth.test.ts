@@ -134,6 +134,25 @@ it("registers returned tokens even when an exchange response is denied", async (
   expect(redactor.value({ result: access, debug: refresh })).toEqual({ result: "***redacted***", debug: "***redacted***" });
 });
 
+it.each(["\ud800", "\udc00"])("authenticates despite an unencodable unused refresh token %j", async (refresh_token) => {
+  const redactor = new SecretRedactor();
+  const transport = vi.fn<TokenTransport>().mockResolvedValue({ ...response, body: { ...response.body, refresh_token } });
+  expect(await provider(transport, {}, redactor)()).toEqual({ header: `Bearer ${access}`, expiresAt: 1_002_000 });
+  expect(redactor.text(refresh_token)).toBe("***redacted***");
+  expect(redactor.text(JSON.stringify({ refresh_token }))).toBe('{"refresh_token":"***redacted***"}');
+});
+
+it.each([
+  [401, "AUTH_FAILED"], [403, "ACCESS_DENIED"], [503, "AUTH_EXCHANGE_FAILED"],
+  [200, "AUTH_RESPONSE_INVALID"],
+])("preserves status %s classification with unencodable returned tokens", async (status, code) => {
+  const redactor = new SecretRedactor();
+  const body = { access_token: "\ud800", refresh_token: "\udc00" };
+  const transport = vi.fn<TokenTransport>().mockResolvedValue({ status, body });
+  await expect(provider(transport, {}, redactor)()).rejects.toMatchObject({ code });
+  expect(redactor.value(body)).toEqual({ access_token: "***redacted***", refresh_token: "***redacted***" });
+});
+
 it.each([0, -1])("reports already expired lifetime %s without retry", async (expires_in) => {
   const transport = vi.fn<TokenTransport>().mockResolvedValue({ ...response, body: { ...response.body, expires_in } });
   await expect(provider(transport)()).rejects.toMatchObject({ code: "AUTH_EXPIRED" });
