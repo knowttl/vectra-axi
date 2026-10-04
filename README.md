@@ -142,13 +142,14 @@ These leaves validate flag shapes before configuration or profile selection, the
 Host 7 and account 7 are different objects, and every show output retains its resource kind for the next command.
 Type-qualified entity, note, tag, assignment, group, member, triage rule, audit, health and lockdown reads stay in this release; the only business write leaves are the three gated `tag set` replaces and the three gated `note add` appends.
 
-`<kind> note list --profile <name> --id <id>` reads full notes through the dedicated versioned notes resource for detections, hosts and accounts on either generation: QUX `v2.5` routes on an on-prem profile, the v3.4 `/{detections,hosts,accounts}/{id}/notes/` routes on a cloud profile.
+`<kind> note list --profile <name> --id <id>` reads full notes through the dedicated versioned notes resource for detections, hosts and accounts on either generation: QUX v2.5 on an on-prem profile or RUX v3.4 on a cloud profile.
 Note/tag leaves require a positive integer owner `--id`, validated before configuration or profile selection.
 Note responses are bare lists of entries with a positive integer note `id` and optional nullable `note` text; tag responses carry a `tags` array of strings.
 The v3.4 note entries may carry author/timestamp metadata and the v3.4 tagging bodies status/tag metadata; both generations project the recorded `id`/`note` and `tags` shapes, so cloud output matches the on-prem shape with the cloud profile retained.
 Malformed responses report `RESPONSE_INVALID`; note text retains null and omitted values.
 Long note text is previewed at 1200 characters with its total length and a `--full` hint; `--full` prints the complete returned text but cannot restore content the upstream response never returned.
-`<kind> tag list --profile <name> --id <id>` reads the complete tag set through the versioned tagging route in one body: QUX `/tagging/<kind>/<id>` on an on-prem profile, the v3.4 `/tagging/<detection|host|account>/<id>/` route on a cloud profile.
+`<kind> tag list --profile <name> --id <id>` reads the complete tag set through the versioned tagging route in one body on either generation.
+The [capability records](inventory/capabilities.json) own the exact generation-specific note routes and tagging selectors.
 Empty reads explicitly report zero notes or tags for their owner; denied reads report `ACCESS_DENIED`, never an empty success.
 Detection, host, account and QUX type-qualified entity show leaves surface embedded note summaries under `note_summary` with a pointer to the matching note list leaf, never as full notes; RUX entity show projects only the entity fields documented above.
 Only `detection show` accepts `--full`, which expands returned descriptions, not embedded note summaries.
@@ -252,7 +253,7 @@ See [AUTH-02 handoff](docs/auth-02-handoff.md) for the credential seam, [CORE-01
 
 ## Release
 
-This is the supported QUX SOC read surface with gated tag replaces and note appends plus the RUX-02 cloud detection, host, account and entity reads and the RUX-04 cloud note and tag reads, not full Vectra API coverage.
+This is the supported QUX SOC read surface with gated tag replaces and note appends plus the RUX-02 cloud detection, host, account and entity reads and the RUX-04 (part a) cloud detection/host/account note and tag reads, not full Vectra API coverage.
 See the [shipped behavior above](#vectra-axi) and the generated [coverage record](docs/coverage.md) for supported operations, per-operation dispositions and coverage limits.
 Install from a release tarball with `npm install --global ./vectra-axi.tgz` after `corepack pnpm pack --out vectra-axi.tgz`, or run `node bin/vectra-axi.js` from a built checkout.
 The package is private and has no publish workflow; publishing needs a separate explicit instruction.
@@ -261,8 +262,7 @@ Doctor selects a profile using the precedence above; only when multiple profiles
 Without any configured profiles it reports `PROFILE_REQUIRED` before HTTP.
 `doctor` performs one bounded `detection list --limit 1` window per selected QUX profile and reports configuration, connectivity, authentication and access failures with a nonzero exit status when any profile fails.
 The window uses the normal bounded collection retries and budgets; OAuth profiles may also perform their named credential exchange.
-RUX profiles keep the exchange-only check: `doctor` checks each selected RUX profile with its named OAuth exchange alone rather than a detection journey.
-See the read leaves above for shipped RUX resource commands.
+RUX profiles keep the exchange-only check: `doctor` checks each selected RUX profile with its named OAuth exchange alone; resource reads use the leaves documented above.
 Success and recovery commands preserve the checked config path and profile, using shell quoting and inline `--profile=<name>` syntax.
 It never tries passwords, signs in interactively or enables writes.
 The static skill at `skills/vectra-axi/SKILL.md` is installed only by explicit setup (`npx skills add knowttl/vectra-axi --skill vectra-axi`); no ordinary command installs hooks, plugins or configuration.
