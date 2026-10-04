@@ -463,6 +463,19 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
 
+  "lockdown list": {
+    // The kind selects the host or account status route; there is no
+    // execution leaf, so no action flag exists to validate here.
+    description: "List QUX host or account lockdown status through the status routes",
+    flags: {
+      ...globals,
+      type: { kind: "value", valueName: "kind", description: "Lockdown status kind: host or account (required)" },
+    },
+    examples: [
+      "vectra-axi lockdown list --profile <name> --type host",
+      "vectra-axi lockdown list --profile <name> --type account",
+    ],
+  },
 };
 
 function flagSyntax(name: string, flag: Flag): string {

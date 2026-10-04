@@ -48,6 +48,8 @@ describe("capability inventory", () => {
       "qux.host.note.list",
       "qux.host.show",
       "qux.host.tag.list",
+      "qux.lockdown.account.list",
+      "qux.lockdown.host.list",
       "qux.triage-rule.list",
       "qux.triage-rule.show",
       "qux.user.list",

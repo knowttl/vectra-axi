@@ -2212,8 +2212,8 @@
           "locator": "pp51-53"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-08; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-08; runtime support in src/lockdown.ts.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -2323,8 +2323,8 @@
           "locator": "pp51-53"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-08; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-08; runtime support in src/lockdown.ts.",
       "fixtureCases": [
         "success",
         "access-denied",
