@@ -399,6 +399,29 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi assignment list --profile <name> --cursor <cursor>",
     ],
   },
+  "assignment set": {
+    // Desired-state host/account assignment through the WRITE-00 gate
+    // pipeline (src/assignment-set.ts). Exactly one entity selector
+    // (--host xor --account) and exactly one desired state (--user xor
+    // --unassign); detections have no assignment route and resolving stays
+    // a separate operation with no leaf.
+    description: "Set a QUX host or account assignment to an exact user through the gated write pipeline",
+    flags: {
+      ...globals,
+      host: { kind: "value", valueName: "id", description: "Host ID whose assignment to set (positive integer, required with no --account)" },
+      account: { kind: "value", valueName: "id", description: "Account ID whose assignment to set (positive integer, required with no --host)" },
+      user: { kind: "value", valueName: "id", description: "User ID to assign the entity to (positive integer, required with no --unassign)" },
+      unassign: { kind: "boolean", description: "Clear the entity assignment; cannot be combined with --user" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target host|account <id> when executing a change" },
+      execute: { kind: "boolean", description: "Send the change after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi assignment set --profile <name> --host 7 --user 3",
+      "vectra-axi assignment set --profile <name> --host 7 --user 3 --execute --confirm 'host 7'",
+      "vectra-axi assignment set --profile <name> --account 7 --unassign --execute --confirm 'account 7'",
+    ],
+  },
   "assignment outcome list": {
     description: "List QUX or RUX assignment outcomes with a bounded window",
     flags: {

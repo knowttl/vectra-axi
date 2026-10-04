@@ -22,6 +22,9 @@ describe("capability inventory", () => {
       .map((operation) => operation.id)
       .sort();
     expect(named).toEqual([
+      "qux.account.assignment.create",
+      "qux.account.assignment.reassign",
+      "qux.account.assignment.unassign",
       "qux.account.list",
       "qux.account.note.add",
       "qux.account.note.list",
@@ -48,6 +51,9 @@ describe("capability inventory", () => {
       "qux.health.event.list",
       "qux.health.list",
       "qux.health.show",
+      "qux.host.assignment.create",
+      "qux.host.assignment.reassign",
+      "qux.host.assignment.unassign",
       "qux.host.list",
       "qux.host.note.add",
       "qux.host.note.list",

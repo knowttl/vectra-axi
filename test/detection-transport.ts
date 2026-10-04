@@ -68,7 +68,11 @@ const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/users/3", { status: 200, body: user3 }],
   ["https://fixture.invalid/api/v2.5/users?username=nobody&page_size=100",
     { status: 200, body: { results: [], count: 0 } }],
-  // READ-07: health snapshots are single versioned bodies with cached/fresh
+  // WRITE-03: the gated host assignment set reads the entity-filtered
+  // unresolved list and validates the target user before its preview
+  // read and its send; the accepted create answers 201.
+  ["https://fixture.invalid/api/v2.5/assignments?hosts=7&resolved=false&page_size=100",
+    { status: 200, body: { results: [], count: 0 } }],
   // semantics from the request flags; the event feed is one checkpoint batch
   // per read with its returned checkpoint, never a computed next ID.
   ["https://fixture.invalid/api/v2.5/health",
@@ -199,6 +203,9 @@ const responses = new Map<string, { status: number; body: unknown }>([
 const mutations = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/tagging/host/7", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/detections/42/notes", { status: 200, body: {} }],
+  ["https://fixture.invalid/api/v2.5/assignments", { status: 201,
+    body: { assignment: { id: 21, host_id: 7, account_id: null, date_resolved: null,
+      assigned_to: { id: 3, username: "soc-analyst" } } } }],
 ]);
 
 https.request = ((options: RequestOptions, callback: (response: IncomingMessage) => void): ClientRequest => {
@@ -211,7 +218,8 @@ https.request = ((options: RequestOptions, callback: (response: IncomingMessage)
   const ruxExchange = url === "https://fixture.invalid/oauth2/token" && options.method === "POST"
     && (headers.Authorization ?? "").startsWith("Basic ")
     && headers["Content-Type"] === "application/x-www-form-urlencoded";
-  const allowedMethod = options.method === "GET" || options.method === "PATCH" || options.method === "POST";
+  const allowedMethod = options.method === "GET" || options.method === "PATCH" || options.method === "POST"
+    || options.method === "PUT" || options.method === "DELETE";
   // RUX-02: cloud resource reads carry the exchanged Bearer token.
   const ruxResource = options.method === "GET" && headers.Authorization === "Bearer packaged-rux-token";
   if (!fixture || !(allowedMethod && headers.Authorization === "Token packaged-detection-token"
