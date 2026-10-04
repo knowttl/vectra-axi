@@ -175,8 +175,8 @@
           "locator": "pp30-33"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-02; `host list` maps catalogue flags to the recorded query keys.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -214,8 +214,8 @@
           "locator": "pp30-33; VAT get_host_by_id"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-02; `host show` decodes the recorded detail fields with its kind retained.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -323,8 +323,8 @@
           "locator": "pp24-27"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-02; `account list` maps catalogue flags to the recorded query keys.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -362,8 +362,8 @@
           "locator": "pp24-27; VAT get_account_by_id"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-02; `account show` decodes the recorded detail fields with its kind retained.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -2092,7 +2092,9 @@
       "query": [
         "t_score_gte",
         "c_score_gte",
-        "tags"
+        "tags",
+        "min_id",
+        "max_id"
       ],
       "fields": [
         "id",
@@ -2109,8 +2111,8 @@
           "locator": "pp30-33"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-02; `entity list --type host` runs through this facade record, never a merged ranking.",
       "fixtureCases": [
         "type-required",
         "host-account-same-numeric-id",
@@ -2144,8 +2146,8 @@
           "locator": "pp30-33"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-02; `entity show --type host --id` runs through this facade record.",
       "fixtureCases": [
         "type-required",
         "host-account-same-numeric-id",
@@ -2201,7 +2203,9 @@
       "query": [
         "t_score_gte",
         "c_score_gte",
-        "tags"
+        "tags",
+        "min_id",
+        "max_id"
       ],
       "fields": [
         "id",
@@ -2218,8 +2222,8 @@
           "locator": "pp24-27"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-02; `entity list --type account` runs through this facade record, never a merged ranking.",
       "fixtureCases": [
         "type-required",
         "host-account-same-numeric-id",
@@ -2253,8 +2257,8 @@
           "locator": "pp24-27"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-02; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-02; `entity show --type account --id` runs through this facade record.",
       "fixtureCases": [
         "type-required",
         "host-account-same-numeric-id",

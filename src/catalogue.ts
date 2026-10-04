@@ -82,6 +82,100 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi detection show --profile <name> --id 42 --full",
     ],
   },
+  "host list": {
+    // Filter flags cover the inventory's conservative qux.host.list query
+    // subset. Score filters keep QUX display names while mapping to the wire
+    // t_score_gte/c_score_gte keys in src/entities.ts.
+    description: "List QUX hosts with server-side filters and a bounded window",
+    flags: {
+      ...globals,
+      "threat-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum threat score" },
+      "certainty-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum certainty score" },
+      tags: { kind: "value", valueName: "tags", description: "Filter by server-side tags" },
+      "min-id": { kind: "value", valueName: "id", description: "Server-side minimum host ID (non-negative integer)" },
+      "max-id": { kind: "value", valueName: "id", description: "Server-side maximum host ID (non-negative integer)" },
+      limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,name,state,threat,certainty" },
+      cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
+    },
+    examples: [
+      "vectra-axi host list --profile <name> --threat-gte 70",
+      "vectra-axi host list --profile <name> --fields id,name,threat",
+      "vectra-axi host list --profile <name> --cursor <cursor>",
+    ],
+  },
+  "host show": {
+    description: "Show one QUX host in full detail",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Host ID to show (positive integer, required)" },
+    },
+    examples: [
+      "vectra-axi host show --profile <name> --id 19",
+    ],
+  },
+  "account list": {
+    // Same conservative query subset as hosts, per the qux.account.list record.
+    description: "List QUX accounts with server-side filters and a bounded window",
+    flags: {
+      ...globals,
+      "threat-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum threat score" },
+      "certainty-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum certainty score" },
+      tags: { kind: "value", valueName: "tags", description: "Filter by server-side tags" },
+      "min-id": { kind: "value", valueName: "id", description: "Server-side minimum account ID (non-negative integer)" },
+      "max-id": { kind: "value", valueName: "id", description: "Server-side maximum account ID (non-negative integer)" },
+      limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,name,state,threat,certainty" },
+      cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
+    },
+    examples: [
+      "vectra-axi account list --profile <name> --threat-gte 70",
+      "vectra-axi account list --profile <name> --fields id,name,threat",
+      "vectra-axi account list --profile <name> --cursor <cursor>",
+    ],
+  },
+  "account show": {
+    description: "Show one QUX account in full detail",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Account ID to show (positive integer, required)" },
+    },
+    examples: [
+      "vectra-axi account show --profile <name> --id 19",
+    ],
+  },
+  "entity list": {
+    // Type-qualified facade over host/account list: --type is required and
+    // selects one kind's operation, never a merged ranking. The facade
+    // CLI exposes no min/max ID flags and its fields carry no state;
+    // the session still permits ID keys in server continuation links.
+    description: "List QUX entities of one kind with server-side filters and a bounded window",
+    flags: {
+      ...globals,
+      type: { kind: "value", valueName: "kind", description: "Entity kind to list: host or account (required)" },
+      "threat-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum threat score" },
+      "certainty-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum certainty score" },
+      tags: { kind: "value", valueName: "tags", description: "Filter by server-side tags" },
+      limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,name,threat,certainty" },
+      cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
+    },
+    examples: [
+      "vectra-axi entity list --profile <name> --type host",
+      "vectra-axi entity list --profile <name> --type account --threat-gte 70",
+    ],
+  },
+  "entity show": {
+    description: "Show one QUX entity of one kind in full detail",
+    flags: {
+      ...globals,
+      type: { kind: "value", valueName: "kind", description: "Entity kind to show: host or account (required)" },
+      id: { kind: "value", valueName: "id", description: "Entity ID to show (positive integer, required)" },
+    },
+    examples: [
+      "vectra-axi entity show --profile <name> --type host --id 19",
+    ],
+  },
 };
 
 function flagSyntax(name: string, flag: Flag): string {
@@ -109,10 +203,13 @@ export function parseInvocation(argv: readonly string[]): {
   leaf: string; flags: ReadonlyMap<string, string | boolean>; help: boolean; home: boolean;
 } {
   const home = argv.length === 0 || argv[0]?.startsWith("-") === true;
-  // Two-word leaves (`detection list`, `detection show`) resolve from the
-  // first two tokens; single-word leaves resolve from the first alone.
+  // Two-word leaves (`detection list`, `host show`, `entity list`, ...) resolve
+  // from the first two tokens when the pair names a catalogue entry;
+  // single-word leaves resolve from the first alone.
+  const pair = argv[0] !== undefined && argv[1] !== undefined && !argv[1].startsWith("-")
+    ? `${argv[0]} ${argv[1]}` : undefined;
   const leaf = home ? "home"
-    : argv[0] === "detection" && (argv[1] === "list" || argv[1] === "show") ? `detection ${argv[1]}`
+    : pair !== undefined && Object.hasOwn(catalogue, pair) ? pair
     : argv[0]!;
   const entry = Object.hasOwn(catalogue, leaf) ? catalogue[leaf]! : undefined;
   const usage = (message: string): never => {
@@ -123,7 +220,7 @@ export function parseInvocation(argv: readonly string[]): {
     ]);
   };
   const attempted = home ? "home"
-    : argv[0] === "detection" && argv[1] !== undefined ? `detection ${argv[1]}` : argv[0]!;
+    : pair !== undefined ? pair : argv[0]!;
   if (!entry) usage(`Unknown command: ${attempted}`);
   const flags = new Map<string, string | boolean>();
   const args = home ? argv : argv.slice(leaf.includes(" ") ? 2 : 1);

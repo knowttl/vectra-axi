@@ -397,7 +397,7 @@ const deniedDestinations: [string, string, SessionRequestOptions["pathParams"], 
   ["different tag owner", "qux.account.tag.list", { id: 7 }, "/api/v2.5/tagging/account/8"],
   ["different group", "qux.group.member.list", { id: 7 }, "/api/v2.5/groups/8/members?page=2"],
   ["different health check", "qux.health.show", { check: "cpu" }, "/api/v2.5/health/disk"],
-  ["query from a sibling operation", "qux.entity.host.list", undefined, "/api/v2.5/hosts?min_id=9"],
+  ["unsupported entity query", "qux.entity.host.list", undefined, "/api/v2.5/hosts?ordering=-id"],
 ];
 
 it.each(deniedDestinations)("rejects a redirect to %s before forwarding credentials", async (_name, operation, pathParams, location) => {

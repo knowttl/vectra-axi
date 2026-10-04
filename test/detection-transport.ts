@@ -8,6 +8,8 @@ import { PassThrough } from "node:stream";
 
 const first = { id: 1, detection_type: "synthetic-type", state: "active", threat: null, certainty: 80 };
 const second = { ...first, id: 2, threat: 72 };
+const host7 = { id: 7, name: "synthetic-host-7", state: "active", threat: 90, certainty: 80 };
+const account7 = { id: 7, name: "synthetic-account-7", state: "active", threat: 10, certainty: 20 };
 const next = "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2";
 const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/detections?ordering=-id",
@@ -22,6 +24,10 @@ const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/detections?state=denied", { status: 403, body: {} }],
   ["https://fixture.invalid/api/v2.5/detections?state=malformed",
     { status: 200, body: { results: [first, { ...second, threat: "high" }], count: 2 } }],
+  ["https://fixture.invalid/api/v2.5/hosts/7", { status: 200, body: host7 }],
+  ["https://fixture.invalid/api/v2.5/accounts/7", { status: 200, body: account7 }],
+  ["https://fixture.invalid/api/v2.5/hosts?t_score_gte=70",
+    { status: 200, body: { results: [host7], count: 1 } }],
 ]);
 
 https.request = ((options: RequestOptions, callback: (response: IncomingMessage) => void): ClientRequest => {
