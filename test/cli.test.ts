@@ -753,7 +753,7 @@ it("shows unconfigured state with closed stdin and a clean home", () => {
   expect(result.stdout).toContain("bin:");
   expect(result.stdout).toContain("vectra-axi.js");
   expect(result.stdout).toContain("state: unconfigured\nprofiles: 0");
-  expect(result.stdout).toContain("detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health and lockdown reads");
+  expect(result.stdout).toContain("See README.md for shipped operations and write restrictions");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });
