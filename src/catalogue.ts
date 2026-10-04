@@ -45,8 +45,9 @@ export const catalogue: Readonly<Record<string, {
   },
   doctor: {
     // See README.md#release for generation-specific checks and safety
-    // constraints; src/doctor.ts implements the leaf.
-    description: "Check profile configuration with one bounded detection read per profile",
+    // constraints; src/doctor.ts implements the leaf: one bounded detection
+    // read per QUX profile, the named OAuth exchange alone per RUX profile.
+    description: "Check profile configuration with one bounded detection read per QUX profile or OAuth exchange per RUX profile",
     flags: globals,
     examples: [
       "vectra-axi doctor",
@@ -167,7 +168,7 @@ export const catalogue: Readonly<Record<string, {
       "certainty-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum certainty score" },
       tags: { kind: "value", valueName: "tags", description: "Filter by server-side tags" },
       limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
-      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,name,threat,certainty" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,name,threat,certainty on QUX or id,name,type,urgency_score,importance on RUX" },
       cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
     },
     examples: [

@@ -17,9 +17,11 @@ const token = "fake-token-SENTINEL";
 
 beforeEach(() => {
   process.env.SENTINEL_TOKEN = token;
+  process.env.CLOUD_SECRET = "fake-cloud-secret-SENTINEL";
 });
 afterEach(() => {
   delete process.env.SENTINEL_TOKEN;
+  delete process.env.CLOUD_SECRET;
   rmSync(path, { force: true });
 });
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
@@ -460,4 +462,168 @@ it("keeps --help exclusive with --profile on detection leaves", () => {
     .toThrow(expect.objectContaining({
       code: "VALIDATION_ERROR", message: "--help cannot be combined with --profile",
     }));
+});
+
+// RUX-02: the same caller operations run against the documented v3.4 routes
+// on a cloud profile. The fake answers the named unversioned exchange, then
+// delegates resource GETs to the per-test responder.
+const ruxProfile = {
+  kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth",
+  clientId: "synthetic-client", secretEnv: "CLOUD_SECRET",
+};
+
+function cloudSession(transport: RawTransport): Session {
+  writeFileSync(path, JSON.stringify({ profiles: { cloud: ruxProfile } }));
+  const loaded = loadConfig(path, new SecretRedactor());
+  return createSession({ profile: selectProfile(loaded.config, "cloud"), configPath: loaded.path,
+    redactor: new SecretRedactor(), transport });
+}
+
+function cloudFixture(respond: (url: string) => { status: number; bodyText: string }): RawTransport {
+  return async (request) => {
+    if (request.method === "POST") {
+      expect(request.url).toBe("https://fixture.invalid/oauth2/token");
+      return { status: 200, bodyText: JSON.stringify(
+        { access_token: "fake-cloud-access-token", token_type: "Bearer", expires_in: 3600 }) };
+    }
+    return respond(request.url);
+  };
+}
+
+const ruxDetection = (id: number, extra: Record<string, unknown> = {}) => ({
+  id, detection_type: "synthetic-type", state: "active", threat: 70 + id, certainty: 80, ...extra,
+});
+const ruxListPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
+  status: 200, bodyText: JSON.stringify({ results: rows, ...extra }),
+});
+const ruxNext = "https://fixture.invalid/api/v3.4/detections/?state=active&page=2";
+
+it("maps catalogue flags to the v3.4 detection route on a cloud profile", async () => {
+  let url = "";
+  const transport = cloudFixture((next) => {
+    url = next;
+    return ruxListPage([ruxDetection(1)], { count: 1 });
+  });
+  const result = await runDetectionList(cloudSession(transport),
+    flags(["detection", "list", "--profile", "cloud", "--state", "active",
+      "--threat-gte", "70", "--min-id", "1"]));
+  expect(url).toBe("https://fixture.invalid/api/v3.4/detections/?state=active&threat_gte=70&min_id=1&page_size=100");
+  expect(result).toEqual({ failed: false, output: {
+    profile: "cloud",
+    total: 1,
+    count: "1 detections",
+    detections: [{ id: 1, detection_type: "synthetic-type", state: "active", threat: 71, certainty: 80 }],
+    complete: true,
+    help: ["Run `vectra-axi detection show --profile cloud --id 1` for full detail"],
+  } });
+});
+
+it("shows one cloud detection with its cloud-scoped ID", async () => {
+  const urls: string[] = [];
+  const transport = cloudFixture((url) => {
+    urls.push(url);
+    return { status: 200, bodyText: JSON.stringify({ ...ruxDetection(7), description: "cloud detail" }) };
+  });
+  const result = await runDetectionShow(cloudSession(transport),
+    flags(["detection", "show", "--profile", "cloud", "--id", "7"]));
+  expect(urls).toEqual(["https://fixture.invalid/api/v3.4/detections/7/"]);
+  expect(result).toEqual({ failed: false, output: {
+    profile: "cloud",
+    id: 7,
+    detection_type: "synthetic-type",
+    state: "active",
+    threat: 77,
+    certainty: 80,
+    description: "cloud detail",
+  } });
+});
+
+it("lists a cloud detection, shows it, and resumes the capped window", async () => {
+  const urls: string[] = [];
+  const transport = cloudFixture((url) => {
+    urls.push(url);
+    if (url === "https://fixture.invalid/api/v3.4/detections/1/") {
+      return { status: 200, bodyText: JSON.stringify({ ...ruxDetection(1), description: "cloud detail" }) };
+    }
+    if (url === ruxNext) return ruxListPage([ruxDetection(2)], { count: 2 });
+    return ruxListPage([ruxDetection(1)], { count: 2, next: ruxNext });
+  });
+  const owned = cloudSession(transport);
+  const listed = await runDetectionList(owned,
+    flags(["detection", "list", "--profile", "cloud", "--state", "active", "--limit", "1"]));
+  expect(listed.output).toMatchObject({
+    profile: "cloud", count: "1 of 2 detections", complete: true, cursor: expect.any(String),
+  });
+  expect(listed.output.help).toContain("Run `vectra-axi detection show --profile cloud --id 1` for full detail");
+  const shown = await runDetectionShow(owned,
+    flags(["detection", "show", "--profile", "cloud", "--id", "1"]));
+  expect(shown.output).toMatchObject({ profile: "cloud", id: 1, description: "cloud detail" });
+  const resumed = await runDetectionList(owned,
+    flags(["detection", "list", "--profile", "cloud", "--state", "active",
+      "--cursor", listed.output.cursor as string]));
+  expect(resumed.output).toMatchObject({ profile: "cloud", complete: true });
+  expect([...listed.output.detections as unknown[], ...resumed.output.detections as unknown[]]).toHaveLength(2);
+  expect(urls).toEqual([
+    "https://fixture.invalid/api/v3.4/detections/?state=active&page_size=100",
+    "https://fixture.invalid/api/v3.4/detections/1/",
+    ruxNext,
+  ]);
+});
+
+it("refuses an on-prem cursor on a cloud profile", async () => {
+  let calls = 0;
+  const quxTransport: RawTransport = async () => {
+    calls += 1;
+    return listPage([detection(1)], { count: 2, next: nextPage });
+  };
+  const first = await runDetectionList(session(quxTransport),
+    flags(["detection", "list", "--state", "active", "--limit", "1"]));
+  const owned = cloudSession(cloudFixture(() => {
+    calls += 1;
+    return ruxListPage([]);
+  }));
+  await expect(runDetectionList(owned,
+    flags(["detection", "list", "--state", "active", "--cursor", first.output.cursor as string])))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR",
+      message: expect.stringContaining("the cursor belongs to qux.detection.list, not rux.detection.list") });
+  expect(calls).toBe(1);
+});
+
+it("surfaces an embedded note summary without a note-list hint on a cloud profile", async () => {
+  const transport = cloudFixture(() => ({
+    status: 200, bodyText: JSON.stringify({ ...ruxDetection(1), description: "cloud detail", note: "cloud summary" }),
+  }));
+  const result = await runDetectionShow(cloudSession(transport),
+    flags(["detection", "show", "--profile", "cloud", "--id", "1"]));
+  expect(result.output).toMatchObject({ profile: "cloud", id: 1, note_summary: "cloud summary" });
+  expect(result.output).not.toHaveProperty("help");
+});
+
+it("reports a denied cloud detection window with its error and cursor", async () => {
+  const transport = cloudFixture(() => ({ status: 403, bodyText: "{}" }));
+  const result = await runDetectionList(cloudSession(transport),
+    flags(["detection", "list", "--profile", "cloud"]));
+  expect(result).toMatchObject({ failed: true, output: {
+    profile: "cloud", complete: false, code: "ACCESS_DENIED", cursor: expect.any(String),
+  } });
+});
+
+it("follows a slashless cloud detection continuation to a complete window", async () => {
+  const initial = "https://fixture.invalid/api/v3.4/detections/?state=active&page_size=100";
+  const next = "https://fixture.invalid/api/v3.4/detections?state=active&page=2";
+  const resumed = "https://fixture.invalid/api/v3.4/detections/?state=active&page=2";
+  const urls: string[] = [];
+  const transport = cloudFixture((url) => {
+    urls.push(url);
+    if (url === initial) return ruxListPage([ruxDetection(1)], { count: 2, next });
+    if (url === resumed) return ruxListPage([ruxDetection(2)], { count: 2 });
+    throw new Error(`Unexpected synthetic request: ${url}`);
+  });
+  const result = await runDetectionList(cloudSession(transport),
+    flags(["detection", "list", "--profile", "cloud", "--state", "active"]));
+  expect(result).toMatchObject({ failed: false, output: {
+    profile: "cloud", total: 2, complete: true, detections: [{ id: 1 }, { id: 2 }],
+  } });
+  expect(result.output).not.toHaveProperty("cursor");
+  expect(urls).toEqual([initial, resumed]);
 });

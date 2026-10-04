@@ -6,10 +6,9 @@ Prerequisite is READ-01 merged as `c8db788` (PR https://github.com/knowttl/vectr
 
 ## What shipped
 
-See the [capability records](../inventory/capabilities.json) for operation dispositions: `qux.host.list`, `qux.host.show`, `qux.account.list`, `qux.account.show` and the four `qux.entity.*` facade records are named; everything else keeps its prior disposition.
+See the [capability records](../inventory/capabilities.json) for operation dispositions.
 The [entity module](../src/entities.ts) owns flag-to-query mapping, row decoding, field projection and output shaping for all six leaves.
-`host list`/`account list` run through their direct collection operations; `entity list --type <kind>` runs through the matching `qux.entity.<kind>.list` record.
-See [README.md](../README.md) for CLI filter restrictions and continuation behavior; the [capability records](../inventory/capabilities.json) own session query allowlists.
+See [README.md](../README.md) for generation-specific host/account/entity routing, CLI filter restrictions and continuation behavior; the [capability records](../inventory/capabilities.json) own session query allowlists.
 `runHostShow`, `runAccountShow` and `runEntityShow` decode one detail body and retain its resource kind in the output.
 [cli.ts](../src/cli.ts) validates `--type` and flag values before profile selection, builds the session on the injected transport, and sets exit 1 for partial reads while keeping their rows.
 `main(argv, transport)` accepts a `RawTransport` so tests drive the full leaf path through the real session; production passes `nodeTransport()` by default.

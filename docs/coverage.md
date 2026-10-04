@@ -8,9 +8,9 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 
 ## Counts
 
-- named: 35
+- named: 43
 - reviewed-raw: 0
-- planned: 40
+- planned: 32
 - blocked: 2
 - unavailable: 0
 - deprecated: 0
@@ -49,14 +49,14 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 | `qux.health.list` | health list | READ-07 | qux 2.5 | none | named |
 | `qux.health.show` | health show | READ-07 | qux 2.5 | none | named |
 | `qux.health.event.list` | health event list | READ-07 | qux 2.5 | checkpoint | named |
-| `rux.detection.list` | detection list | RUX-02 | rux 3.4 | collection | planned |
-| `rux.detection.show` | detection show | RUX-02 | rux 3.4 | none | planned |
-| `rux.host.list` | host list | RUX-02 | rux 3.4 | collection | planned |
-| `rux.host.show` | host show | RUX-02 | rux 3.4 | none | planned |
+| `rux.detection.list` | detection list | RUX-02 | rux 3.4 | collection | named |
+| `rux.detection.show` | detection show | RUX-02 | rux 3.4 | none | named |
+| `rux.host.list` | host list | RUX-02 | rux 3.4 | collection | named |
+| `rux.host.show` | host show | RUX-02 | rux 3.4 | none | named |
 | `rux.host.note.list` | host note list | RUX-04 | rux 3.4 | none | planned |
 | `rux.host.tag.list` | host tag list | RUX-04 | rux 3.4 | none | planned |
-| `rux.account.list` | account list | RUX-02 | rux 3.4 | collection | planned |
-| `rux.account.show` | account show | RUX-02 | rux 3.4 | none | planned |
+| `rux.account.list` | account list | RUX-02 | rux 3.4 | collection | named |
+| `rux.account.show` | account show | RUX-02 | rux 3.4 | none | named |
 | `rux.account.note.list` | account note list | RUX-04 | rux 3.4 | none | planned |
 | `rux.account.tag.list` | account tag list | RUX-04 | rux 3.4 | none | planned |
 | `rux.detection.note.list` | detection note list | RUX-04 | rux 3.4 | none | planned |
@@ -81,8 +81,8 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 | `qux.entity.account.list` | entity list | READ-02 | qux 2.5 | collection | named |
 | `qux.entity.account.show` | entity show | READ-02 | qux 2.5 | none | named |
 | `qux.lockdown.account.list` | lockdown list | READ-08 | qux 2.5 | none | named |
-| `rux.entity.list` | entity list | RUX-02 | rux 3.4 | collection | planned |
-| `rux.entity.show` | entity show | RUX-02 | rux 3.4 | none | planned |
+| `rux.entity.list` | entity list | RUX-02 | rux 3.4 | collection | named |
+| `rux.entity.show` | entity show | RUX-02 | rux 3.4 | none | named |
 | `rux.lockdown.list` | lockdown list | RUX-06 | rux 3.4 | none | planned |
 | `rux.detection.event.list` | detection event list | RUX-03 | rux 3.4 | checkpoint | planned |
 | `rux.entity.scoring.list` | entity scoring list | RUX-03 | rux 3.4 | checkpoint | planned |

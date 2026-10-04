@@ -1,16 +1,14 @@
 ---
 name: vectra-axi
-description: Use vectra-axi for Vectra SOC inspection - detections, hosts, accounts, notes, tags, assignments, groups, triage rules, audits, health and lockdown status on on-prem Quadrant UX, plus gated desired-state tag replaces.
+description: Use vectra-axi for Vectra SOC inspection through explicit profiles, plus gated desired-state tag replaces.
 user-invocable: false
 ---
 
 # vectra-axi
 
-Agent-ergonomic CLI for Vectra AI, read-only by default. On-prem Quadrant UX
-(QUX v2.5) SOC reads through token-efficient TOON output, plus gated
-desired-state tag replaces (`detection|host|account tag set`) for
-hand-enabled profiles.
-See [README.md](../../README.md) for shipped write restrictions.
+Agent-ergonomic CLI for Vectra AI, read-only by default, through token-efficient TOON output.
+Gated desired-state tag replaces (`detection|host|account tag set`) require hand-enabled profiles.
+See [README.md](../../README.md) for shipped reads by deployment and write restrictions.
 
 Run `vectra-axi doctor` first.
 See [README release guidance](../../README.md#release) for its profile selection, bounded checks and recovery behavior.

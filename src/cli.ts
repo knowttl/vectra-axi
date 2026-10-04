@@ -163,7 +163,8 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (leaf.endsWith(" list")) {
       entityListQuery(flags, facade);
       entityListLimit(flags);
-      entityListFields(flags, facade);
+      // Before profile selection, accept either generation's field names.
+      entityListFields(flags, facade, null);
     } else {
       entityShowId(flags, leaf);
     }

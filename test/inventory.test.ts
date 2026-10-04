@@ -57,6 +57,14 @@ describe("capability inventory", () => {
       "qux.triage-rule.show",
       "qux.user.list",
       "qux.user.show",
+      "rux.account.list",
+      "rux.account.show",
+      "rux.detection.list",
+      "rux.detection.show",
+      "rux.entity.list",
+      "rux.entity.show",
+      "rux.host.list",
+      "rux.host.show",
     ]);
   });
 

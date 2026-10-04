@@ -626,3 +626,13 @@ it("exposes no raw transport, fetch handle or credential material", async () => 
   expect("transport" in owned && "fetch" in owned).toBe(false);
   expect(JSON.stringify(owned)).not.toContain(token);
 });
+
+it("accepts a single trailing-slash variation but refuses a different RUX route", () => {
+  const owned = session(vi.fn<RawTransport>(), ruxProfile);
+  expect(owned.resolveContinuation("rux.detection.list", "/api/v3.4/detections?page=2"))
+    .toBe("https://fixture.invalid/api/v3.4/detections?page=2");
+  const transport = vi.fn<RawTransport>();
+  expect(() => session(transport, ruxProfile).resolveContinuation("rux.detection.list", "/api/v3.4/hosts/?page=2"))
+    .toThrow(expect.objectContaining({ code: "DESTINATION_DENIED" }));
+  expect(transport).not.toHaveBeenCalled();
+});
