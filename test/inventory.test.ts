@@ -11,8 +11,17 @@ describe("capability inventory", () => {
 
   it("makes no runtime support claim before CLI and endpoint slices ship", () => {
     expect(inventorySchema.parse(inventory).operations.every((operation) =>
-      operation.disposition === "planned" || operation.disposition === "blocked",
+      operation.disposition === "planned" || operation.disposition === "blocked"
+      || operation.disposition === "named",
     )).toBe(true);
+  });
+
+  it("marks only the shipped READ-01 detections as named", () => {
+    const named = inventorySchema.parse(inventory).operations
+      .filter((operation) => operation.disposition === "named")
+      .map((operation) => operation.id)
+      .sort();
+    expect(named).toEqual(["qux.detection.list", "qux.detection.show"]);
   });
 
   it.each([

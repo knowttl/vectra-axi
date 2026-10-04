@@ -117,19 +117,64 @@ it("shows unconfigured state with closed stdin and a clean home", () => {
   expect(result.stdout).toContain("bin:");
   expect(result.stdout).toContain("vectra-axi.js");
   expect(result.stdout).toContain("state: unconfigured\nprofiles: 0");
-  expect(result.stdout).toContain("api: No API operations are implemented");
+  expect(result.stdout).toContain("api: QUX v2.5 detection list/show");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });
 
-it.each([{ path: [] }, { path: ["home"] }, { path: ["setup"] }])("provides offline help for $path", ({ path }) => {
+it.each([{ path: [] as string[], leaf: false }, { path: ["home"], leaf: true }, { path: ["setup"], leaf: true }])(
+    "provides offline help for $path", ({ path, leaf }) => {
   const result = invoke([...path, "--help"]);
   expect(result.status).toBe(0);
   expect(result.stdout).toContain("examples[");
   expect(result.stdout).toContain('"--help": Show concise help; default false');
   expect(result.stdout).toContain('"--profile <name>": "Select a profile by name');
   expect(result.stdout).toContain("--help cannot be combined with --profile");
-  expect(result.stdout).not.toContain("detection list");
+  if (leaf) expect(result.stdout).not.toContain("detection list");
+  else expect(result.stdout).toContain("detection list");
+  expect(result.stderr).toBe("");
+});
+
+it.each([
+  { path: ["detection", "list"], flag: '"--state <state>"' },
+  { path: ["detection", "show"], flag: '"--id <id>"' },
+])("provides offline help for $path", ({ path, flag }) => {
+  const result = invoke([...path, "--help"]);
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("examples[");
+  expect(result.stdout).toContain(flag);
+  expect(result.stdout).toContain('"--profile <name>"');
+  expect(result.stdout).toContain("--help cannot be combined with --profile");
+  expect(result.stderr).toBe("");
+});
+
+it.each([
+  ["list help with an invalid explicit config", ["detection", "list", "--help", "--config", join(scratch, "absent.json")]],
+  ["show help with an invalid explicit config", ["detection", "show", "--help", "--config", join(scratch, "absent.json")]],
+])("keeps %s offline", (_name, args) => {
+  const result = invoke(args);
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("examples[");
+  expect(result.stderr).toBe("");
+});
+
+it("reports a missing profile for detection reads as a runtime error on stdout", () => {
+  const result = invoke(["detection", "list", "--state", "active"]);
+  expect(result.status).toBe(1);
+  expect(result.stdout).toContain("code: PROFILE_REQUIRED");
+  expect(result.stderr).toBe("");
+});
+
+it.each([
+  ["unknown detection leaf", ["detection", "note"], "Unknown command: detection note"],
+  ["bare detection group", ["detection"], "Unknown command: detection"],
+  ["unknown list flag", ["detection", "list", "--stat", "active"], "Unknown flag: --stat"],
+  ["unknown show flag", ["detection", "show", "--id", "7", "--limit", "5"], "Unknown flag: --limit"],
+])("rejects %s before any profile or network work", (_name, args, message) => {
+  const result = invoke(args);
+  expect(result.status).toBe(2);
+  expect(result.stdout).toContain(message);
+  expect(result.stdout).toContain("code: VALIDATION_ERROR");
   expect(result.stderr).toBe("");
 });
 
@@ -149,7 +194,7 @@ it.each([
   ["boolean value", ["setup", "--help=false"], "does not accept a value"],
   ["positional input", ["setup", "extra"], "Unexpected argument"],
   ["literal help", ["setup", "--", "--help"], "Unknown flag: --"],
-  ["planned endpoint", ["detection", "list"], "Unknown command: detection"],
+  ["planned endpoint", ["host", "list"], "Unknown command: host"],
   ["prototype command", ["constructor"], "Unknown command: constructor"],
   ["version combination", ["--version", "--help"], "Unknown flag: --version"],
   ["unknown flag before profile", ["home", "--typo", "--profile=lab"], "Unknown flag: --typo"],
@@ -192,7 +237,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup");
+  expect(result.stdout).toContain("Available commands: home, setup, detection list, detection show");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });

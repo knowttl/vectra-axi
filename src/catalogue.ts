@@ -43,6 +43,45 @@ export const catalogue: Readonly<Record<string, {
     flags: globals,
     examples: ["vectra-axi setup", "vectra-axi setup --help"],
   },
+  "detection list": {
+    // Filter flags cover the inventory's conservative qux.detection.list
+    // query subset. Kebab-case names map to snake_case keys in
+    // src/detections.ts; values pass through to the server.
+    description: "List QUX detections with server-side filters and a bounded window",
+    flags: {
+      ...globals,
+      state: { kind: "value", valueName: "state", description: "Filter by server-side detection state" },
+      "detection-type": { kind: "value", valueName: "type", description: "Filter by server-side detection type" },
+      "detection-category": { kind: "value", valueName: "category", description: "Filter by server-side detection category" },
+      "host-id": { kind: "value", valueName: "id", description: "Filter by server-side host ID (non-negative integer)" },
+      tags: { kind: "value", valueName: "tags", description: "Filter by server-side tags" },
+      "certainty-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum certainty" },
+      "threat-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum threat" },
+      ordering: { kind: "value", valueName: "ordering", description: "Server-side result ordering" },
+      "min-id": { kind: "value", valueName: "id", description: "Server-side minimum detection ID (non-negative integer)" },
+      "max-id": { kind: "value", valueName: "id", description: "Server-side maximum detection ID (non-negative integer)" },
+      limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,detection_type,state,threat,certainty" },
+      cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
+    },
+    examples: [
+      "vectra-axi detection list --profile <name> --state active --limit 100",
+      "vectra-axi detection list --profile <name> --threat-gte 70 --fields id,state,threat",
+      "vectra-axi detection list --profile <name> --cursor <cursor>",
+    ],
+  },
+  "detection show": {
+    description: "Show one QUX detection in full detail",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Detection ID to show (positive integer, required)" },
+      full: { kind: "boolean", description: "Show the complete description; default previews long text" },
+    },
+    examples: [
+      "vectra-axi detection show --profile <name> --id 42",
+      "vectra-axi detection show --profile <name> --id 42 --full",
+    ],
+  },
 };
 
 function flagSyntax(name: string, flag: Flag): string {
@@ -70,7 +109,11 @@ export function parseInvocation(argv: readonly string[]): {
   leaf: string; flags: ReadonlyMap<string, string | boolean>; help: boolean; home: boolean;
 } {
   const home = argv.length === 0 || argv[0]?.startsWith("-") === true;
-  const leaf = home ? "home" : argv[0]!;
+  // Two-word leaves (`detection list`, `detection show`) resolve from the
+  // first two tokens; single-word leaves resolve from the first alone.
+  const leaf = home ? "home"
+    : argv[0] === "detection" && (argv[1] === "list" || argv[1] === "show") ? `detection ${argv[1]}`
+    : argv[0]!;
   const entry = Object.hasOwn(catalogue, leaf) ? catalogue[leaf]! : undefined;
   const usage = (message: string): never => {
     throw new AxiError(message, "VALIDATION_ERROR", [
@@ -79,9 +122,11 @@ export function parseInvocation(argv: readonly string[]): {
       `Run vectra-axi${entry ? ` ${leaf}` : ""} --help`,
     ]);
   };
-  if (!entry) usage(`Unknown command: ${leaf}`);
+  const attempted = home ? "home"
+    : argv[0] === "detection" && argv[1] !== undefined ? `detection ${argv[1]}` : argv[0]!;
+  if (!entry) usage(`Unknown command: ${attempted}`);
   const flags = new Map<string, string | boolean>();
-  const args = home ? argv : argv.slice(1);
+  const args = home ? argv : argv.slice(leaf.includes(" ") ? 2 : 1);
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]!;
     if (!arg.startsWith("--")) usage(`Unexpected argument: ${arg}`);

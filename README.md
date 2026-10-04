@@ -1,8 +1,8 @@
 # vectra-axi
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
-The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter and CORE-02 bounded collection reader with retries, cancellation and partial results are implemented.
-No command leaf calls the session yet, so no Vectra API operation is reachable from the CLI.
+The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, and READ-01 detection list/show leaves are implemented.
+`detection list` and `detection show` call the session; every other Vectra API operation remains planned or blocked.
 The selected direction is TypeScript, on-prem QUX reads first, and a later RUX adapter for cloud migration.
 
 - [Design and source evidence](docs/design.md)
@@ -97,6 +97,18 @@ Cancellation reports `REQUEST_CANCELLED`; cancellation and deadline expiry abort
 Runtime failures retain validated rows with `complete: false`, an error and a cursor at the pending page, including failures before any rows are returned.
 Caller usage errors throw before HTTP; checkpoint and date-window operations are rejected rather than decoded as collections.
 See the [CORE-02 handoff](docs/core-02-handoff.md) for the integration interface and the [implementation plan](docs/implementation-plan.md#session-and-investigation-slices) for acceptance and deferred command integration.
+
+`detection list --profile <name>` reads QUX v2.5 detections through the session and the bounded collection reader.
+Filter flags map one-to-one to the recorded server-side query keys: `--state`, `--detection-type`, `--detection-category`, `--host-id`, `--tags`, `--certainty-gte`, `--threat-gte`, `--ordering`, `--min-id` and `--max-id`.
+Filtering is server-side; unsupported values fail at the server and surface as read errors rather than silent client-side scans.
+List rows project the recorded field subset `id`, `detection_type`, `state`, `threat` and `certainty`; `--fields` selects a comma-separated subset and rejects unknown fields before any HTTP call.
+`--limit` sets the row window (default 100); a capped window returns a cursor, and resuming with `--cursor` repeats the original filters because the cursor binds its query context.
+Successful output carries the profile, a known-or-null total, a shown count, the rows, completeness and follow-up help, including a `detection show` suggestion for the first row.
+An empty window succeeds with an explicit `0 detections found ...` message; a partial window keeps its validated rows with `complete: false`, an inline error and a cursor, and exits 1.
+`detection show --profile <name> --id <id>` reads one detection's recorded detail fields.
+Long descriptions are previewed with their total length and a `--full` hint; `--full` prints the complete returned text but cannot restore content the response omits.
+Both leaves validate flags, reject unknown commands and combinations, and report missing or denied profiles before any credential or HTTP work.
+Hosts, accounts and type-qualified entities stay READ-02; notes and tags stay READ-03; no business write leaf exists.
 
 For OAuth, replace `auth` and `tokenEnv` with `"auth": "oauth"`, `"clientId": "synthetic-client"` and `"secretEnv": "VECTRA_LAB_SECRET"`.
 Set the variable named by `secretEnv` outside the CLI.
