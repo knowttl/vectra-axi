@@ -14,13 +14,22 @@ import { failedRead, parseRetryAfter, type Session, type SessionRequestOptions }
 
 export type Clock = {
   now(): number;
-  sleep(ms: number): Promise<void>;
+  sleep(ms: number, signal?: AbortSignal): Promise<void>;
 };
 
 const realClock: Clock = {
   now: () => Date.now(),
-  sleep: (ms) => new Promise((resolve) => {
-    setTimeout(resolve, ms);
+  sleep: (ms, signal) => new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(cancelledError());
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(cancelledError());
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
   }),
 };
 
@@ -136,7 +145,7 @@ function withPageSize(
 }
 
 function canonical(value: Record<string, Scalar> | Record<string, string | number>): string {
-  return JSON.stringify(Object.keys(value).sort().map((key) => [key, value[key]]));
+  return JSON.stringify(Object.keys(value).sort().map((key) => [key, String(value[key])]));
 }
 
 function cursorInvalid(detail: string): AxiError {
@@ -204,13 +213,15 @@ function cancelledError(): AxiError {
   ]);
 }
 
+function deadlineError(deadlineMs: number): AxiError {
+  return new AxiError(`Collection read exceeded its ${deadlineMs}ms deadline`, "DEADLINE_EXCEEDED", [
+    "Narrow the read with a smaller limit or filters, then resume from the returned cursor",
+  ]);
+}
+
 function ensureLive(signal: AbortSignal | undefined, clock: Clock, deadlineAt: number, deadlineMs: number): void {
   if (signal?.aborted) throw cancelledError();
-  if (clock.now() >= deadlineAt) {
-    throw new AxiError(`Collection read exceeded its ${deadlineMs}ms deadline`, "DEADLINE_EXCEEDED", [
-      "Narrow the read with a smaller limit or filters, then resume from the returned cursor",
-    ]);
-  }
+  if (clock.now() >= deadlineAt) throw deadlineError(deadlineMs);
 }
 
 function cancellableSleep(clock: Clock, ms: number, signal: AbortSignal | undefined): Promise<void> {
@@ -222,7 +233,7 @@ function cancellableSleep(clock: Clock, ms: number, signal: AbortSignal | undefi
       reject(cancelledError());
     };
     signal.addEventListener("abort", onAbort, { once: true });
-    clock.sleep(ms).then(
+    clock.sleep(ms, signal).then(
       () => {
         signal.removeEventListener("abort", onAbort);
         resolve();
@@ -267,10 +278,24 @@ async function fetchPageWithRetry(args: {
     }
     counter.count += 1;
     try {
-      const response = await session.request(operation, { pathParams, query: pageQuery });
-      return response.body;
+      const controller = new AbortController();
+      const onAbort = (): void => controller.abort();
+      signal?.addEventListener("abort", onAbort, { once: true });
+      try {
+        const response = await Promise.race([
+          session.request(operation, { pathParams, query: pageQuery }),
+          cancellableSleep(clock, deadlineAt - clock.now(), controller.signal).then(() => {
+            throw deadlineError(policy.deadlineMs);
+          }),
+        ]);
+        ensureLive(signal, clock, deadlineAt, policy.deadlineMs);
+        return response.body;
+      } finally {
+        signal?.removeEventListener("abort", onAbort);
+        controller.abort();
+      }
     } catch (error) {
-      if (signal?.aborted) throw cancelledError();
+      ensureLive(signal, clock, deadlineAt, policy.deadlineMs);
       const transient = transientWait(error, clock.now());
       if (transient === undefined || attempt + 1 >= policy.maxAttempts) throw error;
       const backoff = Math.min(policy.baseDelayMs * 2 ** attempt, policy.maxDelayMs);
@@ -389,12 +414,6 @@ async function runPages(run: PageRun): Promise<CollectionResult> {
       pending = { page: pageQuery, offset };
       ensureLive(signal, clock, deadlineAt, policy.deadlineMs);
       const key = canonical(pageQuery);
-      if (seen.has(key)) {
-        throw new AxiError(`Collection page repeated its continuation for ${operation}`, "CONTINUATION_REPEATED", [
-          "The server returned a page already seen in this read; validated rows were retained",
-          "Resume the read with the returned cursor after the collection settles",
-        ]);
-      }
       const body = await fetchPageWithRetry({
         session, operation, pathParams, pageQuery, policy, clock, signal, deadlineAt, counter,
       });
@@ -414,9 +433,10 @@ async function runPages(run: PageRun): Promise<CollectionResult> {
         );
       }
       const available = page.rows.slice(offset);
-      offset = 0;
       const take = Math.min(available.length, remaining);
       rows.push(...available.slice(0, take));
+      offset += take;
+      pending.offset = offset;
       remaining -= take;
       if (remaining === 0) {
         const rest = available.length - take;
@@ -425,14 +445,6 @@ async function runPages(run: PageRun): Promise<CollectionResult> {
           return { rows, total, complete: true,
             cursor: cursorFor(pageQuery, page.rows.length - rest, DEFAULT_COLLECTION_LIMIT) };
         }
-        if (page.next === null) return { rows, total, complete: true };
-        let validated: string;
-        try {
-          validated = session.resolveContinuation(operation, page.next, { pathParams });
-        } catch (error) {
-          throw new AdvanceFailed(error);
-        }
-        return { rows, total, complete: true, cursor: cursorFor(parseQuery(validated), 0, DEFAULT_COLLECTION_LIMIT) };
       }
       if (page.next === null) return { rows, total, complete: true };
       let validated: string;
@@ -441,7 +453,18 @@ async function runPages(run: PageRun): Promise<CollectionResult> {
       } catch (error) {
         throw new AdvanceFailed(error);
       }
-      pageQuery = parseQuery(validated);
+      const nextQuery = parseQuery(validated);
+      if (seen.has(canonical(nextQuery))) {
+        throw new AxiError(`Collection page repeated its continuation for ${operation}`, "CONTINUATION_REPEATED", [
+          "The server returned a page already seen in this read; validated rows were retained",
+          "Resume the read with the returned cursor after the collection settles",
+        ]);
+      }
+      if (remaining === 0) {
+        return { rows, total, complete: true, cursor: cursorFor(nextQuery, 0, DEFAULT_COLLECTION_LIMIT) };
+      }
+      pageQuery = nextQuery;
+      offset = 0;
     }
   } catch (error) {
     if (error instanceof AdvanceFailed) return partial(error.failure);

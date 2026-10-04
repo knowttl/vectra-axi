@@ -17,6 +17,7 @@ beforeEach(() => {
   vi.stubEnv("SENTINEL_TOKEN", token);
 });
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.clearAllMocks();
   rmSync(path, { force: true });
@@ -43,14 +44,26 @@ function fakeClock() {
   const started: number[] = [];
   const clock: Clock = {
     now: () => now,
-    sleep: (ms: number) => new Promise<void>((resolve) => {
+    sleep: (ms: number, signal?: AbortSignal) => new Promise<void>((resolve, reject) => {
       started.push(ms);
-      waits.push({ at: now + ms, resolve });
+      const onAbort = (): void => {
+        waits.splice(waits.indexOf(wait), 1);
+        reject(new Error("aborted"));
+      };
+      const wait = { at: now + ms, resolve: () => {
+        signal?.removeEventListener("abort", onAbort);
+        resolve();
+      } };
+      waits.push(wait);
+      signal?.addEventListener("abort", onAbort, { once: true });
     }),
   };
   const advance = async (ms: number): Promise<void> => {
     now += ms;
-    for (const wait of waits.splice(0).filter((wait) => wait.at <= now)) wait.resolve();
+    for (const wait of [...waits].filter((wait) => wait.at <= now)) {
+      waits.splice(waits.indexOf(wait), 1);
+      wait.resolve();
+    }
   };
   const flush = async (rounds = 50): Promise<void> => {
     for (let index = 0; index < rounds; index++) await Promise.resolve();
@@ -155,7 +168,7 @@ it("retries a rate-limited page after its Retry-After wait", async () => {
   const { clock, advance, flush, started } = fakeClock();
   const pending = collect(session(transport), "qux.detection.list", { clock });
   await flush();
-  expect(started).toEqual([5000]);
+  expect(started).toEqual([60_000, 5000]);
   await advance(5000);
   expect(await pending).toEqual({ rows: ids(2), total: 2, complete: true });
   expect(transport).toHaveBeenCalledTimes(2);
@@ -168,7 +181,7 @@ it("retries with backoff when Retry-After is unusable", async () => {
   const { clock, advance, flush, started } = fakeClock();
   const pending = collect(session(transport), "qux.detection.list", { clock });
   await flush();
-  expect(started).toEqual([500]);
+  expect(started).toEqual([60_000, 500]);
   await advance(500);
   expect(await pending).toEqual({ rows: ids(1), total: 1, complete: true });
 });
@@ -181,7 +194,7 @@ it("honors an HTTP-date Retry-After through the fake clock", async () => {
   const { clock, advance, flush, started } = fakeClock();
   const pending = collect(session(transport), "qux.detection.list", { clock });
   await flush();
-  expect(started).toEqual([2000]);
+  expect(started).toEqual([60_000, 2000]);
   await advance(2000);
   expect(await pending).toEqual({ rows: ids(1), total: 1, complete: true });
 });
@@ -196,7 +209,7 @@ it("reports when a Retry-After delay exceeds the remaining deadline", async () =
   expect(result).toMatchObject({ rows: [], complete: false });
   expect(result.error).toMatchObject({ code: "DEADLINE_EXCEEDED" });
   expect(String(result.error?.message)).toContain("exceeds the remaining");
-  expect(started).toEqual([]);
+  expect(started).toEqual([1000]);
   expect(transport).toHaveBeenCalledTimes(1);
 });
 
@@ -211,7 +224,7 @@ it("surfaces the last failure after bounded transient retries", async () => {
   const result = await pending;
   expect(result).toMatchObject({ complete: false });
   expect(result.error).toMatchObject({ code: "REQUEST_FAILED" });
-  expect(started).toEqual([500, 1000]);
+  expect(started).toEqual([60_000, 500, 59_500, 1000, 58_500]);
   expect(transport).toHaveBeenCalledTimes(3);
 });
 
@@ -238,6 +251,78 @@ it("stops at the byte budget without consuming the breaching page", async () => 
   expect(result).toMatchObject({ rows: [], complete: false });
   expect(result.error).toMatchObject({ code: "BYTE_BUDGET_EXCEEDED" });
   expect(result.cursor).toBeDefined();
+});
+
+it.each([
+  ["cancel", (controller: AbortController, _advance: (ms: number) => Promise<void>) => controller.abort(), "REQUEST_CANCELLED"],
+  ["deadline", (_controller: AbortController, advance: (ms: number) => Promise<void>) => advance(1000), "DEADLINE_EXCEEDED"],
+] as const)("stops an in-flight read on %s before accepting late rows", async (_stop, stopRead, code) => {
+  const controller = new AbortController();
+  let respond!: (response: Awaited<ReturnType<RawTransport>>) => void;
+  const transport = vi.fn<RawTransport>(() => new Promise((resolve) => { respond = resolve; }));
+  const { clock, advance, flush, pending: waits } = fakeClock();
+  const pending = collect(session(transport), "qux.detection.list", {
+    clock, signal: controller.signal, policy: { deadlineMs: 1000 },
+  });
+  await flush();
+  await stopRead(controller, advance);
+  const result = await pending;
+  expect(result).toMatchObject({ rows: [], complete: false,
+    error: { code } });
+  expect(waits()).toBe(0);
+  respond(page(ids(2)));
+  await flush();
+  expect(result.rows).toEqual([]);
+  expect(transport).toHaveBeenCalledTimes(1);
+});
+
+it("rejects a successful response whose arrival exceeds the deadline", async () => {
+  const { clock, advance } = fakeClock();
+  const transport = vi.fn<RawTransport>(async () => {
+    await advance(2000);
+    return page(ids(2));
+  });
+  const result = await collect(session(transport), "qux.detection.list", {
+    clock, policy: { deadlineMs: 1000 },
+  });
+  expect(result).toMatchObject({ rows: [], complete: false, error: { code: "DEADLINE_EXCEEDED" } });
+});
+
+it.each([1, 5])("resumes after a denied continuation without replaying rows at limit %i", async (limit) => {
+  const transport = vi.fn<RawTransport>()
+    .mockResolvedValueOnce(page(ids(1), { next: "https://collector.invalid/api/v2.5/detections" }))
+    .mockResolvedValueOnce(page(ids(1), { next: nextPage }))
+    .mockResolvedValueOnce(page(ids(1, 2)));
+  const owned = session(transport);
+  const first = await collect(owned, "qux.detection.list", { limit });
+  expect(first).toMatchObject({ rows: ids(1), complete: false, error: { code: "DESTINATION_DENIED" } });
+  const second = await resume(owned, "qux.detection.list", first.cursor!);
+  expect(second).toEqual({ rows: ids(1, 2), total: null, complete: true });
+});
+
+it.each([
+  [9, "9", 2], [9, "9", 100], [true, "true", 2], ["9", "9", 2],
+] as const)("detects wire-equivalent repeated continuations for %s (%s) at limit %i", async (minId, wire, limit) => {
+  const transport = vi.fn<RawTransport>().mockResolvedValue(page(ids(2), {
+    next: `https://fixture.invalid/api/v2.5/detections?min_id=${wire}`,
+  }));
+  const result = await collect(session(transport), "qux.detection.list", {
+    query: { min_id: minId }, limit,
+  });
+  expect(result).toMatchObject({ rows: ids(2), complete: false, error: { code: "CONTINUATION_REPEATED" } });
+  expect(transport).toHaveBeenCalledTimes(1);
+});
+
+it("releases the real Retry-After timer when cancelled", async () => {
+  vi.useFakeTimers();
+  const controller = new AbortController();
+  const transport = vi.fn<RawTransport>().mockResolvedValue({ status: 429, retryAfter: "30", bodyText: "busy" });
+  const pending = collect(session(transport), "qux.detection.list", { signal: controller.signal });
+  await fakeClock().flush();
+  expect(vi.getTimerCount()).toBe(1);
+  controller.abort();
+  expect(await pending).toMatchObject({ complete: false, error: { code: "REQUEST_CANCELLED" } });
+  expect(vi.getTimerCount()).toBe(0);
 });
 
 it("stops at the request budget and resumes the pending page", async () => {
