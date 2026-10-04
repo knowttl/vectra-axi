@@ -1,31 +1,49 @@
-import { AxiError, runAxiCli } from "axi-sdk-js";
+import { runAxiCli } from "axi-sdk-js";
 import { catalogue, DESCRIPTION, help, inventory, parseInvocation } from "./catalogue.js";
+import { loadConfig, selectProfile } from "./profiles.js";
+import { SecretRedactor } from "./redact.js";
 
 export async function main(argv = process.argv.slice(2)): Promise<void> {
   let invocation: ReturnType<typeof parseInvocation>;
+  const redactor = new SecretRedactor();
+  const stdout = {
+    write: (chunk: string) => process.stdout.write(redactor.text(chunk)),
+    on: process.stdout.on.bind(process.stdout),
+  };
   await runAxiCli({
     description: DESCRIPTION,
     // Route all input through the catalogue before SDK shortcuts or handlers.
-    initialize: () => { invocation = parseInvocation(argv); },
+    initialize: () => redactor.boundary(() => { invocation = parseInvocation(argv); }),
     argv: argv.length === 0 ? [] : ["shell"],
     topLevelHelp: "",
-    home: () => state(),
+    stdout,
+    home: () => redactor.boundary(state),
     commands: {
-      shell: () => invocation.help ? help(invocation.home ? undefined : invocation.leaf) : state(),
+      shell: () => redactor.boundary(() => invocation.help ? help(invocation.home ? undefined : invocation.leaf) : state()),
     },
   });
 
   function state(): Record<string, unknown> {
-    if (invocation.flags.has("profile")) {
-      throw new AxiError("No profiles are configured; profile configuration is planned in AUTH-01", "PROFILE_REQUIRED", [
-        "Run vectra-axi setup",
-      ]);
-    }
+    const loaded = loadConfig(invocation.flags.get("config") as string | undefined, redactor);
+    const count = Object.keys(loaded.config.profiles).length;
+    const selected = count || invocation.flags.has("profile") || process.env.VECTRA_AXI_PROFILE
+      ? selectProfile(loaded.config, invocation.flags.get("profile") as string | undefined) : undefined;
     return {
       ...(invocation.home ? {} : { command: `vectra-axi ${invocation.leaf}` }),
-      state: "unconfigured",
-      profiles: 0,
-      setup: "Profile configuration is planned in AUTH-01; session integration is planned in PACK-01",
+      state: selected ? "configured" : "unconfigured",
+      profiles: count,
+      ...(selected ? { profile: {
+        name: selected.name, source: selected.source, kind: selected.kind, origin: selected.origin,
+        apiVersion: selected.apiVersion, ...(selected.applianceRelease ? { applianceRelease: selected.applianceRelease } : {}),
+        auth: selected.auth, tls: selected.caBundle ? "verified with private CA" : "verified with system CAs",
+        writes: "disabled",
+      } } : {}),
+      setup: {
+        config: loaded.path,
+        guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use tokenEnv references",
+        example: { profiles: { lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "VECTRA_LAB_TOKEN" } } },
+        integration: "Session integration is planned in PACK-01",
+      },
       capabilities: {
         implemented: Object.keys(catalogue),
         api: "No API operations are implemented",

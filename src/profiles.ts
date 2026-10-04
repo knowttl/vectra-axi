@@ -1,0 +1,88 @@
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
+import { AxiError } from "axi-sdk-js";
+import { z } from "zod";
+import type { SecretRedactor } from "./redact.js";
+
+const nonempty = z.string().trim().min(1);
+const profileSchema = z.strictObject({
+  kind: z.literal("qux"),
+  origin: z.string().refine((value) => {
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:" && value === url.origin && !url.username && !url.password;
+    } catch { return false; }
+  }),
+  apiVersion: z.literal("2.5"),
+  applianceRelease: nonempty.optional(),
+  auth: z.literal("token"),
+  tokenEnv: z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/),
+  caBundle: nonempty.optional(),
+});
+const configSchema = z.strictObject({
+  defaultProfile: nonempty.optional(),
+  profiles: z.record(nonempty, profileSchema),
+}).refine((config) => config.defaultProfile === undefined || Object.hasOwn(config.profiles, config.defaultProfile));
+
+export type Profile = z.infer<typeof profileSchema>;
+export type Config = z.infer<typeof configSchema>;
+export type LoadedConfig = { path: string; config: Config };
+export type SelectedProfile = Profile & {
+  name: string;
+  source: "flag" | "env" | "config-default" | "sole";
+};
+
+export function loadConfig(explicit?: string, redactor?: SecretRedactor): LoadedConfig {
+  const selected = explicit ?? process.env.VECTRA_AXI_CONFIG;
+  const path = selected === undefined ? join(homedir(), ".vectra-axi", "config.json") : resolve(selected);
+  let raw: unknown;
+  try {
+    raw = JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    if (selected === undefined && (error as NodeJS.ErrnoException).code === "ENOENT") {
+      return { path, config: { profiles: {} } };
+    }
+    throw new AxiError("Cannot read profile configuration as JSON", "CONFIG_INVALID", [
+      "Check the selected config file's path, permissions and JSON syntax", "Run vectra-axi setup --help",
+    ]);
+  }
+  // Register references before validation: even an invalid profile must not leak its known secret.
+  if (raw && typeof raw === "object" && "profiles" in raw && raw.profiles && typeof raw.profiles === "object") {
+    for (const profile of Object.values(raw.profiles)) {
+      if (profile && typeof profile === "object") {
+        for (const field of ["tokenEnv", "secretEnv"] as const) {
+          if (field in profile && typeof profile[field] === "string") redactor?.add(process.env[profile[field]]);
+        }
+      }
+    }
+  }
+  const parsed = configSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new AxiError("Invalid profile configuration", "CONFIG_INVALID", [
+      "Use explicit kind qux, HTTPS origin, apiVersion 2.5, auth token and tokenEnv; secrets must be environment references",
+      "Remove mixed OAuth/token fields, UI-login fields and TLS bypass settings; OAuth and RUX are not implemented",
+      "Check defaultProfile names an existing profile; run vectra-axi setup --help",
+    ]);
+  }
+  return { path, config: parsed.data };
+}
+
+export function selectProfile(config: Config, flag?: string): SelectedProfile {
+  const names = Object.keys(config.profiles);
+  const env = process.env.VECTRA_AXI_PROFILE;
+  const name = flag ?? env ?? config.defaultProfile ?? (names.length === 1 ? names[0] : undefined);
+  if (names.length === 0 || name === undefined) {
+    throw new AxiError(names.length ? "Several profiles are configured and none is selected" : "No profiles are configured",
+      names.length ? "PROFILE_AMBIGUOUS" : "PROFILE_REQUIRED", [
+        "Run vectra-axi setup", "Pass --profile <name>, set VECTRA_AXI_PROFILE or configure defaultProfile",
+      ]);
+  }
+  if (!Object.hasOwn(config.profiles, name)) {
+    throw new AxiError("Selected profile is not configured", "PROFILE_NOT_FOUND", [
+      "Check --profile, VECTRA_AXI_PROFILE and defaultProfile; run vectra-axi setup",
+    ]);
+  }
+  return { ...config.profiles[name]!, name,
+    source: flag !== undefined ? "flag" : env !== undefined ? "env" : config.defaultProfile !== undefined ? "config-default" : "sole" };
+}
