@@ -68,6 +68,19 @@ it("reports packaged ambiguous-profile guidance", () => {
   expect(result.stderr).toBe("");
 });
 
+it("shows a packaged OAuth profile with no credential exchange or secret required", () => {
+  const config = join(scratch, "oauth.json");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "oauth", clientId: "synthetic-client", secretEnv: "UNSET_OAUTH_SECRET" } } }));
+  const result = invoke(["home", "--config", config]);
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("state: configured");
+  expect(result.stdout).toContain("auth: oauth");
+  expect(result.stdout).toContain("writes: disabled");
+  expect(result.stdout).not.toContain("synthetic-client");
+  expect(result.stderr).toBe("");
+});
+
 it("scrubs known secrets from packaged profile output", () => {
   const config = join(scratch, "redaction.json");
   const sentinel = "fake-secret-profile-SENTINEL";

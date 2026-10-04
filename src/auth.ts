@@ -7,6 +7,9 @@ import type { SecretRedactor } from "./redact.js";
 
 // Internal material for the future session, never a command result or authenticated fetch.
 export function resolveToken(profile: SelectedProfile, redactor: SecretRedactor): string {
+  if (profile.auth !== "token") {
+    throw new AxiError("Personal-token resolution requires auth token", "CONFIG_INVALID", ["Use the OAuth credential provider for auth oauth"]);
+  }
   const token = process.env[profile.tokenEnv];
   redactor.add(token);
   if (!token?.trim()) {

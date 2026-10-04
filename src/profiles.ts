@@ -7,7 +7,7 @@ import type { SecretRedactor } from "./redact.js";
 
 const nonempty = z.string().trim().min(1);
 const profileName = z.string().min(1).refine((value) => value === value.trim());
-const profileSchema = z.strictObject({
+const profileFields = {
   kind: z.literal("qux"),
   origin: z.string().refine((value) => {
     try {
@@ -17,10 +17,15 @@ const profileSchema = z.strictObject({
   }),
   apiVersion: z.literal("2.5"),
   applianceRelease: nonempty.optional(),
-  auth: z.literal("token"),
-  tokenEnv: z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/),
   caBundle: nonempty.optional(),
-});
+};
+const envReference = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/);
+const profileSchema = z.discriminatedUnion("auth", [
+  z.strictObject({ ...profileFields, auth: z.literal("token"), tokenEnv: envReference }),
+  z.strictObject({ ...profileFields, auth: z.literal("oauth"),
+    clientId: z.string().min(1).refine((value) => value === value.trim() && !/[:\s]/.test(value)),
+    secretEnv: envReference }),
+]);
 const configSchema = z.strictObject({
   defaultProfile: profileName.optional(),
   profiles: z.record(profileName, profileSchema),
@@ -61,8 +66,8 @@ export function loadConfig(explicit?: string, redactor?: SecretRedactor): Loaded
   const parsed = configSchema.safeParse(raw);
   if (!parsed.success) {
     throw new AxiError("Invalid profile configuration", "CONFIG_INVALID", [
-      "Use explicit kind qux, HTTPS origin, apiVersion 2.5, auth token and tokenEnv; secrets must be environment references",
-      "Remove mixed OAuth/token fields, UI-login fields and TLS bypass settings; OAuth and RUX are not implemented",
+      "Use kind qux, HTTPS origin and apiVersion 2.5; auth token requires tokenEnv; auth oauth requires clientId and secretEnv",
+      "Remove mixed OAuth/token fields, inline secrets, UI-login fields and TLS bypass settings; RUX is not implemented",
       "Check defaultProfile names an existing profile; run vectra-axi setup --help",
     ]);
   }

@@ -40,7 +40,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
       } } : {}),
       setup: {
         config: loaded.path,
-        guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use tokenEnv references",
+        guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use tokenEnv or secretEnv references",
         example: { profiles: { lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "VECTRA_LAB_TOKEN" } } },
         integration: "Session integration is planned in PACK-01",
       },
