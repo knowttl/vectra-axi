@@ -116,12 +116,33 @@ it("rejects unreadable private trust before transport", async () => {
 it.each([
   ["missing token", { access_token: undefined }], ["empty token", { access_token: "" }],
   ["header injection", { access_token: `${access}\r\nInjected: yes` }],
+  ["trailing newline", { access_token: `${access}\n` }],
+  ["lone high surrogate", { access_token: "\ud800" }], ["lone low surrogate", { access_token: "\udc00" }],
+  ["NUL", { access_token: "abc\u0000def" }], ["control character", { access_token: "abc\u001fdef" }],
+  ["DEL", { access_token: "abc\u007fdef" }], ["non-ASCII", { access_token: "abc\u00e9def" }],
+  ["non-Bearer punctuation", { access_token: "abc:def" }], ["interior padding", { access_token: "abc=def" }],
+  ["padding alone", { access_token: "=" }],
   ["wrong scheme", { token_type: "Token" }], ["missing scheme", { token_type: undefined }], ["missing expiry", { expires_in: undefined }],
   ["string expiry", { expires_in: "2" }], ["unbounded expiry", { expires_in: Infinity }],
 ])("rejects malformed response with %s", async (_name, fields) => {
   const transport = vi.fn<TokenTransport>().mockResolvedValue({ ...response, body: { ...response.body, ...fields } });
   await expect(provider(transport)()).rejects.toMatchObject({ code: "AUTH_RESPONSE_INVALID" });
   expect(transport).toHaveBeenCalledTimes(1);
+});
+
+it.each(["AZaz09-._~+/", "synthetic=", "synthetic=="])("accepts Bearer token syntax %s", async (access_token) => {
+  const transport = vi.fn<TokenTransport>().mockResolvedValue({ ...response, body: { ...response.body, access_token } });
+  expect(await provider(transport)()).toEqual({ header: `Bearer ${access_token}`, expiresAt: 1_002_000 });
+});
+
+it("does not cache an unsuitable access token", async () => {
+  const transport = vi.fn<TokenTransport>().mockResolvedValueOnce({ ...response, body: { ...response.body, access_token: "abc\u0000def" } })
+    .mockResolvedValue(response);
+  const resolve = provider(transport);
+  await expect(resolve()).rejects.toMatchObject({ code: "AUTH_RESPONSE_INVALID" });
+  expect(await resolve()).toEqual({ header: `Bearer ${access}`, expiresAt: 1_002_000 });
+  expect(await resolve()).toEqual({ header: `Bearer ${access}`, expiresAt: 1_002_000 });
+  expect(transport).toHaveBeenCalledTimes(2);
 });
 
 it("registers returned tokens even when an exchange response is denied", async () => {
@@ -147,10 +168,10 @@ it.each([
   [200, "AUTH_RESPONSE_INVALID"],
 ])("preserves status %s classification with unencodable returned tokens", async (status, code) => {
   const redactor = new SecretRedactor();
-  const body = { access_token: "\ud800", refresh_token: "\udc00" };
+  const body = { ...response.body, access_token: "\ud800", refresh_token: "\udc00" };
   const transport = vi.fn<TokenTransport>().mockResolvedValue({ status, body });
   await expect(provider(transport, {}, redactor)()).rejects.toMatchObject({ code });
-  expect(redactor.value(body)).toEqual({ access_token: "***redacted***", refresh_token: "***redacted***" });
+  expect(redactor.value(body)).toEqual({ ...body, access_token: "***redacted***", refresh_token: "***redacted***" });
 });
 
 it.each([0, -1])("reports already expired lifetime %s without retry", async (expires_in) => {

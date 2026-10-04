@@ -65,7 +65,7 @@ export function oauthCredentials(
         "Check the QUX v2.5 token endpoint and service availability; no automatic retry was attempted",
       ]);
     }
-    if (typeof body.access_token !== "string" || !body.access_token || /\s/.test(body.access_token)
+    if (typeof body.access_token !== "string" || !/^[A-Za-z0-9._~+/-]+=*$/.test(body.access_token) || /\s/.test(body.access_token)
       || typeof body.token_type !== "string" || body.token_type.toLowerCase() !== "bearer"
       || typeof body.expires_in !== "number" || !Number.isFinite(body.expires_in)
       || !Number.isSafeInteger(started + body.expires_in * 1000)) {
