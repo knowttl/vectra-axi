@@ -1,8 +1,8 @@
 # vectra-axi
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
-The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, and READ-01 detection list/show leaves are implemented.
-`detection list` and `detection show` call the session; every other Vectra API operation remains planned or blocked.
+The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, and READ-02 host/account/type-qualified entity leaves are implemented.
+`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list` and `entity show` call the session; every other Vectra API operation remains planned or blocked.
 The selected direction is TypeScript, on-prem QUX reads first, and a later RUX adapter for cloud migration.
 
 - [Design and source evidence](docs/design.md)
@@ -112,7 +112,15 @@ Detection IDs must be positive integers; nullable fields retain null, omitted fi
 Long descriptions are previewed with their total length and a `--full` hint; `--full` prints the complete returned text but cannot restore content the response omits.
 Both leaves validate flag values before loading configuration or selecting a profile, and reject unknown commands and combinations before credential or HTTP work.
 Missing profiles fail before HTTP; API access denials report `ACCESS_DENIED` with exit 1, never an empty success.
-Hosts, accounts and type-qualified entities stay READ-02; notes and tags stay READ-03; no business write leaf exists.
+
+`host list`, `host show`, `account list` and `account show` read QUX v2.5 entities through the same session and bounded collection reader.
+List filter flags map to the recorded server-side query keys: `--threat-gte`, `--certainty-gte`, `--tags`, `--min-id` and `--max-id`.
+Filtering is server-side; score filters keep their QUX display names at the CLI while the wire uses `t_score_gte`/`c_score_gte`.
+List rows project the recorded field subset `id`, `name`, `state`, `threat` and `certainty`; threat and certainty stay QUX scores and keep null instead of zero.
+`entity list --type <host|account>` and `entity show --type <host|account> --id <id>` are a type-qualified facade over the same routes: `--type` is required and selects one kind's operation, never a merged ranking.
+The facade query subset carries no min/max ID and its fields carry no state; unsupported filters fail explicitly before any HTTP call.
+Host 7 and account 7 are different objects, and every show output retains its resource kind for the next command.
+Type-qualified entity reads stay in this release; notes and tags stay READ-03; no business write leaf exists.
 
 For OAuth, replace `auth` and `tokenEnv` with `"auth": "oauth"`, `"clientId": "synthetic-client"` and `"secretEnv": "VECTRA_LAB_SECRET"`.
 Set the variable named by `secretEnv` outside the CLI.

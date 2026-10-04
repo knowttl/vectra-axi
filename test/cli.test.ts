@@ -93,6 +93,40 @@ it("investigates a detection through the packaged list, show, full and resume co
   ]);
 });
 
+it("keeps the same numeric host and account IDs distinct through the entity facade", () => {
+  const config = join(scratch, "entities.json");
+  const trace = join(scratch, "entities-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const hostShown = invoke(["host", "show", ...context, "--id", "7"], fixtureEnv);
+  expect(hostShown.status).toBe(0);
+  expect(hostShown.stderr).toBe("");
+  expect(decode(hostShown.stdout)).toMatchObject({ profile: "lab", type: "host", id: 7, threat: 90 });
+  const accountShown = invoke(["account", "show", ...context, "--id", "7"], fixtureEnv);
+  expect(accountShown.status).toBe(0);
+  expect(accountShown.stderr).toBe("");
+  expect(decode(accountShown.stdout)).toMatchObject({ profile: "lab", type: "account", id: 7, threat: 10 });
+  const listed = invoke(["entity", "list", ...context, "--type", "host", "--threat-gte", "70"], fixtureEnv);
+  expect(listed.status).toBe(0);
+  expect(listed.stderr).toBe("");
+  const listOutput = decode(listed.stdout) as Record<string, unknown>;
+  expect(listOutput).toMatchObject({ profile: "lab", type: "host", count: "1 hosts",
+    entities: [{ id: 7, name: "synthetic-host-7", threat: 90, certainty: 80 }], complete: true });
+  expect((listOutput.entities as Record<string, unknown>[])[0]).not.toHaveProperty("state");
+  const untyped = invoke(["entity", "list", ...context], fixtureEnv);
+  expect(untyped.status).toBe(2);
+  expect(untyped.stdout).toContain("--type");
+  expect(untyped.stderr).toBe("");
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/hosts/7" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/accounts/7" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/hosts?t_score_gte=70" },
+  ]);
+});
+
 it("forwards inline descending ordering through the packaged list command", () => {
   const config = join(scratch, "ordering.json");
   const trace = join(scratch, "ordering-requests.jsonl");
@@ -211,7 +245,7 @@ it("shows unconfigured state with closed stdin and a clean home", () => {
   expect(result.stdout).toContain("bin:");
   expect(result.stdout).toContain("vectra-axi.js");
   expect(result.stdout).toContain("state: unconfigured\nprofiles: 0");
-  expect(result.stdout).toContain("api: QUX v2.5 detection list/show");
+  expect(result.stdout).toContain("detection, host, account and type-qualified entity reads");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });
@@ -232,6 +266,8 @@ it.each([{ path: [] as string[], leaf: false }, { path: ["home"], leaf: true }, 
 it.each([
   { path: ["detection", "list"], flag: '"--state <state>"' },
   { path: ["detection", "show"], flag: '"--id <id>"' },
+  { path: ["host", "list"], flag: '"--threat-gte <score>"' },
+  { path: ["entity", "show"], flag: '"--type <kind>"' },
 ])("provides offline help for $path", ({ path, flag }) => {
   const result = invoke([...path, "--help"]);
   expect(result.status).toBe(0);
@@ -247,6 +283,8 @@ it.each([
   ["show help with an invalid explicit config", ["detection", "show", "--help", "--config", join(scratch, "absent.json")]],
   ["list help with invalid fields", ["detection", "list", "--help", "--fields", "score"]],
   ["show help with an invalid ID", ["detection", "show", "--help", "--id", "nope"]],
+  ["entity list help with an invalid explicit config", ["entity", "list", "--help", "--config", join(scratch, "absent.json")]],
+  ["entity show help with an invalid ID", ["entity", "show", "--help", "--id", "nope"]],
 ])("keeps %s offline", (_name, args) => {
   const result = invoke(args);
   expect(result.status).toBe(0);
@@ -262,7 +300,13 @@ it("reports a missing profile for detection reads as a runtime error on stdout",
 });
 
 it.each([
-  { args: ["detection", "show"], message: "detection show requires --id" },
+  { args: ["host", "show"], message: "host show requires --id" },
+  { args: ["account", "show", "--id", "0"], message: "--id must be a positive integer" },
+  { args: ["entity", "list"], message: "entity reads require --type" },
+  { args: ["entity", "list", "--type", "host", "--threat-gte", "high"], message: "--threat-gte must be a number" },
+  { args: ["entity", "show", "--type", "host"], message: "entity show requires --id" },
+  { args: ["host", "list", "--fields", "urgency"], message: "Unknown --fields value: urgency" },
+  { args: ["entity", "list", "--type", "host", "--fields", "state"], message: "Unknown --fields value: state" },
   { args: ["detection", "show", "--id", "0"], message: "--id must be a positive integer" },
   { args: ["detection", "show", "--id", "1.5"], message: "--id must be a positive integer" },
   { args: ["detection", "list", "--host-id", "1.5"], message: "--host-id must be a non-negative integer" },
@@ -286,6 +330,8 @@ it.each([
 });
 
 it.each([
+  ["unknown host flag", ["host", "list", "--state", "active"], "Unknown flag: --state"],
+  ["facade range flag", ["entity", "list", "--type", "host", "--min-id", "1"], "Unknown flag: --min-id"],
   ["unknown detection leaf", ["detection", "note"], "Unknown command: detection note"],
   ["bare detection group", ["detection"], "Unknown command: detection"],
   ["unknown list flag", ["detection", "list", "--stat", "active"], "Unknown flag: --stat"],
@@ -316,7 +362,7 @@ it.each([
   ["boolean value", ["setup", "--help=false"], "does not accept a value"],
   ["positional input", ["setup", "extra"], "Unexpected argument"],
   ["literal help", ["setup", "--", "--help"], "Unknown flag: --"],
-  ["planned endpoint", ["host", "list"], "Unknown command: host"],
+  ["planned endpoint", ["audit", "list"], "Unknown command: audit list"],
   ["prototype command", ["constructor"], "Unknown command: constructor"],
   ["version combination", ["--version", "--help"], "Unknown flag: --version"],
   ["unknown flag before profile", ["home", "--typo", "--profile=lab"], "Unknown flag: --typo"],
@@ -359,7 +405,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, detection list, detection show");
+  expect(result.stdout).toContain("Available commands: home, setup, detection list, detection show, host list, host show, account list, account show, entity list, entity show");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });
