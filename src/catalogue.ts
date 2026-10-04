@@ -332,6 +332,84 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi audit list --profile <name> --start-date 2026-10-01 --end-date 2026-10-02",
     ],
   },
+  "group list": {
+    // Filter flags cover the inventory's qux.group.list query subset.
+    // Type values pass through to the server with no client-side allowlist,
+    // so host, account, IP, domain and release-dependent AD kinds survive.
+    description: "List QUX groups with server-side filters and a bounded window",
+    flags: {
+      ...globals,
+      name: { kind: "value", valueName: "name", description: "Filter by server-side group name" },
+      type: { kind: "value", valueName: "kind", description: "Filter by server-side group kind; values pass through verbatim" },
+      limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,name,type" },
+      cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
+    },
+    examples: [
+      "vectra-axi group list --profile <name>",
+      "vectra-axi group list --profile <name> --type host",
+      "vectra-axi group list --profile <name> --cursor <cursor>",
+    ],
+  },
+  "group show": {
+    description: "Show one QUX group in full detail",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Group ID to show (positive integer, required)" },
+    },
+    examples: [
+      "vectra-axi group show --profile <name> --id 8",
+    ],
+  },
+  "group member list": {
+    // Membership comes only from the dedicated paged member route, never
+    // from embedded detail members capped at 2000 rows. The group ID is a
+    // path parameter, so windows stay scoped to one group and kinds are
+    // never merged into one ranking.
+    description: "List one QUX group's members through the paged member route",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Group ID whose members to list (positive integer, required)" },
+      name: { kind: "value", valueName: "name", description: "Filter by server-side member name" },
+      ordering: { kind: "value", valueName: "ordering", description: "Server-side result ordering" },
+      "is-key-asset": { kind: "value", valueName: "bool", description: "Filter by server-side key-asset flag: true or false" },
+      limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,name" },
+      cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
+    },
+    examples: [
+      "vectra-axi group member list --profile <name> --id 8",
+      "vectra-axi group member list --profile <name> --id 8 --cursor <cursor>",
+    ],
+  },
+  "triage rule list": {
+    // Filter flags cover the inventory's qux.triage-rule.list query subset
+    // minus the wire fields selector, which has no CLI flag: rows arrive
+    // whole and the CLI projects its recorded subset client-side.
+    description: "List QUX triage rules with server-side filters and a bounded window",
+    flags: {
+      ...globals,
+      contains: { kind: "value", valueName: "text", description: "Filter by server-side rule text match" },
+      ordering: { kind: "value", valueName: "ordering", description: "Server-side result ordering" },
+      limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,enabled,triage_category" },
+      cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
+    },
+    examples: [
+      "vectra-axi triage rule list --profile <name>",
+      "vectra-axi triage rule list --profile <name> --contains synthetic",
+    ],
+  },
+  "triage rule show": {
+    description: "Show one QUX triage rule in full detail",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Rule ID to show (positive integer, required)" },
+    },
+    examples: [
+      "vectra-axi triage rule show --profile <name> --id 7",
+    ],
+  },
 };
 
 function flagSyntax(name: string, flag: Flag): string {

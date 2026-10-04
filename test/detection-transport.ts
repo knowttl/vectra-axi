@@ -14,6 +14,11 @@ const openAssignment = { id: 11, host_id: 7, account_id: null, date_resolved: nu
 const resolvedAssignment = { id: 12, host_id: null, account_id: 7, date_resolved: "2026-09-30T12:00:00Z" };
 const outcome1 = { id: 1, title: "Benign True Positive", category: "benign_true_positive", builtin: true };
 const user3 = { id: 3, username: "soc-analyst" };
+const hostGroup8 = { id: 8, name: "synthetic-host-group", type: "host" };
+const member7 = { id: 7, name: "synthetic-host-7" };
+const rule7 = { id: 7, enabled: true, triage_category: "synthetic-triage",
+  description: "Synthetic automation", detection: "synthetic-detection", is_whitelist: false,
+  source_conditions: { OR: [] }, additional_conditions: null };
 const next = "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2";
 const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/detections?ordering=-id",
@@ -65,6 +70,14 @@ const responses = new Map<string, { status: number; body: unknown }>([
     { status: 200, body: [] }],
   ["https://fixture.invalid/api/v2.5/audits?start=2026-10-04&end=2026-10-04",
     { status: 403, body: {} }],
+  // READ-05: group kinds pass through verbatim, membership comes from the
+  // paged member route scoped to one group, and triage rules carry no
+  // benign verdict.
+  ["https://fixture.invalid/api/v2.5/groups?page_size=100",
+    { status: 200, body: { results: [hostGroup8], count: 1 } }],
+  ["https://fixture.invalid/api/v2.5/groups/8/members?page_size=100",
+    { status: 200, body: { results: [member7], count: 1 } }],
+  ["https://fixture.invalid/api/v2.5/rules/7", { status: 200, body: rule7 }],
 ]);
 
 https.request = ((options: RequestOptions, callback: (response: IncomingMessage) => void): ClientRequest => {
