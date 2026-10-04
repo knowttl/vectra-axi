@@ -2,8 +2,8 @@ import { AxiError } from "axi-sdk-js";
 import { z } from "zod";
 import type { Session } from "./session.js";
 
-// READ-03: QUX detection/host/account notes and tags through their actual
-// versioned routes. Notes come only from the dedicated notes resource; the
+// READ-03 and RUX-04 (part a): detection/host/account notes and tags through
+// their actual versioned routes. Notes come only from the dedicated notes resource; the
 // embedded note summary on detail bodies is decoded separately (see
 // embeddedNoteSummary) and never presented as full notes. Tag reads come
 // from the /tagging routes. Both families are paging:none single responses,
