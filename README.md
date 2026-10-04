@@ -85,7 +85,7 @@ The session itself does not retry: unmapped failure statuses report `REQUEST_FAI
 Same-origin redirects and continuation links must retain the operation's bound pathname, allowing only a single trailing slash difference, and declared query keys.
 Redirects are followed up to 3 hops; continuation links are validated and fetched by the bounded collection reader in `src/collections.ts`, which keeps every page inside the session's same-operation authorization.
 The production adapter verifies TLS, applies a 30-second deadline per HTTP request and limits each response body to 8 MiB, reporting `BYTE_BUDGET_EXCEEDED` when that limit is exceeded.
-Write policy configuration and enforcement live in the mutation coordinator in `src/writes.ts`; the only business writes available are the gated `tag set` replaces in `src/tags.ts`, the gated `note add` appends in `src/note-add.ts` and the gated `assignment set` changes in `src/assignment-set.ts`.
+Write policy configuration and enforcement live in the mutation coordinator in `src/writes.ts`; see the write usage below for supported business mutations.
 See [AUTH-01 handoff](docs/auth-01-handoff.md) for integration constraints and offline acceptance links.
 
 The internal collection reader defaults to a 100-row window; a successful bounded window returns `complete: true` and may still carry a cursor for more rows.
@@ -139,7 +139,7 @@ All three show leaves require a positive integer `--id`; null fields stay null, 
 Host/account show and QUX entity show return their corresponding list field subset with profile and type.
 These leaves validate flag shapes before configuration or profile selection, then check generation-specific entity fields and filters before credential or HTTP work.
 Host 7 and account 7 are different objects, and every show output retains its resource kind for the next command.
-Type-qualified entity, note, tag, assignment, group, member, triage rule, audit, health and lockdown reads stay in this release; the only business write leaves are the three gated `tag set` replaces, the three gated `note add` appends and the gated `assignment set` change.
+See the write usage below for supported business mutations.
 
 `<kind> note list --profile <name> --id <id>` reads full notes through the dedicated versioned notes resource for detections, hosts and accounts on either generation: QUX v2.5 on an on-prem profile or RUX v3.4 on a cloud profile.
 Note/tag leaves require a positive integer owner `--id`, validated before configuration or profile selection.
@@ -172,7 +172,8 @@ Exactly one of `--host <id>` or `--account <id>` selects the entity and exactly 
 The current open assignment is read through the entity-filtered unresolved assignment list, and the target user is validated through `user show` before preview and before send; unknown users are refused and nothing is sent.
 Every returned assignment row must include `assigned_to` (explicit null or a user object), the selected kind's identity field and a valid host or account identity; malformed rows report `RESPONSE_INVALID` before any mutation.
 An empty open-assignment list or an explicitly null assignee establishes an unassigned state; an omitted assignee never does.
-Assign sends POST `/assignments` with `assign_host_id` or `assign_account_id` plus `assign_to_user_id`, reassign sends PUT `/assignments/<assignment-id>` with only `assign_to_user_id` (the analyst moves, never the entity), and unassign sends DELETE `/assignments/<assignment-id>`; resolved history never selects a target and duplicate open assignments are refused rather than guessed.
+Reassignment changes the analyst, never the entity; resolved history never selects a target and duplicate open assignments are refused rather than guessed.
+The [capability records](inventory/capabilities.json) own the exact assignment mutation routes, payload fields and upstream evidence.
 The pre-send re-read refuses a moved assignment with `VERSION_CONFLICT`, unless it already equals the desired state, which is a no-op.
 This is a non-atomic comparison of assignment contents, not an ETag or server-side version check; a change after the re-read can still overwrite.
 Omitting `--execute` previews only; explicit `--dry-run` cannot be combined with `--execute`.
