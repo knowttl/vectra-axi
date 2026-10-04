@@ -8,9 +8,9 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 
 ## Counts
 
-- named: 78
+- named: 79
 - reviewed-raw: 0
-- planned: 6
+- planned: 5
 - blocked: 2
 - unavailable: 0
 - deprecated: 0
@@ -80,7 +80,7 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 | `rux.triage-rule.list` | triage rule list | RUX-05 | rux 3.4 | collection | named |
 | `rux.triage-rule.show` | triage rule show | RUX-05 | rux 3.4 | none | named |
 | `rux.group.member.list` | group member list | RUX-05 | rux 3.4 | collection | named |
-| `rux.audit.list` | audit list | RUX-03 | rux 3.4 | checkpoint | planned |
+| `rux.audit.list` | audit list | RUX-03 | rux 3.4 | checkpoint | named |
 | `rux.health.list` | health list | RUX-06 | rux 3.4 | none | named |
 | `rux.health.show` | health show | RUX-06 | rux 3.4 | none | named |
 | `rux.health.event.list` | health event list | RUX-06 | rux 3.4 | checkpoint | named |

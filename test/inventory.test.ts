@@ -73,6 +73,7 @@ describe("capability inventory", () => {
       "rux.assignment-outcome.list",
       "rux.assignment-outcome.show",
       "rux.assignment.list",
+      "rux.audit.list",
       "rux.detection.event.list",
       "rux.detection.list",
       "rux.detection.note.list",
