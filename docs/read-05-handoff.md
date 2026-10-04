@@ -9,6 +9,7 @@ Prerequisite is READ-02 merged as `c9acc45` (PR https://github.com/knowttl/vectr
 See the [capability records](../inventory/capabilities.json) for operation dispositions and deferred mutation families, and [README.md](../README.md) for shipped group/member/rule shapes, release prerequisites and write restrictions.
 The [groups module](../src/groups.ts) owns flag-to-query mapping, row decoding, kind-preserving projection and output shaping for all five leaves.
 [cli.ts](../src/cli.ts) validates every new leaf's flags before profile selection, dispatches through a read-only runner that sets exit 1 for partial reads while keeping their rows, and reports the new leaves in its setup and capability state.
+On a cloud profile the same leaves run against the documented v3.4 group, member and rule routes: kinds pass through verbatim, member rows keep their native per-kind identity, rule show decodes the same validated detail fields with RUX-tolerant condition values, and the v3.4 rule route names its path parameter `rule_id`.
 See `parseInvocation` in [catalogue.ts](../src/catalogue.ts) for leaf resolution and unknown-command reporting.
 
 ## Convention for later read slices

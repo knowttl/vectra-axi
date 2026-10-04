@@ -66,8 +66,13 @@ describe("capability inventory", () => {
       "rux.detection.show",
       "rux.entity.list",
       "rux.entity.show",
+      "rux.group.list",
+      "rux.group.member.list",
+      "rux.group.show",
       "rux.host.list",
       "rux.host.show",
+      "rux.triage-rule.list",
+      "rux.triage-rule.show",
     ]);
   });
 

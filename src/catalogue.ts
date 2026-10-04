@@ -481,7 +481,7 @@ export const catalogue: Readonly<Record<string, {
       ordering: { kind: "value", valueName: "ordering", description: "Server-side result ordering" },
       "is-key-asset": { kind: "value", valueName: "bool", description: "Filter by server-side key-asset flag: true or false" },
       limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
-      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,name" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,name on QUX or id,name,uid,ip,domain on RUX" },
       cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
     },
     examples: [

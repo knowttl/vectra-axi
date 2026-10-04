@@ -410,3 +410,312 @@ it.each([
 ])("rejects %s before profile selection", (_name, run, message) => {
   expect(run).toThrowError(message);
 });
+
+// RUX-05: the same caller leaves run against the documented v3.4 routes on
+// a cloud profile. The fake answers the named unversioned exchange, then
+// delegates resource GETs to the per-test responder; every RUX route
+// carries its trailing slash and the collection reader appends page_size.
+const ruxProfile = {
+  kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth",
+  clientId: "synthetic-client", secretEnv: "CLOUD_SECRET",
+};
+
+function cloudSession(transport: RawTransport): Session {
+  writeFileSync(path, JSON.stringify({ profiles: { cloud: ruxProfile } }));
+  const loaded = loadConfig(path, new SecretRedactor());
+  return createSession({ profile: selectProfile(loaded.config, "cloud"), configPath: loaded.path,
+    redactor: new SecretRedactor(), transport });
+}
+
+function cloudFixture(respond: (url: string) => { status: number; bodyText: string }): RawTransport {
+  return async (request) => {
+    if (request.method === "POST") {
+      expect(request.url).toBe("https://fixture.invalid/oauth2/token");
+      return { status: 200, bodyText: JSON.stringify(
+        { access_token: "fake-cloud-access-token", token_type: "Bearer", expires_in: 3600 }) };
+    }
+    return respond(request.url);
+  };
+}
+
+const ruxGroup = { id: 8, name: "synthetic-cloud-group", type: "account" };
+const ruxGroupDetail = { ...ruxGroup, description: "Synthetic cloud group", importance: "high",
+  last_modified_by: "synthetic-user", last_modified: "2026-09-30T12:00:00Z", member_count: 3,
+  ad_group_dn: null };
+const ruxHostMember = { id: 7, name: "synthetic-host-7" };
+const ruxAccountMember = { uid: "synthetic-account@fixture.invalid" };
+const ruxIpMember = { ip: "192.0.2.7" };
+const ruxDomainMember = { domain: "*.fixture.invalid" };
+const ruxRule = { id: 7, enabled: true, triage_category: "synthetic-triage" };
+const ruxListPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
+  status: 200, bodyText: JSON.stringify({ results: rows, ...extra }),
+});
+
+describe("RUX groups, members and triage rules", () => {
+  beforeEach(() => {
+    process.env.CLOUD_SECRET = "fake-cloud-secret";
+  });
+  afterEach(() => {
+    delete process.env.CLOUD_SECRET;
+  });
+
+  it("maps group filters to the v3.4 groups route on a cloud profile", async () => {
+    const transport = cloudFixture((url) => {
+      expect(url).toBe("https://fixture.invalid/api/v3.4/groups/?name=synthetic&type=account&page_size=100");
+      return ruxListPage([ruxGroup], { count: 1 });
+    });
+    const result = await runGroupList(cloudSession(transport),
+      flags(["group", "list", "--profile", "cloud", "--name", "synthetic", "--type", "account"]));
+    expect(result).toEqual({ failed: false, output: {
+      profile: "cloud",
+      total: 1,
+      count: "1 groups",
+      groups: [ruxGroup],
+      complete: true,
+      help: ["Run `vectra-axi group member list --profile cloud --id 8` for paged membership"],
+    } });
+  });
+
+  it("keeps cloud group kinds verbatim across host, account, IP and domain", async () => {
+    const rows = [
+      { id: 1, name: "synthetic-hosts", type: "host" },
+      { id: 2, name: "synthetic-accounts", type: "account" },
+      { id: 3, name: "synthetic-ips", type: "ip" },
+      { id: 4, name: "synthetic-domains", type: "domain" },
+    ];
+    const transport = cloudFixture(() => ruxListPage(rows, { count: 4 }));
+    const result = await runGroupList(cloudSession(transport),
+      flags(["group", "list", "--profile", "cloud"]));
+    expect(result.output.groups).toEqual(rows);
+  });
+
+  it("follows cloud group next links carrying page parameters", async () => {
+    const second = { ...ruxGroup, id: 9 };
+    const transport = cloudFixture((url) => {
+      if (url === "https://fixture.invalid/api/v3.4/groups/?type=host&page_size=100") {
+        return ruxListPage([ruxGroup], { count: 2,
+          next: "https://fixture.invalid/api/v3.4/groups/?type=host&page=2&page_size=100" });
+      }
+      if (url === "https://fixture.invalid/api/v3.4/groups/?type=host&page=2&page_size=100") {
+        return ruxListPage([second], { count: 2 });
+      }
+      throw new Error(`Unexpected synthetic request: ${url}`);
+    });
+    const result = await runGroupList(cloudSession(transport),
+      flags(["group", "list", "--profile", "cloud", "--type", "host"]));
+    expect(result).toMatchObject({ failed: false, output: {
+      groups: [ruxGroup, second], count: "2 groups", complete: true,
+    } });
+  });
+
+  it("resumes cloud group windows at the next page with their filters", async () => {
+    const second = { ...ruxGroup, id: 9 };
+    const transport = cloudFixture((url) => {
+      if (url === "https://fixture.invalid/api/v3.4/groups/?type=host&page_size=100") {
+        return ruxListPage([ruxGroup], { count: 2,
+          next: "https://fixture.invalid/api/v3.4/groups/?type=host&page=2" });
+      }
+      if (url === "https://fixture.invalid/api/v3.4/groups/?type=host&page=2") {
+        return ruxListPage([second], { count: 2 });
+      }
+      throw new Error(`Unexpected synthetic request: ${url}`);
+    });
+    const owned = cloudSession(transport);
+    const first = await runGroupList(owned,
+      flags(["group", "list", "--profile", "cloud", "--type", "host", "--limit", "1"]));
+    expect(first).toMatchObject({ failed: false, output: {
+      groups: [ruxGroup], count: "1 of 2 groups", complete: true, cursor: expect.any(String),
+    } });
+    const result = await runGroupList(owned,
+      flags(["group", "list", "--profile", "cloud", "--type", "host",
+        "--cursor", first.output.cursor as string]));
+    expect(result).toMatchObject({ failed: false, output: { groups: [second], complete: true } });
+  });
+
+  it("shows one cloud group with RUX detail names and a paged-membership hint", async () => {
+    const transport = cloudFixture((url) => {
+      expect(url).toBe("https://fixture.invalid/api/v3.4/groups/8/");
+      return { status: 200, bodyText: JSON.stringify({ ...ruxGroupDetail,
+        members: [ruxHostMember], rules: [{ id: 7 }] }) };
+    });
+    const result = await runGroupShow(cloudSession(transport),
+      flags(["group", "show", "--profile", "cloud", "--id", "8"]));
+    expect(result).toEqual({ failed: false, output: {
+      profile: "cloud",
+      ...ruxGroupDetail,
+      help: ["Run `vectra-axi group member list --profile cloud --id 8` for complete paged membership"],
+    } });
+    expect(result.output).not.toHaveProperty("members");
+    expect(result.output).not.toHaveProperty("rules");
+    expect(result.output).not.toHaveProperty("last_modified_timestamp");
+    expect(result.output).not.toHaveProperty("is_ad_group");
+  });
+
+  it("lists host members on a cloud profile through the paged member route", async () => {
+    const transport = cloudFixture((url) => {
+      expect(url).toBe("https://fixture.invalid/api/v3.4/groups/8/members/"
+        + "?name=synthetic&ordering=-id&is_key_asset=false&page_size=100");
+      return ruxListPage([ruxHostMember], { count: 1 });
+    });
+    const result = await runGroupMemberList(cloudSession(transport),
+      flags(["group", "member", "list", "--profile", "cloud", "--id", "8",
+        "--name", "synthetic", "--ordering=-id", "--is-key-asset", "false"]));
+    expect(result).toEqual({ failed: false, output: {
+      profile: "cloud",
+      group: 8,
+      total: 1,
+      count: "1 members",
+      members: [ruxHostMember],
+      complete: true,
+      help: ["Run `vectra-axi group show --profile cloud --id 8` for the group detail"],
+    } });
+  });
+
+  it.each([
+    ["account", ruxAccountMember],
+    ["ip", ruxIpMember],
+    ["domain", ruxDomainMember],
+  ])("preserves native %s member identity on a cloud profile", async (_kind, row) => {
+    const transport = cloudFixture((url) => {
+      expect(url).toBe("https://fixture.invalid/api/v3.4/groups/8/members/?page_size=100");
+      return ruxListPage([row], { count: 1 });
+    });
+    const result = await runGroupMemberList(cloudSession(transport),
+      flags(["group", "member", "list", "--profile", "cloud", "--id", "8"]));
+    expect(result).toMatchObject({ failed: false, output: {
+      group: 8, members: [row], complete: true,
+    } });
+  });
+
+  it("pages cloud member windows with the group scope", async () => {
+    const second = { id: 21, name: "synthetic-host-21" };
+    const transport = cloudFixture((url) => {
+      if (url === "https://fixture.invalid/api/v3.4/groups/8/members/?page_size=100") {
+        return ruxListPage([ruxHostMember], { count: 2,
+          next: "https://fixture.invalid/api/v3.4/groups/8/members/?page=2" });
+      }
+      if (url === "https://fixture.invalid/api/v3.4/groups/8/members/?page=2") {
+        return ruxListPage([second], { count: 2 });
+      }
+      throw new Error(`Unexpected synthetic request: ${url}`);
+    });
+    const owned = cloudSession(transport);
+    const first = await runGroupMemberList(owned,
+      flags(["group", "member", "list", "--profile", "cloud", "--id", "8", "--limit", "1"]));
+    expect(first.output).toMatchObject({ group: 8, count: "1 of 2 members", cursor: expect.any(String) });
+    const resumed = await runGroupMemberList(owned,
+      flags(["group", "member", "list", "--profile", "cloud", "--id", "8",
+        "--cursor", first.output.cursor as string]));
+    expect(resumed.output).toMatchObject({ group: 8, members: [second], complete: true });
+    await expect(runGroupMemberList(owned,
+      flags(["group", "member", "list", "--profile", "cloud", "--id", "9",
+        "--cursor", first.output.cursor as string])))
+      .rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  });
+
+  it("maps rule filters to the v3.4 rules route on a cloud profile", async () => {
+    const transport = cloudFixture((url) => {
+      expect(url).toBe("https://fixture.invalid/api/v3.4/rules/?contains=synthetic&ordering=-id&page_size=100");
+      return ruxListPage([ruxRule], { count: 1 });
+    });
+    const result = await runRuleList(cloudSession(transport),
+      flags(["triage", "rule", "list", "--profile", "cloud",
+        "--contains", "synthetic", "--ordering=-id"]));
+    expect(result).toEqual({ failed: false, output: {
+      profile: "cloud",
+      total: 1,
+      count: "1 triage rules",
+      rules: [ruxRule],
+      complete: true,
+      help: ["Run `vectra-axi triage rule show --profile cloud --id 7` for full detail", BENIGN_DISCLAIMER],
+    } });
+  });
+
+  it("shows one cloud rule with the QUX detail fields the v3.4 route provides", async () => {
+    const detail = { ...ruxRule, description: "Synthetic automation", detection: "synthetic-detection",
+      is_whitelist: false,
+      source_conditions: { OR: [{ ANY_OF: { field: "ip",
+        values: [{ value: "192.0.2.7", label: "192.0.2.7", url: null }],
+        groups: [], label: "IP" } }] },
+      additional_conditions: null };
+    const transport = cloudFixture((url) => {
+      expect(url).toBe("https://fixture.invalid/api/v3.4/rules/7/");
+      return { status: 200, bodyText: JSON.stringify(detail) };
+    });
+    const result = await runRuleShow(cloudSession(transport),
+      flags(["triage", "rule", "show", "--profile", "cloud", "--id", "7"]));
+    expect(result).toEqual({ failed: false, output: {
+      profile: "cloud",
+      ...detail,
+      help: [BENIGN_DISCLAIMER],
+    } });
+  });
+
+  it("still rejects unknown cloud rule condition keys", async () => {
+    const transport = cloudFixture(() => ({ status: 200,
+      bodyText: JSON.stringify({ ...ruxRule, source_conditions: { UNKNOWN: [] } }) }));
+    await expect(runRuleShow(cloudSession(transport),
+      flags(["triage", "rule", "show", "--profile", "cloud", "--id", "7"])))
+      .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+  });
+
+  it("rejects malformed cloud group, member and rule rows instead of projecting them", async () => {
+    const groupTransport = cloudFixture(() =>
+      ruxListPage([{ ...ruxGroup, type: 42 }], { count: 1 }));
+    const groupResult = await runGroupList(cloudSession(groupTransport),
+      flags(["group", "list", "--profile", "cloud"]));
+    expect(groupResult).toMatchObject({ failed: true, output: { complete: false, code: "RESPONSE_INVALID" } });
+    const memberTransport = cloudFixture(() =>
+      ruxListPage([{ name: "synthetic-nameless" }], { count: 1 }));
+    const memberResult = await runGroupMemberList(cloudSession(memberTransport),
+      flags(["group", "member", "list", "--profile", "cloud", "--id", "8"]));
+    expect(memberResult).toMatchObject({ failed: true, output: { complete: false, code: "RESPONSE_INVALID" } });
+    const ruleTransport = cloudFixture(() =>
+      ruxListPage([{ ...ruxRule, enabled: "yes" }], { count: 1 }));
+    const ruleResult = await runRuleList(cloudSession(ruleTransport),
+      flags(["triage", "rule", "list", "--profile", "cloud"]));
+    expect(ruleResult).toMatchObject({ failed: true, output: { complete: false, code: "RESPONSE_INVALID" } });
+  });
+
+  it("rejects malformed cloud group detail instead of projecting it", async () => {
+    const transport = cloudFixture(() => ({ status: 200,
+      bodyText: JSON.stringify({ ...ruxGroupDetail, member_count: "three" }) }));
+    await expect(runGroupShow(cloudSession(transport),
+      flags(["group", "show", "--profile", "cloud", "--id", "8"])))
+      .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+  });
+
+  it("reports cloud denial as a failed disposition rather than an empty result", async () => {
+    const denied: RawTransport = cloudFixture(() => ({ status: 403, bodyText: "{}" }));
+    for (const run of [
+      (owned: Session) => runGroupList(owned, flags(["group", "list", "--profile", "cloud"])),
+      (owned: Session) => runGroupMemberList(owned,
+        flags(["group", "member", "list", "--profile", "cloud", "--id", "8"])),
+      (owned: Session) => runRuleList(owned, flags(["triage", "rule", "list", "--profile", "cloud"])),
+    ]) {
+      const result = await run(cloudSession(denied));
+      expect(result.failed).toBe(true);
+      expect(result.output).toMatchObject({ profile: "cloud", complete: false, code: "ACCESS_DENIED" });
+    }
+    await expect(runGroupShow(cloudSession(denied),
+      flags(["group", "show", "--profile", "cloud", "--id", "8"])))
+      .rejects.toMatchObject({ code: "ACCESS_DENIED" });
+    await expect(runRuleShow(cloudSession(denied),
+      flags(["triage", "rule", "show", "--profile", "cloud", "--id", "7"])))
+      .rejects.toMatchObject({ code: "ACCESS_DENIED" });
+  });
+
+  it("reports an empty cloud rule window as success with an explicit zero", async () => {
+    const transport = cloudFixture(() => ruxListPage([], { count: 0 }));
+    const result = await runRuleList(cloudSession(transport),
+      flags(["triage", "rule", "list", "--profile", "cloud", "--contains", "nothing"]));
+    expect(result).toEqual({ failed: false, output: {
+      profile: "cloud",
+      total: 0,
+      count: "0 triage rules",
+      rules: "0 triage rules found with contains nothing",
+      complete: true,
+      help: ["Widen the filters or omit them to list every triage rule"],
+    } });
+  });
+});

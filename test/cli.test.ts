@@ -622,6 +622,60 @@ it("reads cloud detections and entities through the packaged RUX journey", () =>
   ]);
 });
 
+it("reads cloud groups, members and triage rules through the packaged RUX journey", () => {
+  const config = join(scratch, "rux-groups.json");
+  const trace = join(scratch, "rux-groups-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { cloud: { kind: "rux", origin: "https://fixture.invalid",
+    apiVersion: "3.4", auth: "oauth", clientId: "synthetic-client", secretEnv: "RUX_SECRET" } } }));
+  const fixtureEnv = { RUX_SECRET: "packaged-rux-secret", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "cloud"];
+  const listed = invoke(["group", "list", ...context], fixtureEnv);
+  expect(listed.status).toBe(0);
+  expect(listed.stderr).toBe("");
+  const listOutput = decode(listed.stdout) as Record<string, unknown>;
+  expect(listOutput).toMatchObject({ profile: "cloud", count: "1 groups", complete: true,
+    groups: [{ id: 8, name: "synthetic-cloud-group", type: "account" }] });
+  const memberHint = (listOutput.help as string[]).find((hint) => hint.startsWith("Run `"))!;
+  const memberCommand = /^Run `vectra-axi (group member list .*?)` for paged membership$/.exec(memberHint)![1]!;
+  const memberArgs = execFileSync("sh", ["-c", `set -- ${memberCommand}; printf '%s\\n' "$@"`],
+    { encoding: "utf8" }).trimEnd().split("\n");
+  const members = invoke(memberArgs, fixtureEnv);
+  expect(members.status).toBe(0);
+  expect(members.stderr).toBe("");
+  expect(decode(members.stdout)).toMatchObject({ profile: "cloud", group: 8, count: "1 members",
+    members: [{ uid: "synthetic-account@fixture.invalid" }] });
+  const shown = invoke(["group", "show", ...context, "--id", "8"], fixtureEnv);
+  expect(shown.status).toBe(0);
+  expect(shown.stderr).toBe("");
+  expect(decode(shown.stdout)).toMatchObject(
+    { profile: "cloud", id: 8, type: "account", member_count: 1 });
+  const rules = invoke(["triage", "rule", "list", ...context], fixtureEnv);
+  expect(rules.status).toBe(0);
+  expect(rules.stderr).toBe("");
+  expect(decode(rules.stdout)).toMatchObject({ profile: "cloud", count: "1 triage rules",
+    rules: [{ id: 7, enabled: true, triage_category: "synthetic-triage" }] });
+  const ruleShown = invoke(["triage", "rule", "show", ...context, "--id", "7"], fixtureEnv);
+  expect(ruleShown.status).toBe(0);
+  expect(ruleShown.stderr).toBe("");
+  expect(decode(ruleShown.stdout)).toMatchObject(
+    { profile: "cloud", id: 7, detection: "synthetic-detection", is_whitelist: false });
+  expect(ruleShown.stdout).not.toContain("packaged-rux-secret");
+  expect(ruleShown.stdout).not.toContain("packaged-rux-token");
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/groups/?page_size=100" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/groups/8/members/?page_size=100" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/groups/8/" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/rules/?page_size=100" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/rules/7/" },
+  ]);
+});
+
 it("shows a packaged cloud profile without a credential exchange", () => {
   const config = join(scratch, "rux-home.json");
   writeFileSync(config, JSON.stringify({ profiles: { cloud: { kind: "rux", origin: "https://fixture.invalid",
