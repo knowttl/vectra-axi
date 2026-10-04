@@ -1,6 +1,7 @@
 import { AxiError } from "axi-sdk-js";
 import { z } from "zod";
 import { collect, DEFAULT_COLLECTION_LIMIT, resume } from "./collections.js";
+import { embeddedNoteSummary } from "./notes.js";
 import type { Session } from "./session.js";
 
 // READ-01: QUX detection list/show on the CORE-01 session and CORE-02
@@ -134,6 +135,12 @@ function showCommand(session: Session, flags: ReadonlyMap<string, string | boole
     + ` --profile ${shellQuote(session.profile.name)} --id ${shellQuote(String(id))}`;
 }
 
+function noteListCommand(session: Session, flags: ReadonlyMap<string, string | boolean>, id: unknown): string {
+  const config = flags.get("config");
+  return `vectra-axi detection note list${typeof config === "string" ? ` --config ${shellQuote(config)}` : ""}`
+    + ` --profile ${shellQuote(session.profile.name)} --id ${shellQuote(String(id))}`;
+}
+
 export type LeafResult = { output: Record<string, unknown>; failed: boolean };
 
 // Runs the bounded list window and shapes the AXI output. Partial collection
@@ -213,6 +220,9 @@ export function showId(flags: ReadonlyMap<string, string | boolean>): number {
 // Shows one detection. --full prints the complete returned description;
 // otherwise long text is previewed with its total and a --full hint. --full
 // only reveals what the server returned, never content the response omits.
+// An embedded note summary is surfaced under its own key with a pointer to
+// the full notes resource; show --full never recovers notes the detail
+// response never carried.
 export async function runDetectionShow(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
@@ -222,15 +232,19 @@ export async function runDetectionShow(
   const detail = decodeDetection(body, detailSchema);
   const description = detail.description;
   const truncated = !full && typeof description === "string" && description.length > DETECTION_TRUNCATE_AT;
+  const summary = embeddedNoteSummary(body);
   const profile = session.profile.name;
+  const help = [
+    ...(truncated ? [`Run \`${showCommand(session, flags, id)} --full\` for the complete text`] : []),
+    ...(summary !== undefined ? [`Run \`${noteListCommand(session, flags, id)}\` for the full notes`] : []),
+  ];
   return { failed: false, output: {
     profile,
     ...detail,
     ...(truncated ? {
       description: `${description.slice(0, DETECTION_TRUNCATE_AT)}\n... (truncated, ${description.length} chars total)`,
     } : {}),
-    ...(truncated
-      ? { help: [`Run \`${showCommand(session, flags, id)} --full\` for the complete text`] }
-      : {}),
+    ...(summary !== undefined ? { note_summary: summary } : {}),
+    ...(help.length > 0 ? { help } : {}),
   } };
 }

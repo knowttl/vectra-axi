@@ -1,8 +1,8 @@
 # vectra-axi
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
-The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, and READ-02 host/account/type-qualified entity leaves are implemented.
-`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list` and `entity show` call the session; every other Vectra API operation remains planned or blocked.
+The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, and READ-03 detection/host/account note and tag leaves are implemented.
+`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `host note list`, `host tag list`, `account note list` and `account tag list` call the session; every other Vectra API operation remains planned or blocked.
 The selected direction is TypeScript, on-prem QUX reads first, and a later RUX adapter for cloud migration.
 
 - [Design and source evidence](docs/design.md)
@@ -125,7 +125,14 @@ Empty lists explicitly report zero hosts or accounts; partial reads retain valid
 All three show leaves require a positive integer `--id` and return their corresponding list field subset with profile and type; null fields stay null, omitted fields stay omitted, and malformed fields report `RESPONSE_INVALID`.
 These leaves validate flag values before profile selection and reject unsupported flags before credential or HTTP work.
 Host 7 and account 7 are different objects, and every show output retains its resource kind for the next command.
-Type-qualified entity reads stay in this release; notes and tags stay READ-03; no business write leaf exists.
+Type-qualified entity, note and tag reads stay in this release; assignments, users, groups, rules, audit, health and lockdown stay READ-04..08; no business write leaf exists.
+
+`<kind> note list --profile <name> --id <id>` reads full QUX notes through the dedicated versioned notes resource for detections, hosts and accounts.
+Long note text is previewed with its total length and a `--full` hint; `--full` prints the complete returned text but cannot restore content the upstream response never returned.
+`<kind> tag list --profile <name> --id <id>` reads the complete tag set through the versioned tagging route in one body.
+Empty reads explicitly report zero notes or tags for their owner; denied reads report `ACCESS_DENIED`, never an empty success.
+Detail responses may carry an embedded note summary: show leaves surface it under `note_summary` with a pointer to the matching note list leaf, never as full notes, and show `--full` never recovers notes the detail response never carried.
+No note or tag write leaf exists: the session authorizes read GETs only, and note/tag mutations stay deferred families until a separately selected write slice.
 
 For OAuth, replace `auth` and `tokenEnv` with `"auth": "oauth"`, `"clientId": "synthetic-client"` and `"secretEnv": "VECTRA_LAB_SECRET"`.
 Set the variable named by `secretEnv` outside the CLI.

@@ -28,6 +28,10 @@ const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/accounts/7", { status: 200, body: account7 }],
   ["https://fixture.invalid/api/v2.5/hosts?t_score_gte=70",
     { status: 200, body: { results: [host7], count: 1 } }],
+  ["https://fixture.invalid/api/v2.5/detections/42/notes",
+    { status: 200, body: [{ id: 1, note: "synthetic detail ".repeat(100) }, { id: 2, note: "short synthetic note" }] }],
+  ["https://fixture.invalid/api/v2.5/tagging/host/7", { status: 200, body: { tags: ["synthetic-tag"] } }],
+  ["https://fixture.invalid/api/v2.5/accounts/7/notes", { status: 200, body: [] }],
 ]);
 
 https.request = ((options: RequestOptions, callback: (response: IncomingMessage) => void): ClientRequest => {

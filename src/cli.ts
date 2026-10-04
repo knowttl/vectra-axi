@@ -4,6 +4,7 @@ import { listFields, listLimit, listQuery, runDetectionList, runDetectionShow, s
 import { entityKind, listFields as entityListFields, listLimit as entityListLimit, listQuery as entityListQuery,
   runAccountList, runAccountShow, runEntityList, runEntityShow, runHostList, runHostShow,
   showId as entityShowId } from "./entities.js";
+import { NOTE_KINDS, noteOwnerId, runNoteList, runTagList, type NoteKind } from "./notes.js";
 import { loadConfig, selectProfile } from "./profiles.js";
 import { SecretRedactor } from "./redact.js";
 import { createSession, nodeTransport, type RawTransport } from "./session.js";
@@ -36,6 +37,11 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
           || invocation.leaf === "entity list" || invocation.leaf === "entity show") {
           return runEntity(invocation.leaf, invocation.flags);
         }
+        if (invocation.leaf === "detection note list" || invocation.leaf === "detection tag list"
+          || invocation.leaf === "host note list" || invocation.leaf === "host tag list"
+          || invocation.leaf === "account note list" || invocation.leaf === "account tag list") {
+          return runNotes(invocation.leaf, invocation.flags);
+        }
         return state();
       }),
     },
@@ -51,6 +57,26 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     }
   }
 
+  // One dispatch for every note/tag leaf: validate the owner ID, select the
+  // profile, build the session on the injected transport, and return the
+  // shaped single-response output.
+  type NotesLeaf = "detection note list" | "detection tag list"
+    | "host note list" | "host tag list" | "account note list" | "account tag list";
+  async function runNotes(leaf: NotesLeaf, flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
+    const kind = leaf.split(" ")[0] as NoteKind;
+    if (!(NOTE_KINDS as readonly string[]).includes(kind)) {
+      throw new Error(`Unknown note/tag leaf: ${leaf}`);
+    }
+    noteOwnerId(flags, leaf, kind);
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
+    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+    const result: LeafResult = leaf.endsWith("note list")
+      ? await runNoteList(session, flags, kind)
+      : await runTagList(session, flags, kind);
+    if (result.failed) process.exitCode = 1;
+    return result.output;
+  }
   // One dispatch for every host/account/entity leaf: validate the kind and
   // flags, select the profile, build the session on the injected transport,
   // and report partial reads with their rows and a nonzero exit status.
@@ -118,11 +144,11 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         config: loaded.path,
         guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use tokenEnv or secretEnv references",
         example: { profiles: { lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "VECTRA_LAB_TOKEN" } } },
-        integration: "Detection, host, account and type-qualified entity reads call the session; remaining session integration is planned in PACK-01",
+        integration: "Detection, host, account, type-qualified entity, note and tag reads call the session; remaining session integration is planned in PACK-01",
       },
       capabilities: {
         implemented: Object.keys(catalogue),
-        api: "QUX v2.5 detection, host, account and type-qualified entity reads; every other operation is planned or blocked",
+        api: "QUX v2.5 detection, host, account, type-qualified entity, note and tag reads; every other operation is planned or blocked",
         planned: inventory.operations.filter((operation) => operation.disposition === "planned").length,
         blocked: inventory.operations.filter((operation) => operation.disposition === "blocked").length,
       },

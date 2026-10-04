@@ -127,6 +127,49 @@ it("keeps the same numeric host and account IDs distinct through the entity faca
   ]);
 });
 
+it("reads notes and tags through the packaged note, full and tag commands", () => {
+  const config = join(scratch, "notes.json");
+  const trace = join(scratch, "notes-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const noted = invoke(["detection", "note", "list", ...context, "--id", "42"], fixtureEnv);
+  expect(noted.status).toBe(0);
+  expect(noted.stderr).toBe("");
+  const noteOutput = decode(noted.stdout) as Record<string, unknown>;
+  expect(noteOutput).toMatchObject({ profile: "lab", type: "detection", id: 42, count: "2 notes",
+    notes: [{ id: 1, note: `${"synthetic detail ".repeat(100).slice(0, 1200)}\n... (truncated, 1700 chars total)` },
+      { id: 2, note: "short synthetic note" }],
+    complete: true });
+  const [noteHint] = noteOutput.help as string[];
+  const fullCommand = /^Run `vectra-axi (detection note list .*? --full)` for the complete returned text$/.exec(noteHint!)![1]!;
+  const fullArgs = execFileSync("sh", ["-c", `set -- ${fullCommand}; printf '%s\\n' "$@"`],
+    { encoding: "utf8" }).trimEnd().split("\n");
+  const full = invoke(fullArgs, fixtureEnv);
+  expect(full.status).toBe(0);
+  expect(full.stderr).toBe("");
+  expect(decode(full.stdout)).toMatchObject({ profile: "lab", type: "detection", id: 42, count: "2 notes",
+    notes: [{ id: 1, note: "synthetic detail ".repeat(100) }, { id: 2, note: "short synthetic note" }] });
+  const tagged = invoke(["host", "tag", "list", ...context, "--id", "7"], fixtureEnv);
+  expect(tagged.status).toBe(0);
+  expect(tagged.stderr).toBe("");
+  expect(decode(tagged.stdout)).toMatchObject({ profile: "lab", type: "host", id: 7,
+    count: "1 tags", tags: ["synthetic-tag"], complete: true });
+  const empty = invoke(["account", "note", "list", ...context, "--id", "7"], fixtureEnv);
+  expect(empty.status).toBe(0);
+  expect(empty.stderr).toBe("");
+  expect(decode(empty.stdout)).toMatchObject({ profile: "lab", type: "account", id: 7,
+    count: "0 notes", notes: "0 notes found for account 7", complete: true });
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/42/notes" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/42/notes" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/7" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/accounts/7/notes" },
+  ]);
+});
+
 it("forwards inline descending ordering through the packaged list command", () => {
   const config = join(scratch, "ordering.json");
   const trace = join(scratch, "ordering-requests.jsonl");
@@ -245,7 +288,7 @@ it("shows unconfigured state with closed stdin and a clean home", () => {
   expect(result.stdout).toContain("bin:");
   expect(result.stdout).toContain("vectra-axi.js");
   expect(result.stdout).toContain("state: unconfigured\nprofiles: 0");
-  expect(result.stdout).toContain("detection, host, account and type-qualified entity reads");
+  expect(result.stdout).toContain("detection, host, account, type-qualified entity, note and tag reads");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });
@@ -268,6 +311,8 @@ it.each([
   { path: ["detection", "show"], flag: '"--id <id>"' },
   { path: ["host", "list"], flag: '"--threat-gte <score>"' },
   { path: ["entity", "show"], flag: '"--type <kind>"' },
+  { path: ["detection", "note", "list"], flag: '"--id <id>"' },
+  { path: ["host", "tag", "list"], flag: '"--id <id>"' },
 ])("provides offline help for $path", ({ path, flag }) => {
   const result = invoke([...path, "--help"]);
   expect(result.status).toBe(0);
@@ -285,6 +330,8 @@ it.each([
   ["show help with an invalid ID", ["detection", "show", "--help", "--id", "nope"]],
   ["entity list help with an invalid explicit config", ["entity", "list", "--help", "--config", join(scratch, "absent.json")]],
   ["entity show help with an invalid ID", ["entity", "show", "--help", "--id", "nope"]],
+  ["note list help with an invalid explicit config", ["detection", "note", "list", "--help", "--config", join(scratch, "absent.json")]],
+  ["tag list help with an invalid ID", ["host", "tag", "list", "--help", "--id", "nope"]],
 ])("keeps %s offline", (_name, args) => {
   const result = invoke(args);
   expect(result.status).toBe(0);
@@ -318,6 +365,10 @@ it.each([
   { args: ["detection", "list", "--fields", "score"], message: "Unknown --fields value: score" },
   { args: ["detection", "list", "--fields", ","], message: "Unknown --fields value: (empty)" },
   { args: ["detection", "list", "--cursor", "opaque", "--fields", "score"], message: "Unknown --fields value: score" },
+  { args: ["detection", "note", "list"], message: "detection note list requires --id" },
+  { args: ["detection", "note", "list", "--id", "0"], message: "--id must be a positive integer" },
+  { args: ["host", "tag", "list", "--id", "1.5"], message: "--id must be a positive integer" },
+  { args: ["account", "note", "list", "--id", "7", "--limit", "5"], message: "Unknown flag: --limit" },
 ].flatMap(({ args, message }) => [
   { context: "unconfigured", args, message },
   { context: "unreadable config", args: [...args, "--config", join(scratch, "absent.json")], message },
@@ -333,6 +384,7 @@ it.each([
   ["unknown host flag", ["host", "list", "--state", "active"], "Unknown flag: --state"],
   ["facade range flag", ["entity", "list", "--type", "host", "--min-id", "1"], "Unknown flag: --min-id"],
   ["unknown detection leaf", ["detection", "note"], "Unknown command: detection note"],
+  ["unknown note verb", ["detection", "note", "show", "--id", "7"], "Unknown command: detection note show"],
   ["bare detection group", ["detection"], "Unknown command: detection"],
   ["unknown list flag", ["detection", "list", "--stat", "active"], "Unknown flag: --stat"],
   ["unknown show flag", ["detection", "show", "--id", "7", "--limit", "5"], "Unknown flag: --limit"],
@@ -405,7 +457,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, detection list, detection show, host list, host show, account list, account show, entity list, entity show");
+  expect(result.stdout).toContain("Available commands: home, setup, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, host note list, host tag list, account note list, account tag list");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });

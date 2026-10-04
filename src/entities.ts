@@ -1,6 +1,7 @@
 import { AxiError } from "axi-sdk-js";
 import { z } from "zod";
 import { collect, DEFAULT_COLLECTION_LIMIT, resume } from "./collections.js";
+import { embeddedNoteSummary } from "./notes.js";
 import type { Session } from "./session.js";
 
 // READ-02: QUX host/account lookup plus the type-qualified entity facade, on
@@ -172,6 +173,14 @@ function showCommand(
     + ` --profile ${shellQuote(session.profile.name)}${type} --id ${shellQuote(String(id))}`;
 }
 
+function noteListCommand(
+  session: Session, flags: ReadonlyMap<string, string | boolean>, kind: EntityKind, id: unknown,
+): string {
+  const config = flags.get("config");
+  return `vectra-axi ${kind} note list${typeof config === "string" ? ` --config ${shellQuote(config)}` : ""}`
+    + ` --profile ${shellQuote(session.profile.name)} --id ${shellQuote(String(id))}`;
+}
+
 export type LeafResult = { output: Record<string, unknown>; failed: boolean };
 
 // Runs one kind's bounded list window and shapes the AXI output. Partial
@@ -273,6 +282,8 @@ export function showId(flags: ReadonlyMap<string, string | boolean>, leaf: strin
 
 // Shows one host or account. The output retains the resource kind alongside
 // the decoded detail, so the next command can name the same kind and ID.
+// An embedded note summary is surfaced under its own key with a pointer to
+// the full notes resource; show output never presents it as full notes.
 async function runKindShow(
   session: Session, flags: ReadonlyMap<string, string | boolean>, kind: EntityKind, leaf: string, facade: boolean,
 ): Promise<LeafResult> {
@@ -280,7 +291,16 @@ async function runKindShow(
   const { body } = await session.request(showOperation(kind, facade), { pathParams: { id } });
   const detail = decodeEntity(body, entitySchema);
   const fields = facade ? ENTITY_LIST_FIELDS : HOST_LIST_FIELDS;
-  return { failed: false, output: { profile: session.profile.name, type: kind, ...project(detail, fields) } };
+  const summary = embeddedNoteSummary(body);
+  return { failed: false, output: {
+    profile: session.profile.name,
+    type: kind,
+    ...project(detail, fields),
+    ...(summary !== undefined ? { note_summary: summary } : {}),
+    ...(summary !== undefined
+      ? { help: [`Run \`${noteListCommand(session, flags, kind, id)}\` for the full notes`] }
+      : {}),
+  } };
 }
 
 export async function runHostShow(

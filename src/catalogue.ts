@@ -176,6 +176,75 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi entity show --profile <name> --type host --id 19",
     ],
   },
+  "detection note list": {
+    // Notes come only from the dedicated versioned notes resource, never
+    // from the embedded detail summary. --full prints the complete returned
+    // text; it cannot restore content the upstream response never returned.
+    description: "List full QUX detection notes through the versioned notes route",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Detection ID whose notes to list (positive integer, required)" },
+      full: { kind: "boolean", description: "Show complete returned note text; default previews long notes" },
+    },
+    examples: [
+      "vectra-axi detection note list --profile <name> --id 42",
+      "vectra-axi detection note list --profile <name> --id 42 --full",
+    ],
+  },
+  "detection tag list": {
+    description: "List QUX detection tags through the versioned tagging route",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Detection ID whose tags to list (positive integer, required)" },
+    },
+    examples: [
+      "vectra-axi detection tag list --profile <name> --id 42",
+    ],
+  },
+  "host note list": {
+    description: "List full QUX host notes through the versioned notes route",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Host ID whose notes to list (positive integer, required)" },
+      full: { kind: "boolean", description: "Show complete returned note text; default previews long notes" },
+    },
+    examples: [
+      "vectra-axi host note list --profile <name> --id 19",
+      "vectra-axi host note list --profile <name> --id 19 --full",
+    ],
+  },
+  "host tag list": {
+    description: "List QUX host tags through the versioned tagging route",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Host ID whose tags to list (positive integer, required)" },
+    },
+    examples: [
+      "vectra-axi host tag list --profile <name> --id 19",
+    ],
+  },
+  "account note list": {
+    description: "List full QUX account notes through the versioned notes route",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Account ID whose notes to list (positive integer, required)" },
+      full: { kind: "boolean", description: "Show complete returned note text; default previews long notes" },
+    },
+    examples: [
+      "vectra-axi account note list --profile <name> --id 19",
+      "vectra-axi account note list --profile <name> --id 19 --full",
+    ],
+  },
+  "account tag list": {
+    description: "List QUX account tags through the versioned tagging route",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Account ID whose tags to list (positive integer, required)" },
+    },
+    examples: [
+      "vectra-axi account tag list --profile <name> --id 19",
+    ],
+  },
 };
 
 function flagSyntax(name: string, flag: Flag): string {
@@ -203,12 +272,15 @@ export function parseInvocation(argv: readonly string[]): {
   leaf: string; flags: ReadonlyMap<string, string | boolean>; help: boolean; home: boolean;
 } {
   const home = argv.length === 0 || argv[0]?.startsWith("-") === true;
-  // Two-word leaves (`detection list`, `host show`, `entity list`, ...) resolve
-  // from the first two tokens when the pair names a catalogue entry;
-  // single-word leaves resolve from the first alone.
+  // Three-word leaves (`detection note list`, `host tag list`, ...) resolve
+  // from the first three tokens when the triple names a catalogue entry;
+  // two-word leaves resolve from the first two, single-word from the first.
   const pair = argv[0] !== undefined && argv[1] !== undefined && !argv[1].startsWith("-")
     ? `${argv[0]} ${argv[1]}` : undefined;
+  const triple = pair !== undefined && argv[2] !== undefined && !argv[2].startsWith("-")
+    ? `${pair} ${argv[2]}` : undefined;
   const leaf = home ? "home"
+    : triple !== undefined && Object.hasOwn(catalogue, triple) ? triple
     : pair !== undefined && Object.hasOwn(catalogue, pair) ? pair
     : argv[0]!;
   const entry = Object.hasOwn(catalogue, leaf) ? catalogue[leaf]! : undefined;
@@ -220,10 +292,10 @@ export function parseInvocation(argv: readonly string[]): {
     ]);
   };
   const attempted = home ? "home"
-    : pair !== undefined ? pair : argv[0]!;
+    : triple !== undefined ? triple : pair !== undefined ? pair : argv[0]!;
   if (!entry) usage(`Unknown command: ${attempted}`);
   const flags = new Map<string, string | boolean>();
-  const args = home ? argv : argv.slice(leaf.includes(" ") ? 2 : 1);
+  const args = home ? argv : argv.slice(leaf.split(" ").length);
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]!;
     if (!arg.startsWith("--")) usage(`Unexpected argument: ${arg}`);
