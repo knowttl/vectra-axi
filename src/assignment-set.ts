@@ -26,7 +26,8 @@ import type { MutationCoordinator, MutationDefinition } from "./writes.js";
 // no-op that sends nothing. There is no evidenced ETag contract, so the
 // concurrency check is a client-side re-read like WRITE-01: when the
 // assignment moves between the preview read and the pre-send re-read, the
-// send is refused instead of retargeting blindly.
+// send is refused unless the fresh state already matches the desired state,
+// which is a no-op.
 
 export const ASSIGNMENT_SET_KINDS = ["host", "account"] as const;
 export type AssignmentSetKind = (typeof ASSIGNMENT_SET_KINDS)[number];
