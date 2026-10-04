@@ -15,7 +15,7 @@ export type RawTransport = (request: {
   headers: Record<string, string>;
   body?: string;
   tls: ReturnType<typeof tlsOptions>;
-}) => Promise<{ status: number; location?: string; bodyText: string }>;
+}) => Promise<{ status: number; location?: string; retryAfter?: string; bodyText: string }>;
 
 export type SessionRequestOptions = {
   pathParams?: Readonly<Record<string, string | number>>;
@@ -143,7 +143,7 @@ function resolveLink(
 async function sendRaw(
   profile: SelectedProfile, configPath: LoadedConfig["path"], redactor: SecretRedactor, transport: RawTransport,
   request: { method: "GET" | "POST"; url: string; headers: Record<string, string>; body?: string },
-): Promise<{ status: number; location?: string; bodyText: string }> {
+): Promise<{ status: number; location?: string; retryAfter?: string; bodyText: string }> {
   const tls = tlsOptions(profile, configPath);
   try {
     return await transport({ ...request, tls });
@@ -158,13 +158,15 @@ async function sendRaw(
   }
 }
 
-function decodeResourceBody(response: { status: number; bodyText: string }): unknown {
+function decodeResourceBody(response: { status: number; bodyText: string; retryAfter?: string }): unknown {
   const mapped = authFailure({ status: response.status });
   if (mapped) throw mapped;
   if (response.status !== 200) {
-    throw new AxiError(`Vectra request returned status ${response.status}`, "REQUEST_FAILED", [
-      "The session does not retry failed reads; bounded retry policy arrives with CORE-02",
+    const failure = new AxiError(`Vectra request returned status ${response.status}`, "REQUEST_FAILED", [
+      "The session sends one read per request; bounded read retries live in the collection reader",
     ]);
+    recordFailure(failure, { status: response.status, retryAfter: response.retryAfter });
+    throw failure;
   }
   try {
     return JSON.parse(response.bodyText);
@@ -173,6 +175,33 @@ function decodeResourceBody(response: { status: number; bodyText: string }): unk
       "Check the QUX v2.5 API contract for this operation; the response body was discarded",
     ]);
   }
+}
+
+// Retry-After is delay seconds or an HTTP date; absent or unparseable means
+// no server-directed wait. Follows the az-axi convention of clamping the past
+// to zero. Delay-seconds form needs no clock, so fake-time tests use it.
+export function parseRetryAfter(value: string | undefined, nowMs: number): number | undefined {
+  if (value === undefined) return undefined;
+  const text = value.trim();
+  if (/^\d+$/.test(text)) {
+    const waitMs = Number(text) * 1000;
+    return Number.isSafeInteger(waitMs) ? waitMs : undefined;
+  }
+  const at = Date.parse(text);
+  return Number.isNaN(at) ? undefined : Math.max(0, at - nowMs);
+}
+
+// Classifies a thrown read failure without touching its message or code.
+// The Retry-After value stays raw: the collection reader parses it against
+// its injected clock, so fake time governs waits as well as deadlines.
+const failureInfo = new WeakMap<object, { status: number; retryAfter?: string }>();
+
+function recordFailure(error: object, info: { status: number; retryAfter?: string }): void {
+  failureInfo.set(error, info);
+}
+
+export function failedRead(error: unknown): { status: number; retryAfter?: string } | undefined {
+  return typeof error === "object" && error !== null ? failureInfo.get(error) : undefined;
 }
 
 // The sole TokenTransport implementation: the named exchange runs over the same
@@ -291,9 +320,12 @@ export function nodeTransport(): RawTransport {
           });
           response.on("end", () => {
             const location = response.headers.location;
+            const retryAfterHeader = response.headers["retry-after"];
+            const retryAfter = Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader;
             resolve({
               status: response.statusCode ?? 0,
               ...(location ? { location: Array.isArray(location) ? location[0] : location } : {}),
+              ...(retryAfter ? { retryAfter } : {}),
               bodyText: Buffer.concat(chunks).toString("utf8"),
             });
           });
