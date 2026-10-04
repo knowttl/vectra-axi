@@ -6,10 +6,6 @@ import type { SecretRedactor } from "./redact.js";
 export type OAuthProfile = Extract<SelectedProfile, { auth: "oauth" }>;
 export type OAuthCredential = { header: string; expiresAt: number };
 
-// RUX-01: the cloud token route is unversioned. QUX keeps its versioned route;
-// both use Basic client authentication with form grant_type=client_credentials.
-// A returned refresh_token is accepted and redacted but never spent: at
-// expiry the provider reacquires with client credentials, the AUTH-02 rule.
 export function tokenRoute(profile: Pick<OAuthProfile, "kind" | "apiVersion">): {
   operation: "qux.oauth.exchange" | "rux.oauth.exchange"; url: string;
 } {
@@ -24,7 +20,7 @@ export type TokenTransport = (request: {
   method: "POST";
   url: string;
   headers: { Authorization: string; "Content-Type": "application/x-www-form-urlencoded" };
-  body: "grant_type=client_credentials";
+  body: "grant_type=client_credentials" | `grant_type=refresh_token&refresh_token=${string}`;
   tls: ReturnType<typeof tlsOptions>;
   signal?: AbortSignal;
 }) => Promise<{ status: number; body: unknown }>;
@@ -36,6 +32,8 @@ export function oauthCredentials(
   const route = tokenRoute(profile);
   const generation = profile.kind === "rux" ? "RUX v3.4" : "QUX v2.5";
   let cached: OAuthCredential | undefined;
+  let refresh: { token: string; expiresAt?: number } | undefined;
+  const spentRefreshTokens = new Set<string>();
 
   return async (signal) => {
     signal?.throwIfAborted();
@@ -51,27 +49,41 @@ export function oauthCredentials(
     const authorization = `Basic ${Buffer.from(`${clientId}:${secret}`, "utf8").toString("base64")}`;
     redactor.add(authorization.slice("Basic ".length));
     const tls = tlsOptions(profile, configPath);
-    const started = Date.now();
-    let response: Awaited<ReturnType<TokenTransport>>;
-    try {
-      response = await transport({
-        operation: route.operation, method: "POST", url: `${origin}${route.url}`,
-        headers: { Authorization: authorization, "Content-Type": "application/x-www-form-urlencoded" },
-        body: "grant_type=client_credentials", tls, ...(signal ? { signal } : {}),
-      });
-    } catch (error) {
+    const exchange = async (grant: Parameters<TokenTransport>[0]["body"]) => {
+      const started = Date.now();
+      let response: Awaited<ReturnType<TokenTransport>>;
+      try {
+        response = await transport({
+          operation: route.operation, method: "POST", url: `${origin}${route.url}`,
+          headers: { Authorization: authorization, "Content-Type": "application/x-www-form-urlencoded" },
+          body: grant, tls, ...(signal ? { signal } : {}),
+        });
+      } catch (error) {
+        signal?.throwIfAborted();
+        const code = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : undefined;
+        throw authFailure({ code }) ?? new AxiError("OAuth credential exchange could not complete", "AUTH_EXCHANGE_FAILED", [
+          `Check connectivity and the ${profile.kind === "rux" ? "RUX v3.4" : "QUX"} API client configuration; no automatic retry was attempted`,
+        ]);
+      }
+      const body = response.body && typeof response.body === "object" ? response.body as Record<string, unknown> : {};
+      for (const key of ["access_token", "refresh_token"] as const) {
+        if (typeof body[key] === "string") redactor.add(body[key]);
+      }
       signal?.throwIfAborted();
-      const code = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : undefined;
-      throw authFailure({ code }) ?? new AxiError("OAuth credential exchange could not complete", "AUTH_EXCHANGE_FAILED", [
-        `Check connectivity and the ${profile.kind === "rux" ? "RUX v3.4" : "QUX"} API client configuration; no automatic retry was attempted`,
-      ]);
+      return { response, body, started };
+    };
+    const availableRefresh = refresh;
+    refresh = undefined;
+    let result: Awaited<ReturnType<typeof exchange>>;
+    if (availableRefresh && !spentRefreshTokens.has(availableRefresh.token)
+      && (availableRefresh.expiresAt === undefined || Date.now() < availableRefresh.expiresAt)) {
+      spentRefreshTokens.add(availableRefresh.token);
+      result = await exchange(`grant_type=refresh_token&refresh_token=${encodeURIComponent(availableRefresh.token)}`);
+      if ([400, 401, 403].includes(result.response.status)) result = await exchange("grant_type=client_credentials");
+    } else {
+      result = await exchange("grant_type=client_credentials");
     }
-    const body = response.body && typeof response.body === "object" ? response.body as Record<string, unknown> : {};
-    // Register returned credential material even when the response is rejected.
-    for (const key of ["access_token", "refresh_token"] as const) {
-      if (typeof body[key] === "string") redactor.add(body[key]);
-    }
-    signal?.throwIfAborted();
+    const { response, body, started } = result;
     if (response.status === 401 || (response.status === 400 && body.error === "invalid_client")) {
       throw new AxiError("OAuth client credentials were rejected", "AUTH_FAILED", ["Check clientId and the secret referenced by secretEnv"]);
     }
@@ -98,6 +110,15 @@ export function oauthCredentials(
       ]);
     }
     cached = { header: `Bearer ${body.access_token}`, expiresAt };
+    if (profile.kind === "rux" && typeof body.refresh_token === "string" && body.refresh_token
+      && body.refresh_token.isWellFormed() && !spentRefreshTokens.has(body.refresh_token)) {
+      const refreshExpiresAt = typeof body.refresh_expires_in === "number"
+        ? started + body.refresh_expires_in * 1000 : undefined;
+      if (body.refresh_expires_in === undefined
+        || (refreshExpiresAt !== undefined && Number.isSafeInteger(refreshExpiresAt) && refreshExpiresAt > Date.now())) {
+        refresh = { token: body.refresh_token, ...(refreshExpiresAt === undefined ? {} : { expiresAt: refreshExpiresAt }) };
+      }
+    }
     return { ...cached };
   };
 }

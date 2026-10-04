@@ -87,9 +87,6 @@ it.each([
   expect(() => configured(fields)).toThrow(expect.objectContaining({ code: "CONFIG_INVALID" }));
 });
 
-// RUX-01: the cloud exchange is unversioned, but lifecycle handling matches
-// QUX: returned expiry governs caching, a returned refresh token is kept
-// for redaction only, and expiry reacquires with client credentials.
 const rux = { kind: "rux", apiVersion: "3.4" };
 
 it("uses only the named unversioned RUX client-credentials exchange", async () => {
@@ -103,17 +100,122 @@ it("uses only the named unversioned RUX client-credentials exchange", async () =
   });
 });
 
-it("reacquires a RUX credential at expiry without spending its refresh token", async () => {
+it("refreshes a RUX credential at its returned access expiry", async () => {
   const transport = vi.fn<TokenTransport>().mockResolvedValueOnce({ ...response, body: { ...response.body, refresh_token: refresh } })
     .mockResolvedValueOnce({ ...response, body: { ...response.body, access_token: "fake-second-token", expires_in: 7 } });
   const resolve = provider(transport, rux);
   await resolve();
+  vi.setSystemTime(1_001_999);
+  expect(await resolve()).toEqual({ header: `Bearer ${access}`, expiresAt: 1_002_000 });
   vi.setSystemTime(1_002_000);
   expect(await resolve()).toEqual({ header: "Bearer fake-second-token", expiresAt: 1_009_000 });
   expect(transport.mock.calls.map(([request]) => [request.operation, request.body])).toEqual([
     ["rux.oauth.exchange", "grant_type=client_credentials"],
-    ["rux.oauth.exchange", "grant_type=client_credentials"],
+    ["rux.oauth.exchange", `grant_type=refresh_token&refresh_token=${refresh}`],
   ]);
+  expect(transport.mock.calls[1]![0].url).toBe("https://fixture.invalid/oauth2/token");
+});
+
+it.each([400, 401, 403])("falls back to client credentials after refresh rejection %s", async (status) => {
+  const transport = vi.fn<TokenTransport>().mockResolvedValueOnce({ ...response, body: { ...response.body, refresh_token: refresh } })
+    .mockResolvedValueOnce({ status, body: { error: "invalid_grant" } }).mockResolvedValue(response);
+  const resolve = provider(transport, rux);
+  await resolve();
+  vi.setSystemTime(1_002_000);
+  expect(await resolve()).toEqual({ header: `Bearer ${access}`, expiresAt: 1_004_000 });
+  expect(transport.mock.calls.map(([request]) => request.body)).toEqual([
+    "grant_type=client_credentials", `grant_type=refresh_token&refresh_token=${refresh}`, "grant_type=client_credentials",
+  ]);
+});
+
+it.each([1, 2])("reacquires when the returned refresh lifetime %s has expired", async (refresh_expires_in) => {
+  const transport = vi.fn<TokenTransport>().mockResolvedValue({ ...response,
+    body: { ...response.body, refresh_token: refresh, refresh_expires_in } });
+  const resolve = provider(transport, rux);
+  await resolve();
+  vi.setSystemTime(1_002_000);
+  expect(await resolve()).toEqual({ header: `Bearer ${access}`, expiresAt: 1_004_000 });
+  expect(transport.mock.calls.map(([request]) => request.body)).toEqual([
+    "grant_type=client_credentials", "grant_type=client_credentials",
+  ]);
+});
+
+it("uses rotated refresh tokens without spending a returned token twice", async () => {
+  const rotated = "fake-rotated-refresh";
+  const transport = vi.fn<TokenTransport>()
+    .mockResolvedValueOnce({ ...response, body: { ...response.body, refresh_token: refresh, refresh_expires_in: 10 } })
+    .mockResolvedValueOnce({ ...response, body: { ...response.body, refresh_token: rotated } })
+    .mockResolvedValue({ ...response, body: { ...response.body, refresh_token: refresh } });
+  const resolve = provider(transport, rux);
+  await resolve();
+  vi.setSystemTime(1_002_000);
+  await resolve();
+  vi.setSystemTime(1_004_000);
+  await resolve();
+  vi.setSystemTime(1_006_000);
+  await resolve();
+  expect(transport.mock.calls.map(([request]) => request.body)).toEqual([
+    "grant_type=client_credentials", `grant_type=refresh_token&refresh_token=${refresh}`,
+    `grant_type=refresh_token&refresh_token=${rotated}`, "grant_type=client_credentials",
+  ]);
+});
+
+it("consumes a refresh token before concurrent resolutions can spend it again", async () => {
+  let finishRefresh!: (value: Awaited<ReturnType<TokenTransport>>) => void;
+  const transport = vi.fn<TokenTransport>()
+    .mockResolvedValueOnce({ ...response, body: { ...response.body, refresh_token: refresh } })
+    .mockImplementationOnce(() => new Promise((resolve) => { finishRefresh = resolve; }))
+    .mockResolvedValue(response);
+  const resolve = provider(transport, rux);
+  await resolve();
+  vi.setSystemTime(1_002_000);
+  const first = resolve();
+  const second = resolve();
+  finishRefresh(response);
+  expect(await Promise.all([first, second])).toEqual([
+    { header: `Bearer ${access}`, expiresAt: 1_004_000 }, { header: `Bearer ${access}`, expiresAt: 1_004_000 },
+  ]);
+  expect(transport.mock.calls.map(([request]) => request.body)).toEqual([
+    "grant_type=client_credentials", `grant_type=refresh_token&refresh_token=${refresh}`, "grant_type=client_credentials",
+  ]);
+});
+
+it("does not spend a refresh token again after a transport failure", async () => {
+  const transport = vi.fn<TokenTransport>()
+    .mockResolvedValueOnce({ ...response, body: { ...response.body, refresh_token: refresh } })
+    .mockRejectedValueOnce(new Error(`raw ${refresh}`)).mockResolvedValue(response);
+  const resolve = provider(transport, rux);
+  await resolve();
+  vi.setSystemTime(1_002_000);
+  const error = await resolve().catch((error: AxiError) => error);
+  expect(error).toMatchObject({ code: "AUTH_EXCHANGE_FAILED" });
+  expect(JSON.stringify(error)).not.toContain(refresh);
+  expect(await resolve()).toEqual({ header: `Bearer ${access}`, expiresAt: 1_004_000 });
+  expect(transport.mock.calls.map(([request]) => request.body)).toEqual([
+    "grant_type=client_credentials", `grant_type=refresh_token&refresh_token=${refresh}`, "grant_type=client_credentials",
+  ]);
+});
+
+it("encodes refresh grants and redacts rotated and rejected token material", async () => {
+  const redactor = new SecretRedactor();
+  const formRefresh = "fake refresh+&=token";
+  const rejectedRefresh = "fake-rejected-refresh";
+  const rotatedRefresh = "fake-rotated-refresh";
+  const transport = vi.fn<TokenTransport>()
+    .mockResolvedValueOnce({ ...response, body: { ...response.body, refresh_token: formRefresh } })
+    .mockResolvedValueOnce({ status: 400, body: { refresh_token: rejectedRefresh } })
+    .mockResolvedValue({ ...response, body: { ...response.body, refresh_token: rotatedRefresh } });
+  const resolve = provider(transport, rux, redactor);
+  await resolve();
+  vi.setSystemTime(1_002_000);
+  const credential = await resolve();
+  expect(transport.mock.calls[1]![0].body).toBe(`grant_type=refresh_token&refresh_token=${encodeURIComponent(formRefresh)}`);
+  expect(credential).toEqual({ header: `Bearer ${access}`, expiresAt: 1_004_000 });
+  expect(redactor.value({ secret, formRefresh, rejectedRefresh, rotatedRefresh, credential })).toEqual({
+    secret: "***redacted***", formRefresh: "***redacted***", rejectedRefresh: "***redacted***",
+    rotatedRefresh: "***redacted***", credential: { header: "Bearer ***redacted***", expiresAt: 1_004_000 },
+  });
+  expect(redactor.text(encodeURIComponent(formRefresh))).toBe("***redacted***");
 });
 
 it("names the RUX v3.4 endpoint in exchange and contract failures", async () => {

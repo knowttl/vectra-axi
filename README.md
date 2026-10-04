@@ -211,7 +211,12 @@ Remote response bodies and raw transport errors are discarded from exchange erro
 The provider registers the client secret, encoded Basic credential and returned access/refresh token strings with the existing redactor, including rejected responses.
 Malformed Unicode remains redacted in raw and JSON-escaped forms; an unused malformed refresh token does not prevent authentication.
 The named OAuth exchange runs over the same session adapter and destination checks as resource requests and never follows redirects.
-A RUX v3.4 cloud profile uses `"kind": "rux"` with `"apiVersion": "3.4"` and OAuth credentials; its token exchange is the unversioned `POST /oauth2/token` route with the same Basic client authentication, form grant, Bearer resource use, returned-expiry caching, client-credentials reacquisition and redaction behavior as QUX, and cloud IDs stay scoped to their cloud profile. RUX read commands arrive in RUX-02 and later slices; until then `doctor` checks a RUX profile with the named exchange alone and reports the exchange status without touching a read route.
+A RUX v3.4 cloud profile uses `"kind": "rux"` with `"apiVersion": "3.4"` and OAuth credentials; its token exchange is the unversioned `POST /oauth2/token` route with Basic client authentication and Bearer resource use, and cloud IDs stay scoped to their cloud profile.
+At access-token expiry, RUX spends an available refresh token once using form `grant_type=refresh_token` on the same route; optional numeric `refresh_expires_in` bounds its lifetime from exchange start.
+An expired refresh token or refresh rejection (HTTP 400, 401 or 403) causes a fresh client-credentials exchange; transport and service failures do not trigger automatic retries.
+Returned rotated refresh tokens can renew subsequent credentials, but a previously spent token is never reused, even if returned again.
+All credential material stays in invocation memory, is registered for redaction, and is never written to persistent storage or exposed in command results.
+RUX read commands arrive in RUX-02 and later slices; until then `doctor` checks a RUX profile with the named exchange alone and reports the exchange status without touching a read route.
 See [AUTH-02 handoff](docs/auth-02-handoff.md) for the credential seam, [CORE-01 handoff](docs/core-01-handoff.md) for the session interface, [CORE-02 handoff](docs/core-02-handoff.md) for bounded collections and [CORE-01 acceptance](docs/implementation-plan.md#core-01-handoff-and-acceptance) for fixture evidence.
 
 ## Release
