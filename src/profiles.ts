@@ -7,6 +7,14 @@ import type { SecretRedactor } from "./redact.js";
 
 const nonempty = z.string().trim().min(1);
 const profileName = z.string().min(1).refine((value) => value === value.trim());
+// WRITE-00 hand-edited opt-in: absent means forced read-only. When present
+// the scope allowlist is always explicit; the coordinator snapshots it at
+// creation, so read flags, environment overrides and later raw reads cannot
+// widen it. No mutation family is enabled by this record alone.
+const writePolicy = z.strictObject({
+  allowWrites: z.boolean(),
+  operations: z.array(nonempty).min(1),
+}).optional();
 const profileFields = {
   kind: z.literal("qux"),
   origin: z.string().refine((value) => {
@@ -18,6 +26,7 @@ const profileFields = {
   apiVersion: z.literal("2.5"),
   applianceRelease: nonempty.optional(),
   caBundle: nonempty.optional(),
+  writes: writePolicy,
 };
 const envReference = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/);
 const profileSchema = z.discriminatedUnion("auth", [

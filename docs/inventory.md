@@ -60,7 +60,7 @@ Unknown routes remain outside the catalogue; see [README.md](../README.md) for t
 `deferredFamilies` intentionally records only deployment/version, evidence, disposition and reason.
 It does not invent routes, command leaves, permission mappings or effects for a long tail that has not been reviewed.
 The AD directory endpoint is deferred separately from initial group/member reads.
-Future note/tag/assignment and other mutations are family-level `planned` entries until exact operations are separately selected and the mutation coordinator exists.
+Future note/tag/assignment and other mutations remain family-level `planned` entries until exact operations are separately selected and enabled through the mutation coordinator.
 No QUX detection checkpoint feed, lockdown execution, v3.5 preview, unrestricted passthrough or cross-instance identity translation is promised.
 The number of records measures this inventory only; no API-wide denominator or completeness percentage is asserted.
 
