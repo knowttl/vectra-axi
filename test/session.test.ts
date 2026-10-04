@@ -7,6 +7,7 @@ import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
 import { loadConfig, selectProfile, type SelectedProfile } from "../src/profiles.js";
 import { SecretRedactor } from "../src/redact.js";
 import { createSession, nodeTransport, type RawTransport, type Session, type SessionRequestOptions } from "../src/session.js";
+import { collect } from "../src/collections.js";
 
 vi.mock("node:https", () => ({ request: vi.fn() }));
 
@@ -177,6 +178,57 @@ function httpResponse(): EventEmitter {
   }) as typeof httpsRequest);
   return response;
 }
+
+it.each([
+  ["GET", tokenProfile], ["OAuth exchange", oauthProfile],
+])("rejects cancellation before starting a %s", async (_name, profile) => {
+  const controller = new AbortController();
+  controller.abort();
+  const transport = vi.fn<RawTransport>();
+  await expect(session(transport, profile).request("qux.detection.list", { signal: controller.signal }))
+    .rejects.toMatchObject({ code: "REQUEST_CANCELLED" });
+  expect(transport).not.toHaveBeenCalled();
+});
+
+it.each([
+  ["GET cancellation", tokenProfile, (controller: AbortController) => controller.abort(), "REQUEST_CANCELLED"],
+  ["OAuth cancellation", oauthProfile, (controller: AbortController) => controller.abort(), "REQUEST_CANCELLED"],
+  ["GET deadline", tokenProfile, (_controller: AbortController) => vi.advanceTimersByTimeAsync(1000), "DEADLINE_EXCEEDED"],
+  ["OAuth deadline", oauthProfile, (_controller: AbortController) => vi.advanceTimersByTimeAsync(1000), "DEADLINE_EXCEEDED"],
+] as const)("destroys the active request and releases timers on %s", async (_name, profile, stop, code) => {
+  vi.useFakeTimers();
+  const controller = new AbortController();
+  httpResponse();
+  const result = collect(session(nodeTransport(), profile), "qux.detection.list", {
+    signal: controller.signal, policy: { deadlineMs: 1000 },
+  });
+  await vi.advanceTimersByTimeAsync(0);
+  const pending = vi.mocked(httpsRequest).mock.results[0]!.value as ClientRequest;
+  await stop(controller);
+  expect(await result).toMatchObject({ rows: [], complete: false, error: { code } });
+  expect(pending.destroy).toHaveBeenCalledTimes(1);
+  expect(vi.getTimerCount()).toBe(0);
+  expect(httpsRequest).toHaveBeenCalledTimes(1);
+});
+
+it.each([
+  ["redirect", tokenProfile, { status: 302, location: "/api/v2.5/detections?min_id=9", bodyText: "" }],
+  ["OAuth exchange", oauthProfile, ok({ access_token: access, expires_in: 60, token_type: "Bearer" })],
+])("does not send a resource request after a cancelled %s resolves late", async (_name, profile, response) => {
+  vi.useFakeTimers();
+  const controller = new AbortController();
+  let respond!: (response: Awaited<ReturnType<RawTransport>>) => void;
+  const transport = vi.fn<RawTransport>(() => new Promise((resolve) => { respond = resolve; }));
+  const result = collect(session(transport, profile), "qux.detection.list", { signal: controller.signal });
+  await vi.advanceTimersByTimeAsync(0);
+  controller.abort();
+  expect(await result).toMatchObject({ complete: false, error: { code: "REQUEST_CANCELLED" } });
+  expect(transport.mock.calls[0]![0].signal?.aborted).toBe(true);
+  respond(response);
+  await vi.advanceTimersByTimeAsync(0);
+  expect(transport).toHaveBeenCalledTimes(1);
+  expect(vi.getTimerCount()).toBe(0);
+});
 
 it.each([
   ["token", tokenProfile, "TRANSPORT_FAILED"],

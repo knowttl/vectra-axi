@@ -286,7 +286,7 @@ async function fetchPageWithRetry(args: {
       signal?.addEventListener("abort", onAbort, { once: true });
       try {
         const response = await Promise.race([
-          session.request(operation, { pathParams, query: pageQuery }),
+          session.request(operation, { pathParams, query: pageQuery, signal: controller.signal }),
           cancellableSleep(clock, deadlineAt - clock.now(), controller.signal).then(() => {
             throw deadlineError(policy.deadlineMs);
           }),

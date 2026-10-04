@@ -219,9 +219,9 @@ it("retries a rate-limited page after its Retry-After wait", async () => {
   expect(transport).toHaveBeenCalledTimes(2);
 });
 
-it("retries with backoff when Retry-After is unusable", async () => {
+it.each(["not-a-date", "1.5", "-1", "1e2"])("retries with backoff when Retry-After is %s", async (retryAfter) => {
   const transport = vi.fn<RawTransport>()
-    .mockResolvedValueOnce({ status: 503, retryAfter: "not-a-date", bodyText: "busy" })
+    .mockResolvedValueOnce({ status: 503, retryAfter, bodyText: "busy" })
     .mockResolvedValueOnce(page(ids(1), { count: 1 }));
   const { clock, advance, flush, started } = fakeClock();
   const pending = collect(session(transport), "qux.detection.list", { clock });
@@ -463,7 +463,14 @@ it.each([
   ["zero delay", "0", 1_000_000, 0],
   ["padded seconds", "  30 ", 1_000_000, 30_000],
   ["future HTTP date", new Date(1_002_000).toUTCString(), 1_000_000, 2000],
+  ["obsolete HTTP date", "Thursday, 01-Jan-70 00:16:42 GMT", 1_000_000, 2000],
+  ["asctime HTTP date", "Thu Jan  1 00:16:42 1970", 1_000_000, 2000],
   ["past HTTP date", new Date(999_000).toUTCString(), 1_000_000, 0],
+  ["fractional seconds", "1.5", 1_000_000, undefined],
+  ["negative seconds", "-1", 1_000_000, undefined],
+  ["exponent seconds", "1e2", 1_000_000, undefined],
+  ["non-HTTP date", "1970-01-01T00:16:42Z", 1_000_000, undefined],
+  ["invalid calendar date", "Mon, 30 Feb 2026 00:00:00 GMT", 1_000_000, undefined],
   ["garbage", "soon", 1_000_000, undefined],
   ["absent header", undefined, 1_000_000, undefined],
   ["unsafe integer", "99999999999999999999", 1_000_000, undefined],

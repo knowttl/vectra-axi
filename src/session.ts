@@ -15,9 +15,11 @@ export type RawTransport = (request: {
   headers: Record<string, string>;
   body?: string;
   tls: ReturnType<typeof tlsOptions>;
+  signal?: AbortSignal;
 }) => Promise<{ status: number; location?: string; retryAfter?: string; bodyText: string }>;
 
 export type SessionRequestOptions = {
+  signal?: AbortSignal;
   pathParams?: Readonly<Record<string, string | number>>;
   query?: Readonly<Record<string, string | number | boolean>>;
 };
@@ -35,6 +37,12 @@ export type Session = {
 const MAX_REDIRECTS = 3;
 const REQUEST_TIMEOUT_MS = 30_000;
 const RESPONSE_BODY_LIMIT_BYTES = 8 * 1024 * 1024;
+
+function ensureActive(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) {
+    throw new AxiError("Vectra request was cancelled", "REQUEST_CANCELLED", ["Reissue the read when ready"]);
+  }
+}
 
 function versionPrefix(profile: SelectedProfile): string {
   return `/api/v${profile.apiVersion}/`;
@@ -142,12 +150,16 @@ function resolveLink(
 
 async function sendRaw(
   profile: SelectedProfile, configPath: LoadedConfig["path"], redactor: SecretRedactor, transport: RawTransport,
-  request: { method: "GET" | "POST"; url: string; headers: Record<string, string>; body?: string },
+  request: { method: "GET" | "POST"; url: string; headers: Record<string, string>; body?: string; signal?: AbortSignal },
 ): Promise<{ status: number; location?: string; retryAfter?: string; bodyText: string }> {
   const tls = tlsOptions(profile, configPath);
   try {
-    return await transport({ ...request, tls });
+    ensureActive(request.signal);
+    const response = await transport({ ...request, tls });
+    ensureActive(request.signal);
+    return response;
   } catch (error) {
+    ensureActive(request.signal);
     const code = error && typeof error === "object" && "code" in error && typeof error.code === "string"
       ? error.code : undefined;
     throw authFailure({ code })
@@ -188,7 +200,15 @@ export function parseRetryAfter(value: string | undefined, nowMs: number): numbe
     return Number.isSafeInteger(waitMs) ? waitMs : undefined;
   }
   const at = Date.parse(text);
-  return Number.isNaN(at) ? undefined : Math.max(0, at - nowMs);
+  if (Number.isNaN(at)) return undefined;
+  const date = new Date(at);
+  const standard = date.toUTCString();
+  const [weekday, day, month, year, time] = standard.split(" ");
+  const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const obsolete = `${weekdays[date.getUTCDay()]}, ${day}-${month}-${year!.slice(-2)} ${time} GMT`;
+  const asctime = `${weekday!.slice(0, 3)} ${month} ${String(Number(day)).padStart(2, " ")} ${time} ${year}`;
+  if (![standard, obsolete, asctime].includes(text)) return undefined;
+  return Math.max(0, at - nowMs);
 }
 
 // Classifies a thrown read failure without touching its message or code.
@@ -215,7 +235,10 @@ function exchangeTransport(profile: SelectedProfile, transport: RawTransport): T
         "The OAuth exchange uses the named versioned token route only; no credential was sent",
       ]);
     }
-    const response = await transport({ method: "POST", url: request.url, headers: request.headers, body: request.body, tls: request.tls });
+    ensureActive(request.signal);
+    const response = await transport({ method: "POST", url: request.url, headers: request.headers, body: request.body,
+      tls: request.tls, ...(request.signal ? { signal: request.signal } : {}) });
+    ensureActive(request.signal);
     let body: unknown = {};
     try {
       body = response.bodyText ? JSON.parse(response.bodyText) as unknown : {};
@@ -242,11 +265,21 @@ export function createSession(args: {
     const record = authorizeOperation(profile, operation);
     let current = buildOperationUrl(profile, record, options);
     const path = new URL(current).pathname;
-    const authorization = (await credentials()).header;
+    const signal = options?.signal;
+    ensureActive(signal);
+    let authorization: string;
+    try {
+      authorization = (await credentials(signal)).header;
+    } catch (error) {
+      ensureActive(signal);
+      throw error;
+    }
     for (let hops = 0; ; hops++) {
+      ensureActive(signal);
       assertDestination(profile, record, new URL(current), path);
       const response = await sendRaw(profile, configPath, redactor, transport,
-        { method: "GET", url: current, headers: { Authorization: authorization, Accept: "application/json" } });
+        { method: "GET", url: current, headers: { Authorization: authorization, Accept: "application/json" },
+          ...(signal ? { signal } : {}) });
       if (response.status < 300 || response.status > 399) return { status: 200, body: decodeResourceBody(response) };
       if (!response.location) {
         throw new AxiError(`Vectra redirect for ${record.id} has no destination`, "REQUEST_FAILED", [
@@ -287,7 +320,9 @@ export function createSession(args: {
 export function nodeTransport(): RawTransport {
   return async (request) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
     try {
+      ensureActive(request.signal);
       return await new Promise<Awaited<ReturnType<RawTransport>>>((resolve, reject) => {
         const url = new URL(request.url);
         timer = setTimeout(() => {
@@ -331,11 +366,22 @@ export function nodeTransport(): RawTransport {
           });
         });
         pending.on("error", reject);
+        onAbort = (): void => {
+          const error = new Error("Vectra request was cancelled");
+          reject(error);
+          pending.destroy(error);
+        };
+        request.signal?.addEventListener("abort", onAbort, { once: true });
+        if (request.signal?.aborted) {
+          onAbort();
+          return;
+        }
         if (request.body !== undefined) pending.write(request.body);
         pending.end();
       });
     } finally {
       clearTimeout(timer);
+      if (onAbort) request.signal?.removeEventListener("abort", onAbort);
     }
   };
 }
