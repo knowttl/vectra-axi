@@ -152,6 +152,51 @@ it("stops on a repeated continuation without refetching it", async () => {
   expect(transport).toHaveBeenCalledTimes(2);
 });
 
+it("stops a multi-page cycle across page-boundary resumes", async () => {
+  const transport = vi.fn<RawTransport>()
+    .mockResolvedValueOnce(page(ids(100), { next: nextPage }))
+    .mockResolvedValueOnce(page(ids(100, 101), { next: "https://fixture.invalid/api/v2.5/detections" }))
+    .mockResolvedValueOnce(page(ids(100, 101), { next: "https://fixture.invalid/api/v2.5/detections" }));
+  const owned = session(transport);
+  const first = await collect(owned, "qux.detection.list");
+  expect(first).toMatchObject({ rows: ids(100), complete: true, cursor: expect.any(String) });
+  const second = await resume(owned, "qux.detection.list", first.cursor!);
+  expect(second).toMatchObject({ rows: ids(100, 101), complete: false,
+    error: { code: "CONTINUATION_REPEATED" } });
+  const third = await resume(owned, "qux.detection.list", second.cursor!);
+  expect(third).toMatchObject({ rows: [], complete: false, error: { code: "CONTINUATION_REPEATED" } });
+  expect(transport).toHaveBeenCalledTimes(3);
+  expect(transport.mock.calls[2]![0].url).toBe(nextPage);
+});
+
+it("keeps cycle history across within-page resumes without rejecting the pending page", async () => {
+  const transport = vi.fn<RawTransport>()
+    .mockResolvedValueOnce(page(ids(2), { next: nextPage }))
+    .mockResolvedValueOnce(page(ids(2), { next: nextPage }))
+    .mockResolvedValueOnce(page(ids(2, 3), { next: "https://fixture.invalid/api/v2.5/detections" }));
+  const owned = session(transport);
+  const first = await collect(owned, "qux.detection.list", { limit: 1 });
+  expect(first).toMatchObject({ rows: ids(1), complete: true });
+  const second = await resume(owned, "qux.detection.list", first.cursor!, { limit: 1 });
+  expect(second).toMatchObject({ rows: ids(1, 2), complete: true });
+  const third = await resume(owned, "qux.detection.list", second.cursor!);
+  expect(third).toMatchObject({ rows: ids(2, 3), complete: false, error: { code: "CONTINUATION_REPEATED" } });
+  expect(transport).toHaveBeenCalledTimes(3);
+});
+
+it("keeps cycle history when resuming after a failed page", async () => {
+  const transport = vi.fn<RawTransport>()
+    .mockResolvedValueOnce(page(ids(2), { next: nextPage }))
+    .mockResolvedValueOnce({ status: 500, bodyText: "failed" })
+    .mockResolvedValueOnce(page(ids(2, 3), { next: "https://fixture.invalid/api/v2.5/detections" }));
+  const owned = session(transport);
+  const first = await collect(owned, "qux.detection.list");
+  expect(first).toMatchObject({ rows: ids(2), complete: false, error: { code: "REQUEST_FAILED" } });
+  const second = await resume(owned, "qux.detection.list", first.cursor!);
+  expect(second).toMatchObject({ rows: ids(2, 3), complete: false, error: { code: "CONTINUATION_REPEATED" } });
+  expect(transport).toHaveBeenCalledTimes(3);
+});
+
 it("returns an explicit partial on first-page access denial", async () => {
   const transport = vi.fn<RawTransport>().mockResolvedValue({ status: 403, bodyText: "{}" });
   const result = await collect(session(transport), "qux.detection.list");

@@ -99,7 +99,7 @@ export type CollectionArgs = {
 type Scalar = string | number | boolean;
 
 type CollectionCursor = {
-  v: 1;
+  v: 2;
   profile: { name: string; kind: string; origin: string; apiVersion: string };
   operation: string;
   query: Record<string, Scalar>;
@@ -112,6 +112,7 @@ type CollectionCursor = {
   // Last known server count, so a resumed read keeps a known total even when
   // later pages carry no count of their own.
   total: number | null;
+  visited: string[];
 };
 
 function checkLimit(limit: number): number {
@@ -176,11 +177,12 @@ function decodeCursor(raw: string): CollectionCursor {
   }
   const cursor = parsed as Record<string, unknown>;
   const profile = cursor.profile as Record<string, unknown> | undefined;
-  if (cursor.v !== 1
+  if (cursor.v !== 2
     || typeof profile !== "object" || profile === null
     || ["name", "kind", "origin", "apiVersion"].some((key) => typeof profile[key] !== "string")
     || typeof cursor.operation !== "string" || !cursor.operation
     || !isScalarRecord(cursor.query) || !isPathRecord(cursor.pathParams) || !isScalarRecord(cursor.page)
+    || !Array.isArray(cursor.visited) || !cursor.visited.every((key) => typeof key === "string")
     || typeof cursor.offset !== "number" || !Number.isInteger(cursor.offset) || cursor.offset < 0
     || typeof cursor.remaining !== "number" || !Number.isInteger(cursor.remaining) || cursor.remaining < 1
     || (cursor.total !== null
@@ -188,7 +190,7 @@ function decodeCursor(raw: string): CollectionCursor {
     throw cursorInvalid("the cursor binding is not intact");
   }
   return {
-    v: 1,
+    v: 2,
     profile: {
       name: profile.name as string, kind: profile.kind as string,
       origin: profile.origin as string, apiVersion: profile.apiVersion as string,
@@ -200,6 +202,7 @@ function decodeCursor(raw: string): CollectionCursor {
     offset: cursor.offset,
     remaining: cursor.remaining,
     total: cursor.total,
+    visited: cursor.visited,
   };
 }
 
@@ -366,6 +369,7 @@ type PageRun = {
   offset: number;
   remaining: number;
   startTotal: number | null;
+  visited: string[];
   policy: CollectionPolicy;
   clock: Clock;
   signal: AbortSignal | undefined;
@@ -380,14 +384,14 @@ async function runPages(run: PageRun): Promise<CollectionResult> {
   let totalKnown = run.startTotal !== null;
   let usedBytes = 0;
   let pagesFetched = 0;
-  const seen = new Set<string>();
+  const seen = new Set(run.visited);
   const counter = { count: 0 };
   let pageQuery = run.startQuery;
   let offset = run.offset;
   let remaining = run.remaining;
   let pending = { page: pageQuery, offset };
   const cursorFor = (page: Record<string, Scalar>, at: number, left: number): string => encodeCursor({
-    v: 1,
+    v: 2,
     profile: { name: profile.name, kind: profile.kind, origin: profile.origin, apiVersion: profile.apiVersion },
     operation,
     query: contextQuery,
@@ -396,6 +400,7 @@ async function runPages(run: PageRun): Promise<CollectionResult> {
     offset: at,
     remaining: left,
     total,
+    visited: [...seen],
   });
   const partial = (error: unknown): CollectionResult => {
     const failure = error instanceof AxiError
@@ -488,6 +493,7 @@ export async function collect(session: Session, operation: string, args: Collect
     offset: 0,
     remaining: checkLimit(args.limit ?? DEFAULT_COLLECTION_LIMIT),
     startTotal: null,
+    visited: [],
     policy,
     clock: args.clock ?? realClock,
     signal: args.signal,
@@ -526,6 +532,7 @@ export async function resume(
     offset: cursor.offset,
     remaining: checkLimit(args.limit ?? cursor.remaining),
     startTotal: cursor.total,
+    visited: cursor.visited,
     policy,
     clock: args.clock ?? realClock,
     signal: args.signal,
