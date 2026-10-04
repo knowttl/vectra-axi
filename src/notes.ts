@@ -2,8 +2,8 @@ import { AxiError } from "axi-sdk-js";
 import { z } from "zod";
 import type { Session } from "./session.js";
 
-// READ-03: QUX detection/host/account notes and tags through their actual
-// versioned routes. Notes come only from the dedicated notes resource; the
+// READ-03 and RUX-04 (part a): detection/host/account notes and tags through
+// their actual versioned routes. Notes come only from the dedicated notes resource; the
 // embedded note summary on detail bodies is decoded separately (see
 // embeddedNoteSummary) and never presented as full notes. Tag reads come
 // from the /tagging routes. Both families are paging:none single responses,
@@ -13,6 +13,23 @@ import type { Session } from "./session.js";
 
 export const NOTE_KINDS = ["detection", "host", "account"] as const;
 export type NoteKind = (typeof NOTE_KINDS)[number];
+
+// RUX-04 (part a): the same note/tag leaves run against the documented v3.4
+// routes on a cloud profile. Notes select the plural tvui_types segment
+// (detections/hosts/accounts); tags select the singular table segment
+// (detection/host/account). Both keep the recorded trailing slash and carry
+// no query keys. Cloud IDs stay scoped to their cloud profile: no on-prem
+// identity translation happens in any leaf.
+export const RUX_NOTE_OPERATIONS: Readonly<Record<NoteKind, string>> = {
+  detection: "rux.detection.note.list",
+  host: "rux.host.note.list",
+  account: "rux.account.note.list",
+};
+export const RUX_TAG_OPERATIONS: Readonly<Record<NoteKind, string>> = {
+  detection: "rux.detection.tag.list",
+  host: "rux.host.tag.list",
+  account: "rux.account.tag.list",
+};
 
 // Longest note text kept inline, following the detection truncation convention.
 export const NOTE_TRUNCATE_AT = 1200;
@@ -40,6 +57,11 @@ export function noteOwnerId(flags: ReadonlyMap<string, string | boolean>, leaf: 
   return Number(raw);
 }
 
+// The v3.4 note list answers an array of NoteSerializerV2_2 entries, which
+// carry the same id/note pair as QUX plus author/timestamp metadata
+// (created_by, date_created, date_modified, modified_by). The shared decoder
+// keeps the recorded id/note projection on both generations and ignores the
+// extra RUX fields, so no generation invents note content.
 const noteSchema = z.object({
   id: z.number().int().positive(),
   note: z.string().nullable().optional(),
@@ -49,6 +71,8 @@ const tagBodySchema = z.object({ tags: z.string().array() });
 
 // Shared tag-body decoder: the single source for the tagging response
 // shape, used by the tag list read and the WRITE-01 desired-state write.
+// The v3.4 TaggingSerializerV3 answers the same tags array alongside
+// status/tag_id metadata; the decoder keeps the tags on both generations.
 export function decodeTags(body: unknown): string[] {
   const result = tagBodySchema.safeParse(body);
   if (!result.success) {
@@ -82,7 +106,8 @@ export async function runNoteList(
   const leaf = `${kind} note list`;
   const id = noteOwnerId(flags, leaf, kind);
   const full = flags.has("full");
-  const { body } = await session.request(`qux.${kind}.note.list`, { pathParams: { id } });
+  const operation = session.profile.kind === "rux" ? RUX_NOTE_OPERATIONS[kind] : `qux.${kind}.note.list`;
+  const { body } = await session.request(operation, { pathParams: { id } });
   if (!Array.isArray(body)) {
     throw new AxiError("Vectra notes response is malformed: expected a list of notes",
       "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
@@ -136,7 +161,8 @@ export async function runTagList(
 ): Promise<LeafResult> {
   const leaf = `${kind} tag list`;
   const id = noteOwnerId(flags, leaf, kind);
-  const { body } = await session.request(`qux.${kind}.tag.list`, { pathParams: { id } });
+  const operation = session.profile.kind === "rux" ? RUX_TAG_OPERATIONS[kind] : `qux.${kind}.tag.list`;
+  const { body } = await session.request(operation, { pathParams: { id } });
   const tags = decodeTags(body);
   const profile = session.profile.name;
   return { failed: false, output: {

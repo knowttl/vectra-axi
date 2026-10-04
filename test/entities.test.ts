@@ -638,14 +638,18 @@ it("caps a cloud entity window with a cursor and resumes without losing a row", 
   expect(urls).toEqual([initial, next]);
 });
 
-it("surfaces an embedded note summary without a note-list hint on a cloud host", async () => {
+// RUX-04 serves host notes on cloud profiles, so the embedded summary
+// points at the note list leaf there too.
+it("surfaces an embedded note summary with a note-list hint on a cloud host", async () => {
   const transport = cloudFixture(() => ({
     status: 200, bodyText: JSON.stringify({ ...ruxHost(7), note: "cloud summary" }),
   }));
   const result = await runHostShow(cloudSession(transport),
     flags(["host", "show", "--profile", "cloud", "--id", "7"]));
   expect(result.output).toMatchObject({ profile: "cloud", type: "host", note_summary: "cloud summary" });
-  expect(result.output).not.toHaveProperty("help");
+  expect(result.output.help).toEqual([
+    "Run `vectra-axi host note list --profile cloud --id 7` for the full notes",
+  ]);
 });
 
 it("follows a slashless cloud host continuation to a complete window", async () => {

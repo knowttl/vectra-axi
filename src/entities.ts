@@ -360,11 +360,10 @@ async function runKindShow(
     profile: session.profile.name,
     type: kind,
     ...project(detail, fields),
-    // RUX notes/tags arrive in RUX-04: the embedded summary stays visible
-    // under its own key, but no note-list hint points at a leaf the cloud
-    // profile cannot serve yet.
+    // RUX-04 serves host/account notes on cloud profiles, so the embedded
+    // summary points at the note list leaf on both generations.
     ...(summary !== undefined ? { note_summary: summary } : {}),
-    ...(summary !== undefined && !rux
+    ...(summary !== undefined
       ? { help: [`Run \`${noteListCommand(session, flags, kind, id)}\` for the full notes`] }
       : {}),
   } };

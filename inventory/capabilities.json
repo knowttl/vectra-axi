@@ -1538,8 +1538,8 @@
           "locator": "GET /api/v3.4/{tvui_types}/{type_id}/notes/; tvui_types=hosts"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-04; `host note list` reads the hosts notes route on a cloud profile, projecting the recorded id/note pair.",
       "fixtureCases": [
         "full-note-text",
         "empty",
@@ -1571,8 +1571,8 @@
           "locator": "GET /api/v3.4/tagging/{table}/{entity_id}/; TaggingParamsV3_3/table=host (singular)"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-04; `host tag list` reads the host tagging route on a cloud profile.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -1690,8 +1690,8 @@
           "locator": "GET /api/v3.4/{tvui_types}/{type_id}/notes/; tvui_types=accounts"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-04; `account note list` reads the accounts notes route on a cloud profile, projecting the recorded id/note pair.",
       "fixtureCases": [
         "full-note-text",
         "empty",
@@ -1723,8 +1723,8 @@
           "locator": "GET /api/v3.4/tagging/{table}/{entity_id}/; TaggingParamsV3_3/table=account (singular)"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-04; `account tag list` reads the account tagging route on a cloud profile.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -1756,8 +1756,8 @@
           "locator": "GET /api/v3.4/{tvui_types}/{type_id}/notes/; tvui_types=detections"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-04; `detection note list` reads the detections notes route on a cloud profile, projecting the recorded id/note pair.",
       "fixtureCases": [
         "full-note-text",
         "empty",
@@ -1789,8 +1789,8 @@
           "locator": "GET /api/v3.4/tagging/{table}/{entity_id}/; TaggingParamsV3_3/table=detection (singular)"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-04; `detection tag list` reads the detection tagging route on a cloud profile.",
       "fixtureCases": [
         "success",
         "access-denied",

@@ -582,7 +582,7 @@ it("checks a cloud profile through the packaged doctor exchange", () => {
   ]);
 });
 
-it("reads cloud detections and entities through the packaged RUX journey", () => {
+it("reads cloud detections, entities, notes and tags through the packaged RUX journey", () => {
   const config = join(scratch, "rux-reads.json");
   const trace = join(scratch, "rux-reads-requests.jsonl");
   writeFileSync(config, JSON.stringify({ profiles: { cloud: { kind: "rux", origin: "https://fixture.invalid",
@@ -610,8 +610,18 @@ it("reads cloud detections and entities through the packaged RUX journey", () =>
   expect(entities.stderr).toBe("");
   expect(decode(entities.stdout)).toMatchObject({ profile: "cloud", type: "host", count: "1 hosts",
     entities: [{ id: 7, name: "synthetic-host-7", type: "host", urgency_score: 76, importance: 3 }] });
-  expect(entities.stdout).not.toContain("packaged-rux-secret");
-  expect(entities.stdout).not.toContain("packaged-rux-token");
+  const notes = invoke(["detection", "note", "list", ...context, "--id", "1"], fixtureEnv);
+  expect(notes.status).toBe(0);
+  expect(notes.stderr).toBe("");
+  expect(decode(notes.stdout)).toMatchObject({ profile: "cloud", type: "detection", id: 1,
+    count: "1 notes", notes: [{ id: 1, note: "synthetic cloud note" }], complete: true });
+  const tags = invoke(["host", "tag", "list", ...context, "--id", "7"], fixtureEnv);
+  expect(tags.status).toBe(0);
+  expect(tags.stderr).toBe("");
+  expect(decode(tags.stdout)).toMatchObject({ profile: "cloud", type: "host", id: 7,
+    count: "1 tags", tags: ["synthetic-cloud-tag"], complete: true });
+  expect(tags.stdout).not.toContain("packaged-rux-secret");
+  expect(tags.stdout).not.toContain("packaged-rux-token");
   expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
     { method: "POST", url: "https://fixture.invalid/oauth2/token" },
     { method: "GET", url: "https://fixture.invalid/api/v3.4/detections/?state=active&page_size=100" },
@@ -619,6 +629,10 @@ it("reads cloud detections and entities through the packaged RUX journey", () =>
     { method: "GET", url: "https://fixture.invalid/api/v3.4/detections/1/" },
     { method: "POST", url: "https://fixture.invalid/oauth2/token" },
     { method: "GET", url: "https://fixture.invalid/api/v3.4/entities/?type=host&page_size=100" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/detections/1/notes/" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/tagging/host/7/" },
   ]);
 });
 

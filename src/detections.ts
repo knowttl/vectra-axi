@@ -249,10 +249,9 @@ export async function runDetectionShow(
   const profile = session.profile.name;
   const help = [
     ...(truncated ? [`Run \`${showCommand(session, flags, id)} --full\` for the complete text`] : []),
-    // RUX detection notes arrive in RUX-04: the embedded summary stays
-    // visible under its own key, but no note-list hint points at a leaf the
-    // cloud profile cannot serve yet.
-    ...(summary !== undefined && !rux ? [`Run \`${noteListCommand(session, flags, id)}\` for the full notes`] : []),
+    // RUX-04 serves detection notes on cloud profiles, so the embedded
+    // summary points at the note list leaf on both generations.
+    ...(summary !== undefined ? [`Run \`${noteListCommand(session, flags, id)}\` for the full notes`] : []),
   ];
   return { failed: false, output: {
     profile,

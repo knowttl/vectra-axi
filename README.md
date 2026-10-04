@@ -1,10 +1,10 @@
 # vectra-axi
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
-The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, READ-07 health-snapshot and health-event leaves, READ-08 host/account lockdown status leaf, PACK-01 read-release packaging, doctor and generated documentation, WRITE-00 mutation coordinator, WRITE-01 gated detection/host/account tag replaces, WRITE-02 gated detection/host/account note appends, the RUX-01 cloud OAuth/session adapter (unversioned token exchange, v3.4 profile contract and exchange-only doctor check), the RUX-02 cloud detection, host, account and type-qualified entity reads (urgency/importance apart from QUX scores) and the RUX-05 cloud group, member and triage-rule reads (native per-kind member identity; later RUX slices still pending) are implemented.
-`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `group list`, `group show`, `group member list`, `triage rule list` and `triage rule show` call the session on either generation; `detection note list`, `detection tag list`, `host note list`, `host tag list`, `account note list`, `account tag list`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show`, `audit list`, `health list`, `health show`, `health event list` and `lockdown list` call the session on QUX.
+The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, READ-07 health-snapshot and health-event leaves, READ-08 host/account lockdown status leaf, PACK-01 read-release packaging, doctor and generated documentation, WRITE-00 mutation coordinator, WRITE-01 gated detection/host/account tag replaces, WRITE-02 gated detection/host/account note appends, the RUX-01 cloud OAuth/session adapter (unversioned token exchange, v3.4 profile contract and exchange-only doctor check), the RUX-02 cloud detection, host, account and type-qualified entity reads (urgency/importance apart from QUX scores), the RUX-04 cloud detection/host/account note and tag reads (version-specific entity/table selectors and note shapes) and the RUX-05 cloud group, member and triage-rule reads (native per-kind member identity; later RUX slices still pending) are implemented.
+`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `host note list`, `host tag list`, `account note list`, `account tag list`, `group list`, `group show`, `group member list`, `triage rule list` and `triage rule show` call the session on either generation; `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show`, `audit list`, `health list`, `health show`, `health event list` and `lockdown list` call the session on QUX.
 For detections, hosts and accounts, QUX `tag set` and `note add` use the separate mutation coordinator described below; every Vectra resource operation outside these leaves remains planned or blocked.
-The CLI uses TypeScript, with on-prem QUX reads and cloud RUX detection, host, account, entity, group, member and triage-rule reads.
+The CLI uses TypeScript, with on-prem QUX reads and cloud RUX detection, host, account, entity, note, tag, group, member and triage-rule reads.
 
 - [Design and source evidence](docs/design.md)
 - [Implementation slices and offline acceptance](docs/implementation-plan.md)
@@ -142,15 +142,16 @@ These leaves validate flag shapes before configuration or profile selection, the
 Host 7 and account 7 are different objects, and every show output retains its resource kind for the next command.
 Type-qualified entity, note, tag, assignment, group, member, triage rule, audit, health and lockdown reads stay in this release; the only business write leaves are the three gated `tag set` replaces and the three gated `note add` appends.
 
-`<kind> note list --profile <name> --id <id>` reads full QUX notes through the dedicated versioned notes resource for detections, hosts and accounts.
+`<kind> note list --profile <name> --id <id>` reads full notes through the dedicated versioned notes resource for detections, hosts and accounts on either generation: QUX v2.5 on an on-prem profile or RUX v3.4 on a cloud profile.
 Note/tag leaves require a positive integer owner `--id`, validated before configuration or profile selection.
 Note responses are bare lists of entries with a positive integer note `id` and optional nullable `note` text; tag responses carry a `tags` array of strings.
+The v3.4 note entries may carry author/timestamp metadata and the v3.4 tagging bodies status/tag metadata; both generations project the recorded `id`/`note` and `tags` shapes, so cloud output matches the on-prem shape with the cloud profile retained.
 Malformed responses report `RESPONSE_INVALID`; note text retains null and omitted values.
 Long note text is previewed at 1200 characters with its total length and a `--full` hint; `--full` prints the complete returned text but cannot restore content the upstream response never returned.
-`<kind> tag list --profile <name> --id <id>` reads the complete tag set through the versioned tagging route in one body.
+`<kind> tag list --profile <name> --id <id>` reads the complete tag set through the versioned tagging route in one body on either generation.
+The [capability records](inventory/capabilities.json) own the exact generation-specific note routes and tagging selectors.
 Empty reads explicitly report zero notes or tags for their owner; denied reads report `ACCESS_DENIED`, never an empty success.
-QUX detection, host, account and type-qualified entity show leaves surface embedded note summaries under `note_summary` with a pointer to the matching note list leaf, never as full notes.
-RUX detection, host and account show retain embedded summaries without a note-list hint while RUX notes remain planned; RUX entity show projects only the entity fields documented above.
+Detection, host, account and QUX type-qualified entity show leaves surface embedded note summaries under `note_summary` with a pointer to the matching note list leaf, never as full notes; RUX entity show projects only the entity fields documented above.
 Only `detection show` accepts `--full`, which expands returned descriptions, not embedded note summaries.
 `<kind> note add --profile <name> --id <id> --note <text>` appends one note through the WRITE-00 gate pipeline: the profile must hand-enable `qux.<kind>.note.add` in its `writes` scope, the dry run previews the exact note to be appended, and `--execute --confirm '<kind> <id>'` sends a POST.
 Omitting `--execute` previews only; explicit `--dry-run` cannot be combined with `--execute`.
@@ -246,7 +247,7 @@ At access-token expiry, RUX spends an available refresh token once using form `g
 An expired refresh token or refresh rejection (HTTP 400, 401 or 403) causes a fresh client-credentials exchange; transport and service failures do not trigger automatic retries.
 Returned rotated refresh tokens can renew subsequent credentials, but a previously spent token is never reused, even if returned again.
 All credential material stays in invocation memory, is registered for redaction, and is never written to persistent storage or exposed in command results.
-RUX detection, host, account, entity, group, member and triage-rule read commands ship in RUX-02 and RUX-05; RUX notes/tags, events, assignments, health and lockdown arrive in later RUX slices.
+See the [shipped behavior above](#vectra-axi) for supported RUX resource reads and the [implementation plan](docs/implementation-plan.md#phase-3-adopt-rux-without-making-callers-relearn-the-tool) for remaining cloud slices.
 See [Release](#release) for the current RUX doctor check.
 See [AUTH-02 handoff](docs/auth-02-handoff.md) for the credential seam, [CORE-01 handoff](docs/core-01-handoff.md) for the session interface, [CORE-02 handoff](docs/core-02-handoff.md) for bounded collections and [CORE-01 acceptance](docs/implementation-plan.md#core-01-handoff-and-acceptance) for fixture evidence.
 
@@ -260,8 +261,7 @@ Doctor selects a profile using the precedence above; only when multiple profiles
 Without any configured profiles it reports `PROFILE_REQUIRED` before HTTP.
 `doctor` performs one bounded `detection list --limit 1` window per selected QUX profile and reports configuration, connectivity, authentication and access failures with a nonzero exit status when any profile fails.
 The window uses the normal bounded collection retries and budgets; OAuth profiles may also perform their named credential exchange.
-RUX profiles keep the exchange-only check: `doctor` checks each selected RUX profile with its named OAuth exchange alone rather than a detection journey.
-See the read leaves above for shipped RUX resource commands.
+RUX profiles keep the exchange-only check: `doctor` checks each selected RUX profile with its named OAuth exchange alone; resource reads use the leaves documented above.
 Success and recovery commands preserve the checked config path and profile, using shell quoting and inline `--profile=<name>` syntax.
 It never tries passwords, signs in interactively or enables writes.
 The static skill at `skills/vectra-axi/SKILL.md` is installed only by explicit setup (`npx skills add knowttl/vectra-axi --skill vectra-axi`); no ordinary command installs hooks, plugins or configuration.
