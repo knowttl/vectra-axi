@@ -25,12 +25,12 @@ describe("generated release records", () => {
     expect(coverage).toBe(coverageDocument());
   });
 
-  it("calls the release the supported QUX SOC read surface with one gated tag-write family, not full coverage", () => {
-    expect(coverage).toContain("the supported QUX SOC read surface with one gated tag-write family, not full Vectra API coverage");
+  it("calls the release the supported QUX SOC read surface with gated tag-write and note-write families, not full coverage", () => {
+    expect(coverage).toContain("the supported QUX SOC read surface with gated tag-write and note-write families, not full Vectra API coverage");
     expect(coverage).not.toMatch(/\d+\s*% (complete|coverage)/);
   });
 
-  it("marks only shipped read leaves and the gated tag replaces as named operations", () => {
+  it("marks only shipped read leaves and the gated tag replaces and note appends as named operations", () => {
     const named = inventory.operations.filter((operation) => operation.disposition === "named");
     expect(named.length).toBeGreaterThan(0);
     expect(named.every((operation) => operation.effect === "read" || operation.effect === "write")).toBe(true);

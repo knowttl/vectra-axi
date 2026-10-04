@@ -8,7 +8,8 @@ import type { Session } from "./session.js";
 // embeddedNoteSummary) and never presented as full notes. Tag reads come
 // from the /tagging routes. Both families are paging:none single responses,
 // so runners use session.request directly. The session authorizes read GETs
-// only; tag replaces use the separate coordinator in src/tags.ts.
+// only; tag replaces use the separate coordinator in src/tags.ts and note
+// appends in src/note-add.ts.
 
 export const NOTE_KINDS = ["detection", "host", "account"] as const;
 export type NoteKind = (typeof NOTE_KINDS)[number];

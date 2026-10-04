@@ -135,18 +135,24 @@ const responses = new Map<string, { status: number; body: unknown }>([
 
 // WRITE-01: the gated host tag replace sends one PATCH after its preview
 // read; the accepted replace answers 200 with an empty body.
+// WRITE-02: the gated detection note append sends one POST after its
+// preview read; the accepted append answers 200 with an empty body.
 const mutations = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/tagging/host/7", { status: 200, body: {} }],
+  ["https://fixture.invalid/api/v2.5/detections/42/notes", { status: 200, body: {} }],
 ]);
 
 https.request = ((options: RequestOptions, callback: (response: IncomingMessage) => void): ClientRequest => {
   const url = new URL(options.path!, `https://${options.hostname}`).href;
-  const fixture = options.method === "PATCH" ? mutations.get(url) : responses.get(url);
+  // Mutation fixtures answer PATCH/POST writes; every other request,
+  // including the form-encoded OAuth exchange POST, uses the read map.
+  const mutation = options.method === "GET" ? undefined : mutations.get(url);
+  const fixture = mutation ?? responses.get(url);
   const headers = options.headers as Record<string, string>;
   const ruxExchange = url === "https://fixture.invalid/oauth2/token" && options.method === "POST"
     && (headers.Authorization ?? "").startsWith("Basic ")
     && headers["Content-Type"] === "application/x-www-form-urlencoded";
-  const allowedMethod = options.method === "GET" || options.method === "PATCH";
+  const allowedMethod = options.method === "GET" || options.method === "PATCH" || options.method === "POST";
   // RUX-02: cloud resource reads carry the exchanged Bearer token.
   const ruxResource = options.method === "GET" && headers.Authorization === "Bearer packaged-rux-token";
   if (!fixture || !(allowedMethod && headers.Authorization === "Token packaged-detection-token"
@@ -161,10 +167,11 @@ https.request = ((options: RequestOptions, callback: (response: IncomingMessage)
       return true;
     },
     end: () => {
-      // PATCH trace lines carry the replace payload; GET lines keep the
-      // established shape so existing trace assertions still match.
+      // Mutation trace lines carry the replace/append payload; all other
+      // lines keep the established shape so existing trace assertions
+      // still match.
       appendFileSync(process.env.DETECTION_TRACE!, JSON.stringify({ method: options.method, url,
-        ...(options.method === "PATCH" ? { body: sent ? JSON.parse(sent) as unknown : {} } : {}) }) + "\n");
+        ...(mutation ? { body: sent ? JSON.parse(sent) as unknown : {} } : {}) }) + "\n");
       queueMicrotask(() => {
         callback(response as unknown as IncomingMessage);
         response.end(JSON.stringify(fixture.body));

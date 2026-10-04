@@ -38,6 +38,7 @@ Recheck cited upstream contracts when implementing; record deployment/API/applia
 | API-01 | Optional reviewed raw-read surface | PACK-01 and explicit scope choice | Allowlisted operation/query/field policy, no arbitrary destination/header/method or sensitive-route bypass. |
 | WRITE-00 | Mutation coordinator, fixture-only enablement | PACK-01 | Forced read-only, hand opt-in, original configured scope, preview/execute/confirm, durable intent/outcome, no ambiguous replay. |
 | WRITE-01 | Detection/host/account desired-state tag replace | WRITE-00, READ-03 | Exact desired set, file/stdin inputs, dry-run diff, no-op, pre-send state comparison, exact target confirmation, permission and audit tests. |
+| WRITE-02 | Detection/host/account action-shaped note append | WRITE-00, READ-03 | Exact appended note, file/stdin inputs, action preview, exact target confirmation, unknown-outcome no-replay, permission and audit tests. |
 | WRITE-N | Remaining separately approved mutation families | WRITE-00, corresponding reads | One reviewed family per change; concurrency evidence, unknown outcome, audit failure and disruptive-confirmation cases. |
 
 PACK-01 is a useful SOC read release, not full Vectra API coverage.
@@ -65,7 +66,7 @@ Do not make every phase one umbrella task or commission the entire catalogue as 
 | 1: first investigation | AUTH-01, AUTH-02, CORE-01, CORE-02, READ-01 | Packaged CLI lists a synthetic detection, shows it, resumes safely and refuses all business writes. |
 | 2: useful QUX release | READ-02 through READ-08, PACK-01 | A complete synthetic on-prem investigation can inspect entities, notes/tags, assignment, rules/groups, audit, health and lockdown status. |
 | 3: cloud adoption | RUX-01 through RUX-06 | Explicit cloud profile passes the shared contracts; QUX output stays stable and generation-specific semantics remain visible. |
-| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
+| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
 | 5: deliberate expansion | Optional API-01 and separately selected long-tail families | The capability map records exact named/raw/blocked/planned dispositions; there is no unrestricted passthrough. |
 
 Phase 1 is sequential because each step establishes a contract used by the next.
@@ -209,7 +210,12 @@ WRITE-01 selects per-object detection, host and account tag replacement, built o
 Its [offline acceptance suite](../test/tags.test.ts) covers desired-state diffs, no-ops, file/stdin inputs and clearing, changed current state, exact target confirmation, policy refusal, denied reads, server rejection and unknown outcomes without replay.
 All acceptance uses synthetic fixtures; no live instance, real credentials or customer data is used.
 See [README.md](../README.md) for shipped usage and concurrency limits, and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
-Bulk tag set/delete, note and assignment mutations remain planned and require separately selected WRITE-N slices.
+Bulk tag set/delete, note edits/deletes and assignment mutations remain planned and require separately selected WRITE-N slices.
+
+WRITE-02 selects per-object detection, host and account note append, built on READ-03 and WRITE-00.
+Its [offline acceptance suite](../test/note-add.test.ts) covers action-shaped previews, exact appended bodies, file/stdin inputs, exact target confirmation, policy refusal, denied targets, server rejection and unknown outcomes without replay.
+All acceptance uses synthetic fixtures; no live instance, real credentials or customer data is used.
+See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 For each future mutation, define whether the command is desired-state or action-shaped and document no-op behavior accordingly.
 Do not make additive note creation falsely idempotent by dropping repeated intended notes.
 Tests cover changed current state, denied target, missing/mismatched confirmation, failure to write audit intent and a server-accepted mutation followed by a client timeout.
