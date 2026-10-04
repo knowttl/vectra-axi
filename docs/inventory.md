@@ -20,7 +20,7 @@ They must not be reused for a different operation.
 
 | Field | Meaning |
 |---|---|
-| `command` | Planned group/subgroup/verb leaf without executable name or flags; `null` for internal auth exchanges and excluded secret exports. |
+| `command` | Group/subgroup/verb leaf without executable name or flags; disposition records delivery state; `null` for internal auth exchanges and excluded secret exports. |
 | `slice` | Owning implementation slice; `excluded` means no implementation is authorized. |
 | `deployment`, `apiVersion` | Exact QUX/2.5 or RUX/3.4 binding; versions are strings, never decimals or floating latest. |
 | `minimumRelease` | Established appliance prerequisite, or `null` when no base-route minimum was established; never means every release is supported. |
@@ -46,12 +46,12 @@ The inventory records evidence; the [strict executable catalogue](../src/catalog
 | `planned` | Accepted future scope, with no runtime support yet. |
 | `unreviewed` | Family discovered, but exact operations and security semantics still need review. |
 | `blocked` | Deliberately refused, including credential exports even when they use GET. |
-| `named` | Future implemented and tested named operation. |
+| `named` | Implemented and tested named operation. |
 | `reviewed-raw` | Future explicitly approved raw-read operation through the same policy. |
 | `unavailable` | Evidence establishes that a requested capability is absent for this binding. |
 | `deprecated` | Previously supported contract deliberately retired with documented guidance. |
 
-Every initial route remains `planned` except blocked credential exports.
+The [capability records](../inventory/capabilities.json) own each operation's delivery state; see [README.md](../README.md) for shipped commands.
 Neither an upstream GET nor a downloaded schema enables an endpoint.
 The QUX sensor registration token and AWS connector credential reads are `blocked` and cannot be exposed through later raw-read access.
 OAuth exchanges are separate effects; a token POST does not authorize business POSTs.

@@ -155,6 +155,8 @@ READ-01 connects the catalogue and session to detection list/show.
 Use documented server-side state/filter/field mappings, clear truncation metadata and explicit empty results.
 One packaged E2E journey lists a synthetic detection, follows the suggested show command with the same profile, reads full detail and resumes a capped list without losing a row.
 This journey establishes the CLI integration convention for later slices; do not duplicate it for every endpoint.
+The [packaged CLI suite](../test/cli.test.ts) exercises this journey through the declared binary with synthetic profiles and a [test-only HTTPS transport](../test/detection-transport.ts) under the external-network guard.
+It also covers empty, denied and malformed windows, offline help, unknown-input rejection and value validation before configuration/profile selection.
 
 ## Phase 2: finish the on-prem SOC read release
 

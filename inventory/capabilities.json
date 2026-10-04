@@ -93,8 +93,8 @@
           "locator": "pp18-23; fields p19 and query table p22"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-01; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-01; `detection list` maps catalogue flags to the recorded query keys.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -133,8 +133,8 @@
           "locator": "pp18-23; Appendix A Detections"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-01; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Implemented and tested in READ-01; `detection show` decodes the recorded detail fields with truncation/full.",
       "fixtureCases": [
         "success",
         "access-denied",

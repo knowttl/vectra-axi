@@ -5,8 +5,10 @@ See [README.md](../README.md) for shipped collection behavior.
 Prerequisite is CORE-01 merged as `c25b194` (PR https://github.com/knowttl/vectra-axi/pull/6); branch from latest `origin/main`.
 
 The [collection reader](../src/collections.ts) exposes the integration interface below.
-`collect(session, operation, { query, pathParams, limit, signal, clock, policy })` returns `{ rows, total, complete, cursor?, error? }`: validated rows, a known-or-unknown total, completeness and an opaque cursor.
+`collect(session, operation, { query, pathParams, limit, signal, clock, policy, decodeRow })` returns `{ rows, total, complete, cursor?, error? }`: decoded rows, a known-or-unknown total, completeness and an opaque cursor.
 `resume(session, operation, cursor, args)` continues from a cursor after validating the original query context.
+The optional `decodeRow` callback runs before each row is committed and its pending offset advances; without it, rows remain untyped wire values.
+Supply the same decoder on resume; a decoder failure retains earlier decoded rows and leaves the failing row pending in the cursor.
 Use the [session interface](core-01-handoff.md) for requests and continuation validation; there is no raw fetch handle.
 `RawTransport` responses carry an optional `retryAfter` string captured by `nodeTransport`.
 The exported `failedRead` helper retrieves status/header metadata from `REQUEST_FAILED` errors without changing their message, code or redaction; `parseRetryAfter` interprets the header against the reader's injected clock.

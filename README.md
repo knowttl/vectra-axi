@@ -1,8 +1,8 @@
 # vectra-axi
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
-The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter and CORE-02 bounded collection reader with retries, cancellation and partial results are implemented.
-No command leaf calls the session yet, so no Vectra API operation is reachable from the CLI.
+The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, and READ-01 detection list/show leaves are implemented.
+`detection list` and `detection show` call the session; every other Vectra API operation remains planned or blocked.
 The selected direction is TypeScript, on-prem QUX reads first, and a later RUX adapter for cloud migration.
 
 - [Design and source evidence](docs/design.md)
@@ -22,11 +22,12 @@ Profile selection follows `--profile`, `VECTRA_AXI_PROFILE`, configured `default
 Without profiles or a selection, local views show unconfigured state successfully.
 Selecting a profile when none are configured reports `PROFILE_REQUIRED`; unknown selections among configured profiles report `PROFILE_NOT_FOUND`, and multiple profiles without a selection report `PROFILE_AMBIGUOUS`.
 Unknown commands, flags, positional arguments, repeated flags and version combinations fail before profile or network work.
-API commands remain planned, and the SDK's implicit `update` command is refused.
+The SDK's implicit `update` command is refused.
 
 Structured data, help and errors use TOON on stdout; stderr is reserved for diagnostics.
 Exit codes are 0 for success, 1 for runtime failure (including a missing profile), and 2 for usage failure.
-There are no prompts, HTTP calls or ordinary-command installation side effects.
+There are no prompts or ordinary-command installation side effects.
+Home, setup, help and version remain offline; detection reads make authenticated HTTP requests.
 `corepack pnpm pack --out vectra-axi.tgz` packages the built entrypoint, runtime modules and inventory.
 See [CLI-01 acceptance](docs/implementation-plan.md#phase-0-turn-design-knowledge-into-one-executable-catalogue) for packaged verification.
 
@@ -96,7 +97,22 @@ A delay beyond the remaining deadline reports `DEADLINE_EXCEEDED` with both dela
 Cancellation reports `REQUEST_CANCELLED`; cancellation and deadline expiry abort pending production requests, including OAuth exchanges, prevent later redirect/resource sends and release retry/deadline timers.
 Runtime failures retain validated rows with `complete: false`, an error and a cursor at the pending page, including failures before any rows are returned.
 Caller usage errors throw before HTTP; checkpoint and date-window operations are rejected rather than decoded as collections.
-See the [CORE-02 handoff](docs/core-02-handoff.md) for the integration interface and the [implementation plan](docs/implementation-plan.md#session-and-investigation-slices) for acceptance and deferred command integration.
+See the [CORE-02 handoff](docs/core-02-handoff.md) for the integration interface and the [implementation plan](docs/implementation-plan.md#session-and-investigation-slices) for acceptance and later slices.
+
+`detection list --profile <name>` reads QUX v2.5 detections through the session and the bounded collection reader.
+Filter flags map one-to-one to the recorded server-side query keys: `--state`, `--detection-type`, `--detection-category`, `--host-id`, `--tags`, `--certainty-gte`, `--threat-gte`, `--ordering`, `--min-id` and `--max-id`.
+Filtering is server-side; numeric filter shapes are validated locally, while unsupported server-side values surface as read errors rather than silent client-side scans.
+Values beginning with a dash use inline syntax, such as `--ordering=-id`.
+List rows project the recorded field subset `id`, `detection_type`, `state`, `threat` and `certainty`; `--fields` selects a comma-separated subset and rejects unknown fields before any HTTP call.
+`--limit` sets the row window (default 100); a capped window returns a cursor, and resuming with `--cursor` repeats the original filters because the cursor binds its query context.
+Successful output carries the profile, a known-or-null total, a shown count, the rows, completeness and follow-up help, including a `detection show` suggestion for the first row.
+An empty window succeeds with an explicit `0 detections found ...` message; a partial window keeps its validated rows with `complete: false`, an inline error and a cursor, and exits 1.
+`detection show --profile <name> --id <id>` reads one detection's recorded detail fields.
+Detection IDs must be positive integers; nullable fields retain null, omitted fields stay omitted, and malformed fields report `RESPONSE_INVALID`.
+Long descriptions are previewed with their total length and a `--full` hint; `--full` prints the complete returned text but cannot restore content the response omits.
+Both leaves validate flag values before loading configuration or selecting a profile, and reject unknown commands and combinations before credential or HTTP work.
+Missing profiles fail before HTTP; API access denials report `ACCESS_DENIED` with exit 1, never an empty success.
+Hosts, accounts and type-qualified entities stay READ-02; notes and tags stay READ-03; no business write leaf exists.
 
 For OAuth, replace `auth` and `tokenEnv` with `"auth": "oauth"`, `"clientId": "synthetic-client"` and `"secretEnv": "VECTRA_LAB_SECRET"`.
 Set the variable named by `secretEnv` outside the CLI.
@@ -113,5 +129,5 @@ An exchange failure triggers no automatic retry or business request.
 Remote response bodies and raw transport errors are discarded from exchange errors.
 The provider registers the client secret, encoded Basic credential and returned access/refresh token strings with the existing redactor, including rejected responses.
 Malformed Unicode remains redacted in raw and JSON-escaped forms; an unused malformed refresh token does not prevent authentication.
-The named OAuth exchange runs over the same session adapter and destination checks as resource requests and never follows redirects; all current CLI views remain offline.
+The named OAuth exchange runs over the same session adapter and destination checks as resource requests and never follows redirects.
 See [AUTH-02 handoff](docs/auth-02-handoff.md) for the credential seam, [CORE-01 handoff](docs/core-01-handoff.md) for the session interface, [CORE-02 handoff](docs/core-02-handoff.md) for bounded collections and [CORE-01 acceptance](docs/implementation-plan.md#core-01-handoff-and-acceptance) for fixture evidence.
