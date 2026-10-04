@@ -2834,11 +2834,14 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "minimumRelease": null,
-      "constraints": "RUX-only `health show --check external-connectors-details` selector; the details route takes no query parameters, so connector filter and freshness flags are rejected before HTTP and QUX profiles are refused with generation guidance.",
+      "constraints": "RUX-only `health show --check external-connectors-details` selector; server-side filters connector_type (--connector-type) and live (--live) pass through; data-type and freshness flags are rejected before HTTP and QUX profiles are refused with generation guidance.",
       "method": "GET",
       "path": "/api/v3.4/health/external_connectors/details/",
       "effect": "read",
-      "query": [],
+      "query": [
+        "connector_type",
+        "live"
+      ],
       "fields": [
         "results",
         "updated_at"
@@ -2904,11 +2907,14 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "minimumRelease": null,
-      "constraints": "RUX-only `health show --check edr-details` selector; the details route takes no query parameters, so EDR filter and freshness flags are rejected before HTTP and QUX profiles are refused with generation guidance.",
+      "constraints": "RUX-only `health show --check edr-details` selector; server-side filters edr_type (--edr-type) and live (--live) pass through; data-type and freshness flags are rejected before HTTP and QUX profiles are refused with generation guidance.",
       "method": "GET",
       "path": "/api/v3.4/health/edr/details/",
       "effect": "read",
-      "query": [],
+      "query": [
+        "edr_type",
+        "live"
+      ],
       "fields": [
         "results",
         "updated_at"

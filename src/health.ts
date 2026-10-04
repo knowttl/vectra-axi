@@ -146,47 +146,44 @@ export function healthShowFlags(flags: ReadonlyMap<string, string | boolean>): v
       + " drop --fresh and --no-vlans for this check");
   }
   const connectorType = nonemptyShowFlag(flags, "connector-type", "connector_type");
-  if (connectorType !== undefined && check !== "external-connectors") {
-    invalid("--connector-type applies only to --check external-connectors",
+  if (connectorType !== undefined && check !== "external-connectors" && check !== "external-connectors-details") {
+    invalid("--connector-type applies only to --check external-connectors or --check external-connectors-details",
       "Example: vectra-axi health show --profile <name> --check external-connectors"
       + " --connector-type <type>");
   }
   const edrType = nonemptyShowFlag(flags, "edr-type", "edr_type");
-  if (edrType !== undefined && check !== "edr") {
-    invalid("--edr-type applies only to --check edr",
+  if (edrType !== undefined && check !== "edr" && check !== "edr-details") {
+    invalid("--edr-type applies only to --check edr or --check edr-details",
       "Example: vectra-axi health show --profile <name> --check edr --edr-type <type>");
   }
   const dataType = nonemptyShowFlag(flags, "data-type", "data_type");
   if (dataType !== undefined && check !== "external-connectors" && check !== "edr") {
     invalid("--data-type applies only to --check external-connectors or --check edr",
-      "The details and ping routes take no query parameters");
+      "The details and ping routes do not accept data_type");
   }
-  if (flags.has("live") && check !== "external-connectors" && check !== "edr") {
-    invalid("--live applies only to --check external-connectors or --check edr",
-      "The details and ping routes take no query parameters");
+  if (flags.has("live") && check === "network-brain-ping") {
+    invalid("--live applies only to the RUX connector/EDR checks",
+      "The ping route takes no query parameters");
   }
 }
 
 // Maps the validated show flags to the operation's declared query keys.
-// The details and ping routes declare no query parameters, so any filter
-// flag there has already failed in healthShowFlags; values pass through
-// and the server applies them.
 export function healthConnectorQuery(
   flags: ReadonlyMap<string, string | boolean>, check: RuxConnectorCheck,
 ): Record<string, string | number | boolean> {
   const query: Record<string, string | number | boolean> = {};
-  if (check === "external-connectors") {
+  if (check === "external-connectors" || check === "external-connectors-details") {
     const connectorType = nonemptyShowFlag(flags, "connector-type", "connector_type");
     if (connectorType !== undefined) query.connector_type = connectorType;
-  } else if (check === "edr") {
+  } else if (check === "edr" || check === "edr-details") {
     const edrType = nonemptyShowFlag(flags, "edr-type", "edr_type");
     if (edrType !== undefined) query.edr_type = edrType;
   }
   if (check === "external-connectors" || check === "edr") {
     const dataType = nonemptyShowFlag(flags, "data-type", "data_type");
     if (dataType !== undefined) query.data_type = dataType;
-    if (flags.has("live")) query.live = true;
   }
+  if (check !== "network-brain-ping" && flags.has("live")) query.live = true;
   return query;
 }
 

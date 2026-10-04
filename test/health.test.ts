@@ -671,6 +671,32 @@ it("reads EDR health through the v3.4 route with filter passthrough", async () =
 });
 
 it.each([
+  ["external-connectors-details", ["--connector-type", "aws"],
+    "external_connectors/details/?connector_type=aws"],
+  ["external-connectors-details", ["--live"], "external_connectors/details/?live=true"],
+  ["external-connectors-details", ["--connector-type", "aws", "--live"],
+    "external_connectors/details/?connector_type=aws&live=true"],
+  ["edr-details", ["--edr-type", "crowdstrike"], "edr/details/?edr_type=crowdstrike"],
+  ["edr-details", ["--live"], "edr/details/?live=true"],
+  ["edr-details", ["--edr-type", "crowdstrike", "--live"],
+    "edr/details/?edr_type=crowdstrike&live=true"],
+] as const)("reads %s with supported query %s", async (check, queryFlags, expected) => {
+  let url = "";
+  const snapshot = { results: [{ status: "ok" }] };
+  const transport = cloudFixture((seen) => {
+    url = seen;
+    return body(snapshot);
+  });
+  const result = await runHealthShow(cloudSession(transport),
+    flags(["health", "show", "--check", check, ...queryFlags]));
+  expect(url).toBe(`https://fixture.invalid/api/v3.4/health/${expected}`);
+  expect(result).toEqual({ failed: false, output: {
+    profile: "cloud", check, health: snapshot,
+    help: ["Health response varies with Network, AWS and M365 subscriptions"],
+  } });
+});
+
+it.each([
   ["external-connectors-details", "https://fixture.invalid/api/v3.4/health/external_connectors/details/"],
   ["edr-details", "https://fixture.invalid/api/v3.4/health/edr/details/"],
   ["network-brain-ping", "https://fixture.invalid/api/v3.4/health/network_brain/ping/"],
@@ -710,10 +736,16 @@ it.each([
     "--connector-type applies only to --check external-connectors"],
   ["EDR filter on the connector check", ["health", "show", "--check", "external-connectors", "--edr-type", "x"],
     "--edr-type applies only to --check edr"],
+  ["connector filter on EDR details", ["health", "show", "--check", "edr-details", "--connector-type", "x"],
+    "--connector-type applies only to --check external-connectors"],
+  ["EDR filter on connector details", ["health", "show", "--check", "external-connectors-details", "--edr-type", "x"],
+    "--edr-type applies only to --check edr"],
+  ["data filter on connector details", ["health", "show", "--check", "external-connectors-details", "--data-type", "x"],
+    "--data-type applies only to --check external-connectors or --check edr"],
   ["data filter on a details check", ["health", "show", "--check", "edr-details", "--data-type", "x"],
     "--data-type applies only to --check external-connectors or --check edr"],
   ["live flag on the ping check", ["health", "show", "--check", "network-brain-ping", "--live"],
-    "--live applies only to --check external-connectors or --check edr"],
+    "--live applies only to the RUX connector/EDR checks"],
   ["fresh flag on a connector check", ["health", "show", "--check", "edr", "--fresh"],
     "uses its fixed upstream query"],
   ["VLAN flag on a connector check", ["health", "show", "--check", "external-connectors", "--no-vlans"],
@@ -744,7 +776,9 @@ it.each([
 
 it.each([
   ["connector-type", "external-connectors"],
+  ["connector-type", "external-connectors-details"],
   ["edr-type", "edr"],
+  ["edr-type", "edr-details"],
   ["data-type", "edr"],
 ] as const)("rejects an empty --%s value before profile selection", (name, check) => {
   expect(() => healthShowFlags(new Map([["check", check], [name, "  "]])))
