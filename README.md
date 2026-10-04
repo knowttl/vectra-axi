@@ -118,7 +118,12 @@ List filter flags map to the recorded server-side query keys: `--threat-gte`, `-
 Filtering is server-side; score filters keep their QUX display names at the CLI while the wire uses `t_score_gte`/`c_score_gte`.
 List rows project the recorded field subset `id`, `name`, `state`, `threat` and `certainty`; threat and certainty stay QUX scores and keep null instead of zero.
 `entity list --type <host|account>` and `entity show --type <host|account> --id <id>` are a type-qualified facade over the same routes: `--type` is required and selects one kind's operation, never a merged ranking.
-The facade query subset carries no min/max ID and its fields carry no state; unsupported filters fail explicitly before any HTTP call.
+The facade CLI accepts only the score and tag filters above and projects `id`, `name`, `threat` and `certainty`; min/max ID flags and `state` projections fail before HTTP.
+Its session allowlist still accepts `min_id` and `max_id` in server-returned continuation links.
+All three list leaves accept `--fields`, `--limit` (default 100) and `--cursor`; resuming requires the same filters and entity type.
+Empty lists explicitly report zero hosts or accounts; partial reads retain validated rows, an error and a cursor, and exit 1.
+All three show leaves require a positive integer `--id` and return their corresponding list field subset with profile and type; null fields stay null, omitted fields stay omitted, and malformed fields report `RESPONSE_INVALID`.
+These leaves validate flag values before profile selection and reject unsupported flags before credential or HTTP work.
 Host 7 and account 7 are different objects, and every show output retains its resource kind for the next command.
 Type-qualified entity reads stay in this release; notes and tags stay READ-03; no business write leaf exists.
 

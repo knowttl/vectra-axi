@@ -7,7 +7,7 @@ import type { Session } from "./session.js";
 // collection reader. Later slices reuse this file's shape: catalogue flags map
 // to the inventory's server-side query keys, rows are decoded and projected to
 // the inventory's field subset, and every leaf validates before any credential
-// or HTTP work. Hosts/accounts stay READ-02; notes/tags stay READ-03.
+// or HTTP work. See README.md for shipped and planned read families.
 
 export const DETECTION_LIST_OPERATION = "qux.detection.list";
 export const DETECTION_SHOW_OPERATION = "qux.detection.show";

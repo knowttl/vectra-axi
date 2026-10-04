@@ -147,7 +147,8 @@ export const catalogue: Readonly<Record<string, {
   "entity list": {
     // Type-qualified facade over host/account list: --type is required and
     // selects one kind's operation, never a merged ranking. The facade
-    // query subset carries no min/max ID and its fields carry no state.
+    // CLI exposes no min/max ID flags and its fields carry no state;
+    // the session still permits ID keys in server continuation links.
     description: "List QUX entities of one kind with server-side filters and a bounded window",
     flags: {
       ...globals,
