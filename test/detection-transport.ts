@@ -16,7 +16,9 @@ const outcome1 = { id: 1, title: "Benign True Positive", category: "benign_true_
 const user3 = { id: 3, username: "soc-analyst" };
 const hostGroup8 = { id: 8, name: "synthetic-host-group", type: "host" };
 const member7 = { id: 7, name: "synthetic-host-7" };
-const rule7 = { id: 7, enabled: true, triage_category: "synthetic-triage" };
+const rule7 = { id: 7, enabled: true, triage_category: "synthetic-triage",
+  description: "Synthetic automation", detection: "synthetic-detection", is_whitelist: false,
+  source_conditions: { OR: [] }, additional_conditions: null };
 const next = "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2";
 const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/detections?ordering=-id",

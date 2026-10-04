@@ -42,15 +42,6 @@ function namedFlag(flags: ReadonlyMap<string, string | boolean>, name: string): 
   return raw;
 }
 
-function booleanFlag(flags: ReadonlyMap<string, string | boolean>, name: string): string | undefined {
-  const raw = flags.get(name);
-  if (raw === undefined) return undefined;
-  if (raw !== "true" && raw !== "false") {
-    invalid(`--${name} must be true or false`, `Example: --${name} true`);
-  }
-  return raw;
-}
-
 // Validates group list flags and maps them to the inventory's server-side
 // query keys. Type values pass through to the server untouched, so current
 // and future group kinds (including release-dependent AD groups) are never
@@ -63,8 +54,6 @@ export function groupQuery(flags: ReadonlyMap<string, string | boolean>): ListQu
   if (name !== undefined) query.name = name;
   const type = namedFlag(flags, "type");
   if (type !== undefined) query.type = type;
-  const includeMembers = booleanFlag(flags, "include-members");
-  if (includeMembers !== undefined) query.include_members = includeMembers;
   return query;
 }
 
@@ -165,6 +154,21 @@ const ruleSchema = z.object({
   id: z.number().int().positive(),
   enabled: z.boolean(),
   triage_category: z.string().nullable().optional(),
+});
+const groupDetailSchema = groupSchema.extend({
+  description: z.string().nullable().optional(),
+  importance: z.string().nullable().optional(),
+  last_modified_by: z.string().nullable().optional(),
+  last_modified_timestamp: z.string().nullable().optional(),
+  is_ad_group: z.boolean().optional(),
+  ad_group_dn: z.string().nullable().optional(),
+});
+const ruleDetailSchema = ruleSchema.extend({
+  description: z.string().nullable().optional(),
+  source_conditions: z.record(z.string(), z.json()).nullable().optional(),
+  additional_conditions: z.record(z.string(), z.json()).nullable().optional(),
+  detection: z.string().nullable().optional(),
+  is_whitelist: z.boolean().optional(),
 });
 
 function decode<T>(value: unknown, schema: z.ZodType<T>, noun: string): T {
@@ -297,10 +301,10 @@ export async function runGroupShow(
 ): Promise<LeafResult> {
   const id = groupId(flags, "group show");
   const { body } = await session.request(GROUP_SHOW_OPERATION, { pathParams: { id } });
-  const detail = decode(body, groupSchema, "group");
+  const detail = decode(body, groupDetailSchema, "group");
   return { failed: false, output: {
     profile: session.profile.name,
-    ...project(detail, GROUP_LIST_FIELDS),
+    ...detail,
     help: [`Run \`vectra-axi group member list${contextFlags(flags, session)} --id ${shellQuote(String(id))}\` for complete paged membership`],
   } };
 }
@@ -348,10 +352,10 @@ export async function runRuleShow(
 ): Promise<LeafResult> {
   const id = ruleId(flags);
   const { body } = await session.request(RULE_SHOW_OPERATION, { pathParams: { id } });
-  const detail = decode(body, ruleSchema, "triage rule");
+  const detail = decode(body, ruleDetailSchema, "triage rule");
   return { failed: false, output: {
     profile: session.profile.name,
-    ...project(detail, RULE_LIST_FIELDS),
+    ...detail,
     help: [BENIGN_DISCLAIMER],
   } };
 }

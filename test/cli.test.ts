@@ -243,7 +243,9 @@ it("reads groups, paged members and triage rules without implying benign verdict
   expect(rule.stderr).toBe("");
   const ruleOutput = decode(rule.stdout) as Record<string, unknown>;
   expect(ruleOutput).toMatchObject({ profile: "lab", id: 7, enabled: true,
-    triage_category: "synthetic-triage" });
+    triage_category: "synthetic-triage", description: "Synthetic automation",
+    detection: "synthetic-detection", is_whitelist: false,
+    source_conditions: { OR: [] }, additional_conditions: null });
   expect(ruleOutput.help).toContain(
     "Rules describe triage automation; a matching rule is not evidence a detection is benign");
   expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([

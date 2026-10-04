@@ -727,7 +727,6 @@
       "query": [
         "name",
         "type",
-        "include_members",
         "page",
         "page_size"
       ],
@@ -771,7 +770,13 @@
       "fields": [
         "id",
         "name",
-        "type"
+        "type",
+        "description",
+        "importance",
+        "last_modified_by",
+        "last_modified_timestamp",
+        "is_ad_group",
+        "ad_group_dn"
       ],
       "paging": "none",
       "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
@@ -853,7 +858,12 @@
       "fields": [
         "id",
         "enabled",
-        "triage_category"
+        "triage_category",
+        "description",
+        "source_conditions",
+        "additional_conditions",
+        "detection",
+        "is_whitelist"
       ],
       "paging": "none",
       "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",

@@ -341,7 +341,6 @@ export const catalogue: Readonly<Record<string, {
       ...globals,
       name: { kind: "value", valueName: "name", description: "Filter by server-side group name" },
       type: { kind: "value", valueName: "kind", description: "Filter by server-side group kind; values pass through verbatim" },
-      "include-members": { kind: "value", valueName: "bool", description: "Server-side embedded members: true or false" },
       limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
       fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,name,type" },
       cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },

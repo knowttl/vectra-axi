@@ -152,9 +152,11 @@ There is no resolve, reassign or outcome-mutation leaf: assignment changes stay 
 `group list`, `group show`, `group member list --id <id>`, `triage rule list` and `triage rule show` read QUX v2.5 groups, members and triage rules through the same session and bounded collection reader.
 Group `type` values pass through verbatim with no client-side kind allowlist, so host, account, IP, domain and release-dependent AD kinds survive list and show exactly as returned.
 AD groups require appliance release 9.6 or later and regex groups require 9.0; the member route requires 9.2.
-Group list accepts server-side `--name`, `--type` and `--include-members true|false` filters and projects `id`, `name` and `type`.
+Group list accepts server-side `--name` and `--type` filters and projects `id`, `name` and `type`.
+Group show also returns validated description, importance, modification metadata and AD metadata when present.
 Membership always comes from the dedicated paged member route, never from embedded detail members capped at 2000 rows; member windows stay scoped to their group ID with `--name`, `--ordering` and `--is-key-asset true|false` filters, and groups are never merged into one ranking.
 Rule list accepts server-side `--contains` and `--ordering` filters and projects `id`, `enabled` and `triage_category`.
+Rule show also returns validated `description`, `source_conditions`, `additional_conditions`, `detection` and `is_whitelist` fields when present.
 Rules describe triage automation only: rule output carries no verdict, and a matching rule is never evidence a detection is benign.
 All three list leaves accept `--fields`, `--limit` (default 100) and `--cursor`; both show leaves require a positive integer `--id`.
 Empty windows succeed with an explicit zero message; permission or licence denial reports `ACCESS_DENIED` with exit 1, never an empty healthy result.

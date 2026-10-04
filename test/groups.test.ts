@@ -49,11 +49,11 @@ const listPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
 it("maps group filters to the wire keys and preserves kinds verbatim", async () => {
   const transport: RawTransport = async (request) => {
     expect(request.url).toBe("https://fixture.invalid/api/v2.5/groups"
-      + "?name=synthetic&type=synthetic-ad&include_members=true&page_size=100");
+      + "?name=synthetic&type=synthetic-ad&page_size=100");
     return listPage([hostGroup, adGroup], { count: 2 });
   };
   const result = await runGroupList(session(transport),
-    flags(["group", "list", "--name", "synthetic", "--type", "synthetic-ad", "--include-members", "true"]));
+    flags(["group", "list", "--name", "synthetic", "--type", "synthetic-ad"]));
   expect(result).toEqual({ failed: false, output: {
     profile: "lab",
     total: 2,
@@ -121,28 +121,24 @@ it("keeps host, account, IP and domain group kinds distinct", async () => {
     new Set(["host", "account", "ip", "domain"]));
 });
 
-it("rejects a non-boolean include-members filter before any HTTP", async () => {
-  let calls = 0;
-  const transport: RawTransport = async (request) => {
-    calls += 1;
-    return listPage([]);
-  };
-  await expect(runGroupList(session(transport),
-    flags(["group", "list", "--include-members", "maybe"]))).rejects.toMatchObject({
-    code: "VALIDATION_ERROR",
-  });
-  expect(calls).toBe(0);
+it.each(["true", "false", "maybe"])("rejects the removed include-members flag with %s", (value) => {
+  expect(() => parseInvocation(["group", "list", "--include-members", value]))
+    .toThrowError(/Unknown flag/);
 });
 
 it("shows one group with its kind and a paged-membership hint", async () => {
+  const detail = { ...adGroup, id: 8, description: "Synthetic AD group", importance: "medium",
+    last_modified_by: "synthetic-user", last_modified_timestamp: "2026-09-30T12:00:00Z",
+    is_ad_group: true, ad_group_dn: "CN=synthetic,DC=fixture,DC=invalid" };
   const transport: RawTransport = async (request) => {
     expect(request.url).toBe("https://fixture.invalid/api/v2.5/groups/8");
-    return { status: 200, bodyText: JSON.stringify({ ...hostGroup, members: [member7] }) };
+    expect(request.method).toBe("GET");
+    return { status: 200, bodyText: JSON.stringify({ ...detail, members: [member7] }) };
   };
   const result = await runGroupShow(session(transport), flags(["group", "show", "--id", "8"]));
   expect(result).toEqual({ failed: false, output: {
     profile: "lab",
-    ...hostGroup,
+    ...detail,
     help: ["Run `vectra-axi group member list --profile lab --id 8` for complete paged membership"],
   } });
   expect(result.output).not.toHaveProperty("members");
@@ -227,17 +223,69 @@ it("maps rule filters to the wire keys without a client fields selector", async 
 });
 
 it("shows one triage rule without implying a benign verdict", async () => {
+  const detail = { ...rule7, description: "Synthetic automation", detection: "synthetic-detection",
+    is_whitelist: false,
+    source_conditions: { OR: [{ AND: [{ ANY_OF: { field: "host",
+      values: [{ value: "synthetic-host", label: "Synthetic host" }], groups: [], label: "Host" } }] }] },
+    additional_conditions: { NONE_OF: { field: "remote1_dns",
+      values: [{ value: "fixture.invalid", label: "Synthetic domain" }], groups: [], label: "Domain" } } };
   const transport: RawTransport = async (request) => {
     expect(request.url).toBe("https://fixture.invalid/api/v2.5/rules/7");
-    return { status: 200, bodyText: JSON.stringify(rule7) };
+    expect(request.method).toBe("GET");
+    return { status: 200, bodyText: JSON.stringify({ ...detail, verdict: "benign" }) };
   };
   const result = await runRuleShow(session(transport), flags(["triage", "rule", "show", "--id", "7"]));
   expect(result).toEqual({ failed: false, output: {
     profile: "lab",
-    ...rule7,
+    ...detail,
     help: [BENIGN_DISCLAIMER],
   } });
   expect(result.output).not.toHaveProperty("verdict");
+});
+
+it.each([
+  ["description", 42],
+  ["source_conditions", "synthetic-condition"],
+  ["source_conditions", []],
+  ["additional_conditions", true],
+  ["additional_conditions", []],
+  ["detection", { id: 7 }],
+  ["is_whitelist", "false"],
+  ["is_whitelist", null],
+])("rejects malformed rule detail %s: %j", async (field, value) => {
+  const transport: RawTransport = async () => ({ status: 200,
+    bodyText: JSON.stringify({ ...rule7, [field]: value }) });
+  await expect(runRuleShow(session(transport), flags(["triage", "rule", "show", "--id", "7"])))
+    .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+});
+
+it.each([
+  ["description", 42],
+  ["importance", false],
+  ["last_modified_by", []],
+  ["last_modified_timestamp", 42],
+  ["is_ad_group", "true"],
+  ["ad_group_dn", {}],
+])("rejects malformed group detail %s", async (field, value) => {
+  const transport: RawTransport = async () => ({ status: 200,
+    bodyText: JSON.stringify({ ...hostGroup, [field]: value }) });
+  await expect(runGroupShow(session(transport), flags(["group", "show", "--id", "8"])))
+    .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+});
+
+it("shows a group when release-dependent metadata is absent", async () => {
+  const transport: RawTransport = async () => ({ status: 200, bodyText: JSON.stringify(hostGroup) });
+  const result = await runGroupShow(session(transport), flags(["group", "show", "--id", "8"]));
+  expect(result.output).toMatchObject(hostGroup);
+  expect(result.output).not.toHaveProperty("is_ad_group");
+});
+
+it("shows a rule with null optional investigation fields", async () => {
+  const detail = { ...rule7, description: null, source_conditions: null,
+    additional_conditions: null, detection: null, is_whitelist: true };
+  const transport: RawTransport = async () => ({ status: 200, bodyText: JSON.stringify(detail) });
+  const result = await runRuleShow(session(transport), flags(["triage", "rule", "show", "--id", "7"]));
+  expect(result.output).toEqual({ profile: "lab", ...detail, help: [BENIGN_DISCLAIMER] });
 });
 
 it("reports an empty rule window as success with an explicit zero", async () => {
@@ -299,8 +347,6 @@ it.each([
 // Flag validation runs before profile selection in cli.ts, so these unit
 // cases assert the validators throw without any session or transport.
 it.each([
-  ["non-boolean include-members", () => groupQuery(flags(["group", "list", "--include-members", "maybe"])),
-    "--include-members must be true or false"],
   ["empty group name", () => groupQuery(flags(["group", "list", "--name", "  "])),
     "--name requires a non-empty value"],
   ["non-boolean is-key-asset", () => memberQuery(flags(["group", "member", "list", "--id", "8", "--is-key-asset", "yes"])),
