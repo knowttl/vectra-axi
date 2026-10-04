@@ -62,6 +62,10 @@ Do not silently adopt preview behavior or a floating latest API version.
 
 The [official QUX OAuth guide](https://docs.vectra.ai/configuration/access/api-qux/v25-postman-quick-start-guide-using-oauth2) confirms personal tokens remain supported and recommends OAuth where possible.
 QUX refresh tokens are not supported by that documented contract.
+AUTH-02 rechecked that guide on 2026-10-03 for Bearer use and client-credentials reacquisition.
+The [pinned VAT implementation](https://github.com/vectranetworks/vectra_api_tools/blob/c76fd0c5d42e74b199e47dc42923582c2b1dbee7/modules/vectra.py) corroborates the versioned QUX route, Basic client authentication, form grant and returned expiry in `_get_token` and `_check_token`.
+Its retry, redirect and disabled-verification behavior are not adopted.
+AUTH-02 also consulted `knowttl/az-axi` on `main` for profile precedence, credential expiry/cache and SDK error conventions; no UI-auth reuse or global credential cache is adopted.
 Use returned expiries rather than hardcoded example lifetimes.
 API version values are strings, so a future `2.10` cannot collapse into `2.1`.
 QUX release changes can retain API v2.5: health events arrived in appliance 9.4, AD groups in 9.6, and detection EDR context in 9.8.

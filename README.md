@@ -79,9 +79,13 @@ QUX OAuth requires appliance release 9.1 or later.
 The internal credential provider requests Basic client authentication on the named `POST /api/v2.5/oauth2/token` exchange with form `grant_type=client_credentials`.
 It caches Bearer credentials in invocation memory until the returned numeric `expires_in`, measured conservatively from exchange start.
 At expiry it reacquires using client credentials; it never uses a returned refresh token or assumes a fixed lifetime.
+Successful responses require a nonempty access token containing only ASCII letters, digits, `-`, `.`, `_`, `~`, `+` or `/`, optionally followed by trailing `=` padding, a case-insensitive Bearer `token_type`, and finite numeric `expires_in` yielding a safe integer expiry in epoch milliseconds.
+Unsuitable access tokens are rejected before caching; a failed reacquisition cannot return the expired credential.
 Missing secrets report `AUTH_REQUIRED`, rejected client credentials report `AUTH_FAILED`, denied access reports `ACCESS_DENIED`, and certificate errors report `TLS_TRUST_ERROR`.
 Already-expired returned credentials report `AUTH_EXPIRED`; malformed successful responses report `AUTH_RESPONSE_INVALID`; other status or transport failures report `AUTH_EXCHANGE_FAILED`.
 An exchange failure triggers no automatic retry or business request.
-The provider registers the client secret, encoded Basic credential, access token and any returned refresh token with the existing redactor.
+Remote response bodies and raw transport errors are discarded from exchange errors.
+The provider registers the client secret, encoded Basic credential and returned access/refresh token strings with the existing redactor, including rejected responses.
+Malformed Unicode remains redacted in raw and JSON-escaped forms; an unused malformed refresh token does not prevent authentication.
 Actual HTTP execution, destination/redirect validation and request deadlines remain CORE-01; all current CLI views remain offline.
 See [AUTH-02 handoff](docs/auth-02-handoff.md) for the fixture seam and acceptance evidence.
