@@ -181,7 +181,10 @@ Output reports `cached` from the request flags and passes the returned body thro
 `health event list` reads one QUX `events/health` batch per call through the session: `--from` starts at a returned checkpoint, server-side `--ordering`, `--status`, `--health-check-name`, `--entity-type` and `--entity-name` filters pass through, and `--limit` (default 100) is an output window only, never the upstream batch limit.
 The event feed requires appliance release 9.4 or later when the profile declares one; without a declared release the read proceeds and the server decides.
 Output returns the batch's `next_checkpoint` as `checkpoint` and `remaining_count` as returned, never as a stable total; a `--limit` inside a batch returns an opaque `--cursor` that replays the same checkpoint and skips returned rows.
-A batch that returns rows without advancing past the requested checkpoint fails with `CONTINUATION_REPEATED` and its rows retained instead of handing back a resumption loop.
+Resume with the same profile and filters, without `--from`; the cursor preserves the window size across successive resumes unless an explicit `--limit` replaces it.
+The cursor binds the batch's ordered event contents; changed rows or ordering on replay fail with `RESPONSE_INVALID` before applying the saved offset, with guidance to reissue the read without `--cursor`.
+Drain the batch with `--cursor` before using `--from <checkpoint>` to continue past it.
+A batch that returns rows without advancing past the requested checkpoint fails with `CONTINUATION_REPEATED`, retaining only the requested window after the saved offset and counting those retained rows, instead of handing back a resumption loop.
 Empty batches succeed with an explicit zero; denial reports `ACCESS_DENIED` with exit 1, never an empty healthy result.
 No health or configuration mutation exists: the session authorizes read GETs only.
 
