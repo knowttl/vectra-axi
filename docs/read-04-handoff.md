@@ -16,6 +16,6 @@ The CLI dispatches through a read-only runner that sets exit 1 for partial reads
 
 ## Convention for later read slices
 
-Follow the READ-01 leaf convention: one catalogue entry per leaf with kebab-case flags, flag validation before configuration/profile selection, `{ output, failed }` runners dispatched from CLI glue, and domain coverage through the real session with a fake `RawTransport` and synthetic `.invalid` fixtures under the [external-network guard](../test/network-guard.ts).
+Follow the READ-01 leaf convention: one catalogue entry per leaf with kebab-case flags, flag validation as described above, `{ output, failed }` runners dispatched from CLI glue, and domain coverage through the real session with a fake `RawTransport` and synthetic `.invalid` fixtures under the [external-network guard](../test/network-guard.ts).
 Use the catalogue's `parseInvocation` for command resolution and unknown-input errors.
 See the [implementation plan](implementation-plan.md#phase-2-finish-the-on-prem-soc-read-release) for slice ownership and remaining read scope.

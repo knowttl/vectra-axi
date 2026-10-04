@@ -353,7 +353,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "assignment list": {
-    // Filter flags cover the inventory's qux.assignment.list query subset.
+    // Filter flags cover both generations' assignment.list query subset.
     // Singular CLI names map to the plural wire keys in src/assignments.ts;
     // values pass through to the server. Assignments and outcomes are
     // distinct resources: rows carry the target host/account ID and a
