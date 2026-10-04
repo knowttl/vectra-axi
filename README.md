@@ -1,7 +1,7 @@
 # vectra-axi
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
-The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, READ-07 health-snapshot and health-event leaves, READ-08 host/account lockdown status leaf, and PACK-01 read-release packaging, doctor and generated documentation are implemented.
+The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, READ-07 health-snapshot and health-event leaves, READ-08 host/account lockdown status leaf, PACK-01 read-release packaging, doctor and generated documentation, and WRITE-00 fixture-only mutation coordinator are implemented.
 `detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `host note list`, `host tag list`, `account note list`, `account tag list`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show`, `group list`, `group show`, `group member list`, `triage rule list`, `triage rule show`, `audit list`, `health list`, `health show`, `health event list` and `lockdown list` call the session; every other Vectra API operation remains planned or blocked.
 The selected direction is TypeScript, on-prem QUX reads first, and a later RUX adapter for cloud migration.
 
@@ -58,6 +58,9 @@ There is no credential prompt, config writer or browser login reuse.
 ```
 
 `applianceRelease` and `caBundle` are optional.
+An optional hand-edited `writes` object requires a boolean `allowWrites` and a nonempty `operations` array of nonempty operation names; unknown fields are rejected.
+Absent `writes` or `allowWrites: false` disables coordinator mutations; `VECTRA_AXI_READ_ONLY=1` overrides any opt-in.
+This policy enables no business mutation family or CLI command; see the [mutation architecture](docs/design.md#later-mutation-coordinator) for the internal coordinator contract.
 Profile names and `defaultProfile` must be nonempty identifiers without surrounding whitespace; selections match exactly without trimming.
 `defaultProfile`, when present, must name an existing profile.
 The origin must be an exact HTTPS origin without credentials, path, query, fragment or trailing slash.

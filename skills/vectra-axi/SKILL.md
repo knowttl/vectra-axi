@@ -7,8 +7,8 @@ user-invocable: false
 # vectra-axi
 
 Agent-ergonomic CLI for Vectra AI, read-only by default. On-prem Quadrant UX
-(QUX v2.5) SOC reads through token-efficient TOON output. No business write
-leaf exists: every mutation is refused by the read-only session.
+(QUX v2.5) SOC reads through token-efficient TOON output.
+See [README.md](../../README.md) for shipped write restrictions.
 
 Run `vectra-axi doctor` first.
 See [README release guidance](../../README.md#release) for its profile selection, bounded checks and recovery behavior.
