@@ -260,7 +260,8 @@ Doctor selects a profile using the precedence above; only when multiple profiles
 Without any configured profiles it reports `PROFILE_REQUIRED` before HTTP.
 `doctor` performs one bounded `detection list --limit 1` window per selected QUX profile and reports configuration, connectivity, authentication and access failures with a nonzero exit status when any profile fails.
 The window uses the normal bounded collection retries and budgets; OAuth profiles may also perform their named credential exchange.
-RUX profiles keep the exchange-only check: `doctor` checks each selected RUX profile with its named OAuth exchange alone rather than a detection journey, while the RUX-02 reads run through the read leaves above.
+RUX profiles keep the exchange-only check: `doctor` checks each selected RUX profile with its named OAuth exchange alone rather than a detection journey.
+See the read leaves above for shipped RUX resource commands.
 Success and recovery commands preserve the checked config path and profile, using shell quoting and inline `--profile=<name>` syntax.
 It never tries passwords, signs in interactively or enables writes.
 The static skill at `skills/vectra-axi/SKILL.md` is installed only by explicit setup (`npx skills add knowttl/vectra-axi --skill vectra-axi`); no ordinary command installs hooks, plugins or configuration.
