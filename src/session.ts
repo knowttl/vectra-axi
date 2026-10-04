@@ -429,7 +429,6 @@ export function createMutationSender(args: {
   redactor: SecretRedactor;
   transport: RawTransport;
 }): {
-  readonly profile: Pick<SelectedProfile, "name" | "kind" | "origin" | "apiVersion">;
   send(authorization: MutationAuthorization, options?: { body?: string; ifMatch?: string; signal?: AbortSignal }): Promise<MutationResponse>;
 } {
   const { profile, configPath, redactor, transport } = args;
@@ -437,7 +436,6 @@ export function createMutationSender(args: {
   // snapshotted: destination math uses this copy, never a later edit.
   // Secret values still resolve live from their environment references.
   const bound = { ...profile };
-  const snapshot = { name: bound.name, kind: bound.kind, origin: bound.origin, apiVersion: bound.apiVersion };
   const credentials = profileCredentials(bound, configPath, redactor, transport);
 
   async function send(
@@ -493,7 +491,7 @@ export function createMutationSender(args: {
     }
   }
 
-  const sender = { profile: snapshot, send };
+  const sender = { send };
   return sender;
 }
 

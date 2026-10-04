@@ -143,12 +143,10 @@ export function createMutationCoordinator(args: {
   transport: RawTransport;
   clock?: () => number;
   auditPath?: string;
-  newId?: () => string;
 }): MutationCoordinator {
   const { profile, configPath, redactor, transport } = args;
   const clock = args.clock ?? Date.now;
   const auditPath = args.auditPath ?? resolveWriteLogPath();
-  const newId = args.newId ?? randomUUID;
   const scope: WriteScope = Object.freeze({
     name: profile.name,
     origin: profile.origin,
@@ -238,6 +236,10 @@ export function createMutationCoordinator(args: {
           path = dirname(path);
         }
         flushDirectory(parent);
+      }
+      if (process.platform === "win32" && !existsSync(auditPath)) {
+        const journal = openSync(auditPath, "a", 0o600);
+        try { fsyncSync(journal); } finally { closeSync(journal); }
       }
       const lockPath = `${auditPath}.lock`;
       const lock = openSync(lockPath, "wx", 0o600);
@@ -333,7 +335,7 @@ export function createMutationCoordinator(args: {
       throw new AxiError(`blocked: mutation ${definition.operation} was not approved (profile '${scope.name}')`,
         "APPROVAL_DENIED", ["Approve the reviewed preview before executing"]);
     }
-    const id = options.intentId ?? newId();
+    const id = options.intentId ?? randomUUID();
     // A re-read alone is not atomic protection; conditional writes travel as
     // If-Match only where the endpoint supports them (WRITE-N evidence).
     const meta = metadata(definition, seen, id, options.ifMatch);

@@ -218,7 +218,7 @@ it("records redacted intent and outcome on success", async () => {
   expect(readFileSync(auditPath, "utf8")).not.toContain(token);
 });
 
-it.each([...new Set([process.platform, "win32"])])("flushes intent before sending and outcome before returning on %s", async (platform) => {
+it.each([...new Set([process.platform, "win32"])])("initializes Windows journal storage before reservation and flushes records on %s", async (platform) => {
   const events: string[] = [];
   const realFs = await vi.importActual<typeof import("node:fs")>("node:fs");
   vi.stubGlobal("process", Object.create(process, { platform: { value: platform } }));
@@ -226,10 +226,12 @@ it.each([...new Set([process.platform, "win32"])])("flushes intent before sendin
     if (platform === "win32" && flags === "r" && statSync(path).isDirectory()) {
       throw Object.assign(new Error("Cannot open a directory on Windows"), { code: "EISDIR" });
     }
+    if (flags === "wx") events.push("reserve");
     return realFs.openSync(path, flags, mode);
   });
   vi.mocked(fsyncSync).mockImplementation((fd) => {
-    events.push(fstatSync(fd).isDirectory() ? "directory" : "journal");
+    const stat = fstatSync(fd);
+    events.push(stat.isDirectory() ? "directory" : stat.size === 0 ? "initialize" : "journal");
     realFs.fsyncSync(fd);
   });
   const transport = vi.fn<RawTransport>().mockImplementation(async () => {
@@ -241,8 +243,8 @@ it.each([...new Set([process.platform, "win32"])])("flushes intent before sendin
   try {
     await expect(writes.execute(mutation, { execute: true, readState })).resolves.toMatchObject({ kind: "success" });
     expect(events).toEqual(platform === "win32"
-      ? ["journal", "send", "journal"]
-      : ["directory", "directory", "directory", "journal", "directory", "send", "journal"]);
+      ? ["initialize", "reserve", "journal", "send", "reserve", "journal"]
+      : ["directory", "directory", "directory", "reserve", "journal", "directory", "send", "reserve", "journal"]);
     expect(auditLines(join(nested, "writes.log"))).toEqual([
       expect.objectContaining({ kind: "intent" }),
       expect.objectContaining({ kind: "outcome", outcome: "SUCCESS" }),

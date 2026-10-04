@@ -225,7 +225,10 @@ Failure to record intent blocks the send; failure to record outcome after send m
 The audit contains metadata, not raw secrets, headers or note bodies, and is not represented as tamper-proof.
 The journal defaults to `~/.vectra-axi/writes.log`, with a nonblank `VECTRA_AXI_WRITE_LOG` override or an explicit internal `auditPath`.
 Intent reservation reads the durable journal under an exclusive lock and refuses any previously reserved intent ID, including across coordinator recreation, with `ALREADY_EXECUTED` and manual reconciliation guidance.
-Intent records are flushed with `fsync` before sending a mutation, and outcome records before reporting completion; first creation also flushes the journal directory and any newly created parent directories.
+Intent records are flushed with `fsync` before sending a mutation, and outcome records before reporting completion on every platform.
+On platforms other than Windows, first creation also flushes the journal directory and any newly created parent directories.
+On Windows, first use creates the journal directory and flushes the empty journal file before reserving any mutation intent.
+Node cannot open directory handles for `fsync` on Windows, so directory entries cannot be durably flushed there; a machine failure can still lose newly created journal paths despite file flushing.
 A malformed journal or remaining lock blocks intent recording; reconcile a remaining lock manually before removing it.
 Future named text mutations will use file/stdin inputs.
 There is no assumed server-side dry-run capability.
