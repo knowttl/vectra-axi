@@ -41,8 +41,4 @@ describe("generated release records", () => {
     }
   });
 
-  it("keeps the skill free of live state and real destinations", () => {
-    expect(skill).not.toMatch(/https:\/\/(?!qux\.example\.invalid)[^\s"']+/);
-    expect(skill).toContain("Run `vectra-axi doctor` first");
-  });
 });

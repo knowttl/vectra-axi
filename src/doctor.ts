@@ -30,14 +30,17 @@ export function doctorTargets(config: LoadedConfig["config"], flag?: string): st
 
 export type DoctorResult = { output: Record<string, unknown>; failed: boolean };
 
+function shellQuote(value: string): string {
+  return /^[a-zA-Z0-9_./-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\"'\"'")}'`;
+}
+
 export async function runDoctor(args: {
   loaded: LoadedConfig;
   names: string[];
-  configFlag?: string;
   redactor: SecretRedactor;
   transport: RawTransport;
 }): Promise<DoctorResult> {
-  const { loaded, names, configFlag, redactor, transport } = args;
+  const { loaded, names, redactor, transport } = args;
   const rows: Record<string, unknown>[] = [];
   const help: string[] = [];
   const seen = new Set<string>();
@@ -51,15 +54,16 @@ export async function runDoctor(args: {
   for (const name of names) {
     const selected = selectProfile(loaded.config, name);
     const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
-    const flags = new Map<string, string | boolean>([["limit", String(DOCTOR_WINDOW)],
-      ...(configFlag === undefined ? [] as const : [["config", configFlag] as const])]);
+    const flags = new Map<string, string | boolean>([["limit", String(DOCTOR_WINDOW)]]);
+    const context = ` --config ${shellQuote(loaded.path)} --profile ${shellQuote(name)}`;
+    const recovery = `[${name}] Check the reported failure, then rerun \`vectra-axi doctor${context}\``;
     try {
       const result = await runDetectionList(session, flags);
       if (result.failed) {
-        const output = result.output as { code: unknown; error: unknown; help: unknown };
+        const output = result.output as { code: unknown; error: unknown };
         rows.push({ name, auth: selected.auth, check: DOCTOR_CHECK, status: "failed",
           code: output.code, error: output.error });
-        for (const hint of Array.isArray(output.help) ? output.help as string[] : []) note(`[${name}] ${hint}`);
+        note(recovery);
       } else {
         ok += 1;
         const output = result.output as { count: unknown };
@@ -70,11 +74,14 @@ export async function runDoctor(args: {
       rows.push({ name, auth: selected.auth, check: DOCTOR_CHECK, status: "failed",
         code: error.code, error: error.message });
       for (const hint of [error.message, ...error.suggestions]) note(`[${name}] ${hint}`);
+      note(recovery);
     }
   }
   const failed = ok !== names.length;
   if (!failed) {
-    note("Run `vectra-axi detection list --profile <name>` to start an investigation");
+    for (const name of names) {
+      note(`Run \`vectra-axi detection list --config ${shellQuote(loaded.path)} --profile ${shellQuote(name)}\` to start an investigation`);
+    }
   }
   return { failed, output: {
     config: loaded.path,

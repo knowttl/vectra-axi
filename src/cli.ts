@@ -298,8 +298,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
   async function runDoctorLeaf(flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
     const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
     const names = doctorTargets(loaded.config, flags.get("profile") as string | undefined);
-    const result = await runDoctor({ loaded, names,
-      configFlag: flags.get("config") as string | undefined, redactor, transport });
+    const result = await runDoctor({ loaded, names, redactor, transport });
     if (result.failed) process.exitCode = 1;
     return result.output;
   }

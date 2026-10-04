@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, expect, it } from "vitest";
@@ -5,6 +6,7 @@ import { doctorTargets, runDoctor } from "../src/doctor.js";
 import type { RawTransport } from "../src/session.js";
 import { loadConfig } from "../src/profiles.js";
 import { SecretRedactor } from "../src/redact.js";
+import { parseInvocation } from "../src/catalogue.js";
 
 const scratch = mkdtempSync(join(import.meta.dirname, ".doctor-test-"));
 const path = join(scratch, "config.json");
@@ -28,9 +30,9 @@ function loaded(names: string[] = ["lab"]) {
   return loadConfig(path, new SecretRedactor());
 }
 
-function doctor(names: string[], transport: RawTransport, configFlag?: string) {
+function doctor(names: string[], transport: RawTransport) {
   const owned = loaded(names);
-  return runDoctor({ loaded: owned, names, ...(configFlag === undefined ? {} : { configFlag }),
+  return runDoctor({ loaded: owned, names,
     redactor: new SecretRedactor(), transport });
 }
 
@@ -56,8 +58,38 @@ it("checks a profile with one bounded detection read", async () => {
     count: "1 of 1 profiles ok",
     profiles: [{ name: "lab", auth: "token", check: expect.any(String), status: "ok", detail: "1 of 2 detections" }],
     complete: true,
-    help: ["Run `vectra-axi detection list --profile <name>` to start an investigation"],
+    help: [`Run \`vectra-axi detection list --config ${path} --profile lab\` to start an investigation`],
   } });
+});
+
+it.each(["ok", "read failure", "credential failure"])("preserves context in %s follow-ups", async (scenario) => {
+  const configPath = join(scratch, "lab's config.json");
+  const names = ["lab's profile", "other profile"];
+  writeFileSync(configPath, JSON.stringify({ profiles: Object.fromEntries(names.map((name) => [name, tokenProfile])) }));
+  if (scenario === "credential failure") delete process.env.SENTINEL_TOKEN;
+  try {
+    const owned = loadConfig(configPath, new SecretRedactor());
+    const transport: RawTransport = async () => scenario === "read failure"
+      ? { status: 403, bodyText: "{}" } : body({ results: [detection], count: 1 });
+    const result = await runDoctor({ loaded: owned, names, redactor: new SecretRedactor(), transport });
+    const hints = (result.output.help as string[]).filter((hint) => hint.includes("`vectra-axi "));
+    expect(hints).toHaveLength(2);
+    expect(result.output.help).not.toEqual(expect.arrayContaining([expect.stringContaining("--cursor")]));
+    const invocations = hints.map((hint) => {
+      const command = /`vectra-axi (.*?)`/.exec(hint)![1]!;
+      const args = execFileSync("sh", ["-c", `set -- ${command}; printf '%s\\n' "$@"`],
+        { encoding: "utf8" }).trimEnd().split("\n");
+      return parseInvocation(args);
+    });
+    expect(invocations.map((invocation) => ({ leaf: invocation.leaf,
+      config: invocation.flags.get("config"), profile: invocation.flags.get("profile") }))).toEqual(
+      names.map((name) => ({ leaf: scenario === "ok" ? "detection list" : "doctor", config: configPath, profile: name })));
+    expect(invocations.map((invocation) => doctorTargets(
+      loadConfig(invocation.flags.get("config") as string).config, invocation.flags.get("profile") as string))).toEqual(
+      names.map((name) => [name]));
+  } finally {
+    rmSync(configPath, { force: true });
+  }
 });
 
 it("reports an empty detection window as an ok profile", async () => {
