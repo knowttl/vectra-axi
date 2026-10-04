@@ -118,6 +118,8 @@ export function consumeMutationAuthorization(authorization: MutationAuthorizatio
 }
 
 function flushDirectory(path: string): void {
+  // Node cannot open directory handles on Windows; journal fsync still applies.
+  if (process.platform === "win32") return;
   const fd = openSync(path, "r");
   try { fsyncSync(fd); } finally { closeSync(fd); }
 }

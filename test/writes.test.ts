@@ -1,4 +1,4 @@
-import { fsyncSync, fstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { fsyncSync, fstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -10,7 +10,7 @@ import { createMutationCoordinator, type MutationCoordinator, type MutationDefin
 
 vi.mock("node:fs", async (importOriginal) => {
   const fs = await importOriginal<typeof import("node:fs")>();
-  return { ...fs, fsyncSync: vi.fn(fs.fsyncSync) };
+  return { ...fs, fsyncSync: vi.fn(fs.fsyncSync), openSync: vi.fn(fs.openSync) };
 });
 
 // WRITE-00 acceptance: the coordinator is entirely fixture-driven with no
@@ -62,8 +62,8 @@ function coordinator(args: {
 
 const ok = (body: unknown) => ({ status: 200, bodyText: JSON.stringify(body) });
 const readState = async (): Promise<unknown> => ({ notes: [] });
-const auditLines = (): Record<string, unknown>[] =>
-  readFileSync(auditPath, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+const auditLines = (path = auditPath): Record<string, unknown>[] =>
+  readFileSync(path, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
 
 it("refuses writes by default even with execution requested", async () => {
   const transport = vi.fn<RawTransport>().mockResolvedValue(ok({ id: 1 }));
@@ -218,9 +218,16 @@ it("records redacted intent and outcome on success", async () => {
   expect(readFileSync(auditPath, "utf8")).not.toContain(token);
 });
 
-it("flushes the intent and new journal directory before sending and the outcome before returning", async () => {
+it.each([...new Set([process.platform, "win32"])])("flushes intent before sending and outcome before returning on %s", async (platform) => {
   const events: string[] = [];
   const realFs = await vi.importActual<typeof import("node:fs")>("node:fs");
+  vi.stubGlobal("process", Object.create(process, { platform: { value: platform } }));
+  vi.mocked(openSync).mockImplementation((path, flags, mode) => {
+    if (platform === "win32" && flags === "r" && statSync(path).isDirectory()) {
+      throw Object.assign(new Error("Cannot open a directory on Windows"), { code: "EISDIR" });
+    }
+    return realFs.openSync(path, flags, mode);
+  });
   vi.mocked(fsyncSync).mockImplementation((fd) => {
     events.push(fstatSync(fd).isDirectory() ? "directory" : "journal");
     realFs.fsyncSync(fd);
@@ -233,8 +240,16 @@ it("flushes the intent and new journal directory before sending and the outcome 
   const { coordinator: writes } = coordinator({ transport, audit: join(nested, "writes.log") });
   try {
     await expect(writes.execute(mutation, { execute: true, readState })).resolves.toMatchObject({ kind: "success" });
-    expect(events).toEqual(["directory", "directory", "directory", "journal", "directory", "send", "journal"]);
+    expect(events).toEqual(platform === "win32"
+      ? ["journal", "send", "journal"]
+      : ["directory", "directory", "directory", "journal", "directory", "send", "journal"]);
+    expect(auditLines(join(nested, "writes.log"))).toEqual([
+      expect.objectContaining({ kind: "intent" }),
+      expect.objectContaining({ kind: "outcome", outcome: "SUCCESS" }),
+    ]);
   } finally {
+    vi.unstubAllGlobals();
+    vi.mocked(openSync).mockImplementation(realFs.openSync);
     vi.mocked(fsyncSync).mockImplementation(realFs.fsyncSync);
     rmSync(join(scratch, "nested"), { recursive: true, force: true });
   }
