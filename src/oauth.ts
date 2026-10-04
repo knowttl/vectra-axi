@@ -6,10 +6,21 @@ import type { SecretRedactor } from "./redact.js";
 export type OAuthProfile = Extract<SelectedProfile, { auth: "oauth" }>;
 export type OAuthCredential = { header: string; expiresAt: number };
 
+// RUX-01: the cloud token route is unversioned. QUX keeps its versioned route;
+// both use Basic client authentication with form grant_type=client_credentials.
+// A returned refresh_token is accepted and redacted but never spent: at
+// expiry the provider reacquires with client credentials, the AUTH-02 rule.
+export function tokenRoute(profile: Pick<OAuthProfile, "kind" | "apiVersion">): {
+  operation: "qux.oauth.exchange" | "rux.oauth.exchange"; url: string;
+} {
+  if (profile.kind === "rux") return { operation: "rux.oauth.exchange", url: "/oauth2/token" };
+  return { operation: "qux.oauth.exchange", url: `/api/v${profile.apiVersion}/oauth2/token` };
+}
+
 // CORE-01 implements this named exchange, including destination checks and bounded HTTP.
 // This is internal credential material, never a command result or a business POST grant.
 export type TokenTransport = (request: {
-  operation: "qux.oauth.exchange";
+  operation: "qux.oauth.exchange" | "rux.oauth.exchange";
   method: "POST";
   url: string;
   headers: { Authorization: string; "Content-Type": "application/x-www-form-urlencoded" };
@@ -21,7 +32,9 @@ export type TokenTransport = (request: {
 export function oauthCredentials(
   profile: OAuthProfile, configPath: LoadedConfig["path"], redactor: SecretRedactor, transport: TokenTransport,
 ): (signal?: AbortSignal) => Promise<OAuthCredential> {
-  const { origin, apiVersion, clientId, secretEnv } = profile;
+  const { origin, clientId, secretEnv } = profile;
+  const route = tokenRoute(profile);
+  const generation = profile.kind === "rux" ? "RUX v3.4" : "QUX v2.5";
   let cached: OAuthCredential | undefined;
 
   return async (signal) => {
@@ -42,7 +55,7 @@ export function oauthCredentials(
     let response: Awaited<ReturnType<TokenTransport>>;
     try {
       response = await transport({
-        operation: "qux.oauth.exchange", method: "POST", url: `${origin}/api/v${apiVersion}/oauth2/token`,
+        operation: route.operation, method: "POST", url: `${origin}${route.url}`,
         headers: { Authorization: authorization, "Content-Type": "application/x-www-form-urlencoded" },
         body: "grant_type=client_credentials", tls, ...(signal ? { signal } : {}),
       });
@@ -50,7 +63,7 @@ export function oauthCredentials(
       signal?.throwIfAborted();
       const code = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : undefined;
       throw authFailure({ code }) ?? new AxiError("OAuth credential exchange could not complete", "AUTH_EXCHANGE_FAILED", [
-        "Check connectivity and the QUX API client configuration; no automatic retry was attempted",
+        `Check connectivity and the ${profile.kind === "rux" ? "RUX v3.4" : "QUX"} API client configuration; no automatic retry was attempted`,
       ]);
     }
     const body = response.body && typeof response.body === "object" ? response.body as Record<string, unknown> : {};
@@ -66,7 +79,7 @@ export function oauthCredentials(
     if (failure) throw failure;
     if (response.status !== 200) {
       throw new AxiError("OAuth credential exchange failed", "AUTH_EXCHANGE_FAILED", [
-        "Check the QUX v2.5 token endpoint and service availability; no automatic retry was attempted",
+        `Check the ${generation} token endpoint and service availability; no automatic retry was attempted`,
       ]);
     }
     if (typeof body.access_token !== "string" || !/^[A-Za-z0-9._~+/-]+=*$/.test(body.access_token) || /\s/.test(body.access_token)
@@ -74,7 +87,7 @@ export function oauthCredentials(
       || typeof body.expires_in !== "number" || !Number.isFinite(body.expires_in)
       || !Number.isSafeInteger(started + body.expires_in * 1000)) {
       throw new AxiError("OAuth token response is malformed", "AUTH_RESPONSE_INVALID", [
-        "Check the QUX v2.5 API contract: access_token, Bearer token_type and numeric expires_in are required",
+        `Check the ${generation} API contract: access_token, Bearer token_type and numeric expires_in are required`,
       ]);
     }
     // Start conservatively before the exchange, so transport delay cannot extend validity.

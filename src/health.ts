@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { AxiError } from "axi-sdk-js";
 import { z } from "zod";
 import { DEFAULT_COLLECTION_LIMIT } from "./collections.js";
+import type { SelectedProfile } from "./profiles.js";
 import type { Session } from "./session.js";
 
 // READ-07: QUX health snapshots and health checkpoint events on the CORE-01
@@ -117,8 +118,10 @@ function releaseBelow(actual: string, minimum: string): boolean {
 // release older than 9.4 fails before any HTTP. A profile without
 // applianceRelease cannot be checked, so the read proceeds and the server
 // decides; an older appliance then answers with its own error.
-export function healthEventRelease(profile: { applianceRelease?: string }): void {
-  const release = profile.applianceRelease;
+export function healthEventRelease(profile: SelectedProfile | Session["profile"] | { applianceRelease?: string }): void {
+  // RUX-01: cloud profiles carry no appliance release; undeclared means the
+  // read proceeds and the server decides, the same as a QUX profile without one.
+  const release = "applianceRelease" in profile ? profile.applianceRelease : undefined;
   if (release !== undefined && releaseBelow(release, HEALTH_EVENT_MINIMUM_RELEASE)) {
     invalid(`health event list requires appliance release ${HEALTH_EVENT_MINIMUM_RELEASE} or later`
       + ` (profile reports ${release})`,

@@ -80,9 +80,61 @@ it.each([
   ["token fields", { tokenEnv: "SENTINEL_TOKEN" }], ["missing client", { clientId: undefined }],
   ["empty client", { clientId: "" }], ["Basic delimiter", { clientId: "fake:client" }],
   ["missing secret reference", { secretEnv: undefined }], ["invalid reference", { secretEnv: "not an env reference" }],
-  ["inline secret", { clientSecret: secret }], ["RUX", { kind: "rux", apiVersion: "3.4" }],
+  ["inline secret", { clientSecret: secret }], ["token mode", { auth: "token", tokenEnv: "SENTINEL_TOKEN" }],
+  ["appliance release", { kind: "rux", apiVersion: "3.4", applianceRelease: "9.4" }],
+  ["QUX version", { kind: "rux", apiVersion: "2.5" }], ["RUX version on QUX", { apiVersion: "3.4" }],
 ])("rejects OAuth profile with %s", (_name, fields) => {
   expect(() => configured(fields)).toThrow(expect.objectContaining({ code: "CONFIG_INVALID" }));
+});
+
+// RUX-01: the cloud exchange is unversioned, but lifecycle handling matches
+// QUX: returned expiry governs caching, a returned refresh token is kept
+// for redaction only, and expiry reacquires with client credentials.
+const rux = { kind: "rux", apiVersion: "3.4" };
+
+it("uses only the named unversioned RUX client-credentials exchange", async () => {
+  const transport = vi.fn<TokenTransport>().mockResolvedValue(response);
+  expect(await provider(transport, rux)()).toEqual({ header: `Bearer ${access}`, expiresAt: 1_002_000 });
+  expect(transport).toHaveBeenCalledExactlyOnceWith({
+    operation: "rux.oauth.exchange", method: "POST", url: "https://fixture.invalid/oauth2/token",
+    headers: { Authorization: `Basic ${Buffer.from(`synthetic-client:${secret}`).toString("base64")}`,
+      "Content-Type": "application/x-www-form-urlencoded" },
+    body: "grant_type=client_credentials", tls: { rejectUnauthorized: true },
+  });
+});
+
+it("reacquires a RUX credential at expiry without spending its refresh token", async () => {
+  const transport = vi.fn<TokenTransport>().mockResolvedValueOnce({ ...response, body: { ...response.body, refresh_token: refresh } })
+    .mockResolvedValueOnce({ ...response, body: { ...response.body, access_token: "fake-second-token", expires_in: 7 } });
+  const resolve = provider(transport, rux);
+  await resolve();
+  vi.setSystemTime(1_002_000);
+  expect(await resolve()).toEqual({ header: "Bearer fake-second-token", expiresAt: 1_009_000 });
+  expect(transport.mock.calls.map(([request]) => [request.operation, request.body])).toEqual([
+    ["rux.oauth.exchange", "grant_type=client_credentials"],
+    ["rux.oauth.exchange", "grant_type=client_credentials"],
+  ]);
+});
+
+it("names the RUX v3.4 endpoint in exchange and contract failures", async () => {
+  const failed = vi.fn<TokenTransport>().mockResolvedValue({ status: 503, body: {} });
+  const error: unknown = await provider(failed, rux)().catch((error: AxiError) => error);
+  expect(error).toMatchObject({ code: "AUTH_EXCHANGE_FAILED" });
+  expect((error as AxiError).suggestions.join(" ")).toContain("RUX v3.4");
+  const malformed = vi.fn<TokenTransport>().mockResolvedValue({ ...response, body: { ...response.body, expires_in: "2" } });
+  const invalid: unknown = await provider(malformed, rux)().catch((error: AxiError) => error);
+  expect(invalid).toMatchObject({ code: "AUTH_RESPONSE_INVALID" });
+  expect((invalid as AxiError).suggestions.join(" ")).toContain("RUX v3.4");
+});
+
+it("redacts RUX refresh material from errors and registered secrets", async () => {
+  const redactor = new SecretRedactor();
+  const transport = vi.fn<TokenTransport>().mockResolvedValue({ status: 401,
+    body: { access_token: access, refresh_token: refresh, error_description: `raw ${secret}` } });
+  const error = await provider(transport, rux, redactor)().catch((error: AxiError) => error);
+  expect(error).toMatchObject({ code: "AUTH_FAILED" });
+  expect(JSON.stringify(error)).not.toContain(secret);
+  expect(redactor.value({ result: access, debug: refresh })).toEqual({ result: "***redacted***", debug: "***redacted***" });
 });
 
 it.each([

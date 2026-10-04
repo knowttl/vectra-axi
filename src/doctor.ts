@@ -1,6 +1,6 @@
 import { AxiError } from "axi-sdk-js";
 import { runDetectionList } from "./detections.js";
-import { createSession, type RawTransport } from "./session.js";
+import { createSession, credentialProvider, type RawTransport } from "./session.js";
 import { selectProfile, type LoadedConfig } from "./profiles.js";
 import type { SecretRedactor } from "./redact.js";
 
@@ -15,6 +15,10 @@ import type { SecretRedactor } from "./redact.js";
 export const DOCTOR_OPERATION = "qux.detection.list";
 export const DOCTOR_WINDOW = 1;
 export const DOCTOR_CHECK = `detection list --limit ${DOCTOR_WINDOW} (${DOCTOR_OPERATION})`;
+// RUX-01: cloud profiles have no reads yet (RUX-02+), so their check is the
+// named OAuth exchange alone. It proves configuration, connectivity and
+// authentication without touching a read route.
+export const RUX_DOCTOR_CHECK = "oauth exchange (rux.oauth.exchange); RUX reads arrive in RUX-02";
 
 // Explicit --profile wins; otherwise environment, configured default and the
 // sole profile select one target. With no selection among several profiles,
@@ -51,27 +55,37 @@ export async function runDoctor(args: {
     }
   };
   let ok = 0;
+  let sawRux = false;
   for (const name of names) {
     const selected = selectProfile(loaded.config, name);
+    const check = selected.kind === "rux" ? RUX_DOCTOR_CHECK : DOCTOR_CHECK;
+    if (selected.kind === "rux") sawRux = true;
     const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
     const flags = new Map<string, string | boolean>([["limit", String(DOCTOR_WINDOW)]]);
     const context = ` --config ${shellQuote(loaded.path)} --profile=${shellQuote(name)}`;
     const recovery = `[${name}] Check the reported failure, then rerun \`vectra-axi doctor${context}\``;
     try {
-      const result = await runDetectionList(session, flags);
-      if (result.failed) {
-        const output = result.output as { code: unknown; error: unknown };
-        rows.push({ name, auth: selected.auth, check: DOCTOR_CHECK, status: "failed",
-          code: output.code, error: output.error });
-        note(recovery);
-      } else {
+      if (selected.kind === "rux") {
+        await credentialProvider({ profile: selected, configPath: loaded.path, redactor, transport })();
         ok += 1;
-        const output = result.output as { count: unknown };
-        rows.push({ name, auth: selected.auth, check: DOCTOR_CHECK, status: "ok", detail: output.count });
+        rows.push({ name, auth: selected.auth, check, status: "ok",
+          detail: "OAuth exchange ok; RUX reads arrive in RUX-02" });
+      } else {
+        const result = await runDetectionList(session, flags);
+        if (result.failed) {
+          const output = result.output as { code: unknown; error: unknown };
+          rows.push({ name, auth: selected.auth, check, status: "failed",
+            code: output.code, error: output.error });
+          note(recovery);
+        } else {
+          ok += 1;
+          const output = result.output as { count: unknown };
+          rows.push({ name, auth: selected.auth, check, status: "ok", detail: output.count });
+        }
       }
     } catch (error) {
       if (!(error instanceof AxiError)) throw error;
-      rows.push({ name, auth: selected.auth, check: DOCTOR_CHECK, status: "failed",
+      rows.push({ name, auth: selected.auth, check, status: "failed",
         code: error.code, error: error.message });
       for (const hint of [error.message, ...error.suggestions]) note(`[${name}] ${hint}`);
       note(recovery);
@@ -80,12 +94,19 @@ export async function runDoctor(args: {
   const failed = ok !== names.length;
   if (!failed) {
     for (const name of names) {
-      note(`Run \`vectra-axi detection list --config ${shellQuote(loaded.path)} --profile=${shellQuote(name)}\` to start an investigation`);
+      const selected = selectProfile(loaded.config, name);
+      if (selected.kind === "rux") {
+        note(`[${name}] RUX reads arrive in RUX-02; rerun \`vectra-axi doctor --config ${shellQuote(loaded.path)} --profile=${shellQuote(name)}\` after upgrading`);
+      } else {
+        note(`Run \`vectra-axi detection list --config ${shellQuote(loaded.path)} --profile=${shellQuote(name)}\` to start an investigation`);
+      }
     }
   }
   return { failed, output: {
     config: loaded.path,
-    check: `${DOCTOR_CHECK} per profile; no passwords, no interactive sign-in, no writes`,
+    check: sawRux
+      ? `${DOCTOR_CHECK} per QUX profile, ${RUX_DOCTOR_CHECK} per RUX profile; no passwords, no interactive sign-in, no writes`
+      : `${DOCTOR_CHECK} per profile; no passwords, no interactive sign-in, no writes`,
     count: `${ok} of ${names.length} profiles ok`,
     profiles: rows,
     complete: !failed,

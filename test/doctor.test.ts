@@ -199,6 +199,114 @@ it("drives an OAuth profile through the named exchange before the bounded read",
   }
 });
 
+// RUX-01: cloud profiles have no reads yet, so doctor runs the named OAuth
+// exchange alone and points at RUX-02 instead of a detection journey.
+const ruxProfile = { kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth",
+  clientId: "synthetic-client", secretEnv: "CLOUD_SECRET" };
+const ruxSecret = "fake-cloud-secret-SENTINEL";
+const ruxAccess = "fake-cloud-access-SENTINEL";
+
+function cloud(names: string[] = ["cloud"]) {
+  process.env.CLOUD_SECRET = ruxSecret;
+  writeFileSync(path, JSON.stringify({ profiles: Object.fromEntries(names.map((name) => [name, ruxProfile])) }));
+  return loadConfig(path, new SecretRedactor());
+}
+
+const ruxExchange = (status: number, body: unknown) =>
+  async (request: { method: string; url: string }): Promise<{ status: number; bodyText: string }> => {
+    expect(request.method).toBe("POST");
+    expect(request.url).toBe("https://fixture.invalid/oauth2/token");
+    return { status, bodyText: JSON.stringify(body) };
+  };
+
+it("checks a cloud profile with the named exchange and no resource read", async () => {
+  const urls: string[] = [];
+  const transport: RawTransport = async (request) => {
+    urls.push(`${request.method} ${request.url}`);
+    return ruxExchange(200, { access_token: ruxAccess, token_type: "Bearer", expires_in: 3600,
+      refresh_token: "fake-unused-refresh" })(request);
+  };
+  try {
+    const owned = cloud();
+    const result = await runDoctor({ loaded: owned, names: ["cloud"],
+      redactor: new SecretRedactor(), transport });
+    expect(urls).toEqual(["POST https://fixture.invalid/oauth2/token"]);
+    expect(result).toEqual({ failed: false, output: {
+      config: path,
+      check: expect.stringContaining("rux.oauth.exchange"),
+      count: "1 of 1 profiles ok",
+      profiles: [{ name: "cloud", auth: "oauth", check: expect.stringContaining("rux.oauth.exchange"),
+        status: "ok", detail: "OAuth exchange ok; RUX reads arrive in RUX-02" }],
+      complete: true,
+      help: [expect.stringContaining("RUX reads arrive in RUX-02")],
+    } });
+    expect(JSON.stringify(result.output)).not.toContain(ruxSecret);
+    expect(JSON.stringify(result.output)).not.toContain(ruxAccess);
+  } finally {
+    delete process.env.CLOUD_SECRET;
+  }
+});
+
+it("reports a rejected cloud exchange as a failed profile row", async () => {
+  try {
+    const owned = cloud();
+    const transport: RawTransport = ruxExchange(401, {}) as RawTransport;
+    const result = await runDoctor({ loaded: owned, names: ["cloud"],
+      redactor: new SecretRedactor(), transport });
+    expect(result.failed).toBe(true);
+    expect(result.output).toMatchObject({ count: "0 of 1 profiles ok", complete: false,
+      profiles: [{ name: "cloud", auth: "oauth", status: "failed", code: "AUTH_FAILED" }] });
+    expect(JSON.stringify(result.output)).not.toContain(ruxSecret);
+  } finally {
+    delete process.env.CLOUD_SECRET;
+  }
+});
+
+it("reports an unset cloud secret without any HTTP call", async () => {
+  let calls = 0;
+  const transport: RawTransport = async () => {
+    calls += 1;
+    return { status: 200, bodyText: "{}" };
+  };
+  writeFileSync(path, JSON.stringify({ profiles: { cloud: ruxProfile } }));
+  const owned = loadConfig(path, new SecretRedactor());
+  const result = await runDoctor({ loaded: owned, names: ["cloud"],
+    redactor: new SecretRedactor(), transport });
+  expect(calls).toBe(0);
+  expect(result.failed).toBe(true);
+  expect(result.output).toMatchObject({ profiles: [{ name: "cloud", status: "failed", code: "AUTH_REQUIRED" }] });
+});
+
+it("checks on-prem and cloud profiles with their own documented check", async () => {
+  const urls: string[] = [];
+  const transport: RawTransport = async (request) => {
+    urls.push(`${request.method} ${request.url}`);
+    if (request.method === "POST") {
+      return { status: 200, bodyText: JSON.stringify(
+        { access_token: ruxAccess, token_type: "Bearer", expires_in: 3600 }) };
+    }
+    return body({ results: [detection], count: 1 });
+  };
+  try {
+    process.env.CLOUD_SECRET = ruxSecret;
+    writeFileSync(path, JSON.stringify({ profiles: { lab: tokenProfile, cloud: ruxProfile } }));
+    const owned = loadConfig(path, new SecretRedactor());
+    const result = await runDoctor({ loaded: owned, names: ["lab", "cloud"],
+      redactor: new SecretRedactor(), transport });
+    expect(urls).toEqual([
+      "GET https://fixture.invalid/api/v2.5/detections",
+      "POST https://fixture.invalid/oauth2/token",
+    ]);
+    expect(result.failed).toBe(false);
+    expect(result.output).toMatchObject({ count: "2 of 2 profiles ok", complete: true,
+      profiles: [{ name: "lab", status: "ok" }, { name: "cloud", status: "ok" }] });
+    expect(result.output.check).toContain("qux.detection.list");
+    expect(result.output.check).toContain("rux.oauth.exchange");
+  } finally {
+    delete process.env.CLOUD_SECRET;
+  }
+});
+
 const pair = { lab: tokenProfile, other: tokenProfile };
 type TargetOptions = { setup: Record<string, unknown>; flag?: string; env?: string; defaults?: string };
 it.each([

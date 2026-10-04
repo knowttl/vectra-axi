@@ -434,6 +434,39 @@ it("checks profiles through the packaged doctor command", () => {
   ]);
 });
 
+it("checks a cloud profile through the packaged doctor exchange", () => {
+  const config = join(scratch, "rux-doctor.json");
+  const trace = join(scratch, "rux-doctor-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { cloud: { kind: "rux", origin: "https://fixture.invalid",
+    apiVersion: "3.4", auth: "oauth", clientId: "synthetic-client", secretEnv: "RUX_SECRET" } } }));
+  const fixtureEnv = { RUX_SECRET: "packaged-rux-secret", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const result = invoke(["doctor", "--config", config, "--profile", "cloud"], fixtureEnv);
+  expect(result.status).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(decode(result.stdout)).toMatchObject({ count: "1 of 1 profiles ok", complete: true,
+    profiles: [{ name: "cloud", auth: "oauth", status: "ok", detail: "OAuth exchange ok; RUX reads arrive in RUX-02" }] });
+  expect(result.stdout).not.toContain("packaged-rux-secret");
+  expect(result.stdout).not.toContain("packaged-rux-token");
+  expect(result.stdout).not.toContain("packaged-rux-refresh");
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+  ]);
+});
+
+it("shows a packaged cloud profile without a credential exchange", () => {
+  const config = join(scratch, "rux-home.json");
+  writeFileSync(config, JSON.stringify({ profiles: { cloud: { kind: "rux", origin: "https://fixture.invalid",
+    apiVersion: "3.4", auth: "oauth", clientId: "synthetic-client", secretEnv: "UNSET_RUX_SECRET" } } }));
+  const result = invoke(["home", "--config", config]);
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("kind: rux");
+  expect(result.stdout).toContain("auth: oauth");
+  expect(result.stdout).toContain("writes: disabled");
+  expect(result.stdout).not.toContain("synthetic-client");
+  expect(result.stderr).toBe("");
+});
+
 it("forwards inline descending ordering through the packaged list command", () => {
   const config = join(scratch, "ordering.json");
   const trace = join(scratch, "ordering-requests.jsonl");

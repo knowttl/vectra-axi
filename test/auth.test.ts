@@ -79,6 +79,28 @@ it.each([
     .toThrow(expect.objectContaining({ code: "CONFIG_INVALID" }));
 });
 
+// RUX-01: cloud profiles use OAuth only, pin API v3.4 and carry no
+// appliance release; token mode and release fields stay QUX-only.
+const ruxOauth = { kind: "rux", origin: "https://cloud.invalid", apiVersion: "3.4", auth: "oauth",
+  clientId: "synthetic-client", secretEnv: "SENTINEL_SECRET" };
+
+it("accepts a cloud OAuth profile beside an on-prem profile", () => {
+  const loaded = configure({ profiles: { lab: profile, cloud: ruxOauth } });
+  expect(selectProfile(loaded.config, "cloud")).toMatchObject(
+    { name: "cloud", kind: "rux", apiVersion: "3.4", auth: "oauth" });
+  expect(selectProfile(loaded.config, "lab")).toMatchObject({ kind: "qux", apiVersion: "2.5" });
+});
+
+it.each([
+  ["token mode", { auth: "token", tokenEnv: "SENTINEL_TOKEN", clientId: undefined, secretEnv: undefined }],
+  ["appliance release", { applianceRelease: "9.4" }],
+  ["QUX version", { apiVersion: "2.5" }],
+  ["mixed token reference", { tokenEnv: "SENTINEL_TOKEN" }],
+])("rejects a cloud profile with %s", (_name, fields) => {
+  expect(() => configure({ profiles: { lab: profile, cloud: { ...ruxOauth, ...fields } } }))
+    .toThrow(expect.objectContaining({ code: "CONFIG_INVALID" }));
+});
+
 it("rejects a dangling configured default", () => {
   expect(() => configure({ defaultProfile: "absent", profiles: { lab: profile } }))
     .toThrow(expect.objectContaining({ code: "CONFIG_INVALID" }));
