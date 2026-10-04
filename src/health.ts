@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { AxiError } from "axi-sdk-js";
 import { z } from "zod";
 import { DEFAULT_COLLECTION_LIMIT } from "./collections.js";
@@ -178,6 +179,7 @@ type HealthEventCursor = {
   from: string | undefined;
   offset: number;
   remaining: number;
+  batchHash: string;
 };
 
 function canonicalQuery(query: Record<string, string>): string {
@@ -210,7 +212,8 @@ function decodeCursor(raw: string): HealthEventCursor {
     || !Object.values(cursor.query as Record<string, unknown>).every((entry) => typeof entry === "string")
     || (cursor.from !== undefined && typeof cursor.from !== "string")
     || typeof cursor.offset !== "number" || !Number.isInteger(cursor.offset) || cursor.offset < 0
-    || typeof cursor.remaining !== "number" || !Number.isInteger(cursor.remaining) || cursor.remaining < 1) {
+    || typeof cursor.remaining !== "number" || !Number.isInteger(cursor.remaining) || cursor.remaining < 1
+    || typeof cursor.batchHash !== "string" || !/^[a-f0-9]{64}$/.test(cursor.batchHash)) {
     throw cursorInvalid("the cursor binding is not intact");
   }
   return {
@@ -224,6 +227,7 @@ function decodeCursor(raw: string): HealthEventCursor {
     from: cursor.from as string | undefined,
     offset: cursor.offset,
     remaining: cursor.remaining,
+    batchHash: cursor.batchHash,
   };
 }
 
@@ -261,6 +265,7 @@ export async function runHealthEventList(
   let query = healthEventQuery(flags);
   let offset = 0;
   let remaining = limit;
+  let expectedBatchHash: string | undefined;
   if (typeof rawCursor === "string") {
     const cursor = decodeCursor(rawCursor);
     if (cursor.operation !== HEALTH_EVENT_LIST_OPERATION) {
@@ -281,6 +286,7 @@ export async function runHealthEventList(
     query = cursor.from === undefined ? { ...cursor.query } : { ...cursor.query, from: cursor.from };
     offset = cursor.offset;
     remaining = flags.has("limit") ? limit : cursor.remaining;
+    expectedBatchHash = cursor.batchHash;
   }
   const from = query.from;
   const { body } = await session.request(HEALTH_EVENT_LIST_OPERATION, { query });
@@ -301,7 +307,12 @@ export async function runHealthEventList(
     checkpoint,
     remaining_count: remainingCount,
   };
-  if (offset > events.length) {
+  const batchHash = createHash("sha256").update(JSON.stringify(events, (_key, value: unknown) => {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return value;
+    const record = value as Record<string, unknown>;
+    return Object.fromEntries(Object.keys(record).sort().map((key) => [key, record[key]]));
+  })).digest("hex");
+  if (offset > events.length || (expectedBatchHash !== undefined && expectedBatchHash !== batchHash)) {
     throw new AxiError("Vectra health event feed changed since the cursor was issued",
       "RESPONSE_INVALID", ["Reissue health event list without --cursor to read the current batch"]);
   }
@@ -351,6 +362,7 @@ export async function runHealthEventList(
       from,
       offset: at,
       remaining: left,
+      batchHash,
     });
   };
   if (skipped > 0) {

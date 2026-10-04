@@ -245,6 +245,51 @@ it("resumes a --from cursor without repeating --from and re-sends the checkpoint
   ]);
 });
 
+it.each([
+  ["prepended rows", "-event_timestamp", [], [{ id: 103 }, secondEvent, firstEvent]],
+  ["appended rows", "event_timestamp", ["--from", "chk-1"], [secondEvent, firstEvent, { id: 103 }]],
+  ["removed rows", "-event_timestamp", ["--from", "chk-1"], [firstEvent]],
+  ["reordered rows", "event_timestamp", [], [firstEvent, secondEvent]],
+  ["changed fields", "-event_timestamp", [], [{ ...secondEvent, status: "ok" }, firstEvent]],
+  ["replaced rows", "event_timestamp", ["--from", "chk-1"], [secondEvent, { id: 103 }]],
+] as const)("rejects a replay with %s before applying its offset", async (_name, ordering, from, replay) => {
+  let events: readonly unknown[] = [secondEvent, firstEvent];
+  const owned = session(async () => batch([...events], "chk-2"));
+  const initialFlags = flags(["health", "event", "list", "--limit", "1", `--ordering=${ordering}`, ...from]);
+  const initial = await runHealthEventList(owned, initialFlags);
+  expect(initial.output.events).toEqual([secondEvent]);
+  events = replay;
+  await expect(runHealthEventList(owned,
+    new Map([["ordering", ordering], ["cursor", initial.output.cursor as string]]))).rejects.toMatchObject({
+    code: "RESPONSE_INVALID", message: "Vectra health event feed changed since the cursor was issued",
+  });
+});
+
+it("resumes unchanged event contents despite object key order changes", async () => {
+  let events = [{ id: 101, detail: { status: "ok", load: 12 } }, { id: 102 }];
+  const owned = session(async () => batch(events, "chk-2"));
+  const initial = await runHealthEventList(owned, flags(["health", "event", "list", "--limit", "1"]));
+  events = [{ detail: { load: 12, status: "ok" }, id: 101 }, { id: 102 }];
+  const resumed = await runHealthEventList(owned, new Map([["cursor", initial.output.cursor as string]]));
+  expect(resumed).toMatchObject({ failed: false, output: { events: [{ id: 102 }], count: "1 health events" } });
+});
+
+it("rejects a cursor without its batch binding before requesting a replay", async () => {
+  let calls = 0;
+  const owned = session(async () => {
+    calls += 1;
+    return batch([firstEvent, secondEvent], "chk-2");
+  });
+  const initial = await runHealthEventList(owned, flags(["health", "event", "list", "--limit", "1"]));
+  const cursor = JSON.parse(Buffer.from(initial.output.cursor as string, "base64url").toString("utf8"));
+  delete cursor.batchHash;
+  await expect(runHealthEventList(owned,
+    new Map([["cursor", Buffer.from(JSON.stringify(cursor)).toString("base64url")]]))).rejects.toMatchObject({
+    code: "VALIDATION_ERROR",
+  });
+  expect(calls).toBe(1);
+});
+
 it("rejects resuming with changed filters or a different --from", async () => {
   const transport: RawTransport = async () => batch([firstEvent, secondEvent], "chk-2", 0);
   const owned = session(transport);
