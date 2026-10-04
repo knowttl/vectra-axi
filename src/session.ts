@@ -29,7 +29,11 @@ export type SessionResponse = { status: number; body: unknown };
 // The only authenticated interface command handlers receive. No transport,
 // fetch handle or credential material is exposed on this object.
 export type Session = {
-  readonly profile: Pick<SelectedProfile, "name" | "kind" | "origin" | "apiVersion">;
+  // READ-07 exposes the optional declared appliance release on the snapshot
+  // so release-gated leaves (health events need 9.4) can refuse before HTTP.
+  // Absent means undeclared: the read proceeds and the server decides.
+  readonly profile: Pick<SelectedProfile, "name" | "kind" | "origin" | "apiVersion">
+    & Pick<SelectedProfile, "applianceRelease">;
   request(operation: string, options?: SessionRequestOptions): Promise<SessionResponse>;
   resolveContinuation(operation: string, next: string, options?: Pick<SessionRequestOptions, "pathParams">): string;
 };
@@ -259,7 +263,8 @@ export function createSession(args: {
   transport: RawTransport;
 }): Session {
   const { profile, configPath, redactor, transport } = args;
-  const snapshot = { name: profile.name, kind: profile.kind, origin: profile.origin, apiVersion: profile.apiVersion };
+  const snapshot = { name: profile.name, kind: profile.kind, origin: profile.origin, apiVersion: profile.apiVersion,
+    ...(profile.applianceRelease ? { applianceRelease: profile.applianceRelease } : {}) };
   const credentials = profile.auth === "oauth"
     ? oauthCredentials(profile, configPath, redactor, exchangeTransport(profile, transport))
     : async () => ({ header: resolveToken(profile, redactor) });

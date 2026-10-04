@@ -310,6 +310,55 @@ it("reads audits in a bounded inclusive window with truthful empty and denied wi
   ]);
 });
 
+it("reads health snapshots and checkpoint events with truthful empty and denied windows", () => {
+  const config = join(scratch, "health.json");
+  const trace = join(scratch, "health-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const cached = invoke(["health", "list", ...context], fixtureEnv);
+  expect(cached.status).toBe(0);
+  expect(cached.stderr).toBe("");
+  expect(decode(cached.stdout)).toMatchObject({ profile: "lab", cached: true,
+    health: { network: { status: "ok" } } });
+  const fresh = invoke(["health", "list", ...context, "--fresh"], fixtureEnv);
+  expect(fresh.status).toBe(0);
+  expect(fresh.stderr).toBe("");
+  expect(decode(fresh.stdout)).toMatchObject({ profile: "lab", cached: false });
+  const shown = invoke(["health", "show", ...context, "--check", "cpu"], fixtureEnv);
+  expect(shown.status).toBe(0);
+  expect(shown.stderr).toBe("");
+  expect(decode(shown.stdout)).toMatchObject({ profile: "lab", check: "cpu", cached: true });
+  const unsupported = invoke(["health", "show", ...context, "--check", "battery"], fixtureEnv);
+  expect(unsupported.status).toBe(2);
+  expect(unsupported.stderr).toBe("");
+  expect(unsupported.stdout).toContain("Unsupported health check");
+  const events = invoke(["health", "event", "list", ...context], fixtureEnv);
+  expect(events.status).toBe(0);
+  expect(events.stderr).toBe("");
+  expect(decode(events.stdout)).toMatchObject({ profile: "lab", checkpoint: "chk-2",
+    remaining_count: 0, count: "2 health events", complete: true });
+  const continued = invoke(["health", "event", "list", ...context, "--from", "chk-2"], fixtureEnv);
+  expect(continued.status).toBe(0);
+  expect(continued.stderr).toBe("");
+  expect(continued.stdout).toContain("0 health events found");
+  expect(continued.stdout).toContain("complete: true");
+  const denied = invoke(["health", "event", "list", ...context, "--from", "chk-9"], fixtureEnv);
+  expect(denied.status).toBe(1);
+  expect(denied.stderr).toBe("");
+  expect(denied.stdout).toContain("code: ACCESS_DENIED");
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/health" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/health?cache=false" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/health/cpu" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/events/health" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/events/health?from=chk-2" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/events/health?from=chk-9" },
+  ]);
+});
+
 it("forwards inline descending ordering through the packaged list command", () => {
   const config = join(scratch, "ordering.json");
   const trace = join(scratch, "ordering-requests.jsonl");
@@ -428,7 +477,7 @@ it("shows unconfigured state with closed stdin and a clean home", () => {
   expect(result.stdout).toContain("bin:");
   expect(result.stdout).toContain("vectra-axi.js");
   expect(result.stdout).toContain("state: unconfigured\nprofiles: 0");
-  expect(result.stdout).toContain("detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule and audit reads");
+  expect(result.stdout).toContain("detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit and health reads");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });
@@ -576,7 +625,7 @@ it.each([
   ["boolean value", ["setup", "--help=false"], "does not accept a value"],
   ["positional input", ["setup", "extra"], "Unexpected argument"],
   ["literal help", ["setup", "--", "--help"], "Unknown flag: --"],
-  ["planned endpoint", ["health", "show"], "Unknown command: health show"],
+  ["planned endpoint", ["lockdown", "show"], "Unknown command: lockdown show"],
   ["prototype command", ["constructor"], "Unknown command: constructor"],
   ["version combination", ["--version", "--help"], "Unknown flag: --version"],
   ["unknown flag before profile", ["home", "--typo", "--profile=lab"], "Unknown flag: --typo"],
@@ -619,7 +668,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, host note list, host tag list, account note list, account tag list, assignment list, assignment outcome list, assignment outcome show, user list, user show, audit list");
+  expect(result.stdout).toContain("Available commands: home, setup, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, host note list, host tag list, account note list, account tag list, assignment list, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });

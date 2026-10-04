@@ -1,5 +1,7 @@
 import { runAxiCli } from "axi-sdk-js";
 import { auditWindow, runAuditList, type LeafResult as AuditLeafResult } from "./audits.js";
+import { healthCheck, healthEventFlags, healthEventRelease, runHealthEventList, runHealthList,
+  runHealthShow, type LeafResult as HealthLeafResult } from "./health.js";
 import { ASSIGNMENT_LIST_FIELDS, assignmentQuery, listFields as assignmentListFields, listLimit as assignmentListLimit,
   outcomeId, OUTCOME_LIST_FIELDS, runAssignmentList, runOutcomeList, runOutcomeShow, runUserList, runUserShow,
   userId, USER_LIST_FIELDS, userQuery,
@@ -77,6 +79,10 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
           || invocation.leaf === "group member list"
           || invocation.leaf === "triage rule list" || invocation.leaf === "triage rule show") {
           return runGroups(invocation.leaf, invocation.flags);
+        }
+        if (invocation.leaf === "health list" || invocation.leaf === "health show"
+          || invocation.leaf === "health event list") {
+          return runHealth(invocation.leaf, invocation.flags);
         }
         return state();
       }),
@@ -192,6 +198,29 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
+  // One dispatch for every health leaf: validate the flags, select the
+  // profile, build the session on the injected transport, and return the
+  // shaped output. Snapshots validate the check selector and report cached
+  // versus fresh from the request; the event feed enforces its 9.4 release
+  // gate and follows returned checkpoints. Denial propagates from the
+  // session, never as an empty healthy result. No health mutation exists.
+  type HealthLeaf = "health list" | "health show" | "health event list";
+  async function runHealth(leaf: HealthLeaf, flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
+    if (leaf === "health show") {
+      healthCheck(flags);
+    } else if (leaf === "health event list") {
+      healthEventFlags(flags);
+    }
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
+    if (leaf === "health event list") healthEventRelease(selected);
+    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+    const result: HealthLeafResult = leaf === "health list" ? await runHealthList(session, flags)
+      : leaf === "health show" ? await runHealthShow(session, flags)
+      : await runHealthEventList(session, flags);
+    if (result.failed) process.exitCode = 1;
+    return result.output;
+  }
   // One dispatch for the audit leaf: validate the bounded window, select
   // the profile, build the session on the injected transport, and return
   // the shaped single-window output. Oversized or malformed windows throw
@@ -260,11 +289,11 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         config: loaded.path,
         guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use tokenEnv or secretEnv references",
         example: { profiles: { lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "VECTRA_LAB_TOKEN" } } },
-        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule and audit reads call the session; remaining session integration is planned in PACK-01",
+        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit and health reads call the session; remaining session integration is planned in PACK-01",
       },
       capabilities: {
         implemented: Object.keys(catalogue),
-        api: "QUX v2.5 detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule and audit reads; every other operation is planned or blocked",
+        api: "QUX v2.5 detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit and health reads; every other operation is planned or blocked",
         planned: inventory.operations.filter((operation) => operation.disposition === "planned").length,
         blocked: inventory.operations.filter((operation) => operation.disposition === "blocked").length,
       },

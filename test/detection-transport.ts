@@ -57,6 +57,28 @@ const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/users/3", { status: 200, body: user3 }],
   ["https://fixture.invalid/api/v2.5/users?username=nobody&page_size=100",
     { status: 200, body: { results: [], count: 0 } }],
+  // READ-07: health snapshots are single versioned bodies with cached/fresh
+  // semantics from the request flags; the event feed is one checkpoint batch
+  // per read with its returned checkpoint, never a computed next ID.
+  ["https://fixture.invalid/api/v2.5/health",
+    { status: 200, body: { network: { status: "ok" }, system: { status: "ok" },
+      updated_at: "2026-10-01T12:00:00Z" } }],
+  ["https://fixture.invalid/api/v2.5/health?cache=false",
+    { status: 200, body: { network: { status: "ok" }, system: { status: "ok" } } }],
+  ["https://fixture.invalid/api/v2.5/health/cpu",
+    { status: 200, body: { cpu: { status: "ok", load: 12 } } }],
+  ["https://fixture.invalid/api/v2.5/health?vlans=false",
+    { status: 200, body: { network: { status: "ok" }, system: { status: "ok" },
+      updated_at: "2026-10-01T12:00:00Z" } }],
+  ["https://fixture.invalid/api/v2.5/events/health",
+    { status: 200, body: { next_checkpoint: "chk-2", remaining_count: 0, events: [
+      { id: 101, health_check_name: "cpu", status: "ok", event_timestamp: "2026-10-01T12:00:00Z" },
+      { id: 102, health_check_name: "disk", status: "warning", event_timestamp: "2026-10-01T12:05:00Z" },
+    ] } }],
+  ["https://fixture.invalid/api/v2.5/events/health?from=chk-2",
+    { status: 200, body: { next_checkpoint: "chk-3", remaining_count: 0, events: [] } }],
+  ["https://fixture.invalid/api/v2.5/events/health?from=chk-9",
+    { status: 403, body: {} }],
   // READ-06: audits arrive as one date-windowed list, never a paged
   // collection; both ISO dates are required and applied inclusively.
   ["https://fixture.invalid/api/v2.5/audits?start=2026-10-01&end=2026-10-02",
