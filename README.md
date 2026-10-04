@@ -1,8 +1,8 @@
 # vectra-axi
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
-The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, and READ-06 bounded audit-window leaf are implemented.
-`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `host note list`, `host tag list`, `account note list`, `account tag list`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show`, `group list`, `group show`, `group member list`, `triage rule list`, `triage rule show` and `audit list` call the session; every other Vectra API operation remains planned or blocked.
+The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, and READ-07 health-snapshot and health-event leaves are implemented.
+`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `host note list`, `host tag list`, `account note list`, `account tag list`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show`, `group list`, `group show`, `group member list`, `triage rule list`, `triage rule show`, `audit list`, `health list`, `health show` and `health event list` call the session; every other Vectra API operation remains planned or blocked.
 The selected direction is TypeScript, on-prem QUX reads first, and a later RUX adapter for cloud migration.
 
 - [Design and source evidence](docs/design.md)
@@ -27,7 +27,7 @@ The SDK's implicit `update` command is refused.
 Structured data, help and errors use TOON on stdout; stderr is reserved for diagnostics.
 Exit codes are 0 for success, 1 for runtime failure (including a missing profile), and 2 for usage failure.
 There are no prompts or ordinary-command installation side effects.
-Home, setup, help and version remain offline; detection, entity, note, tag, assignment, outcome, user, group, member, triage rule and audit reads make authenticated HTTP requests.
+Home, setup, help and version remain offline; detection, entity, note, tag, assignment, outcome, user, group, member, triage rule, audit and health reads make authenticated HTTP requests.
 `corepack pnpm pack --out vectra-axi.tgz` packages the built entrypoint, runtime modules and inventory.
 See [CLI-01 acceptance](docs/implementation-plan.md#phase-0-turn-design-knowledge-into-one-executable-catalogue) for packaged verification.
 
@@ -125,7 +125,7 @@ Empty lists explicitly report zero hosts or accounts; partial reads retain valid
 All three show leaves require a positive integer `--id` and return their corresponding list field subset with profile and type; null fields stay null, omitted fields stay omitted, and malformed fields report `RESPONSE_INVALID`.
 These leaves validate flag values before profile selection and reject unsupported flags before credential or HTTP work.
 Host 7 and account 7 are different objects, and every show output retains its resource kind for the next command.
-Type-qualified entity, note, tag, assignment, group, member, triage rule and audit reads stay in this release; health and lockdown stay READ-07/08; no business write leaf exists.
+Type-qualified entity, note, tag, assignment, group, member, triage rule, audit and health reads stay in this release; lockdown stays READ-08; no business write leaf exists.
 
 `<kind> note list --profile <name> --id <id>` reads full QUX notes through the dedicated versioned notes resource for detections, hosts and accounts.
 Note/tag leaves require a positive integer owner `--id`, validated before configuration or profile selection.
@@ -173,6 +173,17 @@ Rows project the recorded subset `user`, `role`, `vectra_timestamp`, `result` an
 Audit windows use the same 8 MiB ceiling for the reserialized decoded body; exceeding either byte check reports `BYTE_BUDGET_EXCEEDED` with a smaller-range suggestion and exit 1.
 Failed windows return no partial rows or cursor; the CLI never truncates an oversized window and claims completion.
 Empty windows succeed with an explicit zero message.
+
+`health list` and `health show --check <cpu|disk|network|memory|power|sensors|system|hostid|connectivity|trafficdrop>` read QUX v2.5 health snapshots through the session, never the collection reader: snapshots are single versioned bodies with no pages to resume.
+The check selector is validated before profile selection; unsupported checks fail explicitly instead of returning a neighboring check.
+`--fresh` sends `cache=false` for a live check, otherwise the query omits `cache` and the upstream cached default (with `updated_at`) applies; `--no-vlans` sends `vlans=false` to omit VLAN detail.
+Output reports `cached` from the request flags and passes the returned body through untouched: sections vary with enabled products/subscriptions, so no availability is synthesized and no fixed schema is projected.
+`health event list` reads one QUX `events/health` batch per call through the session: `--from` starts at a returned checkpoint, server-side `--ordering`, `--status`, `--health-check-name`, `--entity-type` and `--entity-name` filters pass through, and `--limit` (default 100) is an output window only, never the upstream batch limit.
+The event feed requires appliance release 9.4 or later when the profile declares one; without a declared release the read proceeds and the server decides.
+Output returns the batch's `next_checkpoint` as `checkpoint` and `remaining_count` as returned, never as a stable total; a `--limit` inside a batch returns an opaque `--cursor` that replays the same checkpoint and skips returned rows.
+A batch that returns rows without advancing past the requested checkpoint fails with `CONTINUATION_REPEATED` and its rows retained instead of handing back a resumption loop.
+Empty batches succeed with an explicit zero; denial reports `ACCESS_DENIED` with exit 1, never an empty healthy result.
+No health or configuration mutation exists: the session authorizes read GETs only.
 
 For OAuth, replace `auth` and `tokenEnv` with `"auth": "oauth"`, `"clientId": "synthetic-client"` and `"secretEnv": "VECTRA_LAB_SECRET"`.
 Set the variable named by `secretEnv` outside the CLI.

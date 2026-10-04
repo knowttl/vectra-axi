@@ -996,8 +996,8 @@
           "locator": "pp46-51"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-07; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-07; runtime support in src/health.ts.",
       "fixtureCases": [
         "cached",
         "fresh",
@@ -1045,8 +1045,8 @@
           "locator": "get_health_check; individual check route and accepted selectors"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-07; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-07; runtime support in src/health.ts.",
       "fixtureCases": [
         "supported-check",
         "unsupported-check",
@@ -1089,8 +1089,8 @@
           "locator": "pp75-77; release 9.4 change log"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-07; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-07; runtime support in src/health.ts.",
       "fixtureCases": [
         "returned-checkpoint",
         "repeated-checkpoint",

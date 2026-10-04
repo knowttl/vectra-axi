@@ -410,6 +410,59 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi triage rule show --profile <name> --id 7",
     ],
   },
+  "health list": {
+    // Snapshots carry the cached/fresh and VLAN options as boolean flags:
+    // --fresh sends cache=false for a live check, otherwise the query omits
+    // cache and the upstream cached default (with updated_at) applies;
+    // --no-vlans sends vlans=false to omit VLAN detail.
+    description: "Show the QUX health snapshot with cached or fresh semantics",
+    flags: {
+      ...globals,
+      fresh: { kind: "boolean", description: "Request a fresh check (sends cache=false); default uses the cached snapshot" },
+      "no-vlans": { kind: "boolean", description: "Omit VLAN detail (sends vlans=false); default includes it" },
+    },
+    examples: [
+      "vectra-axi health list --profile <name>",
+      "vectra-axi health list --profile <name> --fresh",
+    ],
+  },
+  "health show": {
+    description: "Show one QUX health check snapshot with cached or fresh semantics",
+    flags: {
+      ...globals,
+      check: { kind: "value", valueName: "name", description: "Health check to show: cpu, disk, network, memory, power, sensors, system, hostid, connectivity or trafficdrop (required)" },
+      fresh: { kind: "boolean", description: "Request a fresh check (sends cache=false); default uses the cached snapshot" },
+      "no-vlans": { kind: "boolean", description: "Omit VLAN detail (sends vlans=false); default includes it" },
+    },
+    examples: [
+      "vectra-axi health show --profile <name> --check cpu",
+      "vectra-axi health show --profile <name> --check connectivity --fresh",
+    ],
+  },
+  "health event list": {
+    // Checkpoint feed: --from starts at a returned checkpoint, --limit is an
+    // output window only (never the upstream batch limit), and --cursor
+    // resumes a capped batch with its original filters. remaining_count is
+    // reported as returned, never as a stable total. Release-gated to 9.4.
+    description: "List QUX health events from a checkpoint with a bounded window",
+    flags: {
+      ...globals,
+      from: { kind: "value", valueName: "checkpoint", description: "Start from a returned checkpoint; default reads the earliest batch" },
+      limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
+      ordering: { kind: "value", valueName: "ordering", description: "Server-side result ordering" },
+      status: { kind: "value", valueName: "status", description: "Filter by server-side health status" },
+      "health-check-name": { kind: "value", valueName: "name", description: "Filter by server-side health check name" },
+      "entity-type": { kind: "value", valueName: "type", description: "Filter by server-side entity type" },
+      "entity-name": { kind: "value", valueName: "name", description: "Filter by server-side entity name" },
+      cursor: { kind: "value", valueName: "cursor", description: "Resume a capped batch with its original filters" },
+    },
+    examples: [
+      "vectra-axi health event list --profile <name>",
+      "vectra-axi health event list --profile <name> --from <checkpoint> --limit 20",
+      "vectra-axi health event list --profile <name> --cursor <cursor>",
+    ],
+  },
+
 };
 
 function flagSyntax(name: string, flag: Flag): string {
