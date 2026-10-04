@@ -8,9 +8,9 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 
 ## Counts
 
-- named: 73
+- named: 78
 - reviewed-raw: 0
-- planned: 11
+- planned: 6
 - blocked: 2
 - unavailable: 0
 - deprecated: 0
@@ -95,11 +95,11 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 | `rux.lockdown.list` | lockdown list | RUX-06 | rux 3.4 | none | named |
 | `rux.detection.event.list` | detection event list | RUX-03 | rux 3.4 | checkpoint | named |
 | `rux.entity.scoring.list` | entity scoring list | RUX-03 | rux 3.4 | checkpoint | planned |
-| `rux.health.external-connectors.show` | health show | RUX-06 | rux 3.4 | none | planned |
-| `rux.health.external-connectors.details.show` | health show | RUX-06 | rux 3.4 | none | planned |
-| `rux.health.edr.show` | health show | RUX-06 | rux 3.4 | none | planned |
-| `rux.health.edr.details.show` | health show | RUX-06 | rux 3.4 | none | planned |
-| `rux.health.network-brain.ping.show` | health show | RUX-06 | rux 3.4 | none | planned |
+| `rux.health.external-connectors.show` | health show | RUX-06 | rux 3.4 | none | named |
+| `rux.health.external-connectors.details.show` | health show | RUX-06 | rux 3.4 | none | named |
+| `rux.health.edr.show` | health show | RUX-06 | rux 3.4 | none | named |
+| `rux.health.edr.details.show` | health show | RUX-06 | rux 3.4 | none | named |
+| `rux.health.network-brain.ping.show` | health show | RUX-06 | rux 3.4 | none | named |
 | `qux.oauth.exchange` | - | AUTH-02 | qux 2.5 | none | planned |
 | `rux.oauth.exchange` | - | RUX-01 | rux 3.4 | none | planned |
 | `qux.sensor-token.export` | - | excluded | qux 2.5 | none | blocked |

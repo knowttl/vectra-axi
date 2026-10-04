@@ -185,6 +185,12 @@ const responses = new Map<string, { status: number; body: unknown }>([
     { status: 200, body: { network: { status: "ok" }, updated_at: "2026-10-01T12:00:00Z" } }],
   ["https://fixture.invalid/api/v3.4/health/cpu/",
     { status: 200, body: { cpu: { status: "ok", load: 12 } } }],
+  // RUX-06b: the packaged cloud journey reads one connector check with its
+  // recorded filter flags and one fixed-route ping with no query.
+  ["https://fixture.invalid/api/v3.4/health/edr/?edr_type=synthetic-edr",
+    { status: 200, body: { edr: { status: "ok" } } }],
+  ["https://fixture.invalid/api/v3.4/health/network_brain/ping/",
+    { status: 200, body: { ping: { status: "ok" } } }],
   ["https://fixture.invalid/api/v3.4/events/health/",
     { status: 200, body: { next_checkpoint: 102, remaining_count: 0,
       events: [ruxHealthEvent1, ruxHealthEvent2] } }],

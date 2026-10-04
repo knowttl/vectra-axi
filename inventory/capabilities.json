@@ -2507,7 +2507,7 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "minimumRelease": null,
-      "constraints": "Check selector must be one of cpu, disk, network, memory, power, sensors, system, hostid, connectivity or trafficdrop. Response fields are conditional on the selected check. cache controls cached/fresh results and vlans controls VLAN inclusion; unsupported checks fail explicitly.",
+      "constraints": "Check selector must be one of cpu, disk, network, memory, power, sensors, system, hostid, connectivity or trafficdrop; five RUX-only connector/EDR selectors (external-connectors, external-connectors-details, edr, edr-details, network-brain-ping) are documented in their own records. Response fields are conditional on the selected check. cache controls cached/fresh results and vlans controls VLAN inclusion; unsupported checks fail explicitly.",
       "method": "GET",
       "path": "/api/v3.4/health/{check_type}/",
       "effect": "read",
@@ -3021,7 +3021,7 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "minimumRelease": null,
-      "constraints": "Generation-specific health check selector; caller must not accept this check on unsupported QUX versions.",
+      "constraints": "RUX-only `health show --check external-connectors` selector; server-side filters connector_type (--connector-type), data_type (--data-type) and live (--live) pass through; freshness flags are rejected and QUX profiles are refused with generation guidance.",
       "method": "GET",
       "path": "/api/v3.4/health/external_connectors/",
       "effect": "read",
@@ -3043,8 +3043,8 @@
           "locator": "GET /api/v3.4/health/external_connectors/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-06b; `health show --check external-connectors` reads the v3.4 connector route on a cloud profile with the recorded filter flags, passing the subscription-sensitive body through untouched.",
       "fixtureCases": [
         "subscription-sensitive-shape",
         "unsupported-check",
@@ -3058,11 +3058,14 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "minimumRelease": null,
-      "constraints": "Generation-specific health check selector; caller must not accept this check on unsupported QUX versions.",
+      "constraints": "RUX-only `health show --check external-connectors-details` selector; server-side filters connector_type (--connector-type) and live (--live) pass through; data-type and freshness flags are rejected before HTTP and QUX profiles are refused with generation guidance.",
       "method": "GET",
       "path": "/api/v3.4/health/external_connectors/details/",
       "effect": "read",
-      "query": [],
+      "query": [
+        "connector_type",
+        "live"
+      ],
       "fields": [
         "results",
         "updated_at"
@@ -3076,8 +3079,8 @@
           "locator": "GET /api/v3.4/health/external_connectors/details/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-06b; `health show --check external-connectors-details` reads the v3.4 connector details route on a cloud profile, passing the subscription-sensitive body through untouched.",
       "fixtureCases": [
         "subscription-sensitive-shape",
         "unsupported-check",
@@ -3091,7 +3094,7 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "minimumRelease": null,
-      "constraints": "Generation-specific health check selector; caller must not accept this check on unsupported QUX versions.",
+      "constraints": "RUX-only `health show --check edr` selector; server-side filters edr_type (--edr-type), data_type (--data-type) and live (--live) pass through; freshness flags are rejected and QUX profiles are refused with generation guidance.",
       "method": "GET",
       "path": "/api/v3.4/health/edr/",
       "effect": "read",
@@ -3113,8 +3116,8 @@
           "locator": "GET /api/v3.4/health/edr/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-06b; `health show --check edr` reads the v3.4 EDR route on a cloud profile with the recorded filter flags, passing the subscription-sensitive body through untouched.",
       "fixtureCases": [
         "subscription-sensitive-shape",
         "unsupported-check",
@@ -3128,11 +3131,14 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "minimumRelease": null,
-      "constraints": "Generation-specific health check selector; caller must not accept this check on unsupported QUX versions.",
+      "constraints": "RUX-only `health show --check edr-details` selector; server-side filters edr_type (--edr-type) and live (--live) pass through; data-type and freshness flags are rejected before HTTP and QUX profiles are refused with generation guidance.",
       "method": "GET",
       "path": "/api/v3.4/health/edr/details/",
       "effect": "read",
-      "query": [],
+      "query": [
+        "edr_type",
+        "live"
+      ],
       "fields": [
         "results",
         "updated_at"
@@ -3146,8 +3152,8 @@
           "locator": "GET /api/v3.4/health/edr/details/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-06b; `health show --check edr-details` reads the v3.4 EDR details route on a cloud profile, passing the subscription-sensitive body through untouched.",
       "fixtureCases": [
         "subscription-sensitive-shape",
         "unsupported-check",
@@ -3161,7 +3167,7 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "minimumRelease": null,
-      "constraints": "Generation-specific health check selector; caller must not accept this check on unsupported QUX versions.",
+      "constraints": "RUX-only `health show --check network-brain-ping` selector; the ping route takes no query parameters, so filter and freshness flags are rejected before HTTP and QUX profiles are refused with generation guidance.",
       "method": "GET",
       "path": "/api/v3.4/health/network_brain/ping/",
       "effect": "read",
@@ -3178,8 +3184,8 @@
           "locator": "GET /api/v3.4/health/network_brain/ping/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-06; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-06b; `health show --check network-brain-ping` reads the v3.4 network-brain ping route on a cloud profile, passing the subscription-sensitive body through untouched.",
       "fixtureCases": [
         "subscription-sensitive-shape",
         "unsupported-check",

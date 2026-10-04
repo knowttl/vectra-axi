@@ -1,6 +1,6 @@
 import { runAxiCli } from "axi-sdk-js";
 import { auditWindow, runAuditList, type LeafResult as AuditLeafResult } from "./audits.js";
-import { healthCheck, healthEventFlags, healthEventRelease, runHealthEventList, runHealthList,
+import { healthEventFlags, healthEventRelease, healthShowFlags, runHealthEventList, runHealthList,
   runHealthShow, type LeafResult as HealthLeafResult } from "./health.js";
 import { runAssignmentSet } from "./assignment-set.js";
 import { ASSIGNMENT_LIST_FIELDS, assignmentQuery, listFields as assignmentListFields, listLimit as assignmentListLimit,
@@ -304,7 +304,9 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
   // One dispatch for every health leaf: validate the flags, select the
   // profile, build the session on the injected transport, and return the
   // shaped output. Snapshots validate the check selector and report cached
-  // versus fresh from the request; the QUX event feed enforces its 9.4 release
+  // versus fresh from the request; RUX-only connector/EDR selectors validate
+  // their filter flags here and the runner refuses them on QUX with
+  // generation guidance. The QUX event feed enforces its 9.4 release
   // gate and follows returned checkpoints. On a cloud profile the same
   // leaves run against the v3.4 routes with integer checkpoints normalized
   // to their decimal form. Denial propagates from the
@@ -312,7 +314,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
   type HealthLeaf = "health list" | "health show" | "health event list";
   async function runHealth(leaf: HealthLeaf, flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
     if (leaf === "health show") {
-      healthCheck(flags);
+      healthShowFlags(flags);
     } else if (leaf === "health event list") {
       healthEventFlags(flags);
     }

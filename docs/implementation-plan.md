@@ -215,7 +215,7 @@ RUX-06 implements the shared health snapshot, individual-check, health-event and
 Its [health acceptance suite](../test/health.test.ts) covers subscription-sensitive snapshots, freshness flags, unsupported checks, integer checkpoints, bounded cursor resumption, generation isolation, malformed responses and denied reads alongside the QUX cases.
 Its [lockdown acceptance suite](../test/lockdown.test.ts) covers generation-specific selectors and row shapes, cloud traffic status, refusal of traffic on QUX, empty versus denied results and malformed responses.
 The [packaged CLI suite](../test/cli.test.ts) exercises the cloud health and lockdown journey with synthetic profiles and transport fixtures only.
-Connector status/details, EDR status/details and network-brain ping remain deferred; see the [capability records](../inventory/capabilities.json) for their planned dispositions and [README.md](../README.md) for shipped usage.
+Connector status/details, EDR status/details and network-brain ping ship as RUX-only `health show` selectors with their recorded filter flags; see the [capability records](../inventory/capabilities.json) for their routes and [README.md](../README.md) for shipped usage.
 v3.5 support requires its own version-diff assessment after the preview contract becomes suitable; it is not a hidden fallback for missing 3.4 fields.
 
 ## Phase 4: add writes as a new capability, one family at a time
