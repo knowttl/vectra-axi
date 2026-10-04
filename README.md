@@ -211,7 +211,7 @@ Empty windows succeed with an explicit zero message; permission or licence denia
 There is no group, member or rule mutation leaf: group and triage rule changes stay deferred families refused by the read-only session.
 
 `audit list --profile <name> --start-date <YYYY-MM-DD> --end-date <YYYY-MM-DD>` reads QUX v2.5 audits in one bounded window through the session, never the collection reader: audits are date-windowed single responses with no pages to resume.
-Both dates are required and validated before profile selection; omitting either fails instead of starting from the API's unbounded defaults.
+Supplied date shapes are validated before profile selection; on QUX, both dates are required and their ordering is validated after profile selection, before HTTP, so omitting either fails instead of starting from the API's unbounded defaults.
 The wire carries the ISO calendar days unchanged as `start`/`end`, which the server applies as an inclusive UTC window.
 Rows project the recorded subset `user`, `role`, `vectra_timestamp`, `result` and `message`; null fields stay null, malformed bodies report `RESPONSE_INVALID`, and denial reports `ACCESS_DENIED` with exit 1, never an empty success.
 Audit windows use the same 8 MiB ceiling for the reserialized decoded body; exceeding either byte check reports `BYTE_BUDGET_EXCEEDED` with a smaller-range suggestion and exit 1.
@@ -225,7 +225,7 @@ The cursor binds the batch's ordered event contents; changed rows on replay fail
 Drain the batch with `--cursor` before using `--from <checkpoint>` to continue past it.
 A batch that returns rows without advancing past the requested checkpoint fails with `CONTINUATION_REPEATED`, retaining only the requested window after the saved offset and counting those retained rows, instead of handing back a resumption loop.
 Empty batches succeed with an explicit zero; denial reports `ACCESS_DENIED` with exit 1, never an empty success.
-The RUX-only feed flags (`--from`, `--limit`, `--cursor`, `--event-timestamp-gte`, `--event-timestamp-lte`) fail on an on-prem profile with generation guidance before any HTTP; the feed operation is inventoried for RUX only, so it reports `OPERATION_UNKNOWN` on an on-prem profile before any credential or HTTP work.
+The RUX-only feed flags (`--from`, `--limit`, `--cursor`, `--event-timestamp-gte`, `--event-timestamp-lte`) fail on an on-prem profile with `VALIDATION_ERROR` and generation guidance before any HTTP.
 There is no audit-event mutation: the session authorizes read GETs only.
 
 `health list` and `health show --check <cpu|disk|network|memory|power|sensors|system|hostid|connectivity|trafficdrop>` read QUX v2.5 health snapshots through the session, never the collection reader: snapshots are single versioned bodies with no pages to resume.

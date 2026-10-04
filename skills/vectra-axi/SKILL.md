@@ -110,6 +110,6 @@ See [README.md](../../README.md) for profile flags, selection precedence and mis
 
 See [README.md](../../README.md) for the session's generation-specific authorization and credential behavior.
 Host 7 and account 7 are different objects: `entity show` requires `--type host|account`.
-Audit windows require both `--start-date` and `--end-date` as inclusive UTC days.
+See [README audit guidance](../../README.md) for QUX date windows and RUX checkpoint feeds.
 Health event reads start from a returned `--from` checkpoint, never a computed next ID.
 Lockdown output is status only; no lockdown execution leaf exists.
