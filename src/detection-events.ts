@@ -286,9 +286,7 @@ export async function runDetectionEventList(
       events: window,
       complete: true,
       cursor,
-      help: [`Run \`${continuation("cursor", cursor)}\` for the rest of this batch`,
-        ...(typeof checkpoint === "string" && checkpoint
-          ? [`Run \`${continuation("from", checkpoint)}\` to continue past this batch`] : [])],
+      help: [`Run \`${continuation("cursor", cursor)}\` for the rest of this batch`],
     } };
   }
   return { failed: false, output: {

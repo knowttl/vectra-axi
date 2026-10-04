@@ -70,11 +70,10 @@ const batch = (events: unknown[], checkpoint: string | null, remaining = 0): { s
   body({ next_checkpoint: checkpoint, remaining_count: remaining, events });
 
 it.each([
-  { state: "empty batch", events: [], limit: "5", hint: 0, checkpointFlag: "from" },
-  { state: "cursor resume", events: [firstEvent, secondEvent], limit: "1", hint: 0, checkpointFlag: "cursor" },
-  { state: "past-batch continuation", events: [firstEvent, secondEvent], limit: "1", hint: 1, checkpointFlag: "from" },
-  { state: "drained batch", events: [firstEvent], limit: "5", hint: 0, checkpointFlag: "from" },
-])("preserves invocation context in the $state command", async ({ events, limit, hint, checkpointFlag }) => {
+  { state: "empty batch", events: [], limit: "5", checkpointFlag: "from" },
+  { state: "cursor resume", events: [firstEvent, secondEvent], limit: "1", checkpointFlag: "cursor" },
+  { state: "drained batch", events: [firstEvent], limit: "5", checkpointFlag: "from" },
+])("preserves invocation context in the $state command", async ({ events, limit, checkpointFlag }) => {
   const urls: string[] = [];
   const checkpoint = "evt ' \" $(printf literal)";
   const owned = cloudSession(cloudFixture((url) => {
@@ -86,7 +85,7 @@ it.each([
     "detection", "event", "list", "--config", config, "--from", "start", "--limit", limit,
     "--event-timestamp-gte", "2026-10-01T12:00:00Z", "--event-timestamp-lte", "2026-10-01T12:05:00Z",
   ]));
-  const command = (initial.output.help as string[])[hint]!.split("`")[1]!;
+  const command = (initial.output.help as string[])[0]!.split("`")[1]!;
   const argv = execFileSync("sh", ["-c", `set -- ${command}; printf '%s\\0' "$@"`],
     { encoding: "utf8" }).split("\0").slice(1, -1);
   const resumedFlags = flags(argv);
@@ -169,10 +168,16 @@ it("caps a batch at the output limit and resumes the remainder from its cursor",
   expect(capped.output.events).toEqual([firstEvent]);
   const cursor = capped.output.cursor as string;
   expect(typeof cursor).toBe("string");
+  expect(capped.output.help).toEqual([
+    `Run \`vectra-axi detection event list --profile cloud --limit 1 --cursor ${cursor}\` for the rest of this batch`,
+  ]);
   const resumed = await runDetectionEventList(owned,
     new Map([...flags(["detection", "event", "list", "--profile", "cloud", "--limit", "1"]), ["cursor", cursor]]));
   expect(resumed.output).toMatchObject({ count: "1 detection events", complete: true });
   expect(resumed.output.events).toEqual([secondEvent]);
+  expect(resumed.output.help).toEqual([
+    "Run `vectra-axi detection event list --profile cloud --limit 1 --from evt-2` to continue from the returned checkpoint",
+  ]);
   expect(calls).toBe(2);
 });
 
@@ -192,6 +197,15 @@ it("preserves the window size across successive resumes without --limit", async 
   expect(second.output.events).toEqual([secondEvent]);
   expect(third.output.events).toEqual([thirdEvent]);
   expect(fourth.output.events).toEqual([fourthEvent]);
+  expect(second.output.help).toEqual([
+    `Run \`vectra-axi detection event list --profile cloud --cursor ${second.output.cursor}\` for the rest of this batch`,
+  ]);
+  expect(third.output.help).toEqual([
+    `Run \`vectra-axi detection event list --profile cloud --cursor ${third.output.cursor}\` for the rest of this batch`,
+  ]);
+  expect(fourth.output.help).toEqual([
+    "Run `vectra-axi detection event list --profile cloud --from evt-2` to continue from the returned checkpoint",
+  ]);
   expect(fourth.output).not.toHaveProperty("cursor");
 });
 
