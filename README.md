@@ -61,6 +61,7 @@ There is no credential prompt, config writer or browser login reuse.
 An optional hand-edited `writes` object requires a boolean `allowWrites` and a nonempty `operations` array of nonempty operation names; unknown fields are rejected.
 Absent `writes` or `allowWrites: false` disables coordinator mutations; `VECTRA_AXI_READ_ONLY=1` overrides any opt-in.
 This policy enables no business mutation family or CLI command; see the [mutation architecture](docs/design.md#later-mutation-coordinator) for the internal coordinator contract.
+Verification: WRITE-00 was verified locally (build, lint and the full offline test suite) under the GitHub billing-outage posture with hosted Actions disabled; per-head results are recorded on the pull request.
 Profile names and `defaultProfile` must be nonempty identifiers without surrounding whitespace; selections match exactly without trimming.
 `defaultProfile`, when present, must name an existing profile.
 The origin must be an exact HTTPS origin without credentials, path, query, fragment or trailing slash.
