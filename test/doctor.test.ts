@@ -203,6 +203,7 @@ const pair = { lab: tokenProfile, other: tokenProfile };
 type TargetOptions = { setup: Record<string, unknown>; flag?: string; env?: string; defaults?: string };
 it.each([
   ["explicit flag", { setup: pair, flag: "other" }, ["other"]],
+  ["explicit flag over an empty environment selection", { setup: pair, flag: "other", env: "" }, ["other"]],
   ["environment selection", { setup: pair, env: "other" }, ["other"]],
   ["configured default", { setup: pair, defaults: "other" }, ["other"]],
   ["sole profile", { setup: { lab: tokenProfile } }, ["lab"]],
@@ -214,6 +215,13 @@ it.each([
   const owned = loadConfig(path, new SecretRedactor());
   if (options.env !== undefined) process.env.VECTRA_AXI_PROFILE = options.env;
   expect(doctorTargets(owned.config, options.flag)).toEqual(expected);
+});
+
+it.each([undefined, "lab", "other"])("rejects an empty environment selection with default %s", (defaultProfile) => {
+  writeFileSync(path, JSON.stringify({ profiles: pair, defaultProfile }));
+  const owned = loadConfig(path, new SecretRedactor());
+  process.env.VECTRA_AXI_PROFILE = "";
+  expect(() => doctorTargets(owned.config)).toThrowError("Selected profile is not configured");
 });
 
 // Target resolution throws before runDoctor starts, so an unconfigured

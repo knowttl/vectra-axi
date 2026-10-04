@@ -20,7 +20,7 @@ export const DOCTOR_CHECK = `detection list --limit ${DOCTOR_WINDOW} (${DOCTOR_O
 // sole profile select one target. With no selection among several profiles,
 // doctor checks every profile instead of failing ambiguous.
 export function doctorTargets(config: LoadedConfig["config"], flag?: string): string[] {
-  if (flag ?? process.env.VECTRA_AXI_PROFILE ?? config.defaultProfile) {
+  if ((flag ?? process.env.VECTRA_AXI_PROFILE ?? config.defaultProfile) !== undefined) {
     return [selectProfile(config, flag).name];
   }
   const names = Object.keys(config.profiles);
