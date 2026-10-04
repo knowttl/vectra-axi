@@ -1,8 +1,8 @@
 # vectra-axi
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
-The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, and READ-06 bounded audit-window leaf are implemented.
-`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `host note list`, `host tag list`, `account note list`, `account tag list`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show` and `audit list` call the session; every other Vectra API operation remains planned or blocked.
+The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, and READ-06 bounded audit-window leaf are implemented.
+`detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `host note list`, `host tag list`, `account note list`, `account tag list`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show` `group list`, `group show`, `group member list`, `triage rule list`, `triage rule show` and `audit list` call the session; every other Vectra API operation remains planned or blocked.
 The selected direction is TypeScript, on-prem QUX reads first, and a later RUX adapter for cloud migration.
 
 - [Design and source evidence](docs/design.md)
@@ -27,7 +27,7 @@ The SDK's implicit `update` command is refused.
 Structured data, help and errors use TOON on stdout; stderr is reserved for diagnostics.
 Exit codes are 0 for success, 1 for runtime failure (including a missing profile), and 2 for usage failure.
 There are no prompts or ordinary-command installation side effects.
-Home, setup, help and version remain offline; detection, entity, note, tag, assignment, outcome, user and audit reads make authenticated HTTP requests.
+Home, setup, help and version remain offline; detection, entity, note, tag, assignment, outcome, user, group, member triage rule and audit reads make authenticated HTTP requests.
 `corepack pnpm pack --out vectra-axi.tgz` packages the built entrypoint, runtime modules and inventory.
 See [CLI-01 acceptance](docs/implementation-plan.md#phase-0-turn-design-knowledge-into-one-executable-catalogue) for packaged verification.
 
@@ -125,7 +125,7 @@ Empty lists explicitly report zero hosts or accounts; partial reads retain valid
 All three show leaves require a positive integer `--id` and return their corresponding list field subset with profile and type; null fields stay null, omitted fields stay omitted, and malformed fields report `RESPONSE_INVALID`.
 These leaves validate flag values before profile selection and reject unsupported flags before credential or HTTP work.
 Host 7 and account 7 are different objects, and every show output retains its resource kind for the next command.
-Type-qualified entity, note, tag and audit reads stay in this release; groups, rules, health and lockdown stay READ-05/07/08; no business write leaf exists.
+Type-qualified entity, note, tag, assignment, group, member, triage rule and audit reads stay in this release; health and lockdown stay READ-07/08; no business write leaf exists.
 
 `<kind> note list --profile <name> --id <id>` reads full QUX notes through the dedicated versioned notes resource for detections, hosts and accounts.
 Note/tag leaves require a positive integer owner `--id`, validated before configuration or profile selection.
@@ -148,6 +148,17 @@ All three list leaves accept `--fields`, `--limit` (default 100) and `--cursor`;
 Empty windows succeed with an explicit zero message; permission or licence denial reports `ACCESS_DENIED` with exit 1, never an empty healthy result.
 Both show leaves require a positive integer `--id` and return their corresponding list field subset with the profile; outcome 3 and user 3 are different objects on different routes.
 There is no resolve, reassign or outcome-mutation leaf: assignment changes stay refused by the read-only session.
+
+`group list`, `group show`, `group member list --id <id>`, `triage rule list` and `triage rule show` read QUX v2.5 groups, members and triage rules through the same session and bounded collection reader.
+Group `type` values pass through verbatim with no client-side kind allowlist, so host, account, IP, domain and release-dependent AD kinds survive list and show exactly as returned.
+AD groups require appliance release 9.6 or later and regex groups require 9.0; the member route requires 9.2.
+Group list accepts server-side `--name`, `--type` and `--include-members true|false` filters and projects `id`, `name` and `type`.
+Membership always comes from the dedicated paged member route, never from embedded detail members capped at 2000 rows; member windows stay scoped to their group ID with `--name`, `--ordering` and `--is-key-asset true|false` filters, and groups are never merged into one ranking.
+Rule list accepts server-side `--contains` and `--ordering` filters and projects `id`, `enabled` and `triage_category`.
+Rules describe triage automation only: rule output carries no verdict, and a matching rule is never evidence a detection is benign.
+All three list leaves accept `--fields`, `--limit` (default 100) and `--cursor`; both show leaves require a positive integer `--id`.
+Empty windows succeed with an explicit zero message; permission or licence denial reports `ACCESS_DENIED` with exit 1, never an empty healthy result.
+There is no group, member or rule mutation leaf: group and triage rule changes stay deferred families refused by the read-only session.
 
 `audit list --profile <name> --start-date <YYYY-MM-DD> --end-date <YYYY-MM-DD>` reads QUX v2.5 audits in one bounded window through the session, never the collection reader: audits are date-windowed single responses with no pages to resume.
 Both dates are required and validated before profile selection; omitting either fails instead of starting from the API's unbounded defaults.

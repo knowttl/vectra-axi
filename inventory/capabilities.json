@@ -743,8 +743,8 @@
           "locator": "pp41-43"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-05; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-05; runtime support in src/groups.ts.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -780,8 +780,8 @@
           "locator": "pp41-43; VAT get_group_by_id"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-05; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-05; runtime support in src/groups.ts.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -825,8 +825,8 @@
           "locator": "VectraClientV2_1._generate_rule_params; GET query allowlist"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-05; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-05; runtime support in src/groups.ts.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -862,8 +862,8 @@
           "locator": "pp14-17; VAT get_rule_by_id"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-05; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-05; runtime support in src/groups.ts.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -901,8 +901,8 @@
           "locator": "pp3,44-45"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-05; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-05; runtime support in src/groups.ts.",
       "fixtureCases": [
         "host-member",
         "account-member",

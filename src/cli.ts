@@ -4,6 +4,10 @@ import { ASSIGNMENT_LIST_FIELDS, assignmentQuery, listFields as assignmentListFi
   outcomeId, OUTCOME_LIST_FIELDS, runAssignmentList, runOutcomeList, runOutcomeShow, runUserList, runUserShow,
   userId, USER_LIST_FIELDS, userQuery,
   type LeafResult as AssignmentLeafResult } from "./assignments.js";
+import { GROUP_LIST_FIELDS, groupQuery, runGroupList, runGroupMemberList, runGroupShow,
+  MEMBER_LIST_FIELDS, memberQuery, RULE_LIST_FIELDS, ruleQuery, runRuleList, runRuleShow,
+  groupId, ruleId, listFields as groupListFields, listLimit as groupListLimit,
+  type LeafResult as GroupLeafResult } from "./groups.js";
 import { catalogue, DESCRIPTION, help, inventory, parseInvocation } from "./catalogue.js";
 import { listFields, listLimit, listQuery, runDetectionList, runDetectionShow, showId, type LeafResult } from "./detections.js";
 import { entityKind, listFields as entityListFields, listLimit as entityListLimit, listQuery as entityListQuery,
@@ -18,6 +22,14 @@ const ASSIGNMENT_FIELDS = {
   "assignment list": ASSIGNMENT_LIST_FIELDS,
   "assignment outcome list": OUTCOME_LIST_FIELDS,
   "user list": USER_LIST_FIELDS,
+} as const;
+
+// Module scope: the shell handler runs inside runAxiCli before main's body
+// reaches any later declaration, so leaf field tables must not live there.
+const GROUP_FIELDS = {
+  "group list": GROUP_LIST_FIELDS,
+  "group member list": MEMBER_LIST_FIELDS,
+  "triage rule list": RULE_LIST_FIELDS,
 } as const;
 
 export async function main(argv = process.argv.slice(2), transport: RawTransport = nodeTransport()): Promise<void> {
@@ -60,6 +72,11 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         }
         if (invocation.leaf === "audit list") {
           return runAudit(invocation.flags);
+        }
+        if (invocation.leaf === "group list" || invocation.leaf === "group show"
+          || invocation.leaf === "group member list"
+          || invocation.leaf === "triage rule list" || invocation.leaf === "triage rule show") {
+          return runGroups(invocation.leaf, invocation.flags);
         }
         return state();
       }),
@@ -188,6 +205,42 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
+  // One dispatch for every group/member/rule leaf: validate the flags,
+  // select the profile, build the session on the injected transport, and
+  // report partial reads with their rows and a nonzero exit status.
+  // Group and rule leaves are read-only; no group or rule mutation leaf exists.
+  type GroupsLeaf = "group list" | "group show" | "group member list"
+    | "triage rule list" | "triage rule show";
+  async function runGroups(leaf: GroupsLeaf, flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
+    if (leaf === "group list") {
+      groupQuery(flags);
+      groupListLimit(flags);
+      groupListFields(flags, GROUP_FIELDS[leaf]);
+    } else if (leaf === "group member list") {
+      groupId(flags, leaf);
+      memberQuery(flags);
+      groupListLimit(flags);
+      groupListFields(flags, GROUP_FIELDS[leaf]);
+    } else if (leaf === "triage rule list") {
+      ruleQuery(flags);
+      groupListLimit(flags);
+      groupListFields(flags, GROUP_FIELDS[leaf]);
+    } else if (leaf === "group show") {
+      groupId(flags, leaf);
+    } else {
+      ruleId(flags);
+    }
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
+    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+    const result: GroupLeafResult = leaf === "group list" ? await runGroupList(session, flags)
+      : leaf === "group show" ? await runGroupShow(session, flags)
+      : leaf === "group member list" ? await runGroupMemberList(session, flags)
+      : leaf === "triage rule list" ? await runRuleList(session, flags)
+      : await runRuleShow(session, flags);
+    if (result.failed) process.exitCode = 1;
+    return result.output;
+  }
   function state(): Record<string, unknown> {
     const loaded = loadConfig(invocation.flags.get("config") as string | undefined, redactor);
     const count = Object.keys(loaded.config.profiles).length;
@@ -207,11 +260,11 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         config: loaded.path,
         guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use tokenEnv or secretEnv references",
         example: { profiles: { lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "VECTRA_LAB_TOKEN" } } },
-        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome, user and audit reads call the session; remaining session integration is planned in PACK-01",
+        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member triage rule and audit reads call the session; remaining session integration is planned in PACK-01",
       },
       capabilities: {
         implemented: Object.keys(catalogue),
-        api: "QUX v2.5 detection, host, account, type-qualified entity, note, tag, assignment, outcome, user and audit reads; every other operation is planned or blocked",
+        api: "QUX v2.5 detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member triage rule and audit reads; every other operation is planned or blocked",
         planned: inventory.operations.filter((operation) => operation.disposition === "planned").length,
         blocked: inventory.operations.filter((operation) => operation.disposition === "blocked").length,
       },

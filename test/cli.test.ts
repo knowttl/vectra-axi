@@ -215,6 +215,44 @@ it("reads unresolved assignments, the outcome taxonomy and the assignee as disti
   ]);
 });
 
+it("reads groups, paged members and triage rules without implying benign verdicts", () => {
+  const config = join(scratch, "groups.json");
+  const trace = join(scratch, "groups-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const listed = invoke(["group", "list", ...context], fixtureEnv);
+  expect(listed.status).toBe(0);
+  expect(listed.stderr).toBe("");
+  const listOutput = decode(listed.stdout) as Record<string, unknown>;
+  expect(listOutput).toMatchObject({ profile: "lab", count: "1 groups", complete: true,
+    groups: [{ id: 8, name: "synthetic-host-group", type: "host" }] });
+  const memberHint = (listOutput.help as string[]).find((hint) => hint.startsWith("Run `"))!;
+  const memberCommand = /^Run `vectra-axi (group member list .*?)` for paged membership$/.exec(memberHint!)![1]!;
+  const memberArgs = execFileSync("sh", ["-c", `set -- ${memberCommand}; printf '%s\\n' "$@"`],
+    { encoding: "utf8" }).trimEnd().split("\n");
+  const members = invoke(memberArgs, fixtureEnv);
+  expect(members.status).toBe(0);
+  expect(members.stderr).toBe("");
+  expect(decode(members.stdout)).toMatchObject({ profile: "lab", group: 8, count: "1 members",
+    members: [{ id: 7, name: "synthetic-host-7" }], complete: true });
+  const rule = invoke(["triage", "rule", "show", ...context, "--id", "7"], fixtureEnv);
+  expect(rule.status).toBe(0);
+  expect(rule.stderr).toBe("");
+  const ruleOutput = decode(rule.stdout) as Record<string, unknown>;
+  expect(ruleOutput).toMatchObject({ profile: "lab", id: 7, enabled: true,
+    triage_category: "synthetic-triage" });
+  expect(ruleOutput.help).toContain(
+    "Rules describe triage automation; a matching rule is not evidence a detection is benign");
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/groups" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/groups/8/members?page_size=100" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/rules/7" },
+  ]);
+});
+
 it("distinguishes an empty user window from a denied assignment window", () => {
   const config = join(scratch, "assignments-empty-denied.json");
   writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
@@ -388,7 +426,7 @@ it("shows unconfigured state with closed stdin and a clean home", () => {
   expect(result.stdout).toContain("bin:");
   expect(result.stdout).toContain("vectra-axi.js");
   expect(result.stdout).toContain("state: unconfigured\nprofiles: 0");
-  expect(result.stdout).toContain("detection, host, account, type-qualified entity, note, tag, assignment, outcome, user and audit reads");
+  expect(result.stdout).toContain("detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member triage rule and audit reads");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });
@@ -418,6 +456,11 @@ it.each([
   { path: ["assignment", "outcome", "show"], flag: '"--id <id>"' },
   { path: ["user", "list"], flag: '"--username <name>"' },
   { path: ["user", "show"], flag: '"--id <id>"' },
+  { path: ["group", "list"], flag: '"--type <kind>"' },
+  { path: ["group", "show"], flag: '"--id <id>"' },
+  { path: ["group", "member", "list"], flag: '"--is-key-asset <bool>"' },
+  { path: ["triage", "rule", "list"], flag: '"--contains <text>"' },
+  { path: ["triage", "rule", "show"], flag: '"--id <id>"' },
 ])("provides offline help for $path", ({ path, flag }) => {
   const result = invoke([...path, "--help"]);
   expect(result.status).toBe(0);
