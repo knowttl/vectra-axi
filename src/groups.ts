@@ -9,7 +9,7 @@ import type { Session } from "./session.js";
 // profile with no QUX wire assumptions. Group `type` values pass through
 // verbatim: the CLI keeps no kind allowlist, so host, account, IP, domain
 // and release-dependent AD kinds (appliance 9.6+) all survive list and show.
-// Membership always comes from the paged member route (9.2+), never from an
+// Membership always comes from the paged member route (QUX 9.2+), never from an
 // embedded detail summary capped at 2000 rows; member windows stay scoped to
 // their group ID and are never merged across groups. Triage rules describe
 // automation only: rule output never claims a detection is benign.

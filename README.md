@@ -179,12 +179,14 @@ Both show leaves require a positive integer `--id` and return their correspondin
 There is no resolve, reassign or outcome-mutation leaf: assignment changes stay refused by the read-only session.
 
 `group list`, `group show`, `group member list --id <id>`, `triage rule list` and `triage rule show` read QUX v2.5 or RUX v3.4 groups, members and triage rules through the same session and bounded collection reader.
-Group `type` values pass through verbatim with no client-side kind allowlist on either generation, so host, account, IP and domain kinds survive list and show exactly as returned; QUX release-dependent AD kinds need appliance 9.6 or later.
-AD groups require appliance release 9.6 or later and regex groups require 9.0; the member route requires 9.2.
+Group `type` values pass through verbatim with no client-side kind allowlist on either generation, so host, account, IP and domain kinds survive list and show exactly as returned.
+On QUX, AD groups require appliance release 9.6 or later and regex groups require 9.0; the member route requires 9.2.
 Group list accepts server-side `--name` and `--type` filters and projects `id`, `name` and `type` on both generations.
 Group show also returns validated `description`, `importance`, `last_modified_by` and `ad_group_dn` fields when present; QUX adds `last_modified_timestamp` and `is_ad_group`, while RUX keeps its native `last_modified` timestamp and `member_count` instead.
 Membership always comes from the dedicated paged member route, never from embedded detail members, so `--include-members` stays rejected as an unknown flag; member windows stay scoped to their group ID with `--name`, `--ordering` and `--is-key-asset true|false` filters, and groups are never merged into one ranking.
+RUX group list and show explicitly send `include_members=false`.
 Member rows project `id` and `name` on QUX; on RUX each row keeps its native per-kind identity (host `id`/`name`, account `uid`, IP `ip`, domain `domain`), and `--fields` accepts `id,name,uid,ip,domain`.
+Member output identifies the owner group ID on both generations; QUX rejects RUX-only projection fields.
 Rule list accepts server-side `--contains` and `--ordering` filters and projects `id`, `enabled` and `triage_category` on both generations.
 Rule show also returns validated `description`, `source_conditions`, `additional_conditions`, `detection` and `is_whitelist` fields when present on both generations; RUX condition value entries may additionally carry a `url`.
 Both condition trees validate recursive `AND`/`OR` child arrays and `ANY_OF`/`NONE_OF` leaves with string `field` and `label`, plus `values` and `groups` arrays of string-or-number `value` and string `label` pairs; malformed nested nodes or unknown condition keys report `RESPONSE_INVALID`.

@@ -323,7 +323,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
       memberQuery(flags);
       groupListLimit(flags);
       // Before profile selection, accept either generation's member field
-      // names; the runner projects the generation's own subset.
+      // names; the runner validates fields against the selected generation.
       groupListFields(flags, [...new Set([...MEMBER_LIST_FIELDS, ...RUX_MEMBER_LIST_FIELDS])]);
     } else if (leaf === "triage rule list") {
       ruleQuery(flags);
