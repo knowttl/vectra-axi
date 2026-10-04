@@ -1036,3 +1036,419 @@ it("keeps version latency near the Node startup floor", () => {
   const version = Math.min(...Array.from({ length: 5 }, () => elapsed([bin, "--version"])));
   expect(version).toBeLessThan(floor * 3);
 });
+
+it("reads cloud health and lockdown status through the packaged RUX journey", () => {
+  const config = join(scratch, "rux-health.json");
+  const trace = join(scratch, "rux-health-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { cloud: { kind: "rux", origin: "https://fixture.invalid",
+    apiVersion: "3.4", auth: "oauth", clientId: "synthetic-client", secretEnv: "RUX_SECRET" } } }));
+  const fixtureEnv = { RUX_SECRET: "packaged-rux-secret", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "cloud"];
+  const listed = invoke(["health", "list", ...context], fixtureEnv);
+  expect(listed.status).toBe(0);
+  expect(listed.stderr).toBe("");
+  expect(decode(listed.stdout)).toMatchObject({ profile: "cloud", cached: true,
+    health: { network: { status: "ok" } } });
+  const shown = invoke(["health", "show", ...context, "--check", "cpu"], fixtureEnv);
+  expect(shown.status).toBe(0);
+  expect(shown.stderr).toBe("");
+  expect(decode(shown.stdout)).toMatchObject({ profile: "cloud", check: "cpu",
+    health: { cpu: { status: "ok" } } });
+  const events = invoke(["health", "event", "list", ...context], fixtureEnv);
+  expect(events.status).toBe(0);
+  expect(events.stderr).toBe("");
+  expect(decode(events.stdout)).toMatchObject({ profile: "cloud", checkpoint: "102",
+    count: "2 health events", complete: true });
+  const continued = invoke(["health", "event", "list", ...context, "--from", "102"], fixtureEnv);
+  expect(continued.status).toBe(0);
+  expect(continued.stderr).toBe("");
+  expect(decode(continued.stdout)).toMatchObject({ count: "0 health events", complete: true });
+  const host = invoke(["lockdown", "list", ...context, "--type", "host"], fixtureEnv);
+  expect(host.status).toBe(0);
+  expect(host.stderr).toBe("");
+  expect(decode(host.stdout)).toMatchObject({ profile: "cloud", type: "host",
+    count: "1 host lockdowns", complete: true });
+  const account = invoke(["lockdown", "list", ...context, "--type", "account"], fixtureEnv);
+  expect(account.status).toBe(0);
+  expect(account.stderr).toBe("");
+  expect(decode(account.stdout)).toMatchObject({ profile: "cloud", type: "account",
+    count: "0 account lockdowns", complete: true });
+  expect(account.stdout).not.toContain("packaged-rux-secret");
+  expect(account.stdout).not.toContain("packaged-rux-token");
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/health/" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/health/cpu/" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/events/health/" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/events/health/?from=102" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/lockdown/?type=host" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/lockdown/?type=account" },
+  ]);
+});
+
+it("shows a packaged cloud profile without a credential exchange", () => {
+  const config = join(scratch, "rux-home.json");
+  writeFileSync(config, JSON.stringify({ profiles: { cloud: { kind: "rux", origin: "https://fixture.invalid",
+    apiVersion: "3.4", auth: "oauth", clientId: "synthetic-client", secretEnv: "UNSET_RUX_SECRET" } } }));
+  const result = invoke(["home", "--config", config]);
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("kind: rux");
+  expect(result.stdout).toContain("auth: oauth");
+  expect(result.stdout).toContain("writes: disabled");
+  expect(result.stdout).not.toContain("synthetic-client");
+  expect(result.stderr).toBe("");
+});
+
+it("forwards inline descending ordering through the packaged list command", () => {
+  const config = join(scratch, "ordering.json");
+  const trace = join(scratch, "ordering-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const result = invoke(["detection", "list", "--config", config, "--profile", "lab", "--ordering=-id"], {
+    SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}`,
+  });
+  expect(result.status).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(decode(result.stdout)).toMatchObject({ profile: "lab", complete: true,
+    detections: [{ id: 2 }, { id: 1 }] });
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?ordering=-id" },
+  ]);
+});
+
+it.each([
+  ["empty", 0, "0 detections found with state empty", "complete: true"],
+  ["denied", 1, "code: ACCESS_DENIED", "complete: false"],
+  ["malformed", 1, "code: RESPONSE_INVALID", "complete: false"],
+] as const)("reports a packaged %s window with its exit status", (state, status, message, complete) => {
+  const config = join(scratch, `detection-${state}.json`);
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const result = invoke(["detection", "list", "--config", config, "--profile", "lab", "--state", state], {
+    SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: join(scratch, `requests-${state}.jsonl`),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}`,
+  });
+  expect(result.status).toBe(status);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain("profile: lab");
+  expect(result.stdout).toContain(message);
+  expect(result.stdout).toContain(complete);
+});
+
+it.each(["-v", "-V", "--version"])("prints only the package version for %s", (flag) => {
+  const result = invoke([flag]);
+  expect(result.status).toBe(0);
+  expect(result.stdout).toBe(`${version}\n`);
+  expect(result.stderr).toBe("");
+});
+
+it("shows a packaged token profile without emitting or resolving its secret", () => {
+  const config = join(scratch, "profile.json");
+  const sentinel = "fake-secret-packaged-SENTINEL";
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN", applianceRelease: "9.4" } } }));
+  const result = invoke(["home", "--config", config], { SENTINEL_TOKEN: sentinel });
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("state: configured");
+  expect(result.stdout).toContain("name: lab");
+  expect(result.stdout).toContain("writes: disabled");
+  expect(result.stdout).not.toContain(sentinel);
+  expect(result.stderr).toBe("");
+});
+
+it("reports packaged ambiguous-profile guidance", () => {
+  const config = join(scratch, "ambiguous.json");
+  const profile = { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" };
+  writeFileSync(config, JSON.stringify({ profiles: { one: profile, two: profile } }));
+  const result = invoke(["--config", config]);
+  expect(result.status).toBe(1);
+  expect(result.stdout).toContain("code: PROFILE_AMBIGUOUS");
+  expect(result.stdout).toContain("Pass --profile <name>");
+  expect(result.stderr).toBe("");
+});
+
+it("shows a packaged OAuth profile with no credential exchange or secret required", () => {
+  const config = join(scratch, "oauth.json");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "oauth", clientId: "synthetic-client", secretEnv: "UNSET_OAUTH_SECRET" } } }));
+  const result = invoke(["home", "--config", config]);
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("state: configured");
+  expect(result.stdout).toContain("auth: oauth");
+  expect(result.stdout).toContain("writes: disabled");
+  expect(result.stdout).not.toContain("synthetic-client");
+  expect(result.stderr).toBe("");
+});
+
+it("scrubs known secrets from packaged profile output", () => {
+  const config = join(scratch, "redaction.json");
+  const sentinel = "fake-secret-profile-SENTINEL";
+  writeFileSync(config, JSON.stringify({ profiles: { [sentinel]: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN", applianceRelease: sentinel } } }));
+  const result = invoke(["setup", "--config", config], { SENTINEL_TOKEN: sentinel });
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("***redacted***");
+  expect(result.stdout).not.toContain(sentinel);
+  expect(result.stderr).toBe("");
+});
+
+it("ignores repository-local credentials unless explicitly selected", () => {
+  const local = join(home, "vectra-axi.config.json");
+  writeFileSync(local, "malformed fake credential config");
+  try {
+    const result = invoke([]);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("state: unconfigured");
+    expect(result.stderr).toBe("");
+  } finally { rmSync(local); }
+});
+
+it("keeps help offline even with an invalid explicit config", () => {
+  const result = invoke(["setup", "--help", "--config", join(scratch, "absent.json")]);
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain('"--config <path>"');
+  expect(result.stderr).toBe("");
+});
+
+it("shows unconfigured state with closed stdin and a clean home", () => {
+  const result = invoke([]);
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("bin:");
+  expect(result.stdout).toContain("vectra-axi.js");
+  expect(result.stdout).toContain("state: unconfigured\nprofiles: 0");
+  expect(result.stdout).toContain("detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health and lockdown reads");
+  expect(result.stderr).toBe("");
+  expect(readdirSync(home)).toEqual([]);
+});
+
+it.each([{ path: [] as string[], leaf: false }, { path: ["home"], leaf: true }, { path: ["setup"], leaf: true }])(
+    "provides offline help for $path", ({ path, leaf }) => {
+  const result = invoke([...path, "--help"]);
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("examples[");
+  expect(result.stdout).toContain('"--help": Show concise help; default false');
+  expect(result.stdout).toContain('"--profile <name>": "Select a profile by name');
+  expect(result.stdout).toContain("--help cannot be combined with --profile");
+  if (leaf) expect(result.stdout).not.toContain("detection list");
+  else expect(result.stdout).toContain("detection list");
+  expect(result.stderr).toBe("");
+});
+
+it.each([
+  { path: ["detection", "list"], flag: '"--state <state>"' },
+  { path: ["detection", "show"], flag: '"--id <id>"' },
+  { path: ["host", "list"], flag: '"--threat-gte <score>"' },
+  { path: ["entity", "show"], flag: '"--type <kind>"' },
+  { path: ["detection", "note", "list"], flag: '"--id <id>"' },
+  { path: ["host", "tag", "list"], flag: '"--id <id>"' },
+  { path: ["assignment", "list"], flag: '"--resolved <bool>"' },
+  { path: ["assignment", "outcome", "list"], flag: '"--limit <rows>"' },
+  { path: ["assignment", "outcome", "show"], flag: '"--id <id>"' },
+  { path: ["user", "list"], flag: '"--username <name>"' },
+  { path: ["user", "show"], flag: '"--id <id>"' },
+  { path: ["group", "list"], flag: '"--type <kind>"' },
+  { path: ["group", "show"], flag: '"--id <id>"' },
+  { path: ["group", "member", "list"], flag: '"--is-key-asset <bool>"' },
+  { path: ["triage", "rule", "list"], flag: '"--contains <text>"' },
+  { path: ["triage", "rule", "show"], flag: '"--id <id>"' },
+  { path: ["lockdown", "list"], flag: '"--type <kind>"' },
+  { path: ["doctor"], flag: '"--profile <name>"' },
+])("provides offline help for $path", ({ path, flag }) => {
+  const result = invoke([...path, "--help"]);
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("examples[");
+  expect(result.stdout).toContain(flag);
+  expect(result.stdout).toContain('"--profile <name>"');
+  expect(result.stdout).toContain("--help cannot be combined with --profile");
+  expect(result.stderr).toBe("");
+});
+
+it.each([
+  ["list help with an invalid explicit config", ["detection", "list", "--help", "--config", join(scratch, "absent.json")]],
+  ["show help with an invalid explicit config", ["detection", "show", "--help", "--config", join(scratch, "absent.json")]],
+  ["list help with invalid fields", ["detection", "list", "--help", "--fields", "score"]],
+  ["show help with an invalid ID", ["detection", "show", "--help", "--id", "nope"]],
+  ["entity list help with an invalid explicit config", ["entity", "list", "--help", "--config", join(scratch, "absent.json")]],
+  ["entity show help with an invalid ID", ["entity", "show", "--help", "--id", "nope"]],
+  ["note list help with an invalid explicit config", ["detection", "note", "list", "--help", "--config", join(scratch, "absent.json")]],
+  ["tag list help with an invalid ID", ["host", "tag", "list", "--help", "--id", "nope"]],
+  ["doctor help with an invalid explicit config", ["doctor", "--help", "--config", join(scratch, "absent.json")]],
+])("keeps %s offline", (_name, args) => {
+  const result = invoke(args);
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("examples[");
+  expect(result.stderr).toBe("");
+});
+
+it("reports a missing profile for detection reads as a runtime error on stdout", () => {
+  const result = invoke(["detection", "list", "--state", "active"]);
+  expect(result.status).toBe(1);
+  expect(result.stdout).toContain("code: PROFILE_REQUIRED");
+  expect(result.stderr).toBe("");
+});
+
+it.each([
+  { args: ["host", "show"], message: "host show requires --id" },
+  { args: ["account", "show", "--id", "0"], message: "--id must be a positive integer" },
+  { args: ["entity", "list"], message: "entity reads require --type" },
+  { args: ["entity", "list", "--type", "host", "--threat-gte", "high"], message: "--threat-gte must be a number" },
+  { args: ["entity", "show", "--type", "host"], message: "entity show requires --id" },
+  { args: ["assignment", "list", "--resolved", "maybe"], message: "--resolved must be true or false" },
+  { args: ["assignment", "list", "--account", "1.5"], message: "--account must be a non-negative integer" },
+  { args: ["assignment", "list", "--fields", "urgency"], message: "Unknown --fields value: urgency" },
+  { args: ["assignment", "outcome", "list", "--fields", "score"], message: "Unknown --fields value: score" },
+  { args: ["assignment", "outcome", "show"], message: "assignment outcome show requires --id" },
+  { args: ["assignment", "outcome", "show", "--id", "0"], message: "--id must be a positive integer" },
+  { args: ["user", "list", "--fields", "role"], message: "Unknown --fields value: role" },
+  { args: ["user", "show"], message: "user show requires --id" },
+  { args: ["user", "show", "--id", "1.5"], message: "--id must be a positive integer" },
+  { args: ["host", "list", "--fields", "urgency"], message: "Unknown --fields value: urgency" },
+  { args: ["entity", "list", "--type", "host", "--fields", "state"], message: "Unknown --fields value: state" },
+  { args: ["detection", "show", "--id", "0"], message: "--id must be a positive integer" },
+  { args: ["detection", "show", "--id", "1.5"], message: "--id must be a positive integer" },
+  { args: ["detection", "list", "--host-id", "1.5"], message: "--host-id must be a non-negative integer" },
+  { args: ["detection", "list", "--min-id", "1.5"], message: "--min-id must be a non-negative integer" },
+  { args: ["detection", "list", "--max-id", "1.5"], message: "--max-id must be a non-negative integer" },
+  { args: ["detection", "list", "--certainty-gte", "high"], message: "--certainty-gte must be a number" },
+  { args: ["detection", "list", "--threat-gte", "high"], message: "--threat-gte must be a number" },
+  { args: ["detection", "list", "--limit", "0"], message: "--limit must be a positive integer" },
+  { args: ["detection", "list", "--fields", "score"], message: "Unknown --fields value: score" },
+  { args: ["detection", "list", "--fields", ","], message: "Unknown --fields value: (empty)" },
+  { args: ["detection", "list", "--cursor", "opaque", "--fields", "score"], message: "Unknown --fields value: score" },
+  { args: ["detection", "note", "list"], message: "detection note list requires --id" },
+  { args: ["detection", "note", "list", "--id", "0"], message: "--id must be a positive integer" },
+  { args: ["host", "tag", "list", "--id", "1.5"], message: "--id must be a positive integer" },
+  { args: ["account", "note", "list", "--id", "7", "--limit", "5"], message: "Unknown flag: --limit" },
+  { args: ["lockdown", "list"], message: "lockdown list requires --type" },
+  { args: ["lockdown", "list", "--type", "sensor"], message: "--type must be one of" },
+].flatMap(({ args, message }) => [
+  { context: "unconfigured", args, message },
+  { context: "unreadable config", args: [...args, "--config", join(scratch, "absent.json")], message },
+]))("validates $args before $context selection", ({ args, message }) => {
+  const result = invoke(args);
+  expect(result.status).toBe(2);
+  expect(result.stderr).toBe("");
+  const output = decode(result.stdout) as Record<string, unknown>;
+  expect(output).toMatchObject({ code: "VALIDATION_ERROR", error: expect.stringContaining(message) });
+});
+
+it.each([
+  ["unknown host flag", ["host", "list", "--state", "active"], "Unknown flag: --state"],
+  ["facade range flag", ["entity", "list", "--type", "host", "--min-id", "1"], "Unknown flag: --min-id"],
+  ["unknown detection leaf", ["detection", "note"], "Unknown command: detection note"],
+  ["unknown note verb", ["detection", "note", "show", "--id", "7"], "Unknown command: detection note show"],
+  ["bare detection group", ["detection"], "Unknown command: detection"],
+  ["unknown list flag", ["detection", "list", "--stat", "active"], "Unknown flag: --stat"],
+  ["unknown show flag", ["detection", "show", "--id", "7", "--limit", "5"], "Unknown flag: --limit"],
+  ["unknown doctor flag", ["doctor", "--limit", "1"], "Unknown flag: --limit"],
+  ["unknown assignment flag", ["assignment", "list", "--state", "active"], "Unknown flag: --state"],
+  ["unknown outcome leaf", ["assignment", "outcome", "delete"], "Unknown command: assignment outcome delete"],
+  ["bare assignment outcome group", ["assignment", "outcome"], "Unknown command: assignment outcome"],
+  ["lockdown execution leaf", ["lockdown", "execute", "--type", "host"], "Unknown command: lockdown execute"],
+  ["bare lockdown group", ["lockdown"], "Unknown command: lockdown"],
+])("rejects %s before any profile or network work", (_name, args, message) => {
+  const result = invoke(args);
+  expect(result.status).toBe(2);
+  expect(result.stdout).toContain(message);
+  expect(result.stdout).toContain("code: VALIDATION_ERROR");
+  expect(result.stderr).toBe("");
+});
+
+it("reports a missing profile as a runtime error on stdout", () => {
+  const result = invoke(["home", "--profile", "lab"]);
+  expect(result.status).toBe(1);
+  expect(result.stdout).toContain("code: PROFILE_REQUIRED");
+  expect(result.stdout).toContain("Run vectra-axi setup");
+  expect(result.stderr).toBe("");
+});
+
+it.each([
+  ["unknown flag", ["home", "--profil", "lab"], "Unknown flag: --profil"],
+  ["unknown flag beside help", ["setup", "--help", "--typo"], "Unknown flag: --typo"],
+  ["missing selector value", ["home", "--profile"], "requires a non-empty value"],
+  ["missing ordering before another flag", ["detection", "list", "--ordering", "--limit", "1"], "--ordering requires a non-empty value"],
+  ["empty inline ordering", ["detection", "list", "--ordering="], "--ordering requires a non-empty value"],
+  ["duplicate selector", ["home", "--profile=lab", "--profile=other"], "Repeated flag"],
+  ["boolean value", ["setup", "--help=false"], "does not accept a value"],
+  ["positional input", ["setup", "extra"], "Unexpected argument"],
+  ["literal help", ["setup", "--", "--help"], "Unknown flag: --"],
+  ["planned endpoint", ["lockdown", "show"], "Unknown command: lockdown show"],
+  ["prototype command", ["constructor"], "Unknown command: constructor"],
+  ["version combination", ["--version", "--help"], "Unknown flag: --version"],
+  ["unknown flag before profile", ["home", "--typo", "--profile=lab"], "Unknown flag: --typo"],
+])("rejects %s before any profile or network work", (_name, args, message) => {
+  const result = invoke(args);
+  expect(result.status).toBe(2);
+  expect(result.stdout).toContain(message);
+  expect(result.stdout).toContain("code: VALIDATION_ERROR");
+  expect(result.stdout).toContain("--help");
+  expect(result.stderr).toBe("");
+});
+
+it.each([
+  ["--help", "--profile=lab"],
+  ["--profile=lab", "--help"],
+  ["--help", "--profile", "lab"],
+  ["--profile", "lab", "--help"],
+  ["home", "--help", "--profile=lab"],
+  ["home", "--profile=lab", "--help"],
+  ["home", "--help", "--profile", "lab"],
+  ["home", "--profile", "lab", "--help"],
+  ["setup", "--help", "--profile=lab"],
+  ["setup", "--profile=lab", "--help"],
+  ["setup", "--help", "--profile", "lab"],
+  ["setup", "--profile", "lab", "--help"],
+].map((args) => ({ args })))("rejects mutually exclusive flags for $args", ({ args }) => {
+  const result = invoke(args);
+  expect(result.status).toBe(2);
+  expect(result.stdout).toContain("--help cannot be combined with --profile");
+  expect(result.stdout).toContain("code: VALIDATION_ERROR");
+  expect(result.stderr).toBe("");
+});
+
+it.each([
+  { args: ["update"] },
+  { args: ["update", "--help"] },
+  { args: ["update", "--profile=lab"] },
+])("rejects $args in the catalogue before SDK dispatch", ({ args }) => {
+  const result = invoke(args);
+  expect(result.status).toBe(2);
+  expect(result.stdout).toContain("Unknown command: update");
+  expect(result.stdout).toContain("code: VALIDATION_ERROR");
+  expect(result.stdout).toContain("Available commands: home, setup, doctor, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, detection tag set, host note list, host tag list, host tag set, account note list, account tag list, account tag set, assignment list, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
+  expect(result.stdout).toContain("lockdown list");
+  expect(result.stderr).toBe("");
+  expect(readdirSync(home)).toEqual([]);
+});
+
+it("answers version without loading the command graph", () => {
+  const graph = join(unpacked, "dist/src/cli.js");
+  renameSync(graph, `${graph}.disabled`);
+  try {
+    const result = invoke(["--version"]);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe(`${version}\n`);
+    expect(result.stderr).toBe("");
+  } finally {
+    renameSync(`${graph}.disabled`, graph);
+  }
+});
+
+it("keeps version latency near the Node startup floor", () => {
+  const elapsed = (args: string[]) => {
+    const start = performance.now();
+    const result = spawnSync(process.execPath, args, { env, encoding: "utf8", input: "", timeout: 5_000 });
+    expect(result.status).toBe(0);
+    return performance.now() - start;
+  };
+  const floor = Math.min(...Array.from({ length: 5 }, () => elapsed(["-e", "console.log(1)"])));
+  const version = Math.min(...Array.from({ length: 5 }, () => elapsed([bin, "--version"])));
+  expect(version).toBeLessThan(floor * 3);
+});

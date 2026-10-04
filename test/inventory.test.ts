@@ -16,7 +16,7 @@ describe("capability inventory", () => {
     )).toBe(true);
   });
 
-  it("marks only the shipped detection and entity reads as named", () => {
+  it("marks only the shipped read operations as named", () => {
     const named = inventorySchema.parse(inventory).operations
       .filter((operation) => operation.disposition === "named")
       .map((operation) => operation.id)
@@ -69,8 +69,12 @@ describe("capability inventory", () => {
       "rux.group.list",
       "rux.group.member.list",
       "rux.group.show",
+      "rux.health.event.list",
+      "rux.health.list",
+      "rux.health.show",
       "rux.host.list",
       "rux.host.show",
+      "rux.lockdown.list",
       "rux.triage-rule.list",
       "rux.triage-rule.show",
     ]);

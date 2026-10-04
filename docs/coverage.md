@@ -8,9 +8,9 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 
 ## Counts
 
-- named: 51
+- named: 55
 - reviewed-raw: 0
-- planned: 27
+- planned: 23
 - blocked: 2
 - unavailable: 0
 - deprecated: 0
@@ -75,9 +75,9 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 | `rux.triage-rule.show` | triage rule show | RUX-05 | rux 3.4 | none | named |
 | `rux.group.member.list` | group member list | RUX-05 | rux 3.4 | collection | named |
 | `rux.audit.list` | audit list | RUX-03 | rux 3.4 | checkpoint | planned |
-| `rux.health.list` | health list | RUX-06 | rux 3.4 | none | planned |
-| `rux.health.show` | health show | RUX-06 | rux 3.4 | none | planned |
-| `rux.health.event.list` | health event list | RUX-06 | rux 3.4 | checkpoint | planned |
+| `rux.health.list` | health list | RUX-06 | rux 3.4 | none | named |
+| `rux.health.show` | health show | RUX-06 | rux 3.4 | none | named |
+| `rux.health.event.list` | health event list | RUX-06 | rux 3.4 | checkpoint | named |
 | `qux.entity.host.list` | entity list | READ-02 | qux 2.5 | collection | named |
 | `qux.entity.host.show` | entity show | READ-02 | qux 2.5 | none | named |
 | `qux.lockdown.host.list` | lockdown list | READ-08 | qux 2.5 | none | named |
@@ -86,7 +86,7 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 | `qux.lockdown.account.list` | lockdown list | READ-08 | qux 2.5 | none | named |
 | `rux.entity.list` | entity list | RUX-02 | rux 3.4 | collection | named |
 | `rux.entity.show` | entity show | RUX-02 | rux 3.4 | none | named |
-| `rux.lockdown.list` | lockdown list | RUX-06 | rux 3.4 | none | planned |
+| `rux.lockdown.list` | lockdown list | RUX-06 | rux 3.4 | none | named |
 | `rux.detection.event.list` | detection event list | RUX-03 | rux 3.4 | checkpoint | planned |
 | `rux.entity.scoring.list` | entity scoring list | RUX-03 | rux 3.4 | checkpoint | planned |
 | `rux.health.external-connectors.show` | health show | RUX-06 | rux 3.4 | none | planned |

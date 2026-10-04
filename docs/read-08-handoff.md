@@ -11,6 +11,7 @@ The [lockdown module](../src/lockdown.ts) owns kind validation, row decoding and
 Lockdown reads are paging:none single responses and use `session.request` directly, never the collection reader: each kind has its own status route with no query parameters, so there is no page to resume and no cursor to bind.
 [cli.ts](../src/cli.ts) validates `--type` before profile selection and dispatches the leaf from one runner.
 [catalogue.ts](../src/catalogue.ts) owns leaf grammar and command resolution; see [README.md](../README.md) for the shipped authorization policy.
+RUX-06 maps the same leaf to the single v3.4 lockdown endpoint with its type selector on a cloud profile, including the RUX-only traffic value; traffic on QUX fails with generation guidance before any HTTP.
 Lockdown execution stays unpromised: no execution leaf is declared, and the session authorizes read GETs only.
 
 ## Convention for later read slices

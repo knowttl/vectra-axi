@@ -12,11 +12,27 @@ import type { Session } from "./session.js";
 // Snapshots report cached versus fresh from the request flags, never from
 // invented fields; the event feed follows returned checkpoints, never a
 // computed next ID. Denial is a thrown error, never an empty healthy result.
-// Lockdown status stays READ-08; RUX health stays RUX-06.
+// Lockdown status stays READ-08. RUX-06 maps the same leaves to the
+// documented v3.4 routes on a cloud profile: subscription-sensitive bodies
+// pass through untouched and integer event checkpoints normalize to their
+// decimal form. Generation-specific connector/EDR routes stay a separate
+// decision.
 
 export const HEALTH_LIST_OPERATION = "qux.health.list";
 export const HEALTH_SHOW_OPERATION = "qux.health.show";
 export const HEALTH_EVENT_LIST_OPERATION = "qux.health.event.list";
+// RUX-06: the same caller leaves run against the documented v3.4 routes
+// on a cloud profile. The v3.4 check_type enum matches the ten QUX checks
+// exactly, so the selector needs no per-generation allowlist.
+export const RUX_HEALTH_LIST_OPERATION = "rux.health.list";
+export const RUX_HEALTH_SHOW_OPERATION = "rux.health.show";
+export const RUX_HEALTH_EVENT_LIST_OPERATION = "rux.health.event.list";
+
+// The v3.4 health routes state that responses vary with Network, AWS and
+// M365 subscriptions, so cloud snapshot output carries the variance note
+// instead of projecting a fixed schema. QUX output carries no help key.
+export const RUX_HEALTH_SUBSCRIPTION_NOTE =
+  "Health response varies with Network, AWS and M365 subscriptions";
 
 // Accepted health selectors from the qux.health.show inventory record
 // (guide pp46-51; VAT get_health_check). Anything else fails before HTTP.
@@ -78,12 +94,14 @@ function decodeSnapshot(body: unknown, operation: string): Record<string, unknow
 export async function runHealthList(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
+  const rux = session.profile.kind === "rux";
   const { query, cached } = healthQuery(flags);
-  const { body } = await session.request(HEALTH_LIST_OPERATION, { query });
+  const { body } = await session.request(rux ? RUX_HEALTH_LIST_OPERATION : HEALTH_LIST_OPERATION, { query });
   return { failed: false, output: {
     profile: session.profile.name,
     cached,
     health: decodeSnapshot(body, "health list"),
+    ...(rux ? { help: [RUX_HEALTH_SUBSCRIPTION_NOTE] } : {}),
   } };
 }
 
@@ -91,13 +109,18 @@ export async function runHealthShow(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
   const check = healthCheck(flags);
+  const rux = session.profile.kind === "rux";
   const { query, cached } = healthQuery(flags);
-  const { body } = await session.request(HEALTH_SHOW_OPERATION, { pathParams: { check }, query });
+  // The v3.4 check route names its path selector check_type and keeps the
+  // trailing slash from the documented route; the ten check names match.
+  const { body } = await session.request(rux ? RUX_HEALTH_SHOW_OPERATION : HEALTH_SHOW_OPERATION,
+    rux ? { pathParams: { check_type: check }, query } : { pathParams: { check }, query });
   return { failed: false, output: {
     profile: session.profile.name,
     check,
     cached,
     health: decodeSnapshot(body, "health show"),
+    ...(rux ? { help: [RUX_HEALTH_SUBSCRIPTION_NOTE] } : {}),
   } };
 }
 
@@ -165,8 +188,12 @@ export function healthEventQuery(flags: ReadonlyMap<string, string | boolean>): 
   return query;
 }
 
+// The v3.4 events route returns integer checkpoints (QUX uses strings),
+// so the decoder accepts both and normalizes to the decimal form. The
+// checkpoint stays an opaque continuation token either way: continuation
+// replays it verbatim and never computes a next ID from page size.
 const healthEventSchema = z.object({
-  next_checkpoint: z.string().nullable().optional(),
+  next_checkpoint: z.union([z.string(), z.number().int()]).nullable().optional(),
   remaining_count: z.number().int().nullable().optional(),
   events: z.array(z.record(z.string(), z.unknown())),
 });
@@ -263,16 +290,29 @@ export async function runHealthEventList(
 ): Promise<LeafResult> {
   healthEventFlags(flags);
   healthEventRelease(session.profile);
+  const rux = session.profile.kind === "rux";
   const limit = healthEventLimit(flags);
+  // RUX checkpoints are integer event IDs, so a non-numeric --from can
+  // never match and fails here with guidance instead of a server 400.
+  // QUX checkpoints keep their own shape and pass through untouched.
+  const rawFrom = flags.get("from");
+  if (rux && typeof rawFrom === "string" && !/^\d+$/.test(rawFrom)) {
+    invalid("RUX health events use numeric checkpoints: --from must be a positive integer",
+      "Pass --from <checkpoint> with a checkpoint from a returned batch",
+      "Example: vectra-axi health event list --profile <name> --from 101");
+  }
   const rawCursor = flags.get("cursor");
   let query = healthEventQuery(flags);
   let offset = 0;
   let remaining = limit;
   let expectedBatchHash: string | undefined;
+  // A cursor binds its generation's operation, so a QUX cursor never
+  // resumes a cloud read and vice versa.
+  const operation = rux ? RUX_HEALTH_EVENT_LIST_OPERATION : HEALTH_EVENT_LIST_OPERATION;
   if (typeof rawCursor === "string") {
     const cursor = decodeCursor(rawCursor);
-    if (cursor.operation !== HEALTH_EVENT_LIST_OPERATION) {
-      throw cursorInvalid(`the cursor belongs to ${cursor.operation}, not ${HEALTH_EVENT_LIST_OPERATION}`);
+    if (cursor.operation !== operation) {
+      throw cursorInvalid(`the cursor belongs to ${cursor.operation}, not ${operation}`);
     }
     const profile = session.profile;
     if (cursor.profile.name !== profile.name || cursor.profile.kind !== profile.kind
@@ -292,14 +332,17 @@ export async function runHealthEventList(
     expectedBatchHash = cursor.batchHash;
   }
   const from = query.from;
-  const { body } = await session.request(HEALTH_EVENT_LIST_OPERATION, { query });
+  const { body } = await session.request(operation, { query });
   const parsed = healthEventSchema.safeParse(body);
   if (!parsed.success) {
     throw new AxiError("Vectra health event response is malformed: expected next_checkpoint, remaining_count and events",
-      "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
+      "RESPONSE_INVALID", [rux
+        ? "Check the RUX v3.4 API contract for this operation"
+        : "Check the QUX v2.5 API contract for this operation"]);
   }
   const { events, remaining_count: remainingCount = null } = parsed.data;
-  const checkpoint = parsed.data.next_checkpoint ?? null;
+  const rawCheckpoint = parsed.data.next_checkpoint ?? null;
+  const checkpoint = rawCheckpoint === null ? null : String(rawCheckpoint);
   if (events.length > 0 && (typeof checkpoint !== "string" || !checkpoint)) {
     throw new AxiError("Vectra health event response is malformed: returned events carry no checkpoint",
       "RESPONSE_INVALID", ["Continuation follows the returned checkpoint; without one the window cannot resume"]);
@@ -360,7 +403,7 @@ export async function runHealthEventList(
     return encodeCursor({
       v: 1,
       profile: { name: viewer.name, kind: viewer.kind, origin: viewer.origin, apiVersion: viewer.apiVersion },
-      operation: HEALTH_EVENT_LIST_OPERATION,
+      operation,
       query: bound,
       from,
       offset: at,
