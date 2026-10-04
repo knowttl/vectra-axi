@@ -1,6 +1,6 @@
 import { AxiError } from "axi-sdk-js";
 import { z } from "zod";
-import type { Session } from "./session.js";
+import { RESPONSE_BODY_LIMIT_BYTES, type Session } from "./session.js";
 
 // READ-06: QUX audit reads over bounded inclusive UTC date windows on the
 // CORE-01 session. Audits are paging:date-window single responses, so the
@@ -20,7 +20,7 @@ export const AUDIT_LIST_FIELDS = ["user", "role", "vectra_timestamp", "result", 
 // audits can reach 200 MB (design.md); the production transport already caps
 // raw bodies at 8 MB, and this module re-checks the decoded body so oversized
 // windows fail truthfully on every transport, including test fakes.
-export const AUDIT_MAX_BYTES = 8 * 1024 * 1024;
+export const AUDIT_MAX_BYTES = RESPONSE_BODY_LIMIT_BYTES;
 
 function invalid(message: string, ...suggestions: string[]): never {
   throw new AxiError(message, "VALIDATION_ERROR", suggestions);
@@ -85,29 +85,33 @@ function decodeRow(row: unknown): Record<string, unknown> {
 
 export type LeafResult = { output: Record<string, unknown>; failed: boolean };
 
+function oversizedWindow(start: string, end: string): never {
+  throw new AxiError(
+    `Vectra audit window ${start} to ${end} exceeded the ${AUDIT_MAX_BYTES}-byte ceiling`,
+    "BYTE_BUDGET_EXCEEDED",
+    [`Narrow the window with a smaller date range, for example --start-date ${end} --end-date ${end}`,
+      "The CLI never truncates an oversized audit window and claims completion"],
+  );
+}
+
 // Reads one bounded audit window. The wire carries the ISO calendar days
 // unchanged (VAT get_audits passes datetime.date isoformat as start/end);
 // the server applies them inclusively. Malformed and oversized bodies throw
 // instead of claiming completion; denial propagates from the session.
 export async function runAuditList(
-  session: Session, flags: ReadonlyMap<string, string | boolean>, options: { maxBytes?: number } = {},
+  session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
   const { start, end } = auditWindow(flags);
-  const { body } = await session.request(AUDIT_LIST_OPERATION, { query: { start, end } });
+  const { body } = await session.request(AUDIT_LIST_OPERATION, { query: { start, end } }).catch((error: unknown) => {
+    if (error instanceof AxiError && error.code === "BYTE_BUDGET_EXCEEDED") oversizedWindow(start, end);
+    throw error;
+  });
   if (!Array.isArray(body)) {
     throw new AxiError("Vectra audit response is malformed: expected a list of audits",
       "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
   }
   const bytes = Buffer.byteLength(JSON.stringify(body), "utf8");
-  const ceiling = options.maxBytes ?? AUDIT_MAX_BYTES;
-  if (bytes > ceiling) {
-    throw new AxiError(
-      `Vectra audit window ${start} to ${end} returned ${bytes} bytes, above the ${ceiling}-byte ceiling`,
-      "BYTE_BUDGET_EXCEEDED",
-      [`Narrow the window with a smaller date range, for example --start-date ${end} --end-date ${end}`,
-        "The CLI never truncates an oversized audit window and claims completion"],
-    );
-  }
+  if (bytes > AUDIT_MAX_BYTES) oversizedWindow(start, end);
   const rows = body.map(decodeRow);
   const profile = session.profile.name;
   const window = `${start} to ${end} (inclusive UTC days)`;

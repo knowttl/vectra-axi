@@ -159,10 +159,10 @@ it("rejects mistyped audit rows instead of projecting them", async () => {
 });
 
 it("refuses an oversized window with a smaller-range suggestion and no completion claim", async () => {
-  const transport: RawTransport = async () => body([firstAudit, secondAudit]);
-  await expect(runAuditList(session(transport), windowFlags(), { maxBytes: 10 })).rejects.toMatchObject({
+  const transport: RawTransport = async () => body([{ ...firstAudit, message: "x".repeat(8 * 1024 * 1024) }]);
+  await expect(runAuditList(session(transport), windowFlags())).rejects.toMatchObject({
     code: "BYTE_BUDGET_EXCEEDED",
-    message: expect.stringContaining("above the 10-byte ceiling"),
+    message: expect.stringContaining("exceeded the 8388608-byte ceiling"),
     suggestions: expect.arrayContaining([expect.stringContaining("--start-date 2026-10-02 --end-date 2026-10-02")]),
   });
 });

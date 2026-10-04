@@ -36,7 +36,7 @@ export type Session = {
 
 const MAX_REDIRECTS = 3;
 const REQUEST_TIMEOUT_MS = 30_000;
-const RESPONSE_BODY_LIMIT_BYTES = 8 * 1024 * 1024;
+export const RESPONSE_BODY_LIMIT_BYTES = 8 * 1024 * 1024;
 
 function ensureActive(signal: AbortSignal | undefined): void {
   if (signal?.aborted) {
@@ -160,6 +160,7 @@ async function sendRaw(
     return response;
   } catch (error) {
     ensureActive(request.signal);
+    if (error instanceof AxiError && error.code === "BYTE_BUDGET_EXCEEDED") throw error;
     const code = error && typeof error === "object" && "code" in error && typeof error.code === "string"
       ? error.code : undefined;
     throw authFailure({ code })
@@ -348,7 +349,8 @@ export function nodeTransport(): RawTransport {
           response.on("data", (chunk: Buffer) => {
             bytes += chunk.length;
             if (bytes > RESPONSE_BODY_LIMIT_BYTES) {
-              const error = new Error(`response exceeded the ${RESPONSE_BODY_LIMIT_BYTES}-byte ceiling`);
+              const error = new AxiError(`Vectra response exceeded the ${RESPONSE_BODY_LIMIT_BYTES}-byte ceiling`,
+                "BYTE_BUDGET_EXCEEDED", ["Request a smaller response using the operation's filters"]);
               reject(error);
               pending.destroy(error);
             } else {
