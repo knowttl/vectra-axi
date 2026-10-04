@@ -10,7 +10,7 @@ import type { SecretRedactor } from "./redact.js";
 // Single HTTP seam for the session. Tests inject a fake; production uses nodeTransport.
 // Responses arrive as bounded text; the session core validates JSON and policy.
 export type RawTransport = (request: {
-  method: "GET" | "POST";
+  method: "GET" | MutationMethod;
   url: string;
   headers: Record<string, string>;
   body?: string;
@@ -154,7 +154,7 @@ function resolveLink(
 
 async function sendRaw(
   profile: SelectedProfile, configPath: LoadedConfig["path"], redactor: SecretRedactor, transport: RawTransport,
-  request: { method: "GET" | "POST"; url: string; headers: Record<string, string>; body?: string; signal?: AbortSignal },
+  request: { method: "GET" | MutationMethod; url: string; headers: Record<string, string>; body?: string; signal?: AbortSignal },
 ): Promise<{ status: number; location?: string; retryAfter?: string; bodyText: string }> {
   const tls = tlsOptions(profile, configPath);
   try {
@@ -256,6 +256,16 @@ function exchangeTransport(profile: SelectedProfile, transport: RawTransport): T
   };
 }
 
+// One credential seam for reads and coordinator-authorized mutations.
+// Both resolve the same profile credential over the same adapter.
+function profileCredentials(
+  profile: SelectedProfile, configPath: LoadedConfig["path"], redactor: SecretRedactor, transport: RawTransport,
+): (signal?: AbortSignal) => Promise<{ header: string }> {
+  return profile.auth === "oauth"
+    ? oauthCredentials(profile, configPath, redactor, exchangeTransport(profile, transport))
+    : async () => ({ header: resolveToken(profile, redactor) });
+}
+
 export function createSession(args: {
   profile: SelectedProfile;
   configPath: LoadedConfig["path"];
@@ -265,9 +275,7 @@ export function createSession(args: {
   const { profile, configPath, redactor, transport } = args;
   const snapshot = { name: profile.name, kind: profile.kind, origin: profile.origin, apiVersion: profile.apiVersion,
     ...(profile.applianceRelease ? { applianceRelease: profile.applianceRelease } : {}) };
-  const credentials = profile.auth === "oauth"
-    ? oauthCredentials(profile, configPath, redactor, exchangeTransport(profile, transport))
-    : async () => ({ header: resolveToken(profile, redactor) });
+  const credentials = profileCredentials(profile, configPath, redactor, transport);
 
   async function request(operation: string, options?: SessionRequestOptions): Promise<SessionResponse> {
     const record = authorizeOperation(profile, operation);
@@ -321,6 +329,174 @@ export function createSession(args: {
   }
 
   return { profile: snapshot, request, resolveContinuation };
+}
+
+// WRITE-00 fixture-only mutation transport. Reads stay on Session.request;
+// a mutation travels only through this sender with a coordinator
+// authorization minted after the write gates pass. The sender checks that
+// authorization independently: unknown, already-used or retargeted tokens
+// are refused before credential resolution and before any HTTP call.
+export type MutationMethod = "POST" | "PUT" | "PATCH" | "DELETE";
+
+export type MutationAuthorization = {
+  readonly nonce: string;
+  readonly method: MutationMethod;
+  readonly url: string;
+};
+
+export type MutationResponse = { status: number; body: unknown };
+
+let mutationCounter = 0;
+
+function assertMutationDestination(profile: SelectedProfile, url: string): void {
+  let destination: URL;
+  try {
+    destination = new URL(url);
+  } catch {
+    throw new AxiError("Refusing unparseable mutation destination", "DESTINATION_DENIED", [
+      "Mutation destinations must be absolute HTTPS URLs under the profile origin; no credential was sent",
+    ]);
+  }
+  if (destination.protocol !== "https:" || destination.origin !== profile.origin
+    || destination.username || destination.password
+    || !destination.pathname.startsWith(versionPrefix(profile))) {
+    throw new AxiError("Refusing mutation destination outside the profile origin", "DESTINATION_DENIED", [
+      `Mutations must stay under ${profile.origin}${versionPrefix(profile)}; no credential was sent`,
+    ]);
+  }
+}
+
+// HTTP detail attached to mutation failures so the coordinator can tell a
+// definitive server rejection (status known) from an ambiguous outcome.
+// The key is read only through mutationHttpStatus/mutationAccepted below.
+function mutationFailure(
+  message: string, code: string, suggestions: string[], details: { httpStatus: number; accepted?: boolean },
+): AxiError {
+  return Object.assign(new AxiError(message, code, suggestions), { details });
+}
+
+export function mutationHttpStatus(error: unknown): number {
+  if (error && typeof error === "object" && "details" in error) {
+    const details = (error as { details?: unknown }).details;
+    if (details && typeof details === "object" && "httpStatus" in details) {
+      const status = (details as { httpStatus?: unknown }).httpStatus;
+      if (typeof status === "number" && Number.isInteger(status) && status > 0) return status;
+    }
+  }
+  return 0;
+}
+
+export function mutationAccepted(error: unknown): boolean {
+  if (error && typeof error === "object" && "details" in error) {
+    const details = (error as { details?: unknown }).details;
+    if (details && typeof details === "object" && "accepted" in details) {
+      return (details as { accepted?: unknown }).accepted === true;
+    }
+  }
+  return false;
+}
+
+function decodeMutationBody(response: { status: number; bodyText: string; retryAfter?: string }): unknown {
+  const mapped = authFailure({ status: response.status });
+  if (mapped) {
+    throw mutationFailure(mapped.message, mapped.code, mapped.suggestions, { httpStatus: response.status });
+  }
+  if (response.status < 200 || response.status > 299) {
+    const failure = new AxiError(`Vectra mutation returned status ${response.status}`, "REQUEST_FAILED", [
+      "The server answered the mutation; a 2xx status means it was accepted",
+    ]);
+    recordFailure(failure, { status: response.status, retryAfter: response.retryAfter });
+    throw mutationFailure(failure.message, failure.code, failure.suggestions, { httpStatus: response.status });
+  }
+  try {
+    return response.bodyText ? JSON.parse(response.bodyText) as unknown : {};
+  } catch {
+    // The server accepted the mutation; only its response body was discarded.
+    throw mutationFailure("Vectra mutation response is not valid JSON", "RESPONSE_INVALID",
+      ["The server accepted the mutation but its response body was discarded"],
+      { httpStatus: response.status, accepted: true });
+  }
+}
+
+export function createMutationSender(args: {
+  profile: SelectedProfile;
+  configPath: LoadedConfig["path"];
+  redactor: SecretRedactor;
+  transport: RawTransport;
+}): {
+  readonly profile: Pick<SelectedProfile, "name" | "kind" | "origin" | "apiVersion">;
+  authorize(detail: { method: MutationMethod; url: string }): MutationAuthorization;
+  send(authorization: MutationAuthorization, options?: { body?: string; ifMatch?: string; signal?: AbortSignal }): Promise<MutationResponse>;
+} {
+  const { profile, configPath, redactor, transport } = args;
+  // The sender enforces the same immutable origin the coordinator
+  // snapshotted: destination math uses this copy, never a later edit.
+  // Secret values still resolve live from their environment references.
+  const bound = { ...profile };
+  const snapshot = { name: bound.name, kind: bound.kind, origin: bound.origin, apiVersion: bound.apiVersion };
+  const credentials = profileCredentials(bound, configPath, redactor, transport);
+  const issued = new Map<string, { method: MutationMethod; url: string; used: boolean }>();
+
+  function authorize(detail: { method: MutationMethod; url: string }): MutationAuthorization {
+    if (!["POST", "PUT", "PATCH", "DELETE"].includes(detail.method)) {
+      throw new AxiError(`Refusing mutation with method: ${detail.method}`, "OPERATION_BLOCKED", [
+        "Mutations use POST, PUT, PATCH or DELETE only",
+      ]);
+    }
+    assertMutationDestination(bound, detail.url);
+    mutationCounter += 1;
+    const authorization = { nonce: `mutation-${mutationCounter}`, method: detail.method, url: detail.url };
+    issued.set(authorization.nonce, { method: detail.method, url: detail.url, used: false });
+    return authorization;
+  }
+
+  async function send(
+    authorization: MutationAuthorization,
+    options?: { body?: string; ifMatch?: string; signal?: AbortSignal },
+  ): Promise<MutationResponse> {
+    const record = issued.get(authorization.nonce);
+    if (!record || record.method !== authorization.method || record.url !== authorization.url) {
+      throw new AxiError("Refusing mutation without coordinator authorization", "OPERATION_BLOCKED", [
+        "Mutations are sent only with a coordinator authorization minted after the write gates pass; no credential was sent",
+      ]);
+    }
+    if (record.used) {
+      throw new AxiError("Refusing replay of an authorized mutation", "OPERATION_BLOCKED", [
+        "Each coordinator authorization sends at most once; ambiguous outcomes are never replayed",
+      ]);
+    }
+    record.used = true;
+    // Re-check the bound destination after authorization, before credentials.
+    assertMutationDestination(bound, record.url);
+    if (options?.ifMatch !== undefined && (!options.ifMatch.trim() || /[\x00-\x1f\x7f]/.test(options.ifMatch))) {
+      throw new AxiError("Invalid If-Match value", "VALIDATION_ERROR", [
+        "Provide the exact entity tag returned by the previewed read",
+      ]);
+    }
+    ensureActive(options?.signal);
+    let authorizationHeader: string;
+    try {
+      authorizationHeader = (await credentials(options?.signal)).header;
+    } catch (error) {
+      ensureActive(options?.signal);
+      throw error;
+    }
+    ensureActive(options?.signal);
+    assertMutationDestination(bound, record.url);
+    const response = await sendRaw(profile, configPath, redactor, transport, {
+      method: record.method,
+      url: record.url,
+      headers: { Authorization: authorizationHeader, Accept: "application/json",
+        ...(options?.body !== undefined ? { "Content-Type": "application/json" } : {}),
+        ...(options?.ifMatch !== undefined ? { "If-Match": options.ifMatch } : {}) },
+      ...(options?.body !== undefined ? { body: options.body } : {}),
+      ...(options?.signal ? { signal: options.signal } : {}),
+    });
+    ensureActive(options?.signal);
+    return { status: response.status, body: decodeMutationBody(response) };
+  }
+
+  return { profile: snapshot, authorize, send };
 }
 
 // Production adapter behind the single seam. Synthetic fixtures and fake

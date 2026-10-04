@@ -77,7 +77,7 @@ The session itself does not retry: unmapped failure statuses report `REQUEST_FAI
 Same-origin redirects and continuation links must retain the operation's bound pathname and declared query keys.
 Redirects are followed up to 3 hops; continuation links are validated and fetched by the bounded collection reader in `src/collections.ts`, which keeps every page inside the session's same-operation authorization.
 The production adapter verifies TLS, applies a 30-second deadline per HTTP request and limits each response body to 8 MiB, reporting `BYTE_BUDGET_EXCEEDED` when that limit is exceeded.
-Write policy configuration and enforcement remain assigned to WRITE-00; no business writes are available.
+Write policy configuration and enforcement live in the fixture-only mutation coordinator in `src/writes.ts`; no business writes are available and no mutation command ships.
 See [AUTH-01 handoff](docs/auth-01-handoff.md) for integration constraints and offline acceptance links.
 
 The internal collection reader defaults to a 100-row window; a successful bounded window returns `complete: true` and may still carry a cursor for more rows.
