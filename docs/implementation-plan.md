@@ -116,6 +116,17 @@ Its CA material is synthetic text: it verifies option construction, not a TLS ha
 The [packaged acceptance suite](../test/cli.test.ts) checks configured state, ambiguous-profile guidance, output redaction, ignored local config and offline help with closed stdin and synthetic home.
 Both reuse the [network-denying fixture harness](../test/network-guard.ts); no live instance, real credentials or customer data is used.
 
+### AUTH-02 handoff and acceptance
+
+AUTH-02 on `fm/vx-auth-02` uses merged AUTH-01 commit `f93e287` as its prerequisite and changes no inventory dispositions or command grammar.
+The [handoff](auth-02-handoff.md) records the named fake transport seam and CORE-01 integration responsibilities, with pointers to shipped behavior, upstream evidence and the `qux.oauth.exchange` inventory record.
+The [OAuth acceptance suite](../test/oauth.test.ts) verifies the exact named exchange, returned expiry boundaries, cache isolation, client-credentials reacquisition, malformed replies, Bearer token syntax rejection before caching, bounded status/transport failures, CA failure and sentinel redaction through SDK formatting.
+It also covers malformed Unicode in rejected tokens and unused refresh tokens with fake time and synthetic fixtures.
+The [packaged suite](../test/cli.test.ts) verifies OAuth status remains offline with closed stdin without resolving a secret or calling a transport.
+Both use synthetic `.invalid` origins and the [shared external-network guard](../test/network-guard.ts); no live Vectra instance or real credentials are used.
+Fixture acceptance verifies constructed TLS options, not a TLS handshake or unknown appliance compatibility.
+HTTP execution and destination enforcement remain CORE-01; write-policy fields remain WRITE-00.
+
 ### Session and investigation slices
 
 CORE-01 owns URL construction, operation authorization, credential attachment and response validation in one path.

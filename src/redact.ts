@@ -10,7 +10,7 @@ export class SecretRedactor {
     if (secret) {
       this.secrets.add(secret);
       this.secrets.add(JSON.stringify(secret).slice(1, -1));
-      this.secrets.add(encodeURIComponent(secret));
+      if (secret.isWellFormed()) this.secrets.add(encodeURIComponent(secret));
     }
   }
 

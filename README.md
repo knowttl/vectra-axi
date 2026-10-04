@@ -1,7 +1,7 @@
 # vectra-axi
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
-The INV-01 capability inventory, CLI-01 local command shell and AUTH-01 profiles/token/TLS primitives are implemented.
+The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives and AUTH-02 OAuth credential lifecycle are implemented.
 No Vectra API operations are implemented yet.
 The selected direction is TypeScript, on-prem QUX reads first, and a later RUX adapter for cloud migration.
 
@@ -59,7 +59,7 @@ There is no credential prompt, config writer, browser login reuse or connectivit
 Profile names and `defaultProfile` must be nonempty identifiers without surrounding whitespace; selections match exactly without trimming.
 `defaultProfile`, when present, must name an existing profile.
 The origin must be an exact HTTPS origin without credentials, path, query, fragment or trailing slash.
-Only QUX v2.5 personal-token profiles are supported in AUTH-01; unknown fields, OAuth, RUX, mixed authentication fields, inline secrets, UI-login settings and TLS bypass settings fail at configuration load, including in unselected profiles.
+Only QUX v2.5 personal-token and OAuth client-credentials profiles are supported; unknown fields, RUX, mixed authentication fields, inline secrets, UI-login settings and TLS bypass settings fail at configuration load, including in unselected profiles.
 Set the environment variable named by `tokenEnv` outside the CLI; never pass a secret in argv or the config file.
 Token resolution provides `Authorization: Token …` to the future session and does not infer a personal token's expiry.
 Unset, empty or whitespace-only token values report `AUTH_REQUIRED`; other whitespace-containing tokens report `AUTH_FAILED`.
@@ -71,3 +71,21 @@ Known referenced secret values are scrubbed from output and from error metadata 
 Future session failures distinguish `AUTH_REQUIRED`, `AUTH_EXPIRED` (explicit expiry evidence), `AUTH_FAILED` (HTTP 401), `ACCESS_DENIED` (HTTP 403) and `TLS_TRUST_ERROR` (CA loading or known certificate verification errors); all are runtime failures with exit 1.
 Write policy configuration and enforcement remain assigned to WRITE-00; no business writes are available.
 See [AUTH-01 handoff](docs/auth-01-handoff.md) for integration constraints and offline acceptance links.
+
+For OAuth, replace `auth` and `tokenEnv` with `"auth": "oauth"`, `"clientId": "synthetic-client"` and `"secretEnv": "VECTRA_LAB_SECRET"`.
+Set the variable named by `secretEnv` outside the CLI.
+Client IDs must be nonempty without whitespace or the Basic-auth colon delimiter.
+QUX OAuth requires appliance release 9.1 or later.
+The internal credential provider requests Basic client authentication on the named `POST /api/v2.5/oauth2/token` exchange with form `grant_type=client_credentials`.
+It caches Bearer credentials in invocation memory until the returned numeric `expires_in`, measured conservatively from exchange start.
+At expiry it reacquires using client credentials; it never uses a returned refresh token or assumes a fixed lifetime.
+Successful responses require a nonempty access token containing only ASCII letters, digits, `-`, `.`, `_`, `~`, `+` or `/`, optionally followed by trailing `=` padding, a case-insensitive Bearer `token_type`, and finite numeric `expires_in` yielding a safe integer expiry in epoch milliseconds.
+Unsuitable access tokens are rejected before caching; a failed reacquisition cannot return the expired credential.
+Missing secrets report `AUTH_REQUIRED`, rejected client credentials report `AUTH_FAILED`, denied access reports `ACCESS_DENIED`, and certificate errors report `TLS_TRUST_ERROR`.
+Already-expired returned credentials report `AUTH_EXPIRED`; malformed successful responses report `AUTH_RESPONSE_INVALID`; other status or transport failures report `AUTH_EXCHANGE_FAILED`.
+An exchange failure triggers no automatic retry or business request.
+Remote response bodies and raw transport errors are discarded from exchange errors.
+The provider registers the client secret, encoded Basic credential and returned access/refresh token strings with the existing redactor, including rejected responses.
+Malformed Unicode remains redacted in raw and JSON-escaped forms; an unused malformed refresh token does not prevent authentication.
+Actual HTTP execution, destination/redirect validation and request deadlines remain CORE-01; all current CLI views remain offline.
+See [AUTH-02 handoff](docs/auth-02-handoff.md) for the fixture seam and acceptance evidence.
