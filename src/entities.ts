@@ -152,8 +152,9 @@ export function listLimit(flags: ReadonlyMap<string, string | boolean>): number 
 // host/account leaves keep state on both generations, the QUX facade keeps
 // scores, and the RUX facade keeps the entity type with urgency/importance.
 // Unknown fields fail explicitly instead of silently returning short rows.
-export function listFields(flags: ReadonlyMap<string, string | boolean>, facade = false, rux = false): readonly string[] {
+export function listFields(flags: ReadonlyMap<string, string | boolean>, facade = false, rux: boolean | null = false): readonly string[] {
   const allowed: readonly string[] = !facade ? HOST_LIST_FIELDS
+    : rux === null ? [...ENTITY_LIST_FIELDS, ...RUX_ENTITY_LIST_FIELDS]
     : rux ? RUX_ENTITY_LIST_FIELDS : ENTITY_LIST_FIELDS;
   const raw = flags.get("fields");
   if (raw === undefined) return allowed;

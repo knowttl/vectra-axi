@@ -158,18 +158,18 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
   // and report partial reads with their rows and a nonzero exit status.
   type EntityLeaf = "host list" | "host show" | "account list" | "account show" | "entity list" | "entity show";
   async function runEntity(leaf: EntityLeaf, flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
-    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
-    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
-    const rux = selected.kind === "rux";
     const facade = leaf.startsWith("entity ");
     if (facade) entityKind(flags);
     if (leaf.endsWith(" list")) {
-      entityListQuery(flags, facade, rux);
+      entityListQuery(flags, facade);
       entityListLimit(flags);
-      entityListFields(flags, facade, rux);
+      // Before profile selection, accept either generation's field names.
+      entityListFields(flags, facade, null);
     } else {
       entityShowId(flags, leaf);
     }
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
     const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
     const result: LeafResult = leaf === "host list" ? await runHostList(session, flags)
       : leaf === "account list" ? await runAccountList(session, flags)
