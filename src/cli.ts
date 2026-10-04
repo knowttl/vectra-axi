@@ -2,6 +2,7 @@ import { runAxiCli } from "axi-sdk-js";
 import { auditWindow, runAuditList, type LeafResult as AuditLeafResult } from "./audits.js";
 import { healthEventFlags, healthEventRelease, healthShowFlags, runHealthEventList, runHealthList,
   runHealthShow, type LeafResult as HealthLeafResult } from "./health.js";
+import { runAssignmentSet } from "./assignment-set.js";
 import { ASSIGNMENT_LIST_FIELDS, assignmentQuery, listFields as assignmentListFields, listLimit as assignmentListLimit,
   outcomeId, OUTCOME_LIST_FIELDS, runAssignmentList, runOutcomeList, runOutcomeShow, runUserList, runUserShow,
   RUX_USER_LIST_FIELDS, userId, USER_LIST_FIELDS, userQuery,
@@ -11,6 +12,7 @@ import { GROUP_LIST_FIELDS, groupQuery, runGroupList, runGroupMemberList, runGro
   RUX_MEMBER_LIST_FIELDS, groupId, ruleId, listFields as groupListFields, listLimit as groupListLimit,
   type LeafResult as GroupLeafResult } from "./groups.js";
 import { catalogue, DESCRIPTION, help, inventory, parseInvocation } from "./catalogue.js";
+import { detectionEventFlags, runDetectionEventList, type LeafResult as DetectionEventLeafResult } from "./detection-events.js";
 import { listFields, listLimit, listQuery, runDetectionList, runDetectionShow, showId, type LeafResult } from "./detections.js";
 import { doctorTargets, runDoctor } from "./doctor.js";
 import { lockdownKind, runLockdownList, type LeafResult as LockdownLeafResult } from "./lockdown.js";
@@ -70,6 +72,9 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         if (invocation.leaf === "detection list" || invocation.leaf === "detection show") {
           return runDetection(invocation.leaf, invocation.flags);
         }
+        if (invocation.leaf === "detection event list") {
+          return runDetectionEvents(invocation.flags);
+        }
         if (invocation.leaf === "host list" || invocation.leaf === "host show"
           || invocation.leaf === "account list" || invocation.leaf === "account show"
           || invocation.leaf === "entity list" || invocation.leaf === "entity show") {
@@ -92,6 +97,9 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
           || invocation.leaf === "assignment outcome show"
           || invocation.leaf === "user list" || invocation.leaf === "user show") {
           return runAssignment(invocation.leaf, invocation.flags);
+        }
+        if (invocation.leaf === "assignment set") {
+          return runAssignmentSets(invocation.flags);
         }
         if (invocation.leaf === "audit list") {
           return runAudit(invocation.flags);
@@ -232,6 +240,19 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
+  // One dispatch for the RUX detection event leaf: validate the flags,
+  // select the profile, build the session on the injected transport, and
+  // return the shaped single-batch output. A repeated checkpoint fails
+  // with its rows retained and a nonzero exit status, never a loop.
+  async function runDetectionEvents(flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
+    detectionEventFlags(flags);
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
+    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+    const result: DetectionEventLeafResult = await runDetectionEventList(session, flags);
+    if (result.failed) process.exitCode = 1;
+    return result.output;
+  }
   // One dispatch for every assignment/outcome/user leaf: validate the
   // flags, select the profile, build the session on the injected transport,
   // and report partial reads with their rows and a nonzero exit status.
@@ -262,6 +283,21 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
       : leaf === "assignment outcome show" ? await runOutcomeShow(session, flags)
       : leaf === "user list" ? await runUserList(session, flags)
       : await runUserShow(session, flags);
+    if (result.failed) process.exitCode = 1;
+    return result.output;
+  }
+  // One dispatch for the assignment set leaf: select the profile, build
+  // the session and a WRITE-00 coordinator on the injected transport, and
+  // run the desired-state set through the full gate pipeline. Assignment
+  // and user reads stay on the session; the POST, PUT or DELETE travels
+  // only with a coordinator authorization after the gates pass. Resolving
+  // stays a separate operation with no leaf here.
+  async function runAssignmentSets(flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
+    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+    const coordinator = createMutationCoordinator({ profile: selected, configPath: loaded.path, redactor, transport });
+    const result: AssignmentLeafResult = await runAssignmentSet(session, coordinator, flags);
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
@@ -389,7 +425,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         config: loaded.path,
         guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use tokenEnv or secretEnv references",
         example: { profiles: { lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "VECTRA_LAB_TOKEN" } } },
-        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health and lockdown reads call the session; doctor checks each QUX profile with one bounded detection read and each RUX profile with the named OAuth exchange; the static skill at skills/vectra-axi/SKILL.md is installed only by explicit setup",
+        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health, lockdown and detection event reads call the session; doctor checks each QUX profile with one bounded detection read and each RUX profile with the named OAuth exchange; the static skill at skills/vectra-axi/SKILL.md is installed only by explicit setup",
       },
       capabilities: {
         implemented: Object.keys(catalogue),

@@ -2,15 +2,15 @@
 
 # vectra-axi coverage
 
-This is the supported QUX and RUX SOC read surface with gated QUX tag-write and note-write families, not full Vectra API coverage.
+This is the supported QUX and RUX SOC read surface with gated QUX tag-write, note-write and assignment-write families, not full Vectra API coverage.
 Only `named` operations have an implemented, tested command leaf; every other
 operation remains planned, blocked or unreviewed until its own slice ships.
 
 ## Counts
 
-- named: 71
+- named: 78
 - reviewed-raw: 0
-- planned: 7
+- planned: 6
 - blocked: 2
 - unavailable: 0
 - deprecated: 0
@@ -41,6 +41,12 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 | `qux.assignment.list` | assignment list | READ-04 | qux 2.5 | collection | named |
 | `qux.assignment-outcome.list` | assignment outcome list | READ-04 | qux 2.5 | collection | named |
 | `qux.assignment-outcome.show` | assignment outcome show | READ-04 | qux 2.5 | none | named |
+| `qux.host.assignment.create` | assignment set | WRITE-03 | qux 2.5 | none | named |
+| `qux.host.assignment.reassign` | assignment set | WRITE-03 | qux 2.5 | none | named |
+| `qux.host.assignment.unassign` | assignment set | WRITE-03 | qux 2.5 | none | named |
+| `qux.account.assignment.create` | assignment set | WRITE-03 | qux 2.5 | none | named |
+| `qux.account.assignment.reassign` | assignment set | WRITE-03 | qux 2.5 | none | named |
+| `qux.account.assignment.unassign` | assignment set | WRITE-03 | qux 2.5 | none | named |
 | `qux.user.list` | user list | READ-04 | qux 2.5 | collection | named |
 | `qux.user.show` | user show | READ-04 | qux 2.5 | none | named |
 | `qux.group.list` | group list | READ-05 | qux 2.5 | collection | named |
@@ -87,7 +93,7 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 | `rux.entity.list` | entity list | RUX-02 | rux 3.4 | collection | named |
 | `rux.entity.show` | entity show | RUX-02 | rux 3.4 | none | named |
 | `rux.lockdown.list` | lockdown list | RUX-06 | rux 3.4 | none | named |
-| `rux.detection.event.list` | detection event list | RUX-03 | rux 3.4 | checkpoint | planned |
+| `rux.detection.event.list` | detection event list | RUX-03 | rux 3.4 | checkpoint | named |
 | `rux.entity.scoring.list` | entity scoring list | RUX-03 | rux 3.4 | checkpoint | planned |
 | `rux.health.external-connectors.show` | health show | RUX-06 | rux 3.4 | none | named |
 | `rux.health.external-connectors.details.show` | health show | RUX-06 | rux 3.4 | none | named |

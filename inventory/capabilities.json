@@ -871,6 +871,230 @@
       ]
     },
     {
+      "id": "qux.host.assignment.create",
+      "command": "assignment set",
+      "slice": "WRITE-03",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Creates a host assignment only when no open assignment exists; the desired-state leaf routes to reassign or unassign instead when one does. Detections have no assignment route and resolving stays a separate operation.",
+      "method": "POST",
+      "path": "/api/v2.5/assignments",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "assign_host_id",
+        "assign_to_user_id"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "create_host_assignment: POST /assignments with {assign_host_id, assign_to_user_id}"
+        },
+        {
+          "source": "rux-spec",
+          "locator": "AssignmentPostBodyV3_3: POST requires assign_to_user_id with assign_host_id or assign_account_id"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Enabled by WRITE-03; `assignment set --host <id> --user <id>` drives the coordinator desired-state assign with its kind retained.",
+      "fixtureCases": [
+        "dry-run-assign",
+        "assign-success",
+        "invalid-user-refused",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
+      "id": "qux.host.assignment.reassign",
+      "command": "assignment set",
+      "slice": "WRITE-03",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Reassigns the open host assignment to another user; only the analyst moves, never the entity. A moved assignment between preview and send refuses with a client-side re-read check (no evidenced ETag).",
+      "method": "PUT",
+      "path": "/api/v2.5/assignments/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "assign_to_user_id"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "update_assignment: PUT /assignments/{id} with {assign_to_user_id}"
+        },
+        {
+          "source": "rux-spec",
+          "locator": "AssignmentPutBodyV3_3: PUT modifies the user associated to an assignment"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Enabled by WRITE-03; `assignment set --host <id> --user <id>` drives the coordinator desired-state reassign with its kind retained.",
+      "fixtureCases": [
+        "dry-run-reassign",
+        "reassign-success",
+        "no-op",
+        "version-conflict",
+        "server-rejection"
+      ]
+    },
+    {
+      "id": "qux.host.assignment.unassign",
+      "command": "assignment set",
+      "slice": "WRITE-03",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Deletes the open host assignment; an already-unassigned host is an exit-0 no-op that sends nothing. Resolving (with outcome) stays a separate operation.",
+      "method": "DELETE",
+      "path": "/api/v2.5/assignments/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "delete_assignment: DELETE /assignments/{id}"
+        },
+        {
+          "source": "rux-spec",
+          "locator": "assignments_delete: DELETE a single assignment returns 204"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Enabled by WRITE-03; `assignment set --host <id> --unassign` drives the coordinator desired-state unassign with its kind retained.",
+      "fixtureCases": [
+        "dry-run-unassign",
+        "unassign-success",
+        "no-op"
+      ]
+    },
+    {
+      "id": "qux.account.assignment.create",
+      "command": "assignment set",
+      "slice": "WRITE-03",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Creates an account assignment only when no open assignment exists; the desired-state leaf routes to reassign or unassign instead when one does. Detections have no assignment route and resolving stays a separate operation.",
+      "method": "POST",
+      "path": "/api/v2.5/assignments",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "assign_account_id",
+        "assign_to_user_id"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "create_account_assignment: POST /assignments with {assign_account_id, assign_to_user_id}"
+        },
+        {
+          "source": "rux-spec",
+          "locator": "AssignmentPostBodyV3_3: POST requires assign_to_user_id with assign_host_id or assign_account_id"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Enabled by WRITE-03; `assignment set --account <id> --user <id>` drives the coordinator desired-state assign with its kind retained.",
+      "fixtureCases": [
+        "dry-run-assign",
+        "assign-success",
+        "invalid-user-refused",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
+      "id": "qux.account.assignment.reassign",
+      "command": "assignment set",
+      "slice": "WRITE-03",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Reassigns the open account assignment to another user; only the analyst moves, never the entity. A moved assignment between preview and send refuses with a client-side re-read check (no evidenced ETag).",
+      "method": "PUT",
+      "path": "/api/v2.5/assignments/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "assign_to_user_id"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "update_assignment: PUT /assignments/{id} with {assign_to_user_id}"
+        },
+        {
+          "source": "rux-spec",
+          "locator": "AssignmentPutBodyV3_3: PUT modifies the user associated to an assignment"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Enabled by WRITE-03; `assignment set --account <id> --user <id>` drives the coordinator desired-state reassign with its kind retained.",
+      "fixtureCases": [
+        "dry-run-reassign",
+        "reassign-success",
+        "no-op",
+        "version-conflict",
+        "server-rejection"
+      ]
+    },
+    {
+      "id": "qux.account.assignment.unassign",
+      "command": "assignment set",
+      "slice": "WRITE-03",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Deletes the open account assignment; an already-unassigned account is an exit-0 no-op that sends nothing. Resolving (with outcome) stays a separate operation.",
+      "method": "DELETE",
+      "path": "/api/v2.5/assignments/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "delete_assignment: DELETE /assignments/{id}"
+        },
+        {
+          "source": "rux-spec",
+          "locator": "assignments_delete: DELETE a single assignment returns 204"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Enabled by WRITE-03; `assignment set --account <id> --unassign` drives the coordinator desired-state unassign with its kind retained.",
+      "fixtureCases": [
+        "dry-run-unassign",
+        "unassign-success",
+        "no-op"
+      ]
+    },
+    {
       "id": "qux.user.list",
       "command": "user list",
       "slice": "READ-04",
@@ -2738,8 +2962,8 @@
           "locator": "GET /api/v3.4/events/detections/"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-03; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by RUX-03; `detection event list` follows the returned checkpoint on a cloud profile with mid-batch cursors, repeated-checkpoint refusal and remaining_count reported as returned.",
       "fixtureCases": [
         "returned-checkpoint",
         "repeated-checkpoint",

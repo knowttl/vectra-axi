@@ -205,7 +205,7 @@ Do not automatically replay ambiguous mutations.
 See [README.md](../README.md) for the shipped operation surface.
 Raw requests are deferred; later reviewed raw reads must use the same operation catalogue and cannot bypass sensitive-route or write policy.
 
-WRITE-00 implements the coordinator in `src/writes.ts`; WRITE-01 binds desired-state tag replaces in `src/tags.ts` to it and WRITE-02 binds action-shaped note appends in `src/note-add.ts` to it.
+WRITE-00 implements the coordinator in `src/writes.ts`; WRITE-01 binds desired-state tag replaces in `src/tags.ts`, WRITE-02 binds action-shaped note appends in `src/note-add.ts` and WRITE-03 binds desired-state assignment changes in `src/assignment-set.ts` to it.
 See [README.md](../README.md) for shipped write behavior and [the implementation plan](implementation-plan.md#phase-4-add-writes-as-a-new-capability-one-family-at-a-time) for selected and future write slices.
 The coordinator keeps its original policy private and exposes a frozen scope snapshot, including the operation allowlist.
 Its sender independently consumes a single-use authorization bound to that sender, method and URL; authorization issuance is private to the coordinator.
@@ -234,7 +234,7 @@ A malformed journal or remaining lock blocks intent recording; reconcile a remai
 Named text mutations use file/stdin inputs, as the WRITE-02 note append does.
 There is no assumed server-side dry-run capability.
 
-Remaining note edits/deletes, bulk tag set/delete and assignment mutations require separately selected slices in the [implementation plan](implementation-plan.md#phase-4-add-writes-as-a-new-capability-one-family-at-a-time).
+See the [implementation plan](implementation-plan.md#phase-4-add-writes-as-a-new-capability-one-family-at-a-time) for remaining mutation families and their selection requirements.
 Close/open, groups and triage rules require explicit semantic and concurrency analysis.
 Lockdown execution is unpromised until an exact public mutation contract is established.
 [az-axi gates](https://github.com/knowttl/az-axi/blob/7d31138eb82e0fc6adec867e7690be6cf87725b6/src/lib/gates.ts#L68), [client enforcement](https://github.com/knowttl/az-axi/blob/7d31138eb82e0fc6adec867e7690be6cf87725b6/src/lib/client.ts#L106) and [audit serialization](https://github.com/knowttl/az-axi/blob/7d31138eb82e0fc6adec867e7690be6cf87725b6/src/lib/writeLog.ts#L67) are conventions to adapt, not a ready-made Vectra policy implementation.
