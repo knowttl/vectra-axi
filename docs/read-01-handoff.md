@@ -25,5 +25,6 @@ Empty windows succeed with an explicit zero message; denied windows fail with th
 Cursors bind their query context: resumed reads repeat the original filters, and `resume()` rejects anything else.
 Detail leaves preview long text with its total and a `--full` hint; `--full` reveals only what the server returned.
 Cover the leaf in the domain test file through the real session with a fake `RawTransport` and synthetic `.invalid` fixtures under the [external-network guard](../test/network-guard.ts).
-Extend the packaged [CLI suite](../test/cli.test.ts) with offline help, unknown-input rejection and missing-profile cases only; no packaged test performs network calls.
+Extend the packaged [CLI suite](../test/cli.test.ts) with the list/show/full/resume investigation journey, empty and access errors, offline help, unknown-input rejection and missing-profile cases.
+Run the declared packaged binary with synthetic profiles and a test-only fake transport under the external-network guard; no packaged test performs network calls.
 Hosts/accounts are READ-02 and notes/tags are READ-03: do not widen this module to adjacent families.

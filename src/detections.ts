@@ -1,4 +1,5 @@
 import { AxiError } from "axi-sdk-js";
+import { z } from "zod";
 import { collect, DEFAULT_COLLECTION_LIMIT, resume } from "./collections.js";
 import type { Session } from "./session.js";
 
@@ -99,19 +100,22 @@ export function listFields(flags: ReadonlyMap<string, string | boolean>): readon
   return [...new Set(fields)];
 }
 
-function decodeRow(row: unknown): Record<string, unknown> {
-  if (typeof row !== "object" || row === null || Array.isArray(row)) {
-    throw new AxiError("Vectra detection page is malformed: expected each row to be an object",
+const detectionSchema = z.object({
+  id: z.number().int().positive(),
+  detection_type: z.string().nullable().optional(),
+  state: z.string().nullable().optional(),
+  threat: z.number().nullable().optional(),
+  certainty: z.number().nullable().optional(),
+});
+const detailSchema = detectionSchema.extend({ description: z.string().nullable().optional() });
+
+function decodeDetection<T>(value: unknown, schema: z.ZodType<T>): T {
+  const result = schema.safeParse(value);
+  if (!result.success) {
+    throw new AxiError("Vectra detection response is malformed: expected valid detection fields",
       "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
   }
-  const source = row as Record<string, unknown>;
-  return {
-    id: source.id ?? "",
-    detection_type: source.detection_type ?? "",
-    state: source.state ?? "",
-    threat: source.threat ?? "",
-    certainty: source.certainty ?? "",
-  };
+  return result.data;
 }
 
 function summarizeFilters(query: ListQuery): string {
@@ -142,11 +146,12 @@ export async function runDetectionList(
   const limit = listLimit(flags);
   const fields = listFields(flags);
   const cursor = flags.get("cursor");
+  const decodeRow = (row: unknown): Record<string, unknown> => decodeDetection(row, detectionSchema);
   const result = typeof cursor === "string"
     ? await resume(session, DETECTION_LIST_OPERATION, cursor, { query, limit, decodeRow })
     : await collect(session, DETECTION_LIST_OPERATION, { query, limit, decodeRow });
   const rows = result.rows.map((row) =>
-    Object.fromEntries(fields.map((field) => [field, row[field] ?? ""])));
+    Object.fromEntries(fields.filter((field) => Object.hasOwn(row, field)).map((field) => [field, row[field]])));
   const shown = rows.length;
   const count = result.total === null || result.total === shown
     ? `${shown} detections`
@@ -205,10 +210,6 @@ export function showId(flags: ReadonlyMap<string, string | boolean>): number {
   return Number(raw);
 }
 
-function cell(value: unknown): unknown {
-  return value ?? "";
-}
-
 // Shows one detection. --full prints the complete returned description;
 // otherwise long text is previewed with its total and a --full hint. --full
 // only reveals what the server returned, never content the response omits.
@@ -218,24 +219,16 @@ export async function runDetectionShow(
   const id = showId(flags);
   const full = flags.has("full");
   const { body } = await session.request(DETECTION_SHOW_OPERATION, { pathParams: { id } });
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    throw new AxiError("Vectra detection detail is malformed: expected an object",
-      "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
-  }
-  const detail = body as Record<string, unknown>;
-  const description = typeof detail.description === "string" ? detail.description : "";
-  const truncated = !full && description.length > DETECTION_TRUNCATE_AT;
+  const detail = decodeDetection(body, detailSchema);
+  const description = detail.description;
+  const truncated = !full && typeof description === "string" && description.length > DETECTION_TRUNCATE_AT;
   const profile = session.profile.name;
   return { failed: false, output: {
     profile,
-    id: cell(detail.id),
-    detection_type: cell(detail.detection_type),
-    state: cell(detail.state),
-    threat: cell(detail.threat),
-    certainty: cell(detail.certainty),
-    description: truncated
-      ? `${description.slice(0, DETECTION_TRUNCATE_AT)}\n... (truncated, ${description.length} chars total)`
-      : description,
+    ...detail,
+    ...(truncated ? {
+      description: `${description.slice(0, DETECTION_TRUNCATE_AT)}\n... (truncated, ${description.length} chars total)`,
+    } : {}),
     ...(truncated
       ? { help: [`Run \`${showCommand(session, flags, id)} --full\` for the complete text`] }
       : {}),

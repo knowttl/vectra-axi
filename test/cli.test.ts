@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { performance } from "node:perf_hooks";
 import { afterAll, beforeAll, expect, it } from "vitest";
+import { decode } from "@toon-format/toon";
 
 const root = resolve(import.meta.dirname, "..");
 const scratch = mkdtempSync(join(root, ".cli-test-"));
@@ -35,6 +36,81 @@ function invoke(args: string[], extraEnv: Record<string, string> = {}) {
     cwd: home, env: { ...env, ...extraEnv }, encoding: "utf8", input: "", timeout: 5_000,
   });
 }
+
+it("investigates a detection through the packaged list, show, full and resume commands", () => {
+  const config = join(scratch, "investigation.json");
+  const trace = join(scratch, "investigation-requests.jsonl");
+  const profile = { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5",
+    auth: "token", tokenEnv: "SENTINEL_TOKEN" };
+  writeFileSync(config, JSON.stringify({ profiles: {
+    lab: profile, other: { ...profile, origin: "https://other.invalid" },
+  }, defaultProfile: "other" }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const listed = invoke(["detection", "list", ...context, "--state", "active", "--threat-gte", "70",
+    "--fields", "id,state,threat", "--limit", "1"], fixtureEnv);
+  expect(listed.status).toBe(0);
+  expect(listed.stderr).toBe("");
+  const listOutput = decode(listed.stdout) as Record<string, unknown>;
+  expect(listOutput).toMatchObject({ profile: "lab", count: "1 of 2 detections", complete: true,
+    detections: [{ id: 1, state: "active", threat: null }], cursor: expect.any(String) });
+  const showHint = (listOutput.help as string[]).find((hint) => hint.startsWith("Run `"))!;
+  const showCommand = /^Run `vectra-axi (detection show .*?)` for full detail$/.exec(showHint)![1]!;
+  const showArgs = execFileSync("sh", ["-c", `set -- ${showCommand}; printf '%s\\n' "$@"`],
+    { encoding: "utf8" }).trimEnd().split("\n");
+  const shown = invoke(showArgs, fixtureEnv);
+  expect(shown.status).toBe(0);
+  expect(shown.stderr).toBe("");
+  const showOutput = decode(shown.stdout) as Record<string, unknown>;
+  expect(showOutput).toMatchObject({ profile: "lab", id: 1, threat: null,
+    description: `${"synthetic detail ".repeat(100).slice(0, 1200)}\n... (truncated, 1700 chars total)` });
+  const [fullHint] = showOutput.help as string[];
+  const fullCommand = /^Run `vectra-axi (detection show .*? --full)` for the complete text$/.exec(fullHint!)![1]!;
+  const fullArgs = execFileSync("sh", ["-c", `set -- ${fullCommand}; printf '%s\\n' "$@"`],
+    { encoding: "utf8" }).trimEnd().split("\n");
+  const full = invoke(fullArgs, fixtureEnv);
+  expect(full.status).toBe(0);
+  expect(full.stderr).toBe("");
+  const fullOutput = decode(full.stdout) as Record<string, unknown>;
+  expect(fullOutput).toEqual({ profile: "lab", id: 1, detection_type: "synthetic-type", state: "active",
+    threat: null, certainty: 80, description: "synthetic detail ".repeat(100) });
+  const cursor = listOutput.cursor as string;
+  const resumed = invoke(["detection", "list", ...context, "--state", "active", "--threat-gte", "70",
+    "--fields", "id,state,threat", "--cursor", cursor], fixtureEnv);
+  expect(resumed.status).toBe(0);
+  expect(resumed.stderr).toBe("");
+  const resumedOutput = decode(resumed.stdout) as Record<string, unknown>;
+  expect(resumedOutput).toMatchObject({ profile: "lab", detections: [{ id: 2, state: "active", threat: 72 }],
+    complete: true });
+  expect(resumedOutput).not.toHaveProperty("cursor");
+  const requests = readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line));
+  expect(requests).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/1" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/1" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2" },
+  ]);
+});
+
+it.each([
+  ["empty", 0, "0 detections found with state empty", "complete: true"],
+  ["denied", 1, "code: ACCESS_DENIED", "complete: false"],
+  ["malformed", 1, "code: RESPONSE_INVALID", "complete: false"],
+] as const)("reports a packaged %s window with its exit status", (state, status, message, complete) => {
+  const config = join(scratch, `detection-${state}.json`);
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const result = invoke(["detection", "list", "--config", config, "--profile", "lab", "--state", state], {
+    SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: join(scratch, `requests-${state}.jsonl`),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}`,
+  });
+  expect(result.status).toBe(status);
+  expect(result.stderr).toBe("");
+  expect(result.stdout).toContain("profile: lab");
+  expect(result.stdout).toContain(message);
+  expect(result.stdout).toContain(complete);
+});
 
 it.each(["-v", "-V", "--version"])("prints only the package version for %s", (flag) => {
   const result = invoke([flag]);

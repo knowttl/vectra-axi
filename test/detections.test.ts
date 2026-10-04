@@ -77,6 +77,64 @@ it("projects a --fields subset over the inventory fields", async () => {
 });
 
 it.each([
+  { extra: { detection_type: null, state: null, threat: null, certainty: null },
+    expected: { id: 1, detection_type: null, state: null, threat: null, certainty: null } },
+  { extra: { detection_type: undefined, state: undefined, threat: undefined, certainty: undefined },
+    expected: { id: 1 } },
+])("preserves null and absent detection fields: $expected", async ({ extra, expected }) => {
+  const row = detection(1, extra);
+  const transport: RawTransport = async () => ({
+    status: 200, bodyText: JSON.stringify({ ...row, results: [row], count: 1 }),
+  });
+  const owned = session(transport);
+  const listed = await runDetectionList(owned, flags(["detection", "list"]));
+  expect(listed.output.detections).toEqual([expected]);
+  const shown = await runDetectionShow(owned, flags(["detection", "show", "--id", "1"]));
+  expect(shown.output).toEqual({ profile: "lab", ...expected });
+});
+
+it.each([
+  ["id", undefined], ["id", null], ["id", "1"], ["id", 0], ["id", 1.5],
+  ["detection_type", 1], ["state", []], ["threat", "high"], ["certainty", {}],
+])("rejects malformed %s value %j in list and detail", async (field, value) => {
+  const row = detection(1, { [field as string]: value });
+  const transport: RawTransport = async () => ({
+    status: 200, bodyText: JSON.stringify({ ...row, results: [row], count: 1 }),
+  });
+  const owned = session(transport);
+  const listed = await runDetectionList(owned, flags(["detection", "list", "--fields", "state"]));
+  expect(listed).toMatchObject({ failed: true, output: { code: "RESPONSE_INVALID", detections: [] } });
+  await expect(runDetectionShow(owned, flags(["detection", "show", "--id", "1"])))
+    .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+});
+
+it.each([
+  [null, []], [null, ["--full"]],
+  [undefined, []], [undefined, ["--full"]],
+] as const)("preserves description %j with flags %j", async (description, extraFlags) => {
+  const transport: RawTransport = async () => ({
+    status: 200, bodyText: JSON.stringify({ ...detection(1), description }),
+  });
+  const shown = await runDetectionShow(session(transport),
+    flags(["detection", "show", "--id", "1", ...extraFlags]));
+  expect(shown.output).toEqual({ profile: "lab", ...JSON.parse(JSON.stringify({ ...detection(1), description })) });
+  expect(shown.output).not.toHaveProperty("help");
+});
+
+it.each([
+  [42, []], [42, ["--full"]],
+  [{}, []], [{}, ["--full"]],
+  [[], []], [[], ["--full"]],
+] as const)("rejects malformed description %j with flags %j", async (description, extraFlags) => {
+  const transport: RawTransport = async () => ({
+    status: 200, bodyText: JSON.stringify({ ...detection(1), description }),
+  });
+  await expect(runDetectionShow(session(transport),
+    flags(["detection", "show", "--id", "1", ...extraFlags])))
+    .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+});
+
+it.each([
   ["list", runDetectionList, [], []],
   ["show", runDetectionShow, ["--id", "7"], ["--full"]],
 ] as const)("preserves shell arguments in the %s follow-up command", async (leaf, run, args, followUp) => {
