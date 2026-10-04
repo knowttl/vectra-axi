@@ -27,7 +27,7 @@ The SDK's implicit `update` command is refused.
 Structured data, help and errors use TOON on stdout; stderr is reserved for diagnostics.
 Exit codes are 0 for success, 1 for runtime failure (including a missing profile), and 2 for usage failure.
 There are no prompts or ordinary-command installation side effects.
-Home, setup, help and version remain offline; detection reads make authenticated HTTP requests.
+Home, setup, help and version remain offline; detection, entity, note and tag reads make authenticated HTTP requests.
 `corepack pnpm pack --out vectra-axi.tgz` packages the built entrypoint, runtime modules and inventory.
 See [CLI-01 acceptance](docs/implementation-plan.md#phase-0-turn-design-knowledge-into-one-executable-catalogue) for packaged verification.
 
@@ -128,10 +128,14 @@ Host 7 and account 7 are different objects, and every show output retains its re
 Type-qualified entity, note and tag reads stay in this release; assignments, users, groups, rules, audit, health and lockdown stay READ-04..08; no business write leaf exists.
 
 `<kind> note list --profile <name> --id <id>` reads full QUX notes through the dedicated versioned notes resource for detections, hosts and accounts.
-Long note text is previewed with its total length and a `--full` hint; `--full` prints the complete returned text but cannot restore content the upstream response never returned.
+Note/tag leaves require a positive integer owner `--id`, validated before configuration or profile selection.
+Note responses are bare lists of entries with a positive integer note `id` and optional nullable `note` text; tag responses carry a `tags` array of strings.
+Malformed responses report `RESPONSE_INVALID`; note text retains null and omitted values.
+Long note text is previewed at 1200 characters with its total length and a `--full` hint; `--full` prints the complete returned text but cannot restore content the upstream response never returned.
 `<kind> tag list --profile <name> --id <id>` reads the complete tag set through the versioned tagging route in one body.
 Empty reads explicitly report zero notes or tags for their owner; denied reads report `ACCESS_DENIED`, never an empty success.
-Detail responses may carry an embedded note summary: show leaves surface it under `note_summary` with a pointer to the matching note list leaf, never as full notes, and show `--full` never recovers notes the detail response never carried.
+Detail responses may carry an embedded note summary: detection, host, account and type-qualified entity show leaves surface it under `note_summary` with a pointer to the matching note list leaf, never as full notes.
+Only `detection show` accepts `--full`, which expands returned descriptions, not embedded note summaries.
 No note or tag write leaf exists: the session authorizes read GETs only, and note/tag mutations stay deferred families until a separately selected write slice.
 
 For OAuth, replace `auth` and `tokenEnv` with `"auth": "oauth"`, `"clientId": "synthetic-client"` and `"secretEnv": "VECTRA_LAB_SECRET"`.
