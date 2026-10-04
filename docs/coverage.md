@@ -2,13 +2,13 @@
 
 # vectra-axi coverage
 
-This is the supported QUX SOC read surface with gated tag-write and note-write families, not full Vectra API coverage.
+This is the supported QUX SOC read surface with gated tag-write, note-write and assignment-write families, not full Vectra API coverage.
 Only `named` operations have an implemented, tested command leaf; every other
 operation remains planned, blocked or unreviewed until its own slice ships.
 
 ## Counts
 
-- named: 62
+- named: 68
 - reviewed-raw: 0
 - planned: 16
 - blocked: 2
@@ -41,6 +41,12 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 | `qux.assignment.list` | assignment list | READ-04 | qux 2.5 | collection | named |
 | `qux.assignment-outcome.list` | assignment outcome list | READ-04 | qux 2.5 | collection | named |
 | `qux.assignment-outcome.show` | assignment outcome show | READ-04 | qux 2.5 | none | named |
+| `qux.host.assignment.create` | assignment set | WRITE-03 | qux 2.5 | none | named |
+| `qux.host.assignment.reassign` | assignment set | WRITE-03 | qux 2.5 | none | named |
+| `qux.host.assignment.unassign` | assignment set | WRITE-03 | qux 2.5 | none | named |
+| `qux.account.assignment.create` | assignment set | WRITE-03 | qux 2.5 | none | named |
+| `qux.account.assignment.reassign` | assignment set | WRITE-03 | qux 2.5 | none | named |
+| `qux.account.assignment.unassign` | assignment set | WRITE-03 | qux 2.5 | none | named |
 | `qux.user.list` | user list | READ-04 | qux 2.5 | collection | named |
 | `qux.user.show` | user show | READ-04 | qux 2.5 | none | named |
 | `qux.group.list` | group list | READ-05 | qux 2.5 | collection | named |

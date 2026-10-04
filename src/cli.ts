@@ -2,6 +2,7 @@ import { runAxiCli } from "axi-sdk-js";
 import { auditWindow, runAuditList, type LeafResult as AuditLeafResult } from "./audits.js";
 import { healthCheck, healthEventFlags, healthEventRelease, runHealthEventList, runHealthList,
   runHealthShow, type LeafResult as HealthLeafResult } from "./health.js";
+import { runAssignmentSet } from "./assignment-set.js";
 import { ASSIGNMENT_LIST_FIELDS, assignmentQuery, listFields as assignmentListFields, listLimit as assignmentListLimit,
   outcomeId, OUTCOME_LIST_FIELDS, runAssignmentList, runOutcomeList, runOutcomeShow, runUserList, runUserShow,
   RUX_USER_LIST_FIELDS, userId, USER_LIST_FIELDS, userQuery,
@@ -92,6 +93,9 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
           || invocation.leaf === "assignment outcome show"
           || invocation.leaf === "user list" || invocation.leaf === "user show") {
           return runAssignment(invocation.leaf, invocation.flags);
+        }
+        if (invocation.leaf === "assignment set") {
+          return runAssignmentSets(invocation.flags);
         }
         if (invocation.leaf === "audit list") {
           return runAudit(invocation.flags);
@@ -265,7 +269,21 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
-  // One dispatch for every health leaf: validate the flags, select the
+  // One dispatch for the assignment set leaf: select the profile, build
+  // the session and a WRITE-00 coordinator on the injected transport, and
+  // run the desired-state set through the full gate pipeline. Assignment
+  // and user reads stay on the session; the POST, PUT or DELETE travels
+  // only with a coordinator authorization after the gates pass. Resolving
+  // stays a separate operation with no leaf here.
+  async function runAssignmentSets(flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
+    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+    const coordinator = createMutationCoordinator({ profile: selected, configPath: loaded.path, redactor, transport });
+    const result: AssignmentLeafResult = await runAssignmentSet(session, coordinator, flags);
+    if (result.failed) process.exitCode = 1;
+    return result.output;
+  }
   // profile, build the session on the injected transport, and return the
   // shaped output. Snapshots validate the check selector and report cached
   // versus fresh from the request; the event feed enforces its 9.4 release

@@ -1,13 +1,13 @@
 ---
 name: vectra-axi
-description: Use vectra-axi for Vectra SOC inspection through explicit profiles, plus gated tag replaces and note appends.
+description: Use vectra-axi for Vectra SOC inspection through explicit profiles, plus gated tag replaces, note appends and assignment sets.
 user-invocable: false
 ---
 
 # vectra-axi
 
 Agent-ergonomic CLI for Vectra AI, read-only by default, through token-efficient TOON output.
-Gated tag replaces (`detection|host|account tag set`) and note appends (`detection|host|account note add`) require hand-enabled profiles.
+Gated tag replaces (`detection|host|account tag set`), note appends (`detection|host|account note add`) and assignment sets (`assignment set --host|--account --user|--unassign`) require hand-enabled profiles.
 See [README.md](../../README.md) for shipped reads by deployment and write restrictions.
 
 Run `vectra-axi doctor` first.
@@ -17,7 +17,7 @@ See [README release guidance](../../README.md#release) for its profile selection
 
 The exact current leaf registry is `src/catalogue.ts`. Its capability labels
 are `native` (implemented by a vectra-axi handler) and its Vectra effect is
-`read` for reads and `write` for the gated tag replaces and note appends. The list below
+`read` for reads and `write` for the gated tag replaces, note appends and assignment sets. The list below
 records current executable leaves; it
 makes no coverage claim for other Vectra operations. See `docs/coverage.md`
 for the per-operation disposition records.
@@ -50,6 +50,7 @@ See [README release guidance](../../README.md#release) for generating and checki
 | `vectra-axi account tag set` | native | write |
 | `vectra-axi account note add` | native | write |
 | `vectra-axi assignment list` | native | read |
+| `vectra-axi assignment set` | native | write |
 | `vectra-axi assignment outcome list` | native | read |
 | `vectra-axi assignment outcome show` | native | read |
 | `vectra-axi user list` | native | read |
