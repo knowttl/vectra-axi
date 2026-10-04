@@ -191,7 +191,7 @@ No health or configuration mutation exists: the session authorizes read GETs onl
 `lockdown list --profile <name> --type <host|account>` reads QUX lockdown status in one unpaged response through the session, never the collection reader: each kind has its own status route with no query parameters, and `--type` is required to select it.
 Host rows carry `host_id` and account rows carry `account_id`, each with optional `lock_date`, `locked_by` and `unlock_date` metadata; null fields stay null, unrecorded fields are stripped, and malformed bodies report `RESPONSE_INVALID`.
 Status only: no lockdown execution leaf exists, and the session authorizes read GETs only.
-Host status requires the configured Microsoft Defender ATP Lockdown integration and account status requires the configured AD Lockdown capability; both prerequisites are repeated in the output help.
+Host status requires the configured Microsoft Defender ATP Lockdown integration and account status requires the configured AD Lockdown capability; the selected kind's prerequisite is repeated in the output help.
 Empty status succeeds with an explicit zero message; permission or licence denial reports `ACCESS_DENIED` with exit 1, never an empty healthy result.
 
 For OAuth, replace `auth` and `tokenEnv` with `"auth": "oauth"`, `"clientId": "synthetic-client"` and `"secretEnv": "VECTRA_LAB_SECRET"`.
