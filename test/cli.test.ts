@@ -247,7 +247,7 @@ it("reads groups, paged members and triage rules without implying benign verdict
   expect(ruleOutput.help).toContain(
     "Rules describe triage automation; a matching rule is not evidence a detection is benign");
   expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
-    { method: "GET", url: "https://fixture.invalid/api/v2.5/groups" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/groups?page_size=100" },
     { method: "GET", url: "https://fixture.invalid/api/v2.5/groups/8/members?page_size=100" },
     { method: "GET", url: "https://fixture.invalid/api/v2.5/rules/7" },
   ]);

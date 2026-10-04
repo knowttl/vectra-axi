@@ -49,7 +49,7 @@ const listPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
 it("maps group filters to the wire keys and preserves kinds verbatim", async () => {
   const transport: RawTransport = async (request) => {
     expect(request.url).toBe("https://fixture.invalid/api/v2.5/groups"
-      + "?name=synthetic&type=synthetic-ad&include_members=true");
+      + "?name=synthetic&type=synthetic-ad&include_members=true&page_size=100");
     return listPage([hostGroup, adGroup], { count: 2 });
   };
   const result = await runGroupList(session(transport),
@@ -62,6 +62,49 @@ it("maps group filters to the wire keys and preserves kinds verbatim", async () 
     complete: true,
     help: ["Run `vectra-axi group member list --profile lab --id 8` for paged membership"],
   } });
+});
+
+it.each([
+  ["absolute", "https://fixture.invalid/api/v2.5/groups?type=host&page=2&page_size=100"],
+  ["relative", "/api/v2.5/groups?type=host&page=2&page_size=100"],
+])("follows %s group next links", async (_kind, next) => {
+  const second = { ...hostGroup, id: 9 };
+  const transport: RawTransport = async (request) => {
+    if (request.url === "https://fixture.invalid/api/v2.5/groups?type=host&page_size=100") {
+      return listPage([hostGroup], { count: 2, next });
+    }
+    if (request.url === "https://fixture.invalid/api/v2.5/groups?type=host&page=2&page_size=100") {
+      return listPage([second], { count: 2 });
+    }
+    throw new Error(`Unexpected synthetic request: ${request.url}`);
+  };
+  const result = await runGroupList(session(transport), flags(["group", "list", "--type", "host"]));
+  expect(result).toMatchObject({ failed: false, output: {
+    groups: [hostGroup, second], count: "2 groups", complete: true,
+  } });
+  expect(result.output).not.toHaveProperty("cursor");
+});
+
+it("resumes group windows at the next page with their filters", async () => {
+  const second = { ...hostGroup, id: 9 };
+  const transport: RawTransport = async (request) => {
+    if (request.url === "https://fixture.invalid/api/v2.5/groups?type=host&page_size=100") {
+      return listPage([hostGroup], { count: 2, next: "/api/v2.5/groups?type=host&page=2" });
+    }
+    if (request.url === "https://fixture.invalid/api/v2.5/groups?type=host&page=2") {
+      return listPage([second], { count: 2 });
+    }
+    throw new Error(`Unexpected synthetic request: ${request.url}`);
+  };
+  const owned = session(transport);
+  const first = await runGroupList(owned, flags(["group", "list", "--type", "host", "--limit", "1"]));
+  expect(first).toMatchObject({ failed: false, output: {
+    groups: [hostGroup], count: "1 of 2 groups", complete: true, cursor: expect.any(String),
+  } });
+  const result = await runGroupList(owned,
+    flags(["group", "list", "--type", "host", "--cursor", first.output.cursor as string]));
+  expect(result).toMatchObject({ failed: false, output: { groups: [second], complete: true } });
+  expect(result.output).not.toHaveProperty("cursor");
 });
 
 it("keeps host, account, IP and domain group kinds distinct", async () => {

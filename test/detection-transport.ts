@@ -71,7 +71,7 @@ const responses = new Map<string, { status: number; body: unknown }>([
   // READ-05: group kinds pass through verbatim, membership comes from the
   // paged member route scoped to one group, and triage rules carry no
   // benign verdict.
-  ["https://fixture.invalid/api/v2.5/groups",
+  ["https://fixture.invalid/api/v2.5/groups?page_size=100",
     { status: 200, body: { results: [hostGroup8], count: 1 } }],
   ["https://fixture.invalid/api/v2.5/groups/8/members?page_size=100",
     { status: 200, body: { results: [member7], count: 1 } }],

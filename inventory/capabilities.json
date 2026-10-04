@@ -727,7 +727,9 @@
       "query": [
         "name",
         "type",
-        "include_members"
+        "include_members",
+        "page",
+        "page_size"
       ],
       "fields": [
         "id",
