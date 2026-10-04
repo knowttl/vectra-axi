@@ -22,6 +22,19 @@ function target(kind: NoteKind, id: number): string {
   return `${kind} ${id}`;
 }
 
+function shellQuote(value: string): string {
+  return /^[a-zA-Z0-9_./-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\"'\"'")}'`;
+}
+
+function tagCommand(
+  session: Session, flags: ReadonlyMap<string, string | boolean>, kind: NoteKind, action: "list" | "set", id: number,
+): string {
+  const config = flags.get("config");
+  return `vectra-axi ${kind} tag ${action}`
+    + `${typeof config === "string" ? ` --config ${shellQuote(config)}` : ""}`
+    + ` --profile ${shellQuote(session.profile.name)} --id ${id}`;
+}
+
 function invalid(message: string, ...suggestions: string[]): never {
   throw new AxiError(message, "VALIDATION_ERROR", suggestions);
 }
@@ -134,7 +147,7 @@ export async function runTagSet(
       throw new AxiError(
         `blocked: tags for ${owner} changed since the preview; re-run to preview the new state`,
         "VERSION_CONFLICT",
-        [`Re-run \`vectra-axi ${command} --profile ${session.profile.name} --id ${id}\` with the same desired tags and without --execute to preview the current tags`],
+        [`Re-run \`${tagCommand(session, flags, kind, "set", id)}\` with the same desired tags and without --execute to preview the current tags`],
       );
     }
     return current;
@@ -192,7 +205,7 @@ export async function runTagSet(
       operation: definition.operation,
       error: `tag replace for ${owner} was rejected with status ${result.status}`,
       audit: result.auditId,
-      help: [`Read back \`vectra-axi ${kind} tag list --profile ${profile} --id ${id}\` before doing anything else`],
+      help: [`Read back \`${tagCommand(session, flags, kind, "list", id)}\` before doing anything else`],
     } };
   }
   return { failed: true, output: {

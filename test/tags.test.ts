@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -165,6 +166,39 @@ it("treats a concurrent change that already matches as a no-op", async () => {
   const result = await run(["detection", "tag", "set", "--id", "42", "--tags", "a,b", "--execute"], "detection");
   expect(result.output).toMatchObject({ tags: "tags already match for detection 42 (no-op)" });
   expect(seen.some((call) => call.method === "PATCH")).toBe(false);
+});
+
+it.each(["detection", "host", "account"] as const)("preserves literal config and profile in conflict recovery for %s", async (kind) => {
+  const config = "production's $config.json";
+  const profile = "lab's $scope";
+  let calls = 0;
+  const { run } = harness({ profile: { ...selected(), name: profile },
+    transport: taggingTransport(() => (calls++ === 0 ? ["a"] : ["rival"]), []) });
+  const error = await run([kind, "tag", "set", "--config", config, "--profile", profile,
+    "--id", "42", "--tags", "b", "--execute"], kind).catch((error: unknown) => error);
+  expect(error).toMatchObject({ code: "VERSION_CONFLICT" });
+  const hints = (error as { suggestions: string[] }).suggestions;
+  const command = hints[0]!.split("`")[1]!;
+  const argv = execFileSync("sh", ["-c", `set -- ${command}; printf '%s\\0' "$@"`],
+    { encoding: "utf8" }).split("\0").slice(0, -1);
+  expect(argv).toEqual(["vectra-axi", kind, "tag", "set", "--config", config,
+    "--profile", profile, "--id", "42"]);
+});
+
+it.each(["detection", "host", "account"] as const)("preserves literal config and profile in rejection recovery for %s", async (kind) => {
+  const config = "production's $config.json";
+  const profile = "lab's $scope";
+  const { run } = harness({ profile: { ...selected(), name: profile },
+    transport: taggingTransport(() => ["a"], [], { patchStatus: 403 }) });
+  const result = await run([kind, "tag", "set", "--config", config, "--profile", profile,
+    "--id", "42", "--tags", "b", "--execute"], kind);
+  expect(result.failed).toBe(true);
+  const hints = result.output.help as string[];
+  const command = hints[0]!.split("`")[1]!;
+  const argv = execFileSync("sh", ["-c", `set -- ${command}; printf '%s\\0' "$@"`],
+    { encoding: "utf8" }).split("\0").slice(0, -1);
+  expect(argv).toEqual(["vectra-axi", kind, "tag", "list", "--config", config,
+    "--profile", profile, "--id", "42"]);
 });
 
 it("reports a definitive failure when the server rejects the replace", async () => {

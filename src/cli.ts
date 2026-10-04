@@ -22,7 +22,7 @@ import { loadConfig, selectProfile } from "./profiles.js";
 import { SecretRedactor } from "./redact.js";
 import { createSession, nodeTransport, type RawTransport } from "./session.js";
 import { runTagSet } from "./tags.js";
-import { createMutationCoordinator } from "./writes.js";
+import { createMutationCoordinator, readOnlyForced } from "./writes.js";
 
 const ASSIGNMENT_FIELDS = {
   "assignment list": ASSIGNMENT_LIST_FIELDS,
@@ -342,7 +342,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         apiVersion: selected.apiVersion, ...("applianceRelease" in selected && selected.applianceRelease
           ? { applianceRelease: selected.applianceRelease } : {}),
         auth: selected.auth, tls: selected.caBundle ? "verified with private CA" : "verified with system CAs",
-        writes: selected.writes?.allowWrites === true ? selected.writes.operations.join(",") : "disabled",
+        writes: !readOnlyForced() && selected.writes?.allowWrites === true ? selected.writes.operations.join(",") : "disabled",
       } } : {}),
       setup: {
         config: loaded.path,

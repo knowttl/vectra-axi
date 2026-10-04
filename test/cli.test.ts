@@ -225,14 +225,21 @@ it("refuses a packaged tag replace without hand opt-in", () => {
   expect(refused.stderr).toBe("");
 });
 
-it("shows the enabled tag scope on the packaged home view", () => {
+it.each([
+  { path: [] as string[], readOnly: "1", writes: "disabled" },
+  { path: ["home"], readOnly: "1", writes: "disabled" },
+  { path: ["setup"], readOnly: "1", writes: "disabled" },
+  { path: ["home"], readOnly: "0", writes: "qux.host.tag.set" },
+])("shows effective writes on $path with forced read-only=$readOnly", ({ path, readOnly, writes }) => {
   const config = join(scratch, "tagset-home.json");
   writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
     apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
     writes: { allowWrites: true, operations: ["qux.host.tag.set"] } } } }));
-  const result = invoke(["home", "--config", config], { SENTINEL_TOKEN: "packaged-detection-token" });
+  const result = invoke([...path, "--config", config], {
+    SENTINEL_TOKEN: "packaged-detection-token", VECTRA_AXI_READ_ONLY: readOnly,
+  });
   expect(result.status).toBe(0);
-  expect(result.stdout).toContain("writes: qux.host.tag.set");
+  expect(result.stdout).toContain(`writes: ${writes}`);
   expect(result.stderr).toBe("");
 });
 
