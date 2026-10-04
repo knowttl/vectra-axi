@@ -26,6 +26,9 @@ describe("capability inventory", () => {
       "qux.account.note.list",
       "qux.account.show",
       "qux.account.tag.list",
+      "qux.assignment-outcome.list",
+      "qux.assignment-outcome.show",
+      "qux.assignment.list",
       "qux.detection.list",
       "qux.detection.note.list",
       "qux.detection.show",
@@ -38,6 +41,8 @@ describe("capability inventory", () => {
       "qux.host.note.list",
       "qux.host.show",
       "qux.host.tag.list",
+      "qux.user.list",
+      "qux.user.show",
     ]);
   });
 

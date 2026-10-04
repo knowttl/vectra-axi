@@ -245,6 +245,78 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi account tag list --profile <name> --id 19",
     ],
   },
+  "assignment list": {
+    // Filter flags cover the inventory's qux.assignment.list query subset.
+    // Singular CLI names map to the plural wire keys in src/assignments.ts;
+    // values pass through to the server. Assignments and outcomes are
+    // distinct resources: rows carry the target host/account ID and a
+    // CLI-derived unresolved/resolved status, never a merged outcome.
+    description: "List QUX assignments with server-side filters and a bounded window",
+    flags: {
+      ...globals,
+      account: { kind: "value", valueName: "id", description: "Filter by server-side account ID (non-negative integer)" },
+      host: { kind: "value", valueName: "id", description: "Filter by server-side host ID (non-negative integer)" },
+      assignee: { kind: "value", valueName: "id", description: "Filter by server-side assignee user ID (non-negative integer)" },
+      resolution: { kind: "value", valueName: "id", description: "Filter by server-side resolution outcome ID (non-negative integer)" },
+      resolved: { kind: "value", valueName: "bool", description: "Filter by server-side resolved status: true or false" },
+      "created-after": { kind: "value", valueName: "timestamp", description: "Filter by server-side creation timestamp" },
+      limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,host_id,account_id,date_resolved,status" },
+      cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
+    },
+    examples: [
+      "vectra-axi assignment list --profile <name> --resolved false",
+      "vectra-axi assignment list --profile <name> --assignee 3 --limit 20",
+      "vectra-axi assignment list --profile <name> --cursor <cursor>",
+    ],
+  },
+  "assignment outcome list": {
+    description: "List QUX assignment outcomes with a bounded window",
+    flags: {
+      ...globals,
+      limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,title,category,builtin" },
+      cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
+    },
+    examples: [
+      "vectra-axi assignment outcome list --profile <name>",
+      "vectra-axi assignment outcome list --profile <name> --fields id,title,category",
+    ],
+  },
+  "assignment outcome show": {
+    description: "Show one QUX assignment outcome in full detail",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Outcome ID to show (positive integer, required)" },
+    },
+    examples: [
+      "vectra-axi assignment outcome show --profile <name> --id 1",
+    ],
+  },
+  "user list": {
+    description: "List QUX users with server-side filters and a bounded window",
+    flags: {
+      ...globals,
+      username: { kind: "value", valueName: "name", description: "Filter by server-side username" },
+      limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,username" },
+      cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
+    },
+    examples: [
+      "vectra-axi user list --profile <name>",
+      "vectra-axi user list --profile <name> --username soc-analyst",
+    ],
+  },
+  "user show": {
+    description: "Show one QUX user in full detail",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "User ID to show (positive integer, required)" },
+    },
+    examples: [
+      "vectra-axi user show --profile <name> --id 3",
+    ],
+  },
 };
 
 function flagSyntax(name: string, flag: Flag): string {

@@ -170,6 +170,71 @@ it("reads notes and tags through the packaged note, full and tag commands", () =
   ]);
 });
 
+it("reads unresolved assignments, the outcome taxonomy and the assignee as distinct resources", () => {
+  const config = join(scratch, "assignments.json");
+  const trace = join(scratch, "assignments-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const listed = invoke(["assignment", "list", ...context, "--resolved", "false", "--limit", "1"], fixtureEnv);
+  expect(listed.status).toBe(0);
+  expect(listed.stderr).toBe("");
+  const listOutput = decode(listed.stdout) as Record<string, unknown>;
+  expect(listOutput).toMatchObject({ profile: "lab", count: "1 of 2 assignments", complete: true,
+    assignments: [{ id: 11, host_id: 7, account_id: null, date_resolved: null, status: "unresolved" }],
+    cursor: expect.any(String) });
+  const resumed = invoke(["assignment", "list", ...context, "--resolved", "false",
+    "--cursor", listOutput.cursor as string], fixtureEnv);
+  expect(resumed.status).toBe(0);
+  expect(resumed.stderr).toBe("");
+  expect(decode(resumed.stdout)).toMatchObject({ profile: "lab", complete: true,
+    assignments: [{ id: 12, host_id: null, account_id: 7,
+      date_resolved: "2026-09-30T12:00:00Z", status: "resolved" }] });
+  const outcomes = invoke(["assignment", "outcome", "list", ...context], fixtureEnv);
+  expect(outcomes.status).toBe(0);
+  expect(outcomes.stderr).toBe("");
+  expect(decode(outcomes.stdout)).toMatchObject({ profile: "lab", count: "1 assignment outcomes",
+    outcomes: [{ id: 1, title: "Benign True Positive", builtin: true }], complete: true });
+  const outcome = invoke(["assignment", "outcome", "show", ...context, "--id", "1"], fixtureEnv);
+  expect(outcome.status).toBe(0);
+  expect(outcome.stderr).toBe("");
+  expect(decode(outcome.stdout)).toMatchObject(
+    { profile: "lab", id: 1, category: "benign_true_positive", builtin: true });
+  const user = invoke(["user", "show", ...context, "--id", "3"], fixtureEnv);
+  expect(user.status).toBe(0);
+  expect(user.stderr).toBe("");
+  expect(decode(user.stdout)).toMatchObject({ profile: "lab", id: 3, username: "soc-analyst" });
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/assignments?resolved=false&page_size=100" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/assignments?resolved=false&page=2" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/assignment_outcomes?page_size=100" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/assignment_outcomes/1" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/users/3" },
+  ]);
+});
+
+it("distinguishes an empty user window from a denied assignment window", () => {
+  const config = join(scratch, "assignments-empty-denied.json");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token",
+    DETECTION_TRACE: join(scratch, "assignments-empty-denied-requests.jsonl"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const empty = invoke(["user", "list", ...context, "--username", "nobody"], fixtureEnv);
+  expect(empty.status).toBe(0);
+  expect(empty.stderr).toBe("");
+  expect(empty.stdout).toContain("0 users found");
+  expect(empty.stdout).toContain("complete: true");
+  const denied = invoke(["assignment", "list", ...context, "--resolved", "true"], fixtureEnv);
+  expect(denied.status).toBe(1);
+  expect(denied.stderr).toBe("");
+  expect(denied.stdout).toContain("code: ACCESS_DENIED");
+  expect(denied.stdout).toContain("complete: false");
+});
+
 it("forwards inline descending ordering through the packaged list command", () => {
   const config = join(scratch, "ordering.json");
   const trace = join(scratch, "ordering-requests.jsonl");
@@ -288,7 +353,7 @@ it("shows unconfigured state with closed stdin and a clean home", () => {
   expect(result.stdout).toContain("bin:");
   expect(result.stdout).toContain("vectra-axi.js");
   expect(result.stdout).toContain("state: unconfigured\nprofiles: 0");
-  expect(result.stdout).toContain("detection, host, account, type-qualified entity, note and tag reads");
+  expect(result.stdout).toContain("detection, host, account, type-qualified entity, note, tag, assignment, outcome and user reads");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });
@@ -313,6 +378,11 @@ it.each([
   { path: ["entity", "show"], flag: '"--type <kind>"' },
   { path: ["detection", "note", "list"], flag: '"--id <id>"' },
   { path: ["host", "tag", "list"], flag: '"--id <id>"' },
+  { path: ["assignment", "list"], flag: '"--resolved <bool>"' },
+  { path: ["assignment", "outcome", "list"], flag: '"--limit <rows>"' },
+  { path: ["assignment", "outcome", "show"], flag: '"--id <id>"' },
+  { path: ["user", "list"], flag: '"--username <name>"' },
+  { path: ["user", "show"], flag: '"--id <id>"' },
 ])("provides offline help for $path", ({ path, flag }) => {
   const result = invoke([...path, "--help"]);
   expect(result.status).toBe(0);
@@ -352,6 +422,15 @@ it.each([
   { args: ["entity", "list"], message: "entity reads require --type" },
   { args: ["entity", "list", "--type", "host", "--threat-gte", "high"], message: "--threat-gte must be a number" },
   { args: ["entity", "show", "--type", "host"], message: "entity show requires --id" },
+  { args: ["assignment", "list", "--resolved", "maybe"], message: "--resolved must be true or false" },
+  { args: ["assignment", "list", "--account", "1.5"], message: "--account must be a non-negative integer" },
+  { args: ["assignment", "list", "--fields", "urgency"], message: "Unknown --fields value: urgency" },
+  { args: ["assignment", "outcome", "list", "--fields", "score"], message: "Unknown --fields value: score" },
+  { args: ["assignment", "outcome", "show"], message: "assignment outcome show requires --id" },
+  { args: ["assignment", "outcome", "show", "--id", "0"], message: "--id must be a positive integer" },
+  { args: ["user", "list", "--fields", "role"], message: "Unknown --fields value: role" },
+  { args: ["user", "show"], message: "user show requires --id" },
+  { args: ["user", "show", "--id", "1.5"], message: "--id must be a positive integer" },
   { args: ["host", "list", "--fields", "urgency"], message: "Unknown --fields value: urgency" },
   { args: ["entity", "list", "--type", "host", "--fields", "state"], message: "Unknown --fields value: state" },
   { args: ["detection", "show", "--id", "0"], message: "--id must be a positive integer" },
@@ -388,6 +467,9 @@ it.each([
   ["bare detection group", ["detection"], "Unknown command: detection"],
   ["unknown list flag", ["detection", "list", "--stat", "active"], "Unknown flag: --stat"],
   ["unknown show flag", ["detection", "show", "--id", "7", "--limit", "5"], "Unknown flag: --limit"],
+  ["unknown assignment flag", ["assignment", "list", "--state", "active"], "Unknown flag: --state"],
+  ["unknown outcome leaf", ["assignment", "outcome", "delete"], "Unknown command: assignment outcome delete"],
+  ["bare assignment outcome group", ["assignment", "outcome"], "Unknown command: assignment outcome"],
 ])("rejects %s before any profile or network work", (_name, args, message) => {
   const result = invoke(args);
   expect(result.status).toBe(2);
@@ -457,7 +539,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, host note list, host tag list, account note list, account tag list");
+  expect(result.stdout).toContain("Available commands: home, setup, detection list, detection show, host list, host show, account list, account show, entity list, entity show, detection note list, detection tag list, host note list, host tag list, account note list, account tag list, assignment list, assignment outcome list, assignment outcome show, user list, user show");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });
