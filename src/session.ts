@@ -199,7 +199,9 @@ export function parseRetryAfter(value: string | undefined, nowMs: number): numbe
     const waitMs = Number(text) * 1000;
     return Number.isSafeInteger(waitMs) ? waitMs : undefined;
   }
-  const at = Date.parse(text);
+  // The asctime HTTP-date form omits a zone but is defined in GMT.
+  const asctimeForm = /^[A-Za-z]{3} [A-Za-z]{3} (?: [1-9]|[12]\d|3[01]) \d{2}:\d{2}:\d{2} \d{4}$/.test(text);
+  const at = Date.parse(asctimeForm ? `${text} GMT` : text);
   if (Number.isNaN(at)) return undefined;
   const date = new Date(at);
   const standard = date.toUTCString();
