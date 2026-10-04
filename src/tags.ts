@@ -39,8 +39,8 @@ function invalid(message: string, ...suggestions: string[]): never {
   throw new AxiError(message, "VALIDATION_ERROR", suggestions);
 }
 
-// Desired tags come from exactly one of --tags (comma-separated, so an
-// empty value clears) or --tags-file (one tag per line, `-` reads stdin).
+// Desired tags come from exactly one of --tags (comma-separated, at least
+// one tag) or --tags-file (one tag per line, `-` reads stdin; empty clears).
 // Entries are trimmed, empties dropped and duplicates collapsed to set
 // semantics in first-seen order. Tag values are otherwise passed through:
 // no upstream value grammar is evidenced, so none is invented here.

@@ -8,9 +8,7 @@ import type { SecretRedactor } from "./redact.js";
 import { createMutationSender, mutationNotSent, mutationAccepted, mutationHttpStatus,
   type MutationAuthorization, type MutationMethod, type MutationResponse, type RawTransport } from "./session.js";
 
-// WRITE-00 mutation coordinator: fixture-only enablement for later named
-// mutation families. No user-visible mutation command ships in this piece;
-// tests drive the coordinator through a fixture mutation only. The gate
+// WRITE-00 mutation coordinator shared by named mutation families. The gate
 // order follows az-axi's write gates as the reference: read-only default,
 // allowWrites plus a scope allowlist, dry run, --execute, --confirm,
 // --if-match, a durable write log and an approval hook.
@@ -33,9 +31,8 @@ export function resolveWriteLogPath(env: NodeJS.ProcessEnv = process.env): strin
 
 export type MutationEffect = "write" | "disruptive";
 
-// A fixture-supplied mutation. WRITE-00 enables no real family: the only
-// operable definitions come from tests, and the operation must fall inside
-// the profile's configured scope. WRITE-01 binds real families to this shape.
+// A named mutation bound by its domain caller. The operation must fall
+// inside the profile's configured scope; WRITE-01 also requires confirmation.
 export type MutationDefinition = {
   operation: string;
   method: MutationMethod;

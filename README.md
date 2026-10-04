@@ -1,7 +1,7 @@
 # vectra-axi
 Agent-ergonomic CLI for Vectra AI, read-only by default
 
-The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, READ-07 health-snapshot and health-event leaves, READ-08 host/account lockdown status leaf, PACK-01 read-release packaging, doctor and generated documentation, WRITE-00 fixture-only mutation coordinator, WRITE-01 gated detection/host/account tag replaces, and the RUX-01 cloud OAuth/session adapter (unversioned token exchange, v3.4 profile contract and exchange-only doctor check; RUX reads arrive in RUX-02 and later slices) are implemented.
+The INV-01 capability inventory, CLI-01 local command shell, AUTH-01 profiles/token/TLS primitives, AUTH-02 OAuth credential lifecycle, CORE-01 QUX session with fixture HTTP adapter, CORE-02 bounded collection reader with retries, cancellation and partial results, READ-01 detection list/show leaves, READ-02 host/account/type-qualified entity leaves, READ-03 detection/host/account note and tag leaves, READ-04 assignment/outcome/user leaves, READ-05 group/member/triage-rule leaves, READ-06 bounded audit-window leaf, READ-07 health-snapshot and health-event leaves, READ-08 host/account lockdown status leaf, PACK-01 read-release packaging, doctor and generated documentation, WRITE-00 mutation coordinator, WRITE-01 gated detection/host/account tag replaces, and the RUX-01 cloud OAuth/session adapter (unversioned token exchange, v3.4 profile contract and exchange-only doctor check; RUX reads arrive in RUX-02 and later slices) are implemented.
 `detection list`, `detection show`, `host list`, `host show`, `account list`, `account show`, `entity list`, `entity show`, `detection note list`, `detection tag list`, `detection tag set`, `host note list`, `host tag list`, `host tag set`, `account note list`, `account tag list`, `account tag set`, `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list`, `user show`, `group list`, `group show`, `group member list`, `triage rule list`, `triage rule show`, `audit list`, `health list`, `health show`, `health event list` and `lockdown list` call the session; every other Vectra resource operation remains planned or blocked.
 The CLI uses TypeScript, with on-prem QUX reads and a RUX authentication/session adapter for cloud migration.
 
@@ -60,7 +60,9 @@ There is no credential prompt, config writer or browser login reuse.
 `applianceRelease` is optional for QUX profiles; `caBundle` is optional for both generations.
 An optional hand-edited `writes` object requires a boolean `allowWrites` and a nonempty `operations` array of nonempty operation names; unknown fields are rejected.
 Absent `writes` or `allowWrites: false` disables coordinator mutations; `VECTRA_AXI_READ_ONLY=1` overrides any opt-in.
-This policy enables only the configured operations as CLI commands; the first business family is the WRITE-01 tag replace (`qux.detection.tag.set`, `qux.host.tag.set`, `qux.account.tag.set`). See the [mutation architecture](docs/design.md#later-mutation-coordinator) for the internal coordinator contract.
+This policy permits execution only of implemented operations in the configured scope; listing an operation does not implement it.
+The first business family is the WRITE-01 tag replace (`qux.detection.tag.set`, `qux.host.tag.set`, `qux.account.tag.set`).
+See the [mutation architecture](docs/design.md#later-mutation-coordinator) for the internal coordinator contract.
 Verification: WRITE-00 was verified locally (build, lint and the full offline test suite) under the GitHub billing-outage posture with hosted Actions disabled; per-head results are recorded on the pull request.
 Profile names and `defaultProfile` must be nonempty identifiers without surrounding whitespace; selections match exactly without trimming.
 `defaultProfile`, when present, must name an existing profile.
@@ -74,7 +76,7 @@ Credential material remains in invocation memory; there is no persistent credent
 Private CA paths resolve relative to the config file and extend system trust while retaining certificate and hostname verification.
 Local status views describe configuration without reading tokens or CA material for authentication.
 The session in `src/session.ts` owns URL construction, operation authorization, credential attachment and response validation in one path; command handlers receive no raw authenticated fetch object.
-They show profile name/source, kind, origin, API version, optional appliance release, authentication mode, configured trust mode and disabled writes, without claiming connectivity, credential validity or appliance compatibility.
+They show profile name/source, kind, origin, API version, optional appliance release, authentication mode, configured trust mode and configured write operations (or `disabled` when opt-in is absent or forced read-only is active), without claiming connectivity, credential validity or appliance compatibility.
 Known referenced secret values are scrubbed from output and from error metadata before SDK formatting.
 Session failures distinguish `AUTH_REQUIRED`, `AUTH_EXPIRED` (explicit expiry evidence), `AUTH_FAILED` (HTTP 401), `ACCESS_DENIED` (HTTP 403) and `TLS_TRUST_ERROR` (CA loading or known certificate verification errors); all are runtime failures with exit 1.
 Only known read operations matching the profile's generation from the capability inventory are authorized; unknown, blocked, credential-export and other-generation operations report `OPERATION_UNKNOWN` or `OPERATION_BLOCKED` before any credential is resolved or HTTP call is made.
@@ -143,9 +145,13 @@ Empty reads explicitly report zero notes or tags for their owner; denied reads r
 Detail responses may carry an embedded note summary: detection, host, account and type-qualified entity show leaves surface it under `note_summary` with a pointer to the matching note list leaf, never as full notes.
 Only `detection show` accepts `--full`, which expands returned descriptions, not embedded note summaries.
 No note write leaf exists: the session authorizes read GETs only, and note mutations stay deferred families until a separately selected write slice.
-`<kind> tag set --profile <name> --id <id> --tags a,b` replaces the owner's tag set with exactly the desired tags through the WRITE-00 gate pipeline: the profile must hand-enable `qux.<kind>.tag.set` in its `writes` scope, the dry run previews added and removed tags, `--execute --confirm '<kind> <id>'` sends a PATCH only when the diff is non-empty (an already-matching set is an exit-0 no-op), and the pre-send re-read refuses a concurrently moved tag set with `VERSION_CONFLICT`.
+`<kind> tag set --profile <name> --id <id> --tags a,b` replaces the owner's tag set with exactly the desired tags through the WRITE-00 gate pipeline: the profile must hand-enable `qux.<kind>.tag.set` in its `writes` scope, the dry run previews added and removed tags, and `--execute --confirm '<kind> <id>'` sends a PATCH only when the diff is non-empty (an already-matching set is an exit-0 no-op).
+Omitting `--execute` previews only; explicit `--dry-run` cannot be combined with `--execute`.
+The pre-send re-read refuses changed tags with `VERSION_CONFLICT`, unless they already equal the desired set, which is a no-op.
+This is a non-atomic comparison of tag contents, not an ETag or server-side version check; a change after the re-read can still be overwritten.
 Desired tags come from `--tags` (comma-separated, at least one) or `--tags-file` (one tag per line, `-` for stdin); an empty file or empty stdin clears all tags.
-Intent and outcome are journaled durably; server rejections report `failed` with the audit id, and ambiguous timeouts report the audit id with read-back guidance instead of replaying.
+Choose exactly one input; tags are trimmed, blank entries dropped and duplicates collapsed in first-seen order.
+Intent and outcome are journaled durably; server rejections return an error with the audit id and exit 1, and ambiguous timeouts report the audit id with read-back guidance instead of replaying.
 
 `assignment list`, `assignment outcome list`, `assignment outcome show`, `user list` and `user show` read QUX v2.5 assignments, outcomes and users through the same session and bounded collection reader.
 Assignments and outcomes are distinct resources: an assignment row carries its target `host_id` or `account_id` plus a CLI-derived `status` of `unresolved` when `date_resolved` is null and `resolved` when it is set, never a missing or zero outcome.
@@ -229,8 +235,7 @@ See [AUTH-02 handoff](docs/auth-02-handoff.md) for the credential seam, [CORE-01
 
 ## Release
 
-This is the supported QUX SOC read surface, not full Vectra API coverage.
-See the shipped read leaves above and the generated [coverage record](docs/coverage.md) for per-operation dispositions.
+See the shipped behavior above and the generated [coverage record](docs/coverage.md) for per-operation dispositions and coverage limits.
 Install from a release tarball with `npm install --global ./vectra-axi.tgz` after `corepack pnpm pack --out vectra-axi.tgz`, or run `node bin/vectra-axi.js` from a built checkout.
 The package is private and has no publish workflow; publishing needs a separate explicit instruction.
 Setup is explicit only: hand-edit `~/.vectra-axi/config.json` (see `vectra-axi setup`), set the referenced secret variables outside the CLI, then run `vectra-axi doctor`.
