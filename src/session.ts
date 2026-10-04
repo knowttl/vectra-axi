@@ -418,6 +418,12 @@ function decodeMutationBody(response: { status: number; bodyText: string; retryA
   }
 }
 
+const mutationsNotSent = new WeakSet<object>();
+
+export function mutationNotSent(error: unknown): boolean {
+  return error instanceof Error && mutationsNotSent.has(error);
+}
+
 export function createMutationSender(args: {
   profile: SelectedProfile;
   configPath: LoadedConfig["path"];
@@ -454,46 +460,55 @@ export function createMutationSender(args: {
     authorization: MutationAuthorization,
     options?: { body?: string; ifMatch?: string; signal?: AbortSignal },
   ): Promise<MutationResponse> {
-    const record = issued.get(authorization.nonce);
-    if (!record || record.method !== authorization.method || record.url !== authorization.url) {
-      throw new AxiError("Refusing mutation without coordinator authorization", "OPERATION_BLOCKED", [
-        "Mutations are sent only with a coordinator authorization minted after the write gates pass; no credential was sent",
-      ]);
-    }
-    if (record.used) {
-      throw new AxiError("Refusing replay of an authorized mutation", "OPERATION_BLOCKED", [
-        "Each coordinator authorization sends at most once; ambiguous outcomes are never replayed",
-      ]);
-    }
-    record.used = true;
-    // Re-check the bound destination after authorization, before credentials.
-    assertMutationDestination(bound, record.url);
-    if (options?.ifMatch !== undefined && (!options.ifMatch.trim() || /[\x00-\x1f\x7f]/.test(options.ifMatch))) {
-      throw new AxiError("Invalid If-Match value", "VALIDATION_ERROR", [
-        "Provide the exact entity tag returned by the previewed read",
-      ]);
-    }
-    ensureActive(options?.signal);
-    let authorizationHeader: string;
+    let handedOff = false;
     try {
-      authorizationHeader = (await credentials(options?.signal)).header;
-    } catch (error) {
+      const record = issued.get(authorization.nonce);
+      if (!record || record.method !== authorization.method || record.url !== authorization.url) {
+        throw new AxiError("Refusing mutation without coordinator authorization", "OPERATION_BLOCKED", [
+          "Mutations are sent only with a coordinator authorization minted after the write gates pass; no credential was sent",
+        ]);
+      }
+      if (record.used) {
+        throw new AxiError("Refusing replay of an authorized mutation", "OPERATION_BLOCKED", [
+          "Each coordinator authorization sends at most once; ambiguous outcomes are never replayed",
+        ]);
+      }
+      record.used = true;
+      // Re-check the bound destination after authorization, before credentials.
+      assertMutationDestination(bound, record.url);
+      if (options?.ifMatch !== undefined && (!options.ifMatch.trim() || /[\x00-\x1f\x7f]/.test(options.ifMatch))) {
+        throw new AxiError("Invalid If-Match value", "VALIDATION_ERROR", [
+          "Provide the exact entity tag returned by the previewed read",
+        ]);
+      }
       ensureActive(options?.signal);
+      let authorizationHeader: string;
+      try {
+        authorizationHeader = (await credentials(options?.signal)).header;
+      } catch (error) {
+        ensureActive(options?.signal);
+        throw error;
+      }
+      ensureActive(options?.signal);
+      assertMutationDestination(bound, record.url);
+      const response = await sendRaw(profile, configPath, redactor, (request) => {
+        handedOff = true;
+        return transport(request);
+      }, {
+        method: record.method,
+        url: record.url,
+        headers: { Authorization: authorizationHeader, Accept: "application/json",
+          ...(options?.body !== undefined ? { "Content-Type": "application/json" } : {}),
+          ...(options?.ifMatch !== undefined ? { "If-Match": options.ifMatch } : {}) },
+        ...(options?.body !== undefined ? { body: options.body } : {}),
+        ...(options?.signal ? { signal: options.signal } : {}),
+      });
+      ensureActive(options?.signal);
+      return { status: response.status, body: decodeMutationBody(response) };
+    } catch (error) {
+      if (!handedOff && error instanceof Error) mutationsNotSent.add(error);
       throw error;
     }
-    ensureActive(options?.signal);
-    assertMutationDestination(bound, record.url);
-    const response = await sendRaw(profile, configPath, redactor, transport, {
-      method: record.method,
-      url: record.url,
-      headers: { Authorization: authorizationHeader, Accept: "application/json",
-        ...(options?.body !== undefined ? { "Content-Type": "application/json" } : {}),
-        ...(options?.ifMatch !== undefined ? { "If-Match": options.ifMatch } : {}) },
-      ...(options?.body !== undefined ? { body: options.body } : {}),
-      ...(options?.signal ? { signal: options.signal } : {}),
-    });
-    ensureActive(options?.signal);
-    return { status: response.status, body: decodeMutationBody(response) };
   }
 
   return { profile: snapshot, authorize, send };

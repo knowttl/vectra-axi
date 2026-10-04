@@ -233,6 +233,45 @@ it("reports OUTCOME_UNKNOWN without replay when the send times out", async () =>
   expect(transport).toHaveBeenCalledTimes(1);
 });
 
+it.each([
+  { name: "missing token", tokenValue: undefined, ifMatch: undefined, caBundle: undefined, code: "AUTH_REQUIRED" },
+  { name: "invalid token", tokenValue: "invalid token", ifMatch: undefined, caBundle: undefined, code: "AUTH_FAILED" },
+  { name: "blank If-Match", tokenValue: token, ifMatch: " ", caBundle: undefined, code: "VALIDATION_ERROR" },
+  { name: "If-Match with newline", tokenValue: token, ifMatch: "etag\n", caBundle: undefined, code: "VALIDATION_ERROR" },
+  { name: "unreadable CA", tokenValue: token, ifMatch: undefined, caBundle: "missing-ca.pem", code: "TLS_TRUST_ERROR" },
+])("records NOT_SENT and preserves the error for $name", async ({ tokenValue, ifMatch, caBundle, code }) => {
+  vi.stubEnv("SENTINEL_TOKEN", tokenValue);
+  const transport = vi.fn<RawTransport>();
+  const profile = selected({ ...enabledProfile, ...(caBundle ? { caBundle } : {}) });
+  const { coordinator: writes } = coordinator({ profile, transport });
+  await expect(writes.execute(mutation, { execute: true, readState, ...(ifMatch === undefined ? {} : { ifMatch }) }))
+    .rejects.toMatchObject({ code });
+  expect(transport).not.toHaveBeenCalled();
+  expect(auditLines().filter((line) => line.kind === "outcome"))
+    .toEqual([expect.objectContaining({ httpStatus: 0, outcome: "NOT_SENT" })]);
+});
+
+it.each([
+  { name: "rejected credentials", transport: () => vi.fn<RawTransport>().mockResolvedValue({ status: 401, bodyText: "{}" }),
+    code: "AUTH_FAILED" },
+  { name: "invalid credential response", transport: () => vi.fn<RawTransport>().mockResolvedValue(ok({})),
+    code: "AUTH_RESPONSE_INVALID" },
+  { name: "credential exchange timeout", transport: () => vi.fn<RawTransport>().mockRejectedValue(new Error("socket timed out")),
+    code: "AUTH_EXCHANGE_FAILED" },
+])("records NOT_SENT for OAuth $name", async ({ transport: makeTransport, code }) => {
+  vi.stubEnv("SENTINEL_SECRET", "synthetic-secret");
+  const transport = makeTransport();
+  const profile = selected({ kind: "qux", origin: enabledProfile.origin, apiVersion: "2.5", auth: "oauth",
+    clientId: "synthetic-client", secretEnv: "SENTINEL_SECRET", writes: enabledProfile.writes });
+  const { coordinator: writes } = coordinator({ profile, transport });
+  await expect(writes.execute(mutation, { execute: true, readState })).rejects.toMatchObject({ code });
+  expect(transport).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+    method: "POST", url: "https://fixture.invalid/api/v2.5/oauth2/token",
+  }));
+  expect(auditLines().filter((line) => line.kind === "outcome"))
+    .toEqual([expect.objectContaining({ httpStatus: 0, outcome: "NOT_SENT" })]);
+});
+
 it("reports possible remote success when the outcome cannot be recorded", async () => {
   const transport: RawTransport = async () => {
     rmSync(auditPath, { force: true });

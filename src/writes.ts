@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { AxiError } from "axi-sdk-js";
 import type { LoadedConfig, SelectedProfile } from "./profiles.js";
 import type { SecretRedactor } from "./redact.js";
-import { createMutationSender, mutationAccepted, mutationHttpStatus,
+import { createMutationSender, mutationNotSent, mutationAccepted, mutationHttpStatus,
   type MutationMethod, type RawTransport } from "./session.js";
 
 // WRITE-00 mutation coordinator: fixture-only enablement for later named
@@ -307,6 +307,10 @@ export function createMutationCoordinator(args: {
       recordAudit({ ...meta, kind: "outcome", httpStatus: sent.status, outcome: "SUCCESS" });
       return { kind: "success", preview: seen, auditId: id, status: sent.status, response: sent.body };
     } catch (error) {
+      if (mutationNotSent(error)) {
+        recordAudit({ ...meta, kind: "outcome", httpStatus: 0, outcome: "NOT_SENT" });
+        throw error;
+      }
       const httpStatus = mutationHttpStatus(error);
       // A response means the server decided: accepted bodies report SUCCESS,
       // other statuses report FAILED. No response is ambiguous and is never
