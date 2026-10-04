@@ -106,6 +106,18 @@ An OAuth token POST is an explicitly named credential exchange and never grants 
 Token expiry, failed credentials, denied access and TLS trust errors have distinct actionable codes.
 Known secret values are scrubbed from errors as well as ordinary results, debug output and later audit metadata.
 
+### AUTH-01 handoff and acceptance
+
+AUTH-01 on `fm/vx-auth-01` uses CLI-01 commit `184a57a` as its prerequisite and changes no inventory records or dispositions.
+See [README.md](../README.md) for shipped configuration and behavior, and [design.md](design.md#evidence-and-api-contracts) for upstream evidence.
+OAuth remains AUTH-02, authenticated transport remains CORE-01, cloud profiles remain RUX-01, and write policy configuration and enforcement remain WRITE-00.
+The [authentication acceptance suite](../test/auth.test.ts) exercises exact profile identifiers and precedence, configuration rejection, token resolution, TLS options, failure codes and sentinel redaction through SDK formatting.
+Its CA material is synthetic text: it verifies option construction, not a TLS handshake or appliance compatibility.
+The [packaged acceptance suite](../test/cli.test.ts) checks configured state, ambiguous-profile guidance, output redaction, ignored local config and offline help with closed stdin and synthetic home.
+Both reuse the [network-denying fixture harness](../test/network-guard.ts); no live instance, real credentials or customer data is used.
+
+### Session and investigation slices
+
 CORE-01 owns URL construction, operation authorization, credential attachment and response validation in one path.
 Redirects cannot move credential-bearing requests to another origin; continuation links are validated again rather than trusted because the first page was safe.
 Tests must observe that a denied destination receives no credential or HTTP call, including a fixture credential that could otherwise write.
