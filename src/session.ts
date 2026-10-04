@@ -190,13 +190,6 @@ function exchangeTransport(profile: SelectedProfile, transport: RawTransport): T
   };
 }
 
-async function credentialHeader(
-  profile: SelectedProfile, configPath: LoadedConfig["path"], redactor: SecretRedactor, transport: RawTransport,
-): Promise<string> {
-  if (profile.auth === "token") return resolveToken(profile, redactor);
-  return (await oauthCredentials(profile, configPath, redactor, exchangeTransport(profile, transport))()).header;
-}
-
 export function createSession(args: {
   profile: SelectedProfile;
   configPath: LoadedConfig["path"];
@@ -205,11 +198,14 @@ export function createSession(args: {
 }): Session {
   const { profile, configPath, redactor, transport } = args;
   const snapshot = { name: profile.name, kind: profile.kind, origin: profile.origin, apiVersion: profile.apiVersion };
+  const credentials = profile.auth === "oauth"
+    ? oauthCredentials(profile, configPath, redactor, exchangeTransport(profile, transport))
+    : async () => ({ header: resolveToken(profile, redactor) });
 
   async function request(operation: string, options?: SessionRequestOptions): Promise<SessionResponse> {
     const record = authorizeOperation(profile, operation);
     let current = buildOperationUrl(profile, record, options);
-    const authorization = await credentialHeader(profile, configPath, redactor, transport);
+    const authorization = (await credentials()).header;
     for (let hops = 0; ; hops++) {
       assertDestination(profile, new URL(current), `operation ${record.id}`);
       const response = await sendRaw(profile, configPath, redactor, transport,
@@ -253,8 +249,14 @@ export function createSession(args: {
 export function nodeTransport(): RawTransport {
   return (request) => new Promise((resolve, reject) => {
     const url = new URL(request.url);
+    const fail = (error: Error) => {
+      clearTimeout(timer);
+      reject(error);
+    };
     const timer = setTimeout(() => {
-      pending.destroy(new Error(`request to ${url.origin} timed out after ${REQUEST_TIMEOUT_MS}ms`));
+      const error = new Error(`request to ${url.origin} timed out after ${REQUEST_TIMEOUT_MS}ms`);
+      fail(error);
+      pending.destroy(error);
     }, REQUEST_TIMEOUT_MS);
     const pending = nodeRequest({
       hostname: url.hostname,
@@ -267,10 +269,14 @@ export function nodeTransport(): RawTransport {
     }, (response) => {
       let bytes = 0;
       const chunks: Buffer[] = [];
+      response.on("error", fail);
+      response.on("aborted", () => fail(new Error("response terminated before completion")));
       response.on("data", (chunk: Buffer) => {
         bytes += chunk.length;
         if (bytes > RESPONSE_BODY_LIMIT_BYTES) {
-          pending.destroy(new Error(`response exceeded the ${RESPONSE_BODY_LIMIT_BYTES}-byte ceiling`));
+          const error = new Error(`response exceeded the ${RESPONSE_BODY_LIMIT_BYTES}-byte ceiling`);
+          fail(error);
+          pending.destroy(error);
         } else {
           chunks.push(chunk);
         }
@@ -285,10 +291,7 @@ export function nodeTransport(): RawTransport {
         });
       });
     });
-    pending.on("error", (error) => {
-      clearTimeout(timer);
-      reject(error);
-    });
+    pending.on("error", fail);
     if (request.body !== undefined) pending.write(request.body);
     pending.end();
   });

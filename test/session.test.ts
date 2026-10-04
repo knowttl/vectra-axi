@@ -1,9 +1,14 @@
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { EventEmitter } from "node:events";
+import { request as httpsRequest } from "node:https";
+import type { ClientRequest, IncomingMessage } from "node:http";
 import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
 import { loadConfig, selectProfile, type SelectedProfile } from "../src/profiles.js";
 import { SecretRedactor } from "../src/redact.js";
-import { createSession, type RawTransport, type Session } from "../src/session.js";
+import { createSession, nodeTransport, type RawTransport, type Session } from "../src/session.js";
+
+vi.mock("node:https", () => ({ request: vi.fn() }));
 
 const scratch = mkdtempSync(join(import.meta.dirname, ".session-test-"));
 const path = join(scratch, "config.json");
@@ -18,7 +23,7 @@ beforeEach(() => {
   vi.stubEnv("SENTINEL_TOKEN", token);
   vi.stubEnv("SENTINEL_SECRET", secret);
 });
-afterEach(() => { vi.unstubAllEnvs(); rmSync(path, { force: true }); });
+afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); vi.clearAllMocks(); rmSync(path, { force: true }); });
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 
 function session(transport: RawTransport, profile: Record<string, unknown> = { ...tokenProfile }, redactor = new SecretRedactor()): Session {
@@ -120,6 +125,117 @@ it("refuses a denied operation on an OAuth profile before the exchange HTTP call
   await expect(session(transport, oauthProfile).request("qux.sensor-token.export"))
     .rejects.toMatchObject({ code: "OPERATION_BLOCKED" });
   expect(transport).not.toHaveBeenCalled();
+});
+
+it("reuses the session's unexpired OAuth credential when another exchange would fail", async () => {
+  vi.useFakeTimers();
+  const transport = vi.fn<RawTransport>()
+    .mockResolvedValueOnce(ok({ access_token: access, expires_in: 60, token_type: "Bearer" }))
+    .mockImplementation(async (request) => {
+      if (request.method === "POST") throw new Error("exchange unavailable");
+      return ok({ ok: true });
+    });
+  const owned = session(transport, oauthProfile);
+  await owned.request("qux.health.list");
+  expect(await owned.request("qux.host.show", { pathParams: { id: 7 } }))
+    .toEqual({ status: 200, body: { ok: true } });
+  expect(transport.mock.calls.map(([call]) => [call.method, call.headers.Authorization])).toEqual([
+    ["POST", `Basic ${Buffer.from(`synthetic-client:${secret}`).toString("base64")}`],
+    ["GET", `Bearer ${access}`],
+    ["GET", `Bearer ${access}`],
+  ]);
+});
+
+it("reacquires the session's OAuth credential at expiry", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(1_000_000);
+  const transport = vi.fn<RawTransport>().mockResolvedValueOnce(ok({ access_token: access, expires_in: 60, token_type: "Bearer" }))
+    .mockResolvedValueOnce(ok({}))
+    .mockResolvedValueOnce(ok({ access_token: "fake-second-token", expires_in: 60, token_type: "Bearer" }))
+    .mockResolvedValueOnce(ok({}));
+  const owned = session(transport, oauthProfile);
+  await owned.request("qux.health.list");
+  vi.setSystemTime(1_060_000);
+  await owned.request("qux.health.list");
+  expect(transport.mock.calls.map(([call]) => [call.method, call.headers.Authorization])).toEqual([
+    ["POST", `Basic ${Buffer.from(`synthetic-client:${secret}`).toString("base64")}`],
+    ["GET", `Bearer ${access}`],
+    ["POST", `Basic ${Buffer.from(`synthetic-client:${secret}`).toString("base64")}`],
+    ["GET", "Bearer fake-second-token"],
+  ]);
+});
+
+function httpResponse(): EventEmitter {
+  const response = Object.assign(new EventEmitter(), { statusCode: 200, headers: {} });
+  vi.mocked(httpsRequest).mockImplementation(((_options: unknown, callback: (response: IncomingMessage) => void) => {
+    const pending = Object.assign(new EventEmitter(), {
+      write: vi.fn(),
+      end: () => callback(response as IncomingMessage),
+      destroy: vi.fn(),
+    });
+    return pending as unknown as ClientRequest;
+  }) as typeof httpsRequest);
+  return response;
+}
+
+it.each([
+  ["token", tokenProfile, "TRANSPORT_FAILED"],
+  ["OAuth", oauthProfile, "AUTH_EXCHANGE_FAILED"],
+])("settles an aborted %s response without waiting for the deadline", async (_name, profile, code) => {
+  vi.useFakeTimers();
+  const response = httpResponse();
+  const result = session(nodeTransport(), profile).request("qux.health.list");
+  const rejected = expect(result).rejects.toMatchObject({ code });
+  await Promise.resolve();
+  response.emit("data", Buffer.from('{"partial":'));
+  response.emit("aborted");
+  response.emit("error", new Error("connection reset"));
+  await rejected;
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it("settles a response error without an aborted event", async () => {
+  vi.useFakeTimers();
+  const response = httpResponse();
+  const result = session(nodeTransport()).request("qux.health.list");
+  const rejected = expect(result).rejects.toMatchObject({ code: "TRANSPORT_FAILED" });
+  await Promise.resolve();
+  response.emit("error", new Error("response failed"));
+  await rejected;
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it("returns a complete response body and clears its deadline", async () => {
+  vi.useFakeTimers();
+  const response = httpResponse();
+  const result = session(nodeTransport()).request("qux.health.list");
+  await Promise.resolve();
+  response.emit("data", Buffer.from('{"ok":'));
+  response.emit("data", Buffer.from('true}'));
+  response.emit("end");
+  expect(await result).toEqual({ status: 200, body: { ok: true } });
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it("settles a request at its deadline even if destroying it emits no error", async () => {
+  vi.useFakeTimers();
+  httpResponse();
+  const result = session(nodeTransport()).request("qux.health.list");
+  const rejected = expect(result).rejects.toMatchObject({ code: "TRANSPORT_FAILED" });
+  await vi.advanceTimersByTimeAsync(30_000);
+  await rejected;
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it("rejects a response beyond the body ceiling even if destroying it emits no error", async () => {
+  vi.useFakeTimers();
+  const response = httpResponse();
+  const result = session(nodeTransport()).request("qux.health.list");
+  const rejected = expect(result).rejects.toMatchObject({ code: "TRANSPORT_FAILED" });
+  await Promise.resolve();
+  response.emit("data", Buffer.alloc(8 * 1024 * 1024 + 1));
+  await rejected;
+  expect(vi.getTimerCount()).toBe(0);
 });
 
 it("maps exchange rejection through a resource request", async () => {
