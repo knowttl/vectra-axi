@@ -17,9 +17,11 @@ const token = "fake-token-SENTINEL";
 
 beforeEach(() => {
   process.env.SENTINEL_TOKEN = token;
+  process.env.CLOUD_SECRET = "fake-cloud-secret-SENTINEL";
 });
 afterEach(() => {
   delete process.env.SENTINEL_TOKEN;
+  delete process.env.CLOUD_SECRET;
   rmSync(path, { force: true });
 });
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
@@ -434,4 +436,202 @@ it.each([
   ["old release", () => healthEventRelease({ applianceRelease: "9.3" }), "requires appliance release 9.4"],
 ])("rejects %s before profile selection", (_name, run, message) => {
   expect(run).toThrowError(message);
+});
+
+// RUX-06: the same leaves run against the documented v3.4 routes on a
+// cloud profile. The fake answers the named unversioned exchange, then
+// delegates resource GETs to the per-test responder. Subscription bodies
+// vary with Network, AWS and M365 products, so cloud fixtures carry
+// subscription-shaped keys on purpose and the runner passes them through.
+const ruxProfile = {
+  kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth",
+  clientId: "synthetic-client", secretEnv: "CLOUD_SECRET",
+};
+
+function cloudSession(transport: RawTransport): Session {
+  writeFileSync(path, JSON.stringify({ profiles: { cloud: ruxProfile } }));
+  const loaded = loadConfig(path, new SecretRedactor());
+  return createSession({ profile: selectProfile(loaded.config, "cloud"), configPath: loaded.path,
+    redactor: new SecretRedactor(), transport });
+}
+
+function cloudFixture(respond: (url: string) => { status: number; bodyText: string }): RawTransport {
+  return async (request) => {
+    if (request.method === "POST") {
+      expect(request.url).toBe("https://fixture.invalid/oauth2/token");
+      return { status: 200, bodyText: JSON.stringify(
+        { access_token: "fake-cloud-access-token", token_type: "Bearer", expires_in: 3600 }) };
+    }
+    return respond(request.url);
+  };
+}
+
+it("reads the cloud snapshot through the v3.4 route with subscription passthrough", async () => {
+  let url = "";
+  const subscriptionBody = { aws: { status: "ok" }, m365: { status: "degraded" } };
+  const transport = cloudFixture((seen) => {
+    url = seen;
+    return body(subscriptionBody);
+  });
+  const result = await runHealthList(cloudSession(transport), flags(["health", "list"]));
+  expect(url).toBe("https://fixture.invalid/api/v3.4/health/");
+  expect(result).toEqual({ failed: false, output: {
+    profile: "cloud",
+    cached: true,
+    health: subscriptionBody,
+    help: ["Health response varies with Network, AWS and M365 subscriptions"],
+  } });
+});
+
+it("sends cache and vlan flags to the cloud snapshot route", async () => {
+  const urls: string[] = [];
+  const transport = cloudFixture((seen) => {
+    urls.push(seen);
+    return body({ network: { status: "ok" } });
+  });
+  const owned = cloudSession(transport);
+  await runHealthList(owned, flags(["health", "list", "--fresh", "--no-vlans"]));
+  expect(urls).toEqual(["https://fixture.invalid/api/v3.4/health/?cache=false&vlans=false"]);
+});
+
+it("reads one supported check through the v3.4 check_type route", async () => {
+  let url = "";
+  const transport = cloudFixture((seen) => {
+    url = seen;
+    return body(cpuSnapshot);
+  });
+  const result = await runHealthShow(cloudSession(transport), flags(["health", "show", "--check", "cpu"]));
+  expect(url).toBe("https://fixture.invalid/api/v3.4/health/cpu/");
+  expect(result).toEqual({ failed: false, output: {
+    profile: "cloud",
+    check: "cpu",
+    cached: true,
+    health: cpuSnapshot,
+    help: ["Health response varies with Network, AWS and M365 subscriptions"],
+  } });
+});
+
+it("rejects an unsupported check on a cloud profile before any HTTP", async () => {
+  let calls = 0;
+  const transport = cloudFixture(() => {
+    calls += 1;
+    return body({});
+  });
+  await expect(runHealthShow(cloudSession(transport),
+    flags(["health", "show", "--check", "battery"]))).rejects.toMatchObject({
+    code: "VALIDATION_ERROR", message: expect.stringContaining("Unsupported health check"),
+  });
+  expect(calls).toBe(0);
+});
+
+it("reports cloud snapshot denial as a thrown error rather than an empty healthy result", async () => {
+  const transport = cloudFixture(() => ({ status: 403, bodyText: "{}" }));
+  const owned = cloudSession(transport);
+  await expect(runHealthList(owned, flags(["health", "list"]))).rejects.toMatchObject({
+    code: "ACCESS_DENIED",
+  });
+  await expect(runHealthShow(owned, flags(["health", "show", "--check", "cpu"]))).rejects.toMatchObject({
+    code: "ACCESS_DENIED",
+  });
+});
+
+it("reads a cloud event batch with integer checkpoints in decimal form", async () => {
+  let url = "";
+  const transport = cloudFixture((seen) => {
+    url = seen;
+    return body({ next_checkpoint: 102, remaining_count: 0, events: [firstEvent, secondEvent] });
+  });
+  const result = await runHealthEventList(cloudSession(transport), flags(["health", "event", "list"]));
+  expect(url).toBe("https://fixture.invalid/api/v3.4/events/health/");
+  expect(result).toEqual({ failed: false, output: {
+    profile: "cloud",
+    checkpoint: "102",
+    remaining_count: 0,
+    count: "2 health events",
+    events: [firstEvent, secondEvent],
+    complete: true,
+    help: ["Pass --from 102 to continue from the returned checkpoint"],
+  } });
+});
+
+it("resumes a cloud batch from a numeric checkpoint and detects a repeated one", async () => {
+  const urls: string[] = [];
+  const transport = cloudFixture((seen) => {
+    urls.push(seen);
+    return body({ next_checkpoint: 102, remaining_count: 1, events: [firstEvent] });
+  });
+  const owned = cloudSession(transport);
+  const resumed = await runHealthEventList(owned, flags(["health", "event", "list", "--from", "101"]));
+  expect(urls).toEqual(["https://fixture.invalid/api/v3.4/events/health/?from=101"]);
+  expect(resumed.output).toMatchObject({ checkpoint: "102", count: "1 health events", complete: true });
+  const stuck = await runHealthEventList(owned, flags(["health", "event", "list", "--from", "102"]));
+  expect(stuck).toMatchObject({ failed: true, output: {
+    count: "1 health events",
+    code: "CONTINUATION_REPEATED",
+    checkpoint: "102",
+  } });
+});
+
+it("rejects a non-numeric cloud checkpoint before any HTTP", async () => {
+  let calls = 0;
+  const transport = cloudFixture(() => {
+    calls += 1;
+    return body({ next_checkpoint: 102, remaining_count: 0, events: [] });
+  });
+  await expect(runHealthEventList(cloudSession(transport),
+    flags(["health", "event", "list", "--from", "chk-1"]))).rejects.toMatchObject({
+    code: "VALIDATION_ERROR", message: expect.stringContaining("numeric checkpoints"),
+  });
+  expect(calls).toBe(0);
+});
+
+it("runs the cloud event feed with no appliance-release gate", async () => {
+  const transport = cloudFixture(() => body({ next_checkpoint: 5, remaining_count: 0, events: [] }));
+  const result = await runHealthEventList(cloudSession(transport), flags(["health", "event", "list"]));
+  expect(result.output).toMatchObject({ profile: "cloud", checkpoint: "5", count: "0 health events" });
+});
+
+it("reports an empty cloud batch as success with an explicit zero and its checkpoint", async () => {
+  const transport = cloudFixture(() => body({ next_checkpoint: 9, remaining_count: 0, events: [] }));
+  const result = await runHealthEventList(cloudSession(transport),
+    flags(["health", "event", "list", "--from", "8"]));
+  expect(result).toEqual({ failed: false, output: {
+    profile: "cloud",
+    checkpoint: "9",
+    remaining_count: 0,
+    count: "0 health events",
+    events: "0 health events found from checkpoint 8",
+    complete: true,
+    help: ["Pass --from 9 to continue from the returned checkpoint"],
+  } });
+});
+
+it("reports cloud event denial as a thrown error rather than an empty result", async () => {
+  const transport = cloudFixture(() => ({ status: 403, bodyText: "{}" }));
+  await expect(runHealthEventList(cloudSession(transport),
+    flags(["health", "event", "list"]))).rejects.toMatchObject({
+    code: "ACCESS_DENIED",
+  });
+});
+
+it("refuses a QUX event cursor on the cloud operation", async () => {
+  let calls = 0;
+  const qux = session(async () => {
+    calls += 1;
+    return batch([firstEvent, secondEvent], "chk-2", 0);
+  });
+  const capped = await runHealthEventList(qux, flags(["health", "event", "list", "--limit", "1"]));
+  const cursor = capped.output.cursor as string;
+  let cloudCalls = 0;
+  const cloud = cloudSession(cloudFixture(() => {
+    cloudCalls += 1;
+    return batch([firstEvent], "chk-2", 0);
+  }));
+  await expect(runHealthEventList(cloud, new Map([["cursor", cursor]]))).rejects.toMatchObject({
+    code: "VALIDATION_ERROR",
+    message: "Invalid health event cursor: the cursor belongs to qux.health.event.list,"
+      + " not rux.health.event.list",
+  });
+  expect(calls).toBe(1);
+  expect(cloudCalls).toBe(0);
 });

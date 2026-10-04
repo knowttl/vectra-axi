@@ -577,7 +577,7 @@ export const catalogue: Readonly<Record<string, {
     description: "List QUX host or account lockdown status through the status routes",
     flags: {
       ...globals,
-      type: { kind: "value", valueName: "kind", description: "Lockdown status kind: host or account (required)" },
+      type: { kind: "value", valueName: "kind", description: "Lockdown status kind: host, account, or traffic on a RUX profile (required)" },
     },
     examples: [
       "vectra-axi lockdown list --profile <name> --type host",

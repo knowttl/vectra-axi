@@ -690,6 +690,61 @@ it("reads cloud groups, members and triage rules through the packaged RUX journe
   ]);
 });
 
+it("reads cloud health and lockdown status through the packaged RUX journey", () => {
+  const config = join(scratch, "rux-health.json");
+  const trace = join(scratch, "rux-health-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { cloud: { kind: "rux", origin: "https://fixture.invalid",
+    apiVersion: "3.4", auth: "oauth", clientId: "synthetic-client", secretEnv: "RUX_SECRET" } } }));
+  const fixtureEnv = { RUX_SECRET: "packaged-rux-secret", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "cloud"];
+  const listed = invoke(["health", "list", ...context], fixtureEnv);
+  expect(listed.status).toBe(0);
+  expect(listed.stderr).toBe("");
+  expect(decode(listed.stdout)).toMatchObject({ profile: "cloud", cached: true,
+    health: { network: { status: "ok" } } });
+  const shown = invoke(["health", "show", ...context, "--check", "cpu"], fixtureEnv);
+  expect(shown.status).toBe(0);
+  expect(shown.stderr).toBe("");
+  expect(decode(shown.stdout)).toMatchObject({ profile: "cloud", check: "cpu",
+    health: { cpu: { status: "ok" } } });
+  const events = invoke(["health", "event", "list", ...context], fixtureEnv);
+  expect(events.status).toBe(0);
+  expect(events.stderr).toBe("");
+  expect(decode(events.stdout)).toMatchObject({ profile: "cloud", checkpoint: "102",
+    count: "2 health events", complete: true });
+  const continued = invoke(["health", "event", "list", ...context, "--from", "102"], fixtureEnv);
+  expect(continued.status).toBe(0);
+  expect(continued.stderr).toBe("");
+  expect(decode(continued.stdout)).toMatchObject({ count: "0 health events", complete: true });
+  const host = invoke(["lockdown", "list", ...context, "--type", "host"], fixtureEnv);
+  expect(host.status).toBe(0);
+  expect(host.stderr).toBe("");
+  expect(decode(host.stdout)).toMatchObject({ profile: "cloud", type: "host",
+    count: "1 host lockdowns", complete: true });
+  const account = invoke(["lockdown", "list", ...context, "--type", "account"], fixtureEnv);
+  expect(account.status).toBe(0);
+  expect(account.stderr).toBe("");
+  expect(decode(account.stdout)).toMatchObject({ profile: "cloud", type: "account",
+    count: "0 account lockdowns", complete: true });
+  expect(account.stdout).not.toContain("packaged-rux-secret");
+  expect(account.stdout).not.toContain("packaged-rux-token");
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/health/" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/health/cpu/" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/events/health/" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/events/health/?from=102" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/lockdown/?type=host" },
+    { method: "POST", url: "https://fixture.invalid/oauth2/token" },
+    { method: "GET", url: "https://fixture.invalid/api/v3.4/lockdown/?type=account" },
+  ]);
+});
+
 it("shows a packaged cloud profile without a credential exchange", () => {
   const config = join(scratch, "rux-home.json");
   writeFileSync(config, JSON.stringify({ profiles: { cloud: { kind: "rux", origin: "https://fixture.invalid",
