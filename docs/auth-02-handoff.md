@@ -8,7 +8,7 @@ The [credential provider](../src/oauth.ts) captures one selected profile and exp
 Call its returned function only after CORE-01 validates the intended resource operation and destination.
 Credentials are internal material, never a command result or a grant for arbitrary POST requests.
 Its transport accepts only the named `qux.oauth.exchange` request with a fixed method, versioned URL, form body and verified TLS options.
-CORE-01 must implement that seam with destination/redirect checks, bounded response decoding and an HTTP deadline; it must never follow credential-bearing redirects to arbitrary origins.
+The [session](core-01-handoff.md) implements that seam; [README.md](../README.md) owns shipped destination, redirect and transport bounds.
 There is no second HTTP system, authenticated fetch API or live-network default in AUTH-02.
 
 CORE-01 debug and output writers must use the credential provider's [invocation redactor](../src/redact.ts).

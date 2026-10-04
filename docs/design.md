@@ -101,7 +101,8 @@ The execution path is strict command catalogue -> Vectra session -> selected gen
 Validated results return through safe projection/redaction -> AXI TOON output.
 The later mutation coordinator uses the same session and enforced transport.
 
-The session has caller-shaped operations such as `listDetections(query, window)`, `getDetection(id)` and `listEntities(kind, query, window)`.
+As domain slices land, the session will expose caller-shaped operations such as `listDetections(query, window)`, `getDetection(id)` and `listEntities(kind, query, window)`.
+CORE-01 supplies the operation-scoped foundation described in the [session interface](core-01-handoff.md); collection windows and domain methods remain planned.
 Its implementation owns profile/version resolution, capability checks, origin enforcement, credential lifecycle, retries, response validation and pagination.
 Deleting this module would distribute those responsibilities across commands, so it earns its interface through depth and locality.
 Do not add a trivial wrapper class per endpoint or expose arbitrary route/payload execution as the domain interface.

@@ -15,7 +15,7 @@ The QUX guide entry refers to the attached October-2025 PDF; its hash is for the
 No upstream document is vendored: only route metadata, small field/query inventories and independently written constraints are committed.
 
 Each `operations` record describes one deployment-specific operation or one type-qualified facade binding.
-Stable `id` values join future grammar, transport policy, fixtures and generated capability documentation.
+Stable `id` values join grammar, transport policy, fixtures and generated capability documentation as their owning slices land.
 They must not be reused for a different operation.
 
 | Field | Meaning |
@@ -55,7 +55,7 @@ Every initial route remains `planned` except blocked credential exports.
 Neither an upstream GET nor a downloaded schema enables an endpoint.
 The QUX sensor registration token and AWS connector credential reads are `blocked` and cannot be exposed through later raw-read access.
 OAuth exchanges are separate effects; a token POST does not authorize business POSTs.
-Unknown routes remain outside the catalogue and must fail closed when transport is introduced.
+Unknown routes remain outside the catalogue; see [README.md](../README.md) for the session's shipped authorization policy.
 
 `deferredFamilies` intentionally records only deployment/version, evidence, disposition and reason.
 It does not invent routes, command leaves, permission mappings or effects for a long tail that has not been reviewed.

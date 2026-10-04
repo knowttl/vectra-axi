@@ -127,6 +127,15 @@ Both use synthetic `.invalid` origins and the [shared external-network guard](..
 Fixture acceptance verifies constructed TLS options, not a TLS handshake or unknown appliance compatibility.
 HTTP execution and destination enforcement remain CORE-01; write-policy fields remain WRITE-00.
 
+### CORE-01 handoff and acceptance
+
+CORE-01 builds on AUTH-01 and AUTH-02 without enabling command leaves or changing inventory dispositions.
+See [README.md](../README.md) for shipped behavior and the [handoff](core-01-handoff.md) for the session interface.
+The [session acceptance suite](../test/session.test.ts) verifies operation authorization before credentials, bound-route and query validation for redirects and continuations, shared token/OAuth transport, credential reuse and expiry, failure mapping and redaction.
+It also exercises production-adapter deadline cleanup, premature response termination, body limits and IPv6 transport options through a fake HTTPS boundary.
+The suite uses synthetic fixtures and the [external-network guard](../test/network-guard.ts); it does not establish live appliance or TLS-handshake compatibility.
+Paging, retries and cancellation remain CORE-02; command integration remains READ-01.
+
 ### Session and investigation slices
 
 CORE-01 owns URL construction, operation authorization, credential attachment and response validation in one path.
