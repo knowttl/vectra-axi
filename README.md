@@ -153,12 +153,15 @@ There is no resolve, reassign or outcome-mutation leaf: assignment changes stay 
 Group `type` values pass through verbatim with no client-side kind allowlist, so host, account, IP, domain and release-dependent AD kinds survive list and show exactly as returned.
 AD groups require appliance release 9.6 or later and regex groups require 9.0; the member route requires 9.2.
 Group list accepts server-side `--name` and `--type` filters and projects `id`, `name` and `type`.
-Group show also returns validated description, importance, modification metadata and AD metadata when present.
+Group show also returns validated `description`, `importance`, `last_modified_by`, `last_modified_timestamp`, `is_ad_group` and `ad_group_dn` fields when present.
 Membership always comes from the dedicated paged member route, never from embedded detail members capped at 2000 rows; member windows stay scoped to their group ID with `--name`, `--ordering` and `--is-key-asset true|false` filters, and groups are never merged into one ranking.
+Member rows project `id` and `name`; the output also identifies the owner group ID.
 Rule list accepts server-side `--contains` and `--ordering` filters and projects `id`, `enabled` and `triage_category`.
 Rule show also returns validated `description`, `source_conditions`, `additional_conditions`, `detection` and `is_whitelist` fields when present.
 Rules describe triage automation only: rule output carries no verdict, and a matching rule is never evidence a detection is benign.
 All three list leaves accept `--fields`, `--limit` (default 100) and `--cursor`; both show leaves require a positive integer `--id`.
+Resuming requires the same filters and, for membership, the same group ID; partial reads retain validated rows, an error and a cursor when available, and exit 1.
+Optional nullable detail fields retain null, absent fields stay omitted, and malformed fields report `RESPONSE_INVALID`.
 Empty windows succeed with an explicit zero message; permission or licence denial reports `ACCESS_DENIED` with exit 1, never an empty healthy result.
 There is no group, member or rule mutation leaf: group and triage rule changes stay deferred families refused by the read-only session.
 

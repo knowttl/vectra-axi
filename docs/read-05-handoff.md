@@ -8,9 +8,6 @@ Prerequisite is READ-02 merged as `c9acc45` (PR https://github.com/knowttl/vectr
 
 See the [capability records](../inventory/capabilities.json) for operation dispositions and deferred mutation families, and [README.md](../README.md) for shipped group/member/rule shapes, release prerequisites and write restrictions.
 The [groups module](../src/groups.ts) owns flag-to-query mapping, row decoding, kind-preserving projection and output shaping for all five leaves.
-Group `type` values pass through verbatim with no client-side kind allowlist, so host, account, IP, domain and release-dependent AD kinds survive; AD groups require appliance 9.6, regex groups 9.0, and the member route 9.2.
-Membership comes only from the paged member route, never from embedded detail members capped at 2000 rows; member windows stay scoped to their group ID and are never merged across groups.
-Triage rule output describes automation only and carries a benign disclaimer, never a verdict.
 [cli.ts](../src/cli.ts) validates every new leaf's flags before profile selection, dispatches through a read-only runner that sets exit 1 for partial reads while keeping their rows, and reports the new leaves in its setup and capability state.
 See `parseInvocation` in [catalogue.ts](../src/catalogue.ts) for leaf resolution and unknown-command reporting.
 
