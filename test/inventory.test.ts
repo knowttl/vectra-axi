@@ -64,6 +64,9 @@ describe("capability inventory", () => {
       "rux.account.note.list",
       "rux.account.show",
       "rux.account.tag.list",
+      "rux.assignment-outcome.list",
+      "rux.assignment-outcome.show",
+      "rux.assignment.list",
       "rux.detection.list",
       "rux.detection.note.list",
       "rux.detection.show",
@@ -79,6 +82,8 @@ describe("capability inventory", () => {
       "rux.host.tag.list",
       "rux.triage-rule.list",
       "rux.triage-rule.show",
+      "rux.user.list",
+      "rux.user.show",
     ]);
   });
 
