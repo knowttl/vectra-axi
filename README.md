@@ -250,8 +250,7 @@ See [AUTH-02 handoff](docs/auth-02-handoff.md) for the credential seam, [CORE-01
 
 ## Release
 
-This is the supported QUX SOC read surface with gated tag replaces plus the RUX-02 cloud detection, host, account and entity reads, not full Vectra API coverage.
-See the shipped behavior above and the generated [coverage record](docs/coverage.md) for per-operation dispositions and coverage limits.
+See the [shipped behavior above](#vectra-axi) and the generated [coverage record](docs/coverage.md) for supported operations, per-operation dispositions and coverage limits.
 Install from a release tarball with `npm install --global ./vectra-axi.tgz` after `corepack pnpm pack --out vectra-axi.tgz`, or run `node bin/vectra-axi.js` from a built checkout.
 The package is private and has no publish workflow; publishing needs a separate explicit instruction.
 Setup is explicit only: hand-edit `~/.vectra-axi/config.json` (see `vectra-axi setup`), set the referenced secret variables outside the CLI, then run `vectra-axi doctor`.

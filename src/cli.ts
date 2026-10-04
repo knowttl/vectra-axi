@@ -378,7 +378,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
       },
       capabilities: {
         implemented: Object.keys(catalogue),
-        api: "QUX v2.5 detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health and lockdown reads; every other operation is planned or blocked",
+        api: "See README.md for shipped operations and write restrictions",
         planned: inventory.operations.filter((operation) => operation.disposition === "planned").length,
         blocked: inventory.operations.filter((operation) => operation.disposition === "blocked").length,
       },
