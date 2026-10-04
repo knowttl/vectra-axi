@@ -202,7 +202,7 @@ Do not automatically replay ambiguous mutations.
 
 ## Later mutation coordinator
 
-The first release permits reviewed reads and named authentication exchanges only.
+See [README.md](../README.md) for the shipped operation surface.
 Raw requests are deferred; later reviewed raw reads must use the same operation catalogue and cannot bypass sensitive-route or write policy.
 
 WRITE-00 implements the coordinator in `src/writes.ts`; WRITE-01 binds desired-state tag replaces in `src/tags.ts` to it.

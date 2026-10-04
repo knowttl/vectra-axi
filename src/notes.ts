@@ -7,9 +7,8 @@ import type { Session } from "./session.js";
 // embedded note summary on detail bodies is decoded separately (see
 // embeddedNoteSummary) and never presented as full notes. Tag reads come
 // from the /tagging routes. Both families are paging:none single responses,
-// so runners use session.request directly. No write request is constructible:
-// the catalogue owns no note/tag mutation leaf, the inventory keeps those
-// families deferred, and the session authorizes read GETs only.
+// so runners use session.request directly. The session authorizes read GETs
+// only; tag replaces use the separate coordinator in src/tags.ts.
 
 export const NOTE_KINDS = ["detection", "host", "account"] as const;
 export type NoteKind = (typeof NOTE_KINDS)[number];

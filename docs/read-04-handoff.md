@@ -10,7 +10,7 @@ See the [capability records](../inventory/capabilities.json) for operation dispo
 The [assignments module](../src/assignments.ts) owns flag-to-query mapping, row decoding, status derivation, field projection and output shaping for all five leaves.
 See [README.md](../README.md) for filter mappings, returned fields, assignment status semantics and resource-scoped IDs.
 [cli.ts](../src/cli.ts) validates every new leaf's flags before profile selection, dispatches through a read-only runner that sets exit 1 for partial reads while keeping their rows, and reports the new leaves in its setup and capability state.
-[catalogue.ts](../src/catalogue.ts) owns leaf grammar and command resolution; see [README.md](../README.md) for the shipped read-only policy.
+[catalogue.ts](../src/catalogue.ts) owns leaf grammar and command resolution; see [README.md](../README.md) for the shipped authorization policy.
 
 ## Convention for later read slices
 
