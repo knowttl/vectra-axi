@@ -211,6 +211,21 @@ it("caps a batch at the output limit and resumes the remainder from its cursor",
   expect(calls).toBe(2);
 });
 
+it("preserves the window size across successive resumes without --limit", async () => {
+  const thirdEvent = { id: 103 };
+  const fourthEvent = { id: 104 };
+  const owned = session(async () => batch([firstEvent, secondEvent, thirdEvent, fourthEvent], "chk-2"));
+  const first = await runHealthEventList(owned, flags(["health", "event", "list", "--limit", "1"]));
+  const second = await runHealthEventList(owned, new Map([["cursor", first.output.cursor as string]]));
+  const third = await runHealthEventList(owned, new Map([["cursor", second.output.cursor as string]]));
+  const fourth = await runHealthEventList(owned, new Map([["cursor", third.output.cursor as string]]));
+  expect(first.output.events).toEqual([firstEvent]);
+  expect(second.output.events).toEqual([secondEvent]);
+  expect(third.output.events).toEqual([thirdEvent]);
+  expect(fourth.output.events).toEqual([fourthEvent]);
+  expect(fourth.output).not.toHaveProperty("cursor");
+});
+
 it("resumes a --from cursor without repeating --from and re-sends the checkpoint", async () => {
   const urls: string[] = [];
   const transport: RawTransport = async (request) => {
@@ -257,6 +272,33 @@ it("fails a non-advancing checkpoint with its rows retained instead of a resumpt
     code: "CONTINUATION_REPEATED",
     checkpoint: "chk-1",
   });
+});
+
+it("counts only capped rows retained from a non-advancing checkpoint", async () => {
+  const owned = session(async () => batch([firstEvent, secondEvent], "chk-1"));
+  const result = await runHealthEventList(owned,
+    flags(["health", "event", "list", "--from", "chk-1", "--limit", "1"]));
+  expect(result).toMatchObject({ failed: true, output: {
+    count: "1 health events",
+    events: [firstEvent],
+    code: "CONTINUATION_REPEATED",
+  } });
+  expect(result.output).not.toHaveProperty("cursor");
+});
+
+it("counts only offset rows retained when a resumed checkpoint stops advancing", async () => {
+  let checkpoint = "chk-2";
+  const owned = session(async () => batch([firstEvent, secondEvent], checkpoint));
+  const first = await runHealthEventList(owned,
+    flags(["health", "event", "list", "--from", "chk-1", "--limit", "1"]));
+  checkpoint = "chk-1";
+  const result = await runHealthEventList(owned, new Map([["cursor", first.output.cursor as string]]));
+  expect(result).toMatchObject({ failed: true, output: {
+    count: "1 health events",
+    events: [secondEvent],
+    code: "CONTINUATION_REPEATED",
+  } });
+  expect(result.output).not.toHaveProperty("cursor");
 });
 
 it("reports an empty batch as success with an explicit zero and its checkpoint", async () => {

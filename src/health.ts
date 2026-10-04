@@ -305,6 +305,7 @@ export async function runHealthEventList(
     throw new AxiError("Vectra health event feed changed since the cursor was issued",
       "RESPONSE_INVALID", ["Reissue health event list without --cursor to read the current batch"]);
   }
+  const window = events.slice(offset, offset + remaining);
   // A non-advancing checkpoint replays the same batch forever, so a batch
   // that returns rows without advancing fails with its rows retained instead
   // of handing back a resumption loop.
@@ -316,15 +317,14 @@ export async function runHealthEventList(
         "Reissue the read later instead of resuming, which would replay this batch"]);
     return { failed: true, output: {
       ...base,
-      count: `${events.length} health events`,
-      events: events.slice(offset, offset + remaining),
+      count: `${window.length} health events`,
+      events: window,
       complete: false,
       error: failure.message,
       code: failure.code,
       help: [...failure.suggestions],
     } };
   }
-  const window = events.slice(offset, offset + remaining);
   const skipped = events.length - offset - window.length;
   if (window.length === 0) {
     const scope = from !== undefined ? ` from checkpoint ${from}` : "";
@@ -356,7 +356,7 @@ export async function runHealthEventList(
   if (skipped > 0) {
     // The resumed read replays the same batch and skips returned rows, so
     // its window is the original limit again, not a shrinking remainder.
-    const cursor = encode(offset + window.length, limit);
+    const cursor = encode(offset + window.length, remaining);
     return { failed: false, output: {
       ...base,
       count: `${window.length} health events`,
