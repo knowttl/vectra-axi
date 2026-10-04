@@ -212,14 +212,11 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "detection tag set": {
-    // Desired-state replace through the WRITE-00 coordinator: the preview
-    // shows the added/removed diff, --execute sends only on a non-empty
-    // diff, and the pre-send re-read refuses a moved baseline. Effect is
-    // write, never disruptive, so no --confirm flag exists on this leaf.
     description: "Replace QUX detection tags with the exact desired set through the gated write pipeline",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Detection ID whose tags to replace (positive integer, required)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target detection <id> when executing a change" },
       tags: { kind: "value", valueName: "tags", description: "Comma-separated desired tags (at least one)" },
       "tags-file": { kind: "value", valueName: "path", description: "Read desired tags from a file, one per line; empty clears all tags; use - for stdin" },
       execute: { kind: "boolean", description: "Send the replace after the preview; default shows the dry run" },
@@ -227,7 +224,7 @@ export const catalogue: Readonly<Record<string, {
     },
     examples: [
       "vectra-axi detection tag set --profile <name> --id 42 --tags a,b",
-      "vectra-axi detection tag set --profile <name> --id 42 --tags a,b --execute",
+      "vectra-axi detection tag set --profile <name> --id 42 --tags a,b --execute --confirm 'detection 42'",
     ],
   },
   "host note list": {
@@ -257,6 +254,7 @@ export const catalogue: Readonly<Record<string, {
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Host ID whose tags to replace (positive integer, required)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target host <id> when executing a change" },
       tags: { kind: "value", valueName: "tags", description: "Comma-separated desired tags (at least one)" },
       "tags-file": { kind: "value", valueName: "path", description: "Read desired tags from a file, one per line; empty clears all tags; use - for stdin" },
       execute: { kind: "boolean", description: "Send the replace after the preview; default shows the dry run" },
@@ -264,7 +262,7 @@ export const catalogue: Readonly<Record<string, {
     },
     examples: [
       "vectra-axi host tag set --profile <name> --id 19 --tags a,b",
-      "vectra-axi host tag set --profile <name> --id 19 --tags a,b --execute",
+      "vectra-axi host tag set --profile <name> --id 19 --tags a,b --execute --confirm 'host 19'",
     ],
   },
   "account note list": {
@@ -294,6 +292,7 @@ export const catalogue: Readonly<Record<string, {
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Account ID whose tags to replace (positive integer, required)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target account <id> when executing a change" },
       tags: { kind: "value", valueName: "tags", description: "Comma-separated desired tags (at least one)" },
       "tags-file": { kind: "value", valueName: "path", description: "Read desired tags from a file, one per line; empty clears all tags; use - for stdin" },
       execute: { kind: "boolean", description: "Send the replace after the preview; default shows the dry run" },
@@ -301,7 +300,7 @@ export const catalogue: Readonly<Record<string, {
     },
     examples: [
       "vectra-axi account tag set --profile <name> --id 19 --tags a,b",
-      "vectra-axi account tag set --profile <name> --id 19 --tags a,b --execute",
+      "vectra-axi account tag set --profile <name> --id 19 --tags a,b --execute --confirm 'account 19'",
     ],
   },
   "assignment list": {
@@ -598,9 +597,7 @@ export function parseInvocation(argv: readonly string[]): {
       if (inline.length) usage(`--${name} does not accept a value`);
     } else {
       const next = inline.length ? inline.join("=") : args[++index];
-      // A bare "-" names stdin for file/stdin inputs; anything longer
-      // starting with "-" is a misplaced flag, not a value.
-      if (!next?.trim() || (!inline.length && next !== "-" && next.startsWith("-"))) usage(`--${name} requires a non-empty value`);
+      if (!next?.trim() || (!inline.length && next.startsWith("-") && !(name === "tags-file" && next === "-"))) usage(`--${name} requires a non-empty value`);
       value = next!;
     }
     flags.set(name!, value);

@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
-import { parseInvocation } from "../src/catalogue.js";
+import { catalogue, parseInvocation } from "../src/catalogue.js";
 import { createSession, type RawTransport, type Session } from "../src/session.js";
 import { loadConfig, selectProfile, type SelectedProfile } from "../src/profiles.js";
 import { SecretRedactor } from "../src/redact.js";
@@ -76,13 +76,46 @@ const auditLines = (): Record<string, unknown>[] =>
   readFileSync(auditPath, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
 
 it.each([
+  ["detection", [], "CONFIRM_REQUIRED"],
+  ["host", [], "CONFIRM_REQUIRED"],
+  ["account", [], "CONFIRM_REQUIRED"],
+  ["detection", ["--confirm", "host 42"], "CONFIRM_MISMATCH"],
+  ["host", ["--confirm", "host 7"], "CONFIRM_MISMATCH"],
+  ["account", ["--confirm", "account 7"], "CONFIRM_MISMATCH"],
+] as const)("blocks %s tag writes with %s before audit intent (%s)", async (kind, confirmation, code) => {
+  const seen: { method: string; url: string; body?: string }[] = [];
+  const { run } = harness({ transport: taggingTransport(() => ["a"], seen) });
+  await expect(run([kind, "tag", "set", "--id", "42", "--tags", "b", "--execute", ...confirmation], kind))
+    .rejects.toMatchObject({ code });
+  expect(seen).toEqual([{ method: "GET", url: `https://fixture.invalid/api/v2.5/tagging/${kind}/42` }]);
+  expect(() => readFileSync(auditPath, "utf8")).toThrow();
+});
+
+it.each(["detection", "host", "account"] as const)("requires confirmation before clearing %s tags from stdin", async (kind) => {
+  const seen: { method: string; url: string; body?: string }[] = [];
+  const { run } = harness({ transport: taggingTransport(() => ["a"], seen), stdin: () => "" });
+  await expect(run([kind, "tag", "set", "--id", "42", "--tags-file", "-", "--execute"], kind))
+    .rejects.toMatchObject({ code: "CONFIRM_REQUIRED" });
+  expect(seen.some((call) => call.method === "PATCH")).toBe(false);
+  expect(() => readFileSync(auditPath, "utf8")).toThrow();
+});
+
+it.each(Object.entries(catalogue).flatMap(([command, entry]) =>
+  Object.entries(entry.flags).filter(([name, flag]) => flag.kind === "value" && name !== "tags-file")
+    .map(([name]) => [command, name]),
+))("rejects a separate bare dash for %s --%s", (command, name) => {
+  expect(() => parseInvocation([...command!.split(" "), `--${name}`, "-"]))
+    .toThrow(`--${name} requires a non-empty value`);
+});
+
+it.each([
   ["detection", "42", "https://fixture.invalid/api/v2.5/tagging/detection/42", "qux.detection.tag.set"],
   ["host", "7", "https://fixture.invalid/api/v2.5/tagging/host/7", "qux.host.tag.set"],
   ["account", "7", "https://fixture.invalid/api/v2.5/tagging/account/7", "qux.account.tag.set"],
 ] as const)("replaces %s %s through its own PATCH tagging route", async (kind, id, url, operation) => {
   const seen: { method: string; url: string; body?: string }[] = [];
   const { run } = harness({ transport: taggingTransport(() => ["a"], seen) });
-  const result = await run([kind, "tag", "set", "--id", id, "--tags", "a,b", "--execute"], kind);
+  const result = await run([kind, "tag", "set", "--id", id, "--tags", "a,b", "--execute", "--confirm", `${kind} ${id}`], kind);
   expect(result.failed).toBe(false);
   expect(result.output).toMatchObject({ type: kind, id: Number(id), operation });
   const patch = seen.filter((call) => call.method === "PATCH");
@@ -102,7 +135,7 @@ it("previews the added and removed diff without sending", async () => {
     desired: ["keep", "fresh"],
     added: ["fresh"],
     removed: ["stale"],
-    help: ["Re-run with --execute to replace the tags for detection 42"],
+    help: ["Re-run with --execute --confirm 'detection 42' to replace the tags for detection 42"],
   } });
   expect(seen.some((call) => call.method === "PATCH")).toBe(false);
   expect(() => readFileSync(auditPath, "utf8")).toThrow();
@@ -135,7 +168,7 @@ it("sends nothing when --execute finds the desired state already present", async
 it("records the audit id with applied tags on success", async () => {
   const seen: { method: string; url: string; body?: string }[] = [];
   const { run } = harness({ transport: taggingTransport(() => [], seen) });
-  const result = await run(["detection", "tag", "set", "--id", "42", "--tags", "a", "--execute"], "detection");
+  const result = await run(["detection", "tag", "set", "--id", "42", "--tags", "a", "--execute", "--confirm", "detection 42"], "detection");
   expect(result.failed).toBe(false);
   expect(result.output).toMatchObject({
     tags: ["a"], added: ["a"], removed: "no tags removed", audit: expect.any(String),
@@ -152,7 +185,7 @@ it("refuses the send when tags move between preview and pre-send re-read", async
   let calls = 0;
   const seen: { method: string; url: string; body?: string }[] = [];
   const { run } = harness({ transport: taggingTransport(() => (calls++ === 0 ? ["a"] : ["a", "rival"]), seen) });
-  await expect(run(["detection", "tag", "set", "--id", "42", "--tags", "a,b", "--execute"], "detection"))
+  await expect(run(["detection", "tag", "set", "--id", "42", "--tags", "a,b", "--execute", "--confirm", "detection 42"], "detection"))
     .rejects.toMatchObject({ code: "VERSION_CONFLICT" });
   expect(seen.some((call) => call.method === "PATCH")).toBe(false);
   expect(auditLines().filter((line) => line.kind === "outcome"))
@@ -163,7 +196,7 @@ it("treats a concurrent change that already matches as a no-op", async () => {
   let calls = 0;
   const seen: { method: string; url: string; body?: string }[] = [];
   const { run } = harness({ transport: taggingTransport(() => (calls++ === 0 ? ["a"] : ["a", "b"]), seen) });
-  const result = await run(["detection", "tag", "set", "--id", "42", "--tags", "a,b", "--execute"], "detection");
+  const result = await run(["detection", "tag", "set", "--id", "42", "--tags", "a,b", "--execute", "--confirm", "detection 42"], "detection");
   expect(result.output).toMatchObject({ tags: "tags already match for detection 42 (no-op)" });
   expect(seen.some((call) => call.method === "PATCH")).toBe(false);
 });
@@ -175,7 +208,7 @@ it.each(["detection", "host", "account"] as const)("preserves literal config and
   const { run } = harness({ profile: { ...selected(), name: profile },
     transport: taggingTransport(() => (calls++ === 0 ? ["a"] : ["rival"]), []) });
   const error = await run([kind, "tag", "set", "--config", config, "--profile", profile,
-    "--id", "42", "--tags", "b", "--execute"], kind).catch((error: unknown) => error);
+    "--id", "42", "--tags", "b", "--execute", "--confirm", `${kind} 42`], kind).catch((error: unknown) => error);
   expect(error).toMatchObject({ code: "VERSION_CONFLICT" });
   const hints = (error as { suggestions: string[] }).suggestions;
   const command = hints[0]!.split("`")[1]!;
@@ -191,7 +224,7 @@ it.each(["detection", "host", "account"] as const)("preserves literal config and
   const { run } = harness({ profile: { ...selected(), name: profile },
     transport: taggingTransport(() => ["a"], [], { patchStatus: 403 }) });
   const result = await run([kind, "tag", "set", "--config", config, "--profile", profile,
-    "--id", "42", "--tags", "b", "--execute"], kind);
+    "--id", "42", "--tags", "b", "--execute", "--confirm", `${kind} 42`], kind);
   expect(result.failed).toBe(true);
   const hints = result.output.help as string[];
   const command = hints[0]!.split("`")[1]!;
@@ -204,7 +237,7 @@ it.each(["detection", "host", "account"] as const)("preserves literal config and
 it("reports a definitive failure when the server rejects the replace", async () => {
   const seen: { method: string; url: string; body?: string }[] = [];
   const { run } = harness({ transport: taggingTransport(() => ["a"], seen, { patchStatus: 403 }) });
-  const result = await run(["host", "tag", "set", "--id", "7", "--tags", "b", "--execute"], "host");
+  const result = await run(["host", "tag", "set", "--id", "7", "--tags", "b", "--execute", "--confirm", "host 7"], "host");
   expect(result.failed).toBe(true);
   expect(result.output).toMatchObject({
     error: "tag replace for host 7 was rejected with status 403",
@@ -232,7 +265,7 @@ it("reports OUTCOME_UNKNOWN without replay when the send times out", async () =>
   const seen: { method: string; url: string; body?: string }[] = [];
   const failure = new Error("socket timed out");
   const { run } = harness({ transport: taggingTransport(() => ["a"], seen, { patchThrows: failure }) });
-  const result = await run(["detection", "tag", "set", "--id", "42", "--tags", "b", "--execute"], "detection");
+  const result = await run(["detection", "tag", "set", "--id", "42", "--tags", "b", "--execute", "--confirm", "detection 42"], "detection");
   expect(result.failed).toBe(true);
   expect(result.output).toMatchObject({ audit: expect.any(String) });
   expect(result.output.error).toContain("read back");
@@ -295,7 +328,7 @@ it("reads the desired set from a file, one tag per line", async () => {
   writeFileSync(tagsPath, "alpha\n\n  beta \nalpha\n");
   const seen: { method: string; url: string; body?: string }[] = [];
   const { run } = harness({ transport: taggingTransport(() => [], seen) });
-  const result = await run(["host", "tag", "set", "--id", "7", "--tags-file", tagsPath, "--execute"], "host");
+  const result = await run(["host", "tag", "set", "--id", "7", "--tags-file", tagsPath, "--execute", "--confirm", "host 7"], "host");
   expect(result.failed).toBe(false);
   expect(seen.filter((call) => call.method === "PATCH")).toEqual([
     expect.objectContaining({ body: JSON.stringify({ tags: ["alpha", "beta"] }) }),
@@ -305,7 +338,7 @@ it("reads the desired set from a file, one tag per line", async () => {
 it("reads the desired set from stdin with --tags-file -", async () => {
   const seen: { method: string; url: string; body?: string }[] = [];
   const { run } = harness({ transport: taggingTransport(() => ["stale"], seen), stdin: () => "fresh\n" });
-  const result = await run(["account", "tag", "set", "--id", "7", "--tags-file", "-", "--execute"], "account");
+  const result = await run(["account", "tag", "set", "--id", "7", "--tags-file", "-", "--execute", "--confirm", "account 7"], "account");
   expect(result.failed).toBe(false);
   expect(seen.filter((call) => call.method === "PATCH")).toEqual([
     expect.objectContaining({ body: JSON.stringify({ tags: ["fresh"] }) }),
@@ -319,7 +352,7 @@ it("clears all tags with an empty file and refuses a blank --tags", async () => 
   const preview = await run(["detection", "tag", "set", "--id", "42", "--tags-file", tagsPath], "detection");
   expect(preview.output).toMatchObject({ desired: "(no tags: clears all tags)", removed: ["stale"] });
   const result = await run(
-    ["detection", "tag", "set", "--id", "42", "--tags-file", tagsPath, "--execute"], "detection");
+    ["detection", "tag", "set", "--id", "42", "--tags-file", tagsPath, "--execute", "--confirm", "detection 42"], "detection");
   expect(result.failed).toBe(false);
   expect(result.output).toMatchObject({ tags: "all tags cleared for detection 42" });
   expect(seen.filter((call) => call.method === "PATCH")).toEqual([

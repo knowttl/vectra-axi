@@ -42,6 +42,7 @@ export type MutationDefinition = {
   path: string;
   effect: MutationEffect;
   target: string;
+  requiresConfirmation?: boolean;
   payload?: unknown;
 };
 
@@ -313,11 +314,10 @@ export function createMutationCoordinator(args: {
     if (options.execute !== true) return { kind: "dry-run", preview: seen };
     // Verified already-desired state is a no-op: nothing is sent.
     if (seen.noop) return { kind: "noop", preview: seen };
-    // Gate 5: disruptive mutations need the target name back.
-    if (definition.effect === "disruptive") {
+    if (definition.effect === "disruptive" || definition.requiresConfirmation === true) {
       if (options.confirm === undefined) {
         throw new AxiError(
-          `blocked: disruptive ${definition.method} needs --confirm '${definition.target}' (profile '${scope.name}')`,
+          `blocked: ${definition.method} needs --confirm '${definition.target}' (profile '${scope.name}')`,
           "CONFIRM_REQUIRED",
           [`Re-run with --confirm '${definition.target}'`],
         );

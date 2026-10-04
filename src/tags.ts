@@ -109,10 +109,6 @@ function describeTags(kind: NoteKind, id: number, tags: readonly string[]): stri
   return tags.length === 0 ? `0 tags found for ${kind} ${id}` : [...tags];
 }
 
-// Reads one detection/host/account tag replace through the WRITE-00 gate
-// pipeline: hand-enabled scope, preview, --execute, durable journal
-// intent/outcome and no replay all live in the coordinator. Effect is
-// "write", never disruptive, so no --confirm flag exists on this leaf.
 export async function runTagSet(
   session: Session,
   coordinator: MutationCoordinator,
@@ -129,6 +125,7 @@ export async function runTagSet(
     method: "PATCH",
     path: `/api/v${session.profile.apiVersion}/tagging/${kind}/${id}`,
     effect: "write",
+    requiresConfirmation: true,
     target: owner,
     payload: { tags: desired },
   };
@@ -155,6 +152,7 @@ export async function runTagSet(
   const result = await coordinator.execute(definition, {
     ...(flags.has("execute") ? { execute: true } : {}),
     ...(flags.has("dry-run") ? { dryRun: true } : {}),
+    ...(typeof flags.get("confirm") === "string" ? { confirm: flags.get("confirm") as string } : {}),
     readState,
     isNoop: (current: unknown) => Array.isArray(current) && sortedEqual(current, desired),
   });
@@ -173,7 +171,7 @@ export async function runTagSet(
       removed: removed.length === 0 ? "no tags to remove" : removed,
       ...(result.preview.noop
         ? { state: `tags already match for ${owner} (no-op)` }
-        : { help: [`Re-run with --execute to replace the tags for ${owner}`] }),
+        : { help: [`Re-run with --execute --confirm '${owner}' to replace the tags for ${owner}`] }),
     } };
   }
   if (result.kind === "noop") {

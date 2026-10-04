@@ -188,14 +188,21 @@ it("previews and executes a gated tag replace through the packaged binary", () =
   expect(decode(preview.stdout)).toMatchObject({ profile: "lab", type: "host", id: 7,
     current: ["synthetic-tag"], desired: ["synthetic-tag", "fresh"],
     added: ["fresh"], removed: "no tags to remove" });
-  const applied = invoke(["host", "tag", "set", ...context, "--id", "7",
+  const unconfirmed = invoke(["host", "tag", "set", ...context, "--id", "7",
     "--tags", "synthetic-tag,fresh", "--execute"], fixtureEnv);
+  expect(unconfirmed.status).toBe(1);
+  expect(unconfirmed.stdout).toContain("code: CONFIRM_REQUIRED");
+  expect(unconfirmed.stderr).toBe("");
+  expect(() => readFileSync(journal, "utf8")).toThrow();
+  const applied = invoke(["host", "tag", "set", ...context, "--id", "7",
+    "--tags", "synthetic-tag,fresh", "--execute", "--confirm", "host 7"], fixtureEnv);
   expect(applied.status).toBe(0);
   expect(applied.stderr).toBe("");
   const appliedOutput = decode(applied.stdout) as Record<string, unknown>;
   expect(appliedOutput).toMatchObject({ profile: "lab", type: "host", id: 7,
     tags: ["synthetic-tag", "fresh"], audit: expect.any(String) });
   expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/7" },
     { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/7" },
     { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/7" },
     { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/7" },
