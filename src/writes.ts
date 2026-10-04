@@ -1,11 +1,12 @@
-import { appendFileSync, mkdirSync } from "node:fs";
+import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { createHash, randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { AxiError } from "axi-sdk-js";
 import type { LoadedConfig, SelectedProfile } from "./profiles.js";
 import type { SecretRedactor } from "./redact.js";
 import { createMutationSender, mutationNotSent, mutationAccepted, mutationHttpStatus,
-  type MutationMethod, type RawTransport } from "./session.js";
+  type MutationAuthorization, type MutationMethod, type MutationResponse, type RawTransport } from "./session.js";
 
 // WRITE-00 mutation coordinator: fixture-only enablement for later named
 // mutation families. No user-visible mutation command ships in this piece;
@@ -51,6 +52,8 @@ export type MutationPreview = {
   effect: MutationEffect;
   target: string;
   noop: boolean;
+  currentState: string | null;
+  proposedChange: string | null;
 };
 
 export type MutationApproval = (preview: MutationPreview) => boolean | Promise<boolean>;
@@ -76,13 +79,13 @@ export type MutationResult =
 // The immutable original scope: copied from the configured profile when the
 // coordinator is created. Read flags, environment profile overrides and
 // later raw-read access never widen it because nothing after creation feeds it.
-export type WriteScope = {
+export type WriteScope = Readonly<{
   name: string;
   origin: string;
   apiVersion: string;
   allowWrites: boolean;
   operations: readonly string[];
-};
+}>;
 
 export type MutationCoordinator = {
   readonly scope: WriteScope;
@@ -93,6 +96,7 @@ export type MutationCoordinator = {
 type AuditRecord = {
   kind: "intent" | "outcome";
   id: string;
+  intentKey: string;
   time: string;
   profile: string;
   operation: string;
@@ -104,6 +108,31 @@ type AuditRecord = {
   httpStatus?: number;
   outcome?: string;
 };
+
+const authorizations = new WeakMap<MutationAuthorization, object>();
+
+export function consumeMutationAuthorization(authorization: MutationAuthorization, sender: object): boolean {
+  if (authorizations.get(authorization) !== sender) return false;
+  authorizations.delete(authorization);
+  return true;
+}
+
+function flushDirectory(path: string): void {
+  const fd = openSync(path, "r");
+  try { fsyncSync(fd); } finally { closeSync(fd); }
+}
+
+function serialize(value: unknown): string | undefined {
+  try {
+    const serialized = JSON.stringify(value);
+    if (value !== undefined && serialized === undefined) throw new Error("Not JSON");
+    return serialized;
+  } catch {
+    throw new AxiError("Mutation state or payload is not serializable", "VALIDATION_ERROR", [
+      "Provide JSON-serializable current state and payload",
+    ]);
+  }
+}
 
 export function createMutationCoordinator(args: {
   profile: SelectedProfile;
@@ -117,20 +146,16 @@ export function createMutationCoordinator(args: {
   const { profile, configPath, redactor, transport } = args;
   const clock = args.clock ?? Date.now;
   const auditPath = args.auditPath ?? resolveWriteLogPath();
-  let idCounter = 0;
-  const newId = args.newId ?? (() => {
-    idCounter += 1;
-    return `${clock().toString(36)}-${idCounter.toString(36)}`;
-  });
-  const scope: WriteScope = {
+  const newId = args.newId ?? randomUUID;
+  const scope: WriteScope = Object.freeze({
     name: profile.name,
     origin: profile.origin,
     apiVersion: profile.apiVersion,
     allowWrites: profile.writes?.allowWrites === true,
-    operations: [...(profile.writes?.operations ?? [])],
-  };
+    operations: Object.freeze([...(profile.writes?.operations ?? [])]),
+  });
+  const exposedScope = Object.freeze({ ...scope });
   const sender = createMutationSender({ profile, configPath, redactor, transport });
-  const spentIntents = new Set<string>();
 
   function enforceWriteGates(definition: MutationDefinition): void {
     // Gate 1: forced read-only overrides every profile.
@@ -184,27 +209,69 @@ export function createMutationCoordinator(args: {
   function preview(definition: MutationDefinition, current?: unknown, isNoop?: (current: unknown) => boolean): MutationPreview {
     enforceWriteGates(definition);
     const url = boundMutationUrl(definition);
-    return {
+    return Object.freeze({
       operation: definition.operation,
       method: definition.method,
       url,
       effect: definition.effect,
       target: definition.target,
       noop: current === undefined || isNoop === undefined ? false : isNoop(current),
-    };
+      currentState: current === undefined ? null : redactor.text(serialize(current)!),
+      proposedChange: definition.payload === undefined ? null : redactor.text(serialize(definition.payload)!),
+    });
   }
 
   // Metadata only: never payloads, headers, secrets or note bodies.
   function recordAudit(record: Omit<AuditRecord, "time">): void {
-    const line = redactor.text(JSON.stringify({ ...record, time: new Date(clock()).toISOString() }));
+    const safe = redactor.value({ ...record, time: new Date(clock()).toISOString() }) as AuditRecord;
+    const line = JSON.stringify({ ...safe, intentKey: record.intentKey });
     try {
-      mkdirSync(dirname(auditPath), { recursive: true, mode: 0o700 });
-      appendFileSync(auditPath, `${line}\n`, { mode: 0o600 });
-    } catch {
+      const directory = dirname(auditPath);
+      const firstCreated = mkdirSync(directory, { recursive: true, mode: 0o700 });
+      if (firstCreated) {
+        let path = directory;
+        const parent = dirname(firstCreated);
+        while (path !== parent) {
+          flushDirectory(path);
+          path = dirname(path);
+        }
+        flushDirectory(parent);
+      }
+      const lockPath = `${auditPath}.lock`;
+      const lock = openSync(lockPath, "wx", 0o600);
+      try {
+        const created = !existsSync(auditPath);
+        const journal = openSync(auditPath, "a+", 0o600);
+        try {
+          if (record.kind === "intent") {
+            const contents = readFileSync(journal, "utf8");
+            if (contents && !contents.endsWith("\n")) throw new Error("Incomplete mutation journal");
+            const records = contents.split("\n").filter(Boolean)
+              .map((entry) => JSON.parse(entry) as AuditRecord);
+            if (records.some((entry) => !entry || !["intent", "outcome"].includes(entry.kind)
+              || typeof entry.intentKey !== "string" || !/^[a-f0-9]{64}$/.test(entry.intentKey))) {
+              throw new Error("Invalid mutation journal");
+            }
+            if (records.some((entry) => entry.kind === "intent" && entry.intentKey === record.intentKey)) {
+              throw new AxiError(`blocked: intent '${record.id}' was already reserved`, "ALREADY_EXECUTED", [
+                `Intent '${record.id}' requires manual reconciliation; read back its target and never resend it`,
+              ]);
+            }
+          }
+          writeFileSync(journal, `${line}\n`);
+          fsyncSync(journal);
+          if (created) flushDirectory(directory);
+        } finally { closeSync(journal); }
+      } finally {
+        closeSync(lock);
+        unlinkSync(lockPath);
+      }
+    } catch (error) {
+      if (error instanceof AxiError && error.code === "ALREADY_EXECUTED") throw error;
       if (record.kind === "intent") {
         throw new AxiError(`Mutation intent '${record.id}' could not be recorded`, "INTENT_NOT_RECORDED", [
           "The mutation was not sent",
-          `Check the audit path ${auditPath} and retry with a new preview`,
+          `Check the audit path ${auditPath}; a remaining lock requires manual reconciliation before removal`,
         ]);
       }
       throw new AxiError(`Mutation outcome '${record.id}' could not be recorded`, "OUTCOME_NOT_RECORDED", [
@@ -217,6 +284,7 @@ export function createMutationCoordinator(args: {
   function metadata(definition: MutationDefinition, seen: MutationPreview, id: string, ifMatch: string | undefined): Omit<AuditRecord, "kind" | "time"> {
     return {
       id,
+      intentKey: createHash("sha256").update(id).digest("hex"),
       profile: scope.name,
       operation: definition.operation,
       method: definition.method,
@@ -228,6 +296,9 @@ export function createMutationCoordinator(args: {
   }
 
   async function execute(definition: MutationDefinition, options: MutationExecuteOptions): Promise<MutationResult> {
+    const body = serialize(definition.payload);
+    definition = { ...definition, ...(body === undefined ? {} : { payload: JSON.parse(body) as unknown }) };
+    options = { ...options };
     if (options.execute === true && options.dryRun === true) {
       throw new AxiError("--dry-run cannot be combined with --execute", "VALIDATION_ERROR", [
         "Omit --execute to preview the mutation without sending it",
@@ -260,33 +331,12 @@ export function createMutationCoordinator(args: {
       throw new AxiError(`blocked: mutation ${definition.operation} was not approved (profile '${scope.name}')`,
         "APPROVAL_DENIED", ["Approve the reviewed preview before executing"]);
     }
-    // No ambiguous replay: one intent ID executes at most once per coordinator.
     const id = options.intentId ?? newId();
-    if (spentIntents.has(id)) {
-      throw new AxiError(`blocked: intent '${id}' was already executed; ambiguous outcomes are never replayed`,
-        "ALREADY_EXECUTED", [
-          `Read back the target of intent '${id}' instead of resending it`,
-        ]);
-    }
-    let body: string | undefined;
-    if (definition.payload !== undefined) {
-      try {
-        body = JSON.stringify(definition.payload);
-      } catch {
-        throw new AxiError("Mutation payload is not serializable", "VALIDATION_ERROR", [
-          "Provide a JSON-serializable payload",
-        ]);
-      }
-    }
     // A re-read alone is not atomic protection; conditional writes travel as
     // If-Match only where the endpoint supports them (WRITE-N evidence).
-    // Minting and validation happen before the intent record so a failure
-    // here leaves no dangling intent behind.
-    const authorization = sender.authorize({ method: definition.method, url: seen.url });
     const meta = metadata(definition, seen, id, options.ifMatch);
     // Failure to record intent blocks the send.
     recordAudit({ ...meta, kind: "intent" });
-    spentIntents.add(id);
     // Re-read before the single send; a failed re-read aborts without sending.
     let fresh: unknown;
     try {
@@ -299,13 +349,14 @@ export function createMutationCoordinator(args: {
       recordAudit({ ...meta, kind: "outcome", httpStatus: 0, outcome: "NOT_SENT" });
       return { kind: "noop", preview: seen };
     }
+    const authorization = Object.freeze({ nonce: randomUUID(), method: definition.method, url: seen.url });
+    authorizations.set(authorization, sender);
+    let sent: MutationResponse;
     try {
-      const sent = await sender.send(authorization, {
+      sent = await sender.send(authorization, {
         ...(body !== undefined ? { body } : {}),
         ...(options.ifMatch !== undefined ? { ifMatch: options.ifMatch } : {}),
       });
-      recordAudit({ ...meta, kind: "outcome", httpStatus: sent.status, outcome: "SUCCESS" });
-      return { kind: "success", preview: seen, auditId: id, status: sent.status, response: sent.body };
     } catch (error) {
       if (mutationNotSent(error)) {
         recordAudit({ ...meta, kind: "outcome", httpStatus: 0, outcome: "NOT_SENT" });
@@ -332,7 +383,9 @@ export function createMutationCoordinator(args: {
         guidance: `Mutation ${definition.operation} may or may not have been applied (audit ${id}); read back target '${definition.target}' before doing anything else; never replay this intent`,
       };
     }
+    recordAudit({ ...meta, kind: "outcome", httpStatus: sent.status, outcome: "SUCCESS" });
+    return { kind: "success", preview: seen, auditId: id, status: sent.status, response: sent.body };
   }
 
-  return { scope, preview, execute };
+  return { scope: exposedScope, preview, execute };
 }

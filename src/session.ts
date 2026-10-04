@@ -6,6 +6,7 @@ import type { CapabilityOperation } from "./inventory/schema.js";
 import { oauthCredentials, type TokenTransport } from "./oauth.js";
 import type { LoadedConfig, SelectedProfile } from "./profiles.js";
 import type { SecretRedactor } from "./redact.js";
+import { consumeMutationAuthorization } from "./writes.js";
 
 // Single HTTP seam for the session. Tests inject a fake; production uses nodeTransport.
 // Responses arrive as bounded text; the session core validates JSON and policy.
@@ -346,8 +347,6 @@ export type MutationAuthorization = {
 
 export type MutationResponse = { status: number; body: unknown };
 
-let mutationCounter = 0;
-
 function assertMutationDestination(profile: SelectedProfile, url: string): void {
   let destination: URL;
   try {
@@ -431,7 +430,6 @@ export function createMutationSender(args: {
   transport: RawTransport;
 }): {
   readonly profile: Pick<SelectedProfile, "name" | "kind" | "origin" | "apiVersion">;
-  authorize(detail: { method: MutationMethod; url: string }): MutationAuthorization;
   send(authorization: MutationAuthorization, options?: { body?: string; ifMatch?: string; signal?: AbortSignal }): Promise<MutationResponse>;
 } {
   const { profile, configPath, redactor, transport } = args;
@@ -441,20 +439,6 @@ export function createMutationSender(args: {
   const bound = { ...profile };
   const snapshot = { name: bound.name, kind: bound.kind, origin: bound.origin, apiVersion: bound.apiVersion };
   const credentials = profileCredentials(bound, configPath, redactor, transport);
-  const issued = new Map<string, { method: MutationMethod; url: string; used: boolean }>();
-
-  function authorize(detail: { method: MutationMethod; url: string }): MutationAuthorization {
-    if (!["POST", "PUT", "PATCH", "DELETE"].includes(detail.method)) {
-      throw new AxiError(`Refusing mutation with method: ${detail.method}`, "OPERATION_BLOCKED", [
-        "Mutations use POST, PUT, PATCH or DELETE only",
-      ]);
-    }
-    assertMutationDestination(bound, detail.url);
-    mutationCounter += 1;
-    const authorization = { nonce: `mutation-${mutationCounter}`, method: detail.method, url: detail.url };
-    issued.set(authorization.nonce, { method: detail.method, url: detail.url, used: false });
-    return authorization;
-  }
 
   async function send(
     authorization: MutationAuthorization,
@@ -462,20 +446,18 @@ export function createMutationSender(args: {
   ): Promise<MutationResponse> {
     let handedOff = false;
     try {
-      const record = issued.get(authorization.nonce);
-      if (!record || record.method !== authorization.method || record.url !== authorization.url) {
+      if (!consumeMutationAuthorization(authorization, sender)) {
         throw new AxiError("Refusing mutation without coordinator authorization", "OPERATION_BLOCKED", [
           "Mutations are sent only with a coordinator authorization minted after the write gates pass; no credential was sent",
         ]);
       }
-      if (record.used) {
-        throw new AxiError("Refusing replay of an authorized mutation", "OPERATION_BLOCKED", [
-          "Each coordinator authorization sends at most once; ambiguous outcomes are never replayed",
+      if (!["POST", "PUT", "PATCH", "DELETE"].includes(authorization.method)) {
+        throw new AxiError(`Refusing mutation with method: ${authorization.method}`, "OPERATION_BLOCKED", [
+          "Mutations use POST, PUT, PATCH or DELETE only",
         ]);
       }
-      record.used = true;
       // Re-check the bound destination after authorization, before credentials.
-      assertMutationDestination(bound, record.url);
+      assertMutationDestination(bound, authorization.url);
       if (options?.ifMatch !== undefined && (!options.ifMatch.trim() || /[\x00-\x1f\x7f]/.test(options.ifMatch))) {
         throw new AxiError("Invalid If-Match value", "VALIDATION_ERROR", [
           "Provide the exact entity tag returned by the previewed read",
@@ -490,13 +472,13 @@ export function createMutationSender(args: {
         throw error;
       }
       ensureActive(options?.signal);
-      assertMutationDestination(bound, record.url);
-      const response = await sendRaw(profile, configPath, redactor, (request) => {
+      assertMutationDestination(bound, authorization.url);
+      const response = await sendRaw(bound, configPath, redactor, (request) => {
         handedOff = true;
         return transport(request);
       }, {
-        method: record.method,
-        url: record.url,
+        method: authorization.method,
+        url: authorization.url,
         headers: { Authorization: authorizationHeader, Accept: "application/json",
           ...(options?.body !== undefined ? { "Content-Type": "application/json" } : {}),
           ...(options?.ifMatch !== undefined ? { "If-Match": options.ifMatch } : {}) },
@@ -511,7 +493,8 @@ export function createMutationSender(args: {
     }
   }
 
-  return { profile: snapshot, authorize, send };
+  const sender = { profile: snapshot, send };
+  return sender;
 }
 
 // Production adapter behind the single seam. Synthetic fixtures and fake

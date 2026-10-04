@@ -1,4 +1,5 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { fsyncSync, fstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
 import { AxiError } from "axi-sdk-js";
@@ -6,6 +7,11 @@ import { loadConfig, selectProfile, type SelectedProfile } from "../src/profiles
 import { SecretRedactor } from "../src/redact.js";
 import { createMutationSender, createSession, type RawTransport } from "../src/session.js";
 import { createMutationCoordinator, type MutationCoordinator, type MutationDefinition } from "../src/writes.js";
+
+vi.mock("node:fs", async (importOriginal) => {
+  const fs = await importOriginal<typeof import("node:fs")>();
+  return { ...fs, fsyncSync: vi.fn(fs.fsyncSync) };
+});
 
 // WRITE-00 acceptance: the coordinator is entirely fixture-driven with no
 // real mutation family enabled. Every test drives it through this synthetic
@@ -26,6 +32,7 @@ const mutation: MutationDefinition = { operation: "qux.fixture.write", method: "
   payload: { text: "synthetic note" } };
 
 beforeEach(() => {
+  vi.mocked(fsyncSync).mockClear();
   vi.stubEnv("SENTINEL_TOKEN", token);
   vi.stubEnv("VECTRA_AXI_READ_ONLY", undefined);
   vi.stubEnv("VECTRA_AXI_PROFILE", undefined);
@@ -112,6 +119,18 @@ it("freezes the original scope and origin at creation", async () => {
   expect(transport.mock.calls[0]![0].url).toBe("https://fixture.invalid/api/v2.5/fixture/notes");
 });
 
+it("refuses changes to the exposed policy of a disabled coordinator", async () => {
+  const transport = vi.fn<RawTransport>();
+  const { coordinator: writes } = coordinator({ profile: selected({ ...disabledProfile }), transport });
+  expect(Reflect.set(writes.scope, "allowWrites", true)).toBe(false);
+  expect(Reflect.set(writes.scope, "operations", ["qux.fixture.write"])).toBe(false);
+  expect(Reflect.set(writes.scope.operations, "0", "qux.fixture.write")).toBe(false);
+  expect(Reflect.set(writes.scope, "origin", "https://evil.invalid")).toBe(false);
+  expect(Reflect.set(writes.scope, "apiVersion", "3.4")).toBe(false);
+  await expect(writes.execute(mutation, { execute: true, readState })).rejects.toMatchObject({ code: "WRITES_DISABLED" });
+  expect(transport).not.toHaveBeenCalled();
+});
+
 it("previews without sending when --execute is absent", async () => {
   const transport = vi.fn<RawTransport>().mockResolvedValue(ok({ id: 1 }));
   const { coordinator: writes } = coordinator({ transport });
@@ -119,7 +138,8 @@ it("previews without sending when --execute is absent", async () => {
   expect(result).toEqual({ kind: "dry-run",
     preview: { operation: "qux.fixture.write", method: "POST",
       url: "https://fixture.invalid/api/v2.5/fixture/notes", effect: "write",
-      target: "fixture-note-1", noop: false } });
+      target: "fixture-note-1", noop: false, currentState: JSON.stringify({ notes: [] }),
+      proposedChange: JSON.stringify(mutation.payload) } });
   expect(transport).not.toHaveBeenCalled();
   expect(() => readFileSync(auditPath, "utf8")).toThrow();
 });
@@ -186,14 +206,38 @@ it("records redacted intent and outcome on success", async () => {
   expect(result).toMatchObject({ kind: "success", auditId: "intent-1", status: 200 });
   const lines = auditLines();
   expect(lines).toEqual([
-    { kind: "intent", id: "intent-1", time: TIME, profile: "lab", operation: "qux.fixture.write",
+    { kind: "intent", id: "intent-1", intentKey: createHash("sha256").update("intent-1").digest("hex"),
+      time: TIME, profile: "lab", operation: "qux.fixture.write",
       method: "POST", url: "https://fixture.invalid/api/v2.5/fixture/notes", target: "fixture-note-1",
       effect: "write", ifMatch: "etag-***redacted***" },
-    { kind: "outcome", id: "intent-1", time: TIME, profile: "lab", operation: "qux.fixture.write",
+    { kind: "outcome", id: "intent-1", intentKey: createHash("sha256").update("intent-1").digest("hex"),
+      time: TIME, profile: "lab", operation: "qux.fixture.write",
       method: "POST", url: "https://fixture.invalid/api/v2.5/fixture/notes", target: "fixture-note-1",
       effect: "write", ifMatch: "etag-***redacted***", httpStatus: 200, outcome: "SUCCESS" },
   ]);
   expect(readFileSync(auditPath, "utf8")).not.toContain(token);
+});
+
+it("flushes the intent and new journal directory before sending and the outcome before returning", async () => {
+  const events: string[] = [];
+  const realFs = await vi.importActual<typeof import("node:fs")>("node:fs");
+  vi.mocked(fsyncSync).mockImplementation((fd) => {
+    events.push(fstatSync(fd).isDirectory() ? "directory" : "journal");
+    realFs.fsyncSync(fd);
+  });
+  const transport = vi.fn<RawTransport>().mockImplementation(async () => {
+    events.push("send");
+    return ok({ id: 1 });
+  });
+  const nested = join(scratch, "nested", "journal");
+  const { coordinator: writes } = coordinator({ transport, audit: join(nested, "writes.log") });
+  try {
+    await expect(writes.execute(mutation, { execute: true, readState })).resolves.toMatchObject({ kind: "success" });
+    expect(events).toEqual(["directory", "directory", "directory", "journal", "directory", "send", "journal"]);
+  } finally {
+    vi.mocked(fsyncSync).mockImplementation(realFs.fsyncSync);
+    rmSync(join(scratch, "nested"), { recursive: true, force: true });
+  }
 });
 
 it("blocks the send when intent cannot be recorded", async () => {
@@ -228,8 +272,13 @@ it("reports OUTCOME_UNKNOWN without replay when the send times out", async () =>
   expect(transport).toHaveBeenCalledTimes(1);
   const outcomes = auditLines().filter((line) => line.kind === "outcome");
   expect(outcomes).toEqual([expect.objectContaining({ id: "intent-3", httpStatus: 0, outcome: "OUTCOME_UNKNOWN" })]);
-  await expect(writes.execute(mutation, { execute: true, readState, intentId: "intent-3" }))
+  const { coordinator: afterTimeout } = coordinator({ transport });
+  await expect(afterTimeout.execute(mutation, { execute: true, readState, intentId: "intent-3" }))
     .rejects.toMatchObject({ code: "ALREADY_EXECUTED" });
+  writeFileSync(auditPath, `${JSON.stringify(auditLines()[0])}\n`);
+  const { coordinator: recreated } = coordinator({ transport });
+  await expect(recreated.execute(mutation, { execute: true, readState, intentId: "intent-3" }))
+    .rejects.toMatchObject({ code: "ALREADY_EXECUTED", suggestions: [expect.stringContaining("manual reconciliation")] });
   expect(transport).toHaveBeenCalledTimes(1);
 });
 
@@ -312,32 +361,47 @@ it("lets the approval hook deny execution", async () => {
   expect(approved.kind).toBe("success");
 });
 
-it("rejects forged and retargeted authorizations before any HTTP call", async () => {
+it.each([
+  { name: "enabled", profile: enabledProfile, forced: undefined },
+  { name: "disabled", profile: disabledProfile, forced: undefined },
+  { name: "forced read-only", profile: enabledProfile, forced: "1" },
+])("refuses direct authorization and sending for a $name profile", async ({ profile: settings, forced }) => {
+  vi.stubEnv("VECTRA_AXI_READ_ONLY", forced);
   const transport = vi.fn<RawTransport>().mockResolvedValue(ok({ id: 1 }));
-  const profile = selected();
+  const profile = selected({ ...settings });
   const redactor = new SecretRedactor();
   const sender = createMutationSender({ profile, configPath, redactor, transport });
   await expect(sender.send({ nonce: "forged", method: "POST", url: "https://fixture.invalid/api/v2.5/fixture/notes" }))
     .rejects.toMatchObject({ code: "OPERATION_BLOCKED" });
-  const authorized = sender.authorize({ method: "POST", url: "https://fixture.invalid/api/v2.5/fixture/notes" });
-  await expect(sender.send({ ...authorized, url: "https://fixture.invalid/api/v2.5/other" }))
+  expect(Reflect.get(sender, "authorize")).toBeUndefined();
+  await expect(sender.send({ nonce: "forged", method: "POST", url: "https://fixture.invalid/api/v2.5/other" }))
     .rejects.toMatchObject({ code: "OPERATION_BLOCKED" });
-  expect(() => sender.authorize({ method: "POST", url: "https://evil.invalid/api/v2.5/fixture/notes" }))
-    .toThrow(expect.objectContaining({ code: "DESTINATION_DENIED" }));
   expect(transport).not.toHaveBeenCalled();
 });
 
-it("refuses to replay an authorization", async () => {
+it("shows redacted current state and distinct proposed payloads while sending the approved snapshot", async () => {
   const transport = vi.fn<RawTransport>().mockResolvedValue(ok({ id: 1 }));
-  const profile = selected();
-  const redactor = new SecretRedactor();
-  const sender = createMutationSender({ profile, configPath, redactor, transport });
-  const other = createMutationSender({ profile, configPath, redactor, transport });
-  const authorized = sender.authorize({ method: "POST", url: "https://fixture.invalid/api/v2.5/fixture/notes" });
-  await sender.send(authorized);
-  await expect(sender.send(authorized)).rejects.toMatchObject({ code: "OPERATION_BLOCKED" });
-  await expect(other.send(authorized)).rejects.toMatchObject({ code: "OPERATION_BLOCKED" });
-  expect(transport).toHaveBeenCalledTimes(1);
+  const { coordinator: writes } = coordinator({ transport });
+  const payload = { text: `synthetic ${token}` };
+  const definition = { ...mutation, payload };
+  const current = { notes: [`previous ${token}`] };
+  expect(writes.preview(definition, current)).toMatchObject({
+    currentState: JSON.stringify({ notes: ["previous ***redacted***"] }),
+    proposedChange: JSON.stringify({ text: "synthetic ***redacted***" }),
+  });
+  expect(writes.preview({ ...mutation, payload: { text: "different note" } }, current).proposedChange)
+    .not.toBe(writes.preview(definition, current).proposedChange);
+  const approval = vi.fn(() => { payload.text = "unreviewed change"; return true; });
+  const result = await writes.execute(definition, { execute: true, readState: async () => current, approval });
+  expect(result.kind).toBe("success");
+  expect(approval).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+    proposedChange: JSON.stringify({ text: "synthetic ***redacted***" }),
+  }));
+  expect(transport).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+    body: JSON.stringify({ text: `synthetic ${token}` }),
+  }));
+  expect(readFileSync(auditPath, "utf8")).not.toContain("synthetic");
+  expect(readFileSync(auditPath, "utf8")).not.toContain("previous");
 });
 
 it("keeps the fixture mutation out of the read session", async () => {
