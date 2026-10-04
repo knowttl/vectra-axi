@@ -110,7 +110,8 @@ Known secret values are scrubbed from errors as well as ordinary results, debug 
 
 AUTH-01 on `fm/vx-auth-01` uses CLI-01 commit `184a57a` as its prerequisite and changes no inventory records or dispositions.
 See [README.md](../README.md) for shipped configuration and behavior, and [design.md](design.md#evidence-and-api-contracts) for upstream evidence.
-OAuth remains AUTH-02, authenticated transport remains CORE-01, cloud profiles remain RUX-01, and write policy configuration and enforcement remain WRITE-00.
+OAuth remains AUTH-02, authenticated transport remains CORE-01, and cloud profiles remain RUX-01.
+See [README.md](../README.md) for write policy configuration and [design.md](design.md#later-mutation-coordinator) for coordinator enforcement.
 The [authentication acceptance suite](../test/auth.test.ts) exercises exact profile identifiers and precedence, configuration rejection, token resolution, TLS options, failure codes and sentinel redaction through SDK formatting.
 Its CA material is synthetic text: it verifies option construction, not a TLS handshake or appliance compatibility.
 The [packaged acceptance suite](../test/cli.test.ts) checks configured state, ambiguous-profile guidance, output redaction, ignored local config and offline help with closed stdin and synthetic home.
@@ -125,7 +126,8 @@ It also covers malformed Unicode in rejected tokens and unused refresh tokens wi
 The [packaged suite](../test/cli.test.ts) verifies OAuth status remains offline with closed stdin without resolving a secret or calling a transport.
 Both use synthetic `.invalid` origins and the [shared external-network guard](../test/network-guard.ts); no live Vectra instance or real credentials are used.
 Fixture acceptance verifies constructed TLS options, not a TLS handshake or unknown appliance compatibility.
-HTTP execution and destination enforcement remain CORE-01; write-policy fields remain WRITE-00.
+HTTP execution and destination enforcement remain CORE-01.
+See [README.md](../README.md) for write-policy fields.
 
 ### CORE-01 handoff and acceptance
 

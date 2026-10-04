@@ -13,12 +13,21 @@ const originField = z.string().refine((value) => {
     return url.protocol === "https:" && value === url.origin && !url.username && !url.password;
   } catch { return false; }
 });
+// WRITE-00 hand-edited opt-in: absent means forced read-only. When present
+// the scope allowlist is always explicit; the coordinator snapshots it at
+// creation, so read flags, environment overrides and later raw reads cannot
+// widen it. No mutation family is enabled by this record alone.
+const writePolicy = z.strictObject({
+  allowWrites: z.boolean(),
+  operations: z.array(nonempty).min(1),
+}).optional();
 const quxFields = {
   kind: z.literal("qux"),
   origin: originField,
   apiVersion: z.literal("2.5"),
   applianceRelease: nonempty.optional(),
   caBundle: nonempty.optional(),
+  writes: writePolicy,
 };
 // RUX-01: cloud profiles use OAuth only (no personal-token mode), pin API
 // v3.4 and carry no appliance release; the cloud has no release gate.
@@ -27,6 +36,10 @@ const ruxFields = {
   origin: originField,
   apiVersion: z.literal("3.4"),
   caBundle: nonempty.optional(),
+  // The write policy shape is shared so the coordinator compiles against
+  // every generation; it stays inert for RUX until a cloud mutation family
+  // ships, since no RUX operation can pass generation authorization.
+  writes: writePolicy,
 };
 const envReference = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/);
 const clientId = z.string().min(1).refine((value) => value === value.trim() && !/[:\s]/.test(value));

@@ -99,7 +99,7 @@ The RUX specification contains `/detections` at line 4282, `/entities` at 5093, 
 
 The execution path is strict command catalogue -> Vectra session -> selected generation adapter -> HTTPS.
 Validated results return through safe projection/redaction -> AXI TOON output.
-The later mutation coordinator uses the same session and enforced transport.
+The fixture-only mutation coordinator uses a separate authorized sender in `src/session.ts`, sharing the read session's credential and HTTP transport seams.
 
 As domain slices land, the session will expose caller-shaped operations such as `listDetections(query, window)`, `getDetection(id)` and `listEntities(kind, query, window)`.
 CORE-01 supplies the operation-scoped foundation described in the [session interface](core-01-handoff.md), and CORE-02 supplies the [collection interface](core-02-handoff.md).
@@ -205,13 +205,17 @@ Do not automatically replay ambiguous mutations.
 The first release permits reviewed reads and named authentication exchanges only.
 Raw requests are deferred; later reviewed raw reads must use the same operation catalogue and cannot bypass sensitive-route or write policy.
 
-The later coordinator enforces this order:
+WRITE-00 implements the coordinator in `src/writes.ts` with synthetic fixture definitions only; named business mutation families remain later slices.
+The coordinator keeps its original policy private and exposes a frozen scope snapshot, including the operation allowlist.
+Its sender independently consumes a single-use authorization bound to that sender, method and URL; authorization issuance is private to the coordinator.
+
+The coordinator enforces this order:
 
 1. Validate the named operation and exact target.
 2. Apply forced read-only, hand-enabled profile, immutable configured origin and allowed-operation scope.
-3. Read state and produce a local desired-state/action preview.
+3. Read state and produce a local desired-state/action preview containing redacted serialized current state and proposed payload.
 4. Require `--execute`; `--dry-run` is mutually exclusive with execution.
-5. Require target confirmation for disruptive operations and human approval of the reviewed action in the agent skill.
+5. Require exact target confirmation for disruptive operations and apply the approval hook when supplied; future named mutation skills must require human approval of the reviewed action.
 6. Record durable redacted intent, re-read, execute once and record the outcome.
 
 Verified already-desired state is an exit-0 no-op.
@@ -219,7 +223,14 @@ Use conditional writes only where the exact endpoint supports them; a re-read al
 After an ambiguous timeout, report `OUTCOME_UNKNOWN` with audit ID and read-back guidance rather than replaying or claiming nothing changed.
 Failure to record intent blocks the send; failure to record outcome after send must report possible remote success.
 The audit contains metadata, not raw secrets, headers or note bodies, and is not represented as tamper-proof.
-Text payloads use file/stdin inputs.
+The journal defaults to `~/.vectra-axi/writes.log`, with a nonblank `VECTRA_AXI_WRITE_LOG` override or an explicit internal `auditPath`.
+Intent reservation reads the durable journal under an exclusive lock and refuses any previously reserved intent ID, including across coordinator recreation, with `ALREADY_EXECUTED` and manual reconciliation guidance.
+Intent records are flushed with `fsync` before sending a mutation, and outcome records before reporting completion on every platform.
+On platforms other than Windows, first creation also flushes the journal directory and any newly created parent directories.
+On Windows, first use creates the journal directory and flushes the empty journal file before reserving any mutation intent.
+Node cannot open directory handles for `fsync` on Windows, so directory entries cannot be durably flushed there; a machine failure can still lose newly created journal paths despite file flushing.
+A malformed journal or remaining lock blocks intent recording; reconcile a remaining lock manually before removing it.
+Future named text mutations will use file/stdin inputs.
 There is no assumed server-side dry-run capability.
 
 Notes, tags and assignment changes are candidate first writes, each separately reviewed.
