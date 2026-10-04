@@ -10,6 +10,10 @@ const first = { id: 1, detection_type: "synthetic-type", state: "active", threat
 const second = { ...first, id: 2, threat: 72 };
 const host7 = { id: 7, name: "synthetic-host-7", state: "active", threat: 90, certainty: 80 };
 const account7 = { id: 7, name: "synthetic-account-7", state: "active", threat: 10, certainty: 20 };
+const openAssignment = { id: 11, host_id: 7, account_id: null, date_resolved: null };
+const resolvedAssignment = { id: 12, host_id: null, account_id: 7, date_resolved: "2026-09-30T12:00:00Z" };
+const outcome1 = { id: 1, title: "Benign True Positive", category: "benign_true_positive", builtin: true };
+const user3 = { id: 3, username: "soc-analyst" };
 const next = "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2";
 const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/detections?ordering=-id",
@@ -32,6 +36,22 @@ const responses = new Map<string, { status: number; body: unknown }>([
     { status: 200, body: [{ id: 1, note: "synthetic detail ".repeat(100) }, { id: 2, note: "short synthetic note" }] }],
   ["https://fixture.invalid/api/v2.5/tagging/host/7", { status: 200, body: { tags: ["synthetic-tag"] } }],
   ["https://fixture.invalid/api/v2.5/accounts/7/notes", { status: 200, body: [] }],
+  // READ-04: unresolved and resolved assignments stay distinct rows; the
+  // resolution taxonomy and users are separate resources on their own routes.
+  ["https://fixture.invalid/api/v2.5/assignments?resolved=false&page_size=100",
+    { status: 200, body: { results: [openAssignment], count: 2,
+      next: "https://fixture.invalid/api/v2.5/assignments?resolved=false&page=2" } }],
+  ["https://fixture.invalid/api/v2.5/assignments?resolved=false&page=2",
+    { status: 200, body: { results: [resolvedAssignment], count: 2, next: null } }],
+  ["https://fixture.invalid/api/v2.5/assignments?resolved=true&page_size=100", { status: 403, body: {} }],
+  ["https://fixture.invalid/api/v2.5/assignment_outcomes?page_size=100",
+    { status: 200, body: { results: [outcome1], count: 1 } }],
+  ["https://fixture.invalid/api/v2.5/assignment_outcomes/1", { status: 200, body: outcome1 }],
+  ["https://fixture.invalid/api/v2.5/users?page_size=100",
+    { status: 200, body: { results: [user3], count: 1 } }],
+  ["https://fixture.invalid/api/v2.5/users/3", { status: 200, body: user3 }],
+  ["https://fixture.invalid/api/v2.5/users?username=nobody&page_size=100",
+    { status: 200, body: { results: [], count: 0 } }],
 ]);
 
 https.request = ((options: RequestOptions, callback: (response: IncomingMessage) => void): ClientRequest => {

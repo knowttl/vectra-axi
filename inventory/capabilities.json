@@ -520,7 +520,9 @@
         "assignees",
         "resolution",
         "resolved",
-        "created_after"
+        "created_after",
+        "page",
+        "page_size"
       ],
       "fields": [
         "id",
@@ -535,10 +537,14 @@
         {
           "source": "qux-guide",
           "locator": "pp59-62"
+        },
+        {
+          "source": "vat-qux",
+          "locator": "_generate_assignment_params page/page_size keys; yield_results follows server next links"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-04; runtime support in src/assignments.ts.",
       "fixtureCases": [
         "unresolved",
         "resolved-with-outcome",
@@ -557,7 +563,10 @@
       "method": "GET",
       "path": "/api/v2.5/assignment_outcomes",
       "effect": "read",
-      "query": [],
+      "query": [
+        "page",
+        "page_size"
+      ],
       "fields": [
         "id",
         "title",
@@ -571,10 +580,14 @@
         {
           "source": "qux-guide",
           "locator": "pp62-63"
+        },
+        {
+          "source": "vat-qux",
+          "locator": "yield_results follows server next links; page/page_size keys per _generate_assignment_params"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-04; runtime support in src/assignments.ts.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -615,8 +628,8 @@
           "locator": "get_assignment_outcome_by_id"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-04; runtime support in src/assignments.ts.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -635,7 +648,9 @@
       "path": "/api/v2.5/users",
       "effect": "read",
       "query": [
-        "username"
+        "username",
+        "page",
+        "page_size"
       ],
       "fields": [
         "id",
@@ -650,8 +665,8 @@
           "locator": "pp36-37"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-04; runtime support in src/assignments.ts.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -690,8 +705,8 @@
           "locator": "get_user_by_id; validate_gte_api_v3_3 explicitly accepts v2"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to READ-04; no runtime support in INV-01.",
+      "disposition": "named",
+      "rationale": "Enabled by READ-04; runtime support in src/assignments.ts.",
       "fixtureCases": [
         "success",
         "access-denied",

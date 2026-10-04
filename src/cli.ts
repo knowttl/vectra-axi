@@ -1,4 +1,8 @@
 import { runAxiCli } from "axi-sdk-js";
+import { ASSIGNMENT_LIST_FIELDS, assignmentQuery, listFields as assignmentListFields, listLimit as assignmentListLimit,
+  outcomeId, OUTCOME_LIST_FIELDS, runAssignmentList, runOutcomeList, runOutcomeShow, runUserList, runUserShow,
+  userId, USER_LIST_FIELDS, userQuery,
+  type LeafResult as AssignmentLeafResult } from "./assignments.js";
 import { catalogue, DESCRIPTION, help, inventory, parseInvocation } from "./catalogue.js";
 import { listFields, listLimit, listQuery, runDetectionList, runDetectionShow, showId, type LeafResult } from "./detections.js";
 import { entityKind, listFields as entityListFields, listLimit as entityListLimit, listQuery as entityListQuery,
@@ -8,6 +12,12 @@ import { NOTE_KINDS, noteOwnerId, runNoteList, runTagList, type NoteKind } from 
 import { loadConfig, selectProfile } from "./profiles.js";
 import { SecretRedactor } from "./redact.js";
 import { createSession, nodeTransport, type RawTransport } from "./session.js";
+
+const ASSIGNMENT_FIELDS = {
+  "assignment list": ASSIGNMENT_LIST_FIELDS,
+  "assignment outcome list": OUTCOME_LIST_FIELDS,
+  "user list": USER_LIST_FIELDS,
+} as const;
 
 export async function main(argv = process.argv.slice(2), transport: RawTransport = nodeTransport()): Promise<void> {
   let invocation: ReturnType<typeof parseInvocation>;
@@ -41,6 +51,11 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
           || invocation.leaf === "host note list" || invocation.leaf === "host tag list"
           || invocation.leaf === "account note list" || invocation.leaf === "account tag list") {
           return runNotes(invocation.leaf, invocation.flags);
+        }
+        if (invocation.leaf === "assignment list" || invocation.leaf === "assignment outcome list"
+          || invocation.leaf === "assignment outcome show"
+          || invocation.leaf === "user list" || invocation.leaf === "user show") {
+          return runAssignment(invocation.leaf, invocation.flags);
         }
         return state();
       }),
@@ -125,6 +140,37 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
+  // One dispatch for every assignment/outcome/user leaf: validate the
+  // flags, select the profile, build the session on the injected transport,
+  // and report partial reads with their rows and a nonzero exit status.
+  // Assignment leaves are read-only; no resolve or reassign leaf exists.
+  type AssignmentLeaf = "assignment list" | "assignment outcome list" | "assignment outcome show"
+    | "user list" | "user show";
+  async function runAssignment(leaf: AssignmentLeaf, flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
+    if (leaf === "assignment list") {
+      assignmentQuery(flags);
+      assignmentListLimit(flags);
+      assignmentListFields(flags, ASSIGNMENT_FIELDS[leaf]);
+    } else if (leaf === "assignment outcome list" || leaf === "user list") {
+      if (leaf === "user list") userQuery(flags);
+      assignmentListLimit(flags);
+      assignmentListFields(flags, ASSIGNMENT_FIELDS[leaf]);
+    } else if (leaf === "assignment outcome show") {
+      outcomeId(flags);
+    } else {
+      userId(flags);
+    }
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
+    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+    const result: AssignmentLeafResult = leaf === "assignment list" ? await runAssignmentList(session, flags)
+      : leaf === "assignment outcome list" ? await runOutcomeList(session, flags)
+      : leaf === "assignment outcome show" ? await runOutcomeShow(session, flags)
+      : leaf === "user list" ? await runUserList(session, flags)
+      : await runUserShow(session, flags);
+    if (result.failed) process.exitCode = 1;
+    return result.output;
+  }
   function state(): Record<string, unknown> {
     const loaded = loadConfig(invocation.flags.get("config") as string | undefined, redactor);
     const count = Object.keys(loaded.config.profiles).length;
@@ -144,11 +190,11 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         config: loaded.path,
         guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use tokenEnv or secretEnv references",
         example: { profiles: { lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "VECTRA_LAB_TOKEN" } } },
-        integration: "Detection, host, account, type-qualified entity, note and tag reads call the session; remaining session integration is planned in PACK-01",
+        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome and user reads call the session; remaining session integration is planned in PACK-01",
       },
       capabilities: {
         implemented: Object.keys(catalogue),
-        api: "QUX v2.5 detection, host, account, type-qualified entity, note and tag reads; every other operation is planned or blocked",
+        api: "QUX v2.5 detection, host, account, type-qualified entity, note, tag, assignment, outcome and user reads; every other operation is planned or blocked",
         planned: inventory.operations.filter((operation) => operation.disposition === "planned").length,
         blocked: inventory.operations.filter((operation) => operation.disposition === "blocked").length,
       },
