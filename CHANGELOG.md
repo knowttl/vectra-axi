@@ -1,0 +1,37 @@
+# Changelog
+
+## [0.1.1](https://github.com/knowttl/vectra-axi/compare/v0.1.0...v0.1.1) (2026-10-05)
+
+
+### Features
+
+* add assignment, outcome and user reads ([#11](https://github.com/knowttl/vectra-axi/issues/11)) ([c5e1dab](https://github.com/knowttl/vectra-axi/commit/c5e1dab8810050b7045fba17835f2d625abf1de3))
+* add bounded collection reads with retries and cancellation ([#7](https://github.com/knowttl/vectra-axi/issues/7)) ([2b4af30](https://github.com/knowttl/vectra-axi/commit/2b4af300da91b9ae8912881c42f910deb6ff72d9))
+* add bounded QUX audit reads ([#12](https://github.com/knowttl/vectra-axi/issues/12)) ([703615b](https://github.com/knowttl/vectra-axi/commit/703615b9011d96242fb84b55fb3bd4f7adf300f3))
+* add detection list and show commands ([#8](https://github.com/knowttl/vectra-axi/issues/8)) ([c8db788](https://github.com/knowttl/vectra-axi/commit/c8db788aee429475b983528c01f19eb3928b32ce))
+* add fixture-only mutation coordinator ([#17](https://github.com/knowttl/vectra-axi/issues/17)) ([0922c4e](https://github.com/knowttl/vectra-axi/commit/0922c4e4356216adc5119ce1752a4c0dbc149974))
+* add gated bulk tag set and delete commands ([#34](https://github.com/knowttl/vectra-axi/issues/34)) ([6ac31e7](https://github.com/knowttl/vectra-axi/commit/6ac31e784a67325e815d8a63d403b0113b54c6e4))
+* add gated desired-state tag replacement ([#19](https://github.com/knowttl/vectra-axi/issues/19)) ([a3bff01](https://github.com/knowttl/vectra-axi/commit/a3bff011f76120cb32f57792fdf12c305392aded))
+* add gated QUX host and account assignment changes ([#28](https://github.com/knowttl/vectra-axi/issues/28)) ([4b4d1c5](https://github.com/knowttl/vectra-axi/commit/4b4d1c54a36183f6d625e2aefa9d0dbfd669f748))
+* add gated QUX note append commands ([#21](https://github.com/knowttl/vectra-axi/issues/21)) ([de1ced8](https://github.com/knowttl/vectra-axi/commit/de1ced86506db7d99deb0cc26f0b0f261f0a0361))
+* add profile doctor checks and read-release packaging ([#16](https://github.com/knowttl/vectra-axi/issues/16)) ([1cb6dc2](https://github.com/knowttl/vectra-axi/commit/1cb6dc288e4b1a12483720299936a8bfb8725d2a))
+* add QUX group, member, and triage rule reads ([#13](https://github.com/knowttl/vectra-axi/issues/13)) ([20f4af8](https://github.com/knowttl/vectra-axi/commit/20f4af82e5470f98446391bcaaa458b31f32a489))
+* add QUX health snapshots and checkpoint event reads ([#14](https://github.com/knowttl/vectra-axi/issues/14)) ([84abfa8](https://github.com/knowttl/vectra-axi/commit/84abfa849e0317604e2f16044d62a8740540da1f))
+* add QUX host, account and type-qualified entity reads ([#9](https://github.com/knowttl/vectra-axi/issues/9)) ([c9acc45](https://github.com/knowttl/vectra-axi/commit/c9acc45b5ad72ecc878e8a4fe5dce546ba1f0f46))
+* add QUX OAuth client-credentials support ([#5](https://github.com/knowttl/vectra-axi/issues/5)) ([209d339](https://github.com/knowttl/vectra-axi/commit/209d339416307aef504c0b82197baa5b4c07fc19))
+* add QUX read session and bounded HTTP transport ([#6](https://github.com/knowttl/vectra-axi/issues/6)) ([c25b194](https://github.com/knowttl/vectra-axi/commit/c25b194a8e70df04b849be611261f08a9eac29dc))
+* add QUX token profiles and TLS authentication primitives ([#4](https://github.com/knowttl/vectra-axi/issues/4)) ([f93e287](https://github.com/knowttl/vectra-axi/commit/f93e287f2aba0347643f53075b40ac6a000c4d7d))
+* add read-only detection, host and account notes and tags ([#10](https://github.com/knowttl/vectra-axi/issues/10)) ([2ec6f5b](https://github.com/knowttl/vectra-axi/commit/2ec6f5b4e2b025f0ff70582aa2c3795bb45ef483))
+* add read-only host and account lockdown status ([#15](https://github.com/knowttl/vectra-axi/issues/15)) ([66228c0](https://github.com/knowttl/vectra-axi/commit/66228c03ac73ffeba0452ad0511e2a18006545cd))
+* add RUX assignment, outcome, and user reads ([#25](https://github.com/knowttl/vectra-axi/issues/25)) ([7f1a805](https://github.com/knowttl/vectra-axi/commit/7f1a805a26bafb3620013c979d14c6ef507757cb))
+* add RUX audit-event reads ([#31](https://github.com/knowttl/vectra-axi/issues/31)) ([634ac21](https://github.com/knowttl/vectra-axi/commit/634ac21ea24b13c13ce9f46daafa4953fbc95d82))
+* add RUX connector, EDR, and network-brain health reads ([#29](https://github.com/knowttl/vectra-axi/issues/29)) ([b06c1d9](https://github.com/knowttl/vectra-axi/commit/b06c1d9e20ebab178a8d1c601ebe657f5a3a00c5))
+* add RUX detection and entity reads ([#20](https://github.com/knowttl/vectra-axi/issues/20)) ([b55fc89](https://github.com/knowttl/vectra-axi/commit/b55fc897910a3ebd257dba67e5daf5387e9ff237))
+* add RUX detection event reads with checkpoint continuation ([#27](https://github.com/knowttl/vectra-axi/issues/27)) ([0aa85cf](https://github.com/knowttl/vectra-axi/commit/0aa85cfb9f7e71bebb65ceeae4acde1a7c3da0bc))
+* add RUX entity scoring event reads ([#30](https://github.com/knowttl/vectra-axi/issues/30)) ([00f09ee](https://github.com/knowttl/vectra-axi/commit/00f09ee902b1693d6b6c212cb660c3a6711317f9))
+* add RUX group, membership and triage rule reads ([#22](https://github.com/knowttl/vectra-axi/issues/22)) ([c2ac276](https://github.com/knowttl/vectra-axi/commit/c2ac276c9b99ad6896fdce0a6741db88aa619fff))
+* add RUX health and lockdown status reads ([#26](https://github.com/knowttl/vectra-axi/issues/26)) ([6731afe](https://github.com/knowttl/vectra-axi/commit/6731afed7938165d85a02e4b5dcef58a43159c3c))
+* add RUX note and tag reads ([#23](https://github.com/knowttl/vectra-axi/issues/23)) ([2033214](https://github.com/knowttl/vectra-axi/commit/20332144af809df3af0de0b1fba79812a0ebf8cb))
+* add RUX v3.4 OAuth and base session support ([#18](https://github.com/knowttl/vectra-axi/issues/18)) ([59fd7d8](https://github.com/knowttl/vectra-axi/commit/59fd7d8d1da858e0966779c1cf34d28c5a392f08))
+* add vectra-axi CLI shell and strict command catalogue ([#3](https://github.com/knowttl/vectra-axi/issues/3)) ([184a57a](https://github.com/knowttl/vectra-axi/commit/184a57a80259c68b95aad3674919ed2fd4a08e14))
+* enable automated npm releases for vectra-axi ([#33](https://github.com/knowttl/vectra-axi/issues/33)) ([48b0e84](https://github.com/knowttl/vectra-axi/commit/48b0e84fc8ffbf7c6f1679c318023f80f4e59037))
