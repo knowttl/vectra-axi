@@ -181,8 +181,6 @@ export async function runNoteEdit(
     ]);
   }
   const owner = target(kind, id, noteId);
-  const previewCommand = `vectra-axi ${command} --profile ${shellQuote(session.profile.name)}`
-    + ` --id ${id} --note-id ${noteId}`;
   // The routing read runs before the coordinator: an edit needs the
   // current text for its before/after preview, so a missing note is
   // refused before any preview rather than sent blind. The coordinator's
@@ -210,14 +208,14 @@ export async function runNoteEdit(
       throw new AxiError(
         `blocked: note ${noteId} for ${kind} ${id} was deleted since the preview; re-run to preview the new state`,
         "VERSION_CONFLICT",
-        [`Re-run \`${previewCommand}\` without --execute to preview the current notes`],
+        [`Read back \`${listCommand(session, flags, kind, id)}\` to find the current note IDs`],
       );
     }
     if (fresh.note !== baseline.note && fresh.note !== desired) {
       throw new AxiError(
         `blocked: note ${noteId} for ${kind} ${id} changed since the preview; re-run to preview the new state`,
         "VERSION_CONFLICT",
-        [`Re-run \`${previewCommand}\` without --execute to preview the current text`],
+        [`Read back \`${listCommand(session, flags, kind, id)}\` to inspect the current text`],
       );
     }
     return fresh;
@@ -300,8 +298,6 @@ export async function runNoteDelete(
   const id = noteOwnerId(flags, command, kind);
   const noteId = noteEntryId(flags, command);
   const owner = target(kind, id, noteId);
-  const previewCommand = `vectra-axi ${command} --profile ${shellQuote(session.profile.name)}`
-    + ` --id ${id} --note-id ${noteId}`;
   const definition: MutationDefinition = {
     operation: operation(session, kind, "delete"),
     method: "DELETE",
@@ -326,7 +322,7 @@ export async function runNoteDelete(
       throw new AxiError(
         `blocked: note ${noteId} for ${kind} ${id} changed since the preview; re-run to preview the new state`,
         "VERSION_CONFLICT",
-        [`Re-run \`${previewCommand}\` without --execute to preview the current text`],
+        [`Read back \`${listCommand(session, flags, kind, id)}\` to inspect the current text`],
       );
     }
     return current;

@@ -8,7 +8,7 @@ import { loadConfig, selectProfile, type SelectedProfile } from "../src/profiles
 import { SecretRedactor } from "../src/redact.js";
 import { desiredEditText, noteEntryId, runNoteDelete, runNoteEdit } from "../src/note-edit.js";
 import { createMutationCoordinator, type MutationCoordinator } from "../src/writes.js";
-import type { LeafResult, NoteKind } from "../src/notes.js";
+import { runNoteList, type LeafResult, type NoteKind } from "../src/notes.js";
 
 // WRITE-N (2a) acceptance: desired-state note edits and note deletes for
 // one detection, host or account through the WRITE-00 gate pipeline on QUX
@@ -499,6 +499,37 @@ it("preserves literal config and profile in rejection recovery for edits", async
     { encoding: "utf8" }).split("\0").slice(0, -1);
   expect(argv).toEqual(["vectra-axi", "detection", "note", "list", "--config", config,
     "--profile", profile, "--id", "42"]);
+});
+
+it.each([
+  ["detection", "edit", [{ id: 1, note: "concurrent rewrite" }], ["--note", "synthetic replacement"]],
+  ["host", "edit", [], ["--note", "synthetic replacement"]],
+  ["account", "delete", [{ id: 1, note: "concurrent rewrite" }], []],
+] as const)("provides runnable scoped read-back after a %s %s conflict", async (kind, action, fresh, text) => {
+  const config = "production's $config.json";
+  const profile = "lab's $scope";
+  const seen: { method: string; url: string; body?: string }[] = [];
+  const { run, session } = harness({ profile: { ...selected(), name: profile },
+    transport: notesTransport(seen, [[{ id: 1, note: "synthetic current note" }], [...fresh]]) });
+  const id = ids[kind];
+  const error = await run([kind, "note", action, "--config", config, "--profile", profile,
+    "--id", id, "--note-id", "1", ...text, "--execute", "--confirm", `${kind} ${id} note 1`], kind)
+    .catch((cause: unknown) => cause);
+  expect(error).toMatchObject({ code: "VERSION_CONFLICT" });
+  const command = (error as { suggestions: string[] }).suggestions[0]!.split("`")[1]!;
+  const argv = execFileSync("sh", ["-c", `set -- ${command}; printf '%s\\0' "$@"`],
+    { encoding: "utf8" }).split("\0").slice(0, -1);
+  expect(argv).toEqual(["vectra-axi", kind, "note", "list", "--config", config,
+    "--profile", profile, "--id", id]);
+  const invocation = parseInvocation(argv.slice(1));
+  expect(invocation.leaf).toBe(`${kind} note list`);
+  const result = await runNoteList(session, invocation.flags, kind);
+  expect(result.failed).toBe(false);
+  expect(seen).toEqual([
+    { method: "GET", url: lists[kind] },
+    { method: "GET", url: lists[kind] },
+    { method: "GET", url: lists[kind] },
+  ]);
 });
 
 it.each([
