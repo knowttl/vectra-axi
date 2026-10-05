@@ -44,6 +44,8 @@ export type Session = {
 const MAX_REDIRECTS = 3;
 const REQUEST_TIMEOUT_MS = 30_000;
 export const RESPONSE_BODY_LIMIT_BYTES = 8 * 1024 * 1024;
+export const HEALTH_CHECKS = ["cpu", "disk", "network", "memory", "power", "sensors",
+  "system", "hostid", "connectivity", "trafficdrop"] as const;
 
 function ensureActive(signal: AbortSignal | undefined): void {
   if (signal?.aborted) {
@@ -100,6 +102,12 @@ function buildOperationUrl(
     if (!Object.hasOwn(params, name)) {
       throw new AxiError(`Missing path parameter: ${name}`, "VALIDATION_ERROR", [
         `Provide ${name} for operation ${record.id}`,
+      ]);
+    }
+    if ((record.id === "qux.health.show" || record.id === "rux.health.show")
+      && !(HEALTH_CHECKS as readonly string[]).includes(String(params[name]))) {
+      throw new AxiError(`Unsupported health check: ${String(params[name])}`, "VALIDATION_ERROR", [
+        `Supported checks: ${HEALTH_CHECKS.join(", ")}`,
       ]);
     }
     return cleanParam(name, params[name]!);

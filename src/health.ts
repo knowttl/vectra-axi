@@ -3,7 +3,7 @@ import { AxiError } from "axi-sdk-js";
 import { z } from "zod";
 import { DEFAULT_COLLECTION_LIMIT } from "./collections.js";
 import type { SelectedProfile } from "./profiles.js";
-import type { Session } from "./session.js";
+import { HEALTH_CHECKS, type Session } from "./session.js";
 
 // READ-07: QUX health snapshots and health checkpoint events on the CORE-01
 // session. Snapshots (paging:none) use session.request directly; the event
@@ -45,8 +45,7 @@ export const RUX_HEALTH_SUBSCRIPTION_NOTE =
 
 // Shared check_type selectors from the qux.health.show inventory record
 // (guide pp46-51; VAT get_health_check). RUX fixed-route selectors are separate.
-export const HEALTH_CHECKS = ["cpu", "disk", "network", "memory", "power", "sensors",
-  "system", "hostid", "connectivity", "trafficdrop"] as const;
+export { HEALTH_CHECKS } from "./session.js";
 export type HealthCheck = (typeof HEALTH_CHECKS)[number];
 
 // RUX-only selectors, kebab-cased from their v3.4 route segments. They

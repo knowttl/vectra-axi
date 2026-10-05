@@ -220,6 +220,25 @@ it("requires the route template variable before any HTTP", async () => {
   expect(calls).toBe(0);
 });
 
+it.each([
+  [session, "qux.health.show", "check=external_connectors"],
+  [session, "qux.health.show", "check=edr"],
+  [session, "qux.health.show", "check=unknown"],
+  [cloudSession, "rux.health.show", "check_type=external_connectors"],
+  [cloudSession, "rux.health.show", "check_type=edr"],
+  [cloudSession, "rux.health.show", "check_type=unknown"],
+] as const)("refuses raw health binding %s %s %s before resource HTTP", async (create, operation, binding) => {
+  let calls = 0;
+  const transport: RawTransport = async () => {
+    calls += 1;
+    return { status: 200, bodyText: JSON.stringify({ results: [], updated_at: "synthetic-time" }) };
+  };
+  await expect(runApiGet(create(transport),
+    flags(["api", "get", "--operation", operation, "--path", binding, "--fields", "cpu"])))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  expect(calls).toBe(0);
+});
+
 it("refuses a generation mismatch without sending a credential", async () => {
   let calls = 0;
   const spy: RawTransport = async (request) => {

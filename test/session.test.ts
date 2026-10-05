@@ -4,7 +4,7 @@ import { EventEmitter } from "node:events";
 import { request as httpsRequest } from "node:https";
 import type { ClientRequest, IncomingMessage } from "node:http";
 import { AxiError } from "axi-sdk-js";
-import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadConfig, selectProfile, type SelectedProfile } from "../src/profiles.js";
 import { SecretRedactor } from "../src/redact.js";
 import { createSession, nodeTransport, type RawTransport, type Session, type SessionRequestOptions } from "../src/session.js";
@@ -55,6 +55,41 @@ it("substitutes and encodes path parameters", async () => {
   const transport = vi.fn<RawTransport>().mockResolvedValue(ok({ id: 42 }));
   await session(transport).request("qux.detection.show", { pathParams: { id: 42 } });
   expect(transport.mock.calls[0]![0].url).toBe("https://fixture.invalid/api/v2.5/detections/42");
+});
+
+describe.each([
+  [tokenProfile, "qux.health.show", "check", "/api/v2.5/health/", ""],
+  [ruxProfile, "rux.health.show", "check_type", "/api/v3.4/health/", "/"],
+] as const)("health route binding for %s", (profile, operation, parameter, prefix, suffix) => {
+  it.each(["external_connectors", "edr", "unknown", "CPU", "%63pu", 1])(
+    "rejects selector %s before credentials or HTTP", async (check) => {
+      const transport = vi.fn<RawTransport>();
+      await expect(session(transport, profile).request(operation, { pathParams: { [parameter]: check } }))
+        .rejects.toMatchObject({ code: "VALIDATION_ERROR", message: `Unsupported health check: ${check}` });
+      expect(transport).not.toHaveBeenCalled();
+    });
+
+  it.each(["external_connectors", "edr", "unknown"])(
+    "rejects continuation binding for selector %s", (check) => {
+      const transport = vi.fn<RawTransport>();
+      expect(() => session(transport, profile).resolveContinuation(operation, `${prefix}${check}${suffix}`,
+        { pathParams: { [parameter]: check } }))
+        .toThrow(expect.objectContaining({ code: "VALIDATION_ERROR" }));
+      expect(transport).not.toHaveBeenCalled();
+    });
+
+  it.each(["cpu", "disk", "network", "memory", "power", "sensors",
+    "system", "hostid", "connectivity", "trafficdrop"])("reads documented selector %s", async (check) => {
+    const transport = vi.fn<RawTransport>(async (request) => request.method === "POST"
+      ? ok({ access_token: access, expires_in: 60, token_type: "Bearer" })
+      : ok({ [check]: { status: "ok" } }));
+    const result = await session(transport, profile).request(operation,
+      { pathParams: { [parameter]: check }, query: { cache: false } });
+    expect(result.body).toEqual({ [check]: { status: "ok" } });
+    expect(transport.mock.lastCall![0]).toMatchObject({
+      method: "GET", url: `https://fixture.invalid${prefix}${check}${suffix}?cache=false`,
+    });
+  });
 });
 
 it.each([
