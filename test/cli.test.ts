@@ -93,6 +93,50 @@ it("investigates a detection through the packaged list, show, full and resume co
   ]);
 });
 
+it("reads allowlisted operations through the packaged api get command", () => {
+  const config = join(scratch, "api-get.json");
+  const trace = join(scratch, "api-get-requests.jsonl");
+  const profile = { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5",
+    auth: "token", tokenEnv: "SENTINEL_TOKEN" };
+  writeFileSync(config, JSON.stringify({ profiles: { lab: profile } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const listed = invoke(["api", "get", ...context, "--operation", "qux.detection.list",
+    "--query", "state=active&threat_gte=70", "--fields", "id,state", "--limit", "1"], fixtureEnv);
+  expect(listed.status).toBe(0);
+  expect(listed.stderr).toBe("");
+  const listOutput = decode(listed.stdout) as Record<string, unknown>;
+  expect(listOutput).toMatchObject({ profile: "lab", operation: "qux.detection.list",
+    count: "1 of 2 rows", rows: [{ id: 1, state: "active" }], complete: true,
+    cursor: expect.any(String) });
+  const cursor = listOutput.cursor as string;
+  const resumed = invoke(["api", "get", ...context, "--operation", "qux.detection.list",
+    "--query", "state=active&threat_gte=70", "--fields", "id,state", "--cursor", cursor], fixtureEnv);
+  expect(resumed.status).toBe(0);
+  const resumedOutput = decode(resumed.stdout) as Record<string, unknown>;
+  expect(resumedOutput).toMatchObject({ rows: [{ id: 2, state: "active" }], complete: true });
+  const shown = invoke(["api", "get", ...context, "--operation", "qux.detection.show",
+    "--path", "id=1"], fixtureEnv);
+  expect(shown.status).toBe(0);
+  const showOutput = decode(shown.stdout) as Record<string, unknown>;
+  expect(showOutput).toMatchObject({ profile: "lab", operation: "qux.detection.show",
+    result: { id: 1, state: "active" }, complete: true });
+  expect(String((showOutput.result as Record<string, unknown>).description)).toContain("... (truncated, ");
+  const blocked = invoke(["api", "get", ...context, "--operation", "qux.sensor-token.export"], fixtureEnv);
+  expect(blocked.status).toBe(1);
+  expect(blocked.stdout).toContain("OPERATION_BLOCKED");
+  const feed = invoke(["api", "get", ...context, "--operation", "rux.detection.event.list"], fixtureEnv);
+  expect(feed.status).toBe(2);
+  expect(feed.stdout).toContain("not raw-addressable");
+  const requests = readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line));
+  expect(requests).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/1" },
+  ]);
+});
+
 it("keeps the same numeric host and account IDs distinct through the entity facade", () => {
   const config = join(scratch, "entities.json");
   const trace = join(scratch, "entities-requests.jsonl");
@@ -1224,6 +1268,7 @@ it.each([{ path: [] as string[], leaf: false }, { path: ["home"], leaf: true }, 
 it.each([
   { path: ["detection", "list"], flag: '"--state <state>"' },
   { path: ["detection", "show"], flag: '"--id <id>"' },
+  { path: ["api", "get"], flag: '"--operation <id>"' },
   { path: ["host", "list"], flag: '"--threat-gte <score>"' },
   { path: ["entity", "show"], flag: '"--type <kind>"' },
   { path: ["detection", "note", "list"], flag: '"--id <id>"' },

@@ -1,16 +1,27 @@
 {
   "name": "@knowttl/vectra-axi",
-  "version": "0.0.0",
+  "version": "0.1.1",
   "description": "Read-only-first Vectra AXI CLI",
-  "bin": { "vectra-axi": "bin/vectra-axi.js" },
-  "files": ["bin", "dist/src", "inventory/capabilities.json", "skills/vectra-axi"],
-  "publishConfig": { "access": "public" },
+  "bin": {
+    "vectra-axi": "bin/vectra-axi.js"
+  },
+  "files": [
+    "bin",
+    "dist/src",
+    "inventory/capabilities.json",
+    "skills/vectra-axi"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/knowttl/vectra-axi.git"
   },
   "type": "module",
-  "engines": { "node": ">=22.12.0" },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "packageManager": "pnpm@10.34.6",
   "scripts": {
     "build": "tsc -p tsconfig.json",
