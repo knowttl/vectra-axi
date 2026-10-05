@@ -384,6 +384,93 @@ it("previews and executes a gated note append through the packaged binary", () =
   expect(readFileSync(journal, "utf8")).not.toContain("synthetic appended note");
 });
 
+it("previews and executes a gated note edit through the packaged binary", () => {
+  const config = join(scratch, "noteedit.json");
+  const trace = join(scratch, "noteedit-requests.jsonl");
+  const journal = join(scratch, "noteedit-writes.log");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: ["qux.detection.note.edit"] } } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    VECTRA_AXI_WRITE_LOG: journal,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const preview = invoke(["detection", "note", "edit", ...context, "--id", "42", "--note-id", "2",
+    "--note", "synthetic replacement"], fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(preview.stderr).toBe("");
+  expect(decode(preview.stdout)).toMatchObject({ profile: "lab", type: "detection", id: 42, noteId: 2,
+    operation: "qux.detection.note.edit", before: "short synthetic note", after: "synthetic replacement" });
+  const unconfirmed = invoke(["detection", "note", "edit", ...context, "--id", "42", "--note-id", "2",
+    "--note", "synthetic replacement", "--execute"], fixtureEnv);
+  expect(unconfirmed.status).toBe(1);
+  expect(unconfirmed.stdout).toContain("code: CONFIRM_REQUIRED");
+  expect(unconfirmed.stderr).toBe("");
+  expect(() => readFileSync(journal, "utf8")).toThrow();
+  const applied = invoke(["detection", "note", "edit", ...context, "--id", "42", "--note-id", "2",
+    "--note", "synthetic replacement", "--execute", "--confirm", "detection 42 note 2"], fixtureEnv);
+  expect(applied.status).toBe(0);
+  expect(applied.stderr).toBe("");
+  const appliedOutput = decode(applied.stdout) as Record<string, unknown>;
+  expect(appliedOutput).toMatchObject({ profile: "lab", type: "detection", id: 42, noteId: 2,
+    operation: "qux.detection.note.edit", after: "synthetic replacement", audit: expect.any(String) });
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/42/notes" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/42/notes" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/42/notes" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/42/notes" },
+    { method: "PATCH", url: "https://fixture.invalid/api/v2.5/detections/42/notes/2",
+      body: { note: "synthetic replacement" } },
+  ]);
+  expect(readFileSync(journal, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line)))
+    .toEqual([
+      expect.objectContaining({ kind: "intent", operation: "qux.detection.note.edit", method: "PATCH",
+        target: "detection 42 note 2" }),
+      expect.objectContaining({ kind: "outcome", operation: "qux.detection.note.edit", httpStatus: 200,
+        outcome: "SUCCESS" }),
+    ]);
+  expect(readFileSync(journal, "utf8")).not.toContain("synthetic replacement");
+});
+
+it("previews and executes a gated note delete through the packaged binary", () => {
+  const config = join(scratch, "notedelete.json");
+  const trace = join(scratch, "notedelete-requests.jsonl");
+  const journal = join(scratch, "notedelete-writes.log");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: ["qux.detection.note.delete"] } } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    VECTRA_AXI_WRITE_LOG: journal,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const preview = invoke(["detection", "note", "delete", ...context, "--id", "42", "--note-id", "2"], fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(preview.stderr).toBe("");
+  expect(decode(preview.stdout)).toMatchObject({ profile: "lab", type: "detection", id: 42, noteId: 2,
+    operation: "qux.detection.note.delete", note: "short synthetic note" });
+  const applied = invoke(["detection", "note", "delete", ...context, "--id", "42", "--note-id", "2",
+    "--execute", "--confirm", "detection 42 note 2"], fixtureEnv);
+  expect(applied.status).toBe(0);
+  expect(applied.stderr).toBe("");
+  const appliedOutput = decode(applied.stdout) as Record<string, unknown>;
+  expect(appliedOutput).toMatchObject({ profile: "lab", type: "detection", id: 42, noteId: 2,
+    operation: "qux.detection.note.delete", note: "short synthetic note", audit: expect.any(String) });
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/42/notes" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/42/notes" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/42/notes" },
+    { method: "DELETE", url: "https://fixture.invalid/api/v2.5/detections/42/notes/2", body: {} },
+  ]);
+  expect(readFileSync(journal, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line)))
+    .toEqual([
+      expect.objectContaining({ kind: "intent", operation: "qux.detection.note.delete", method: "DELETE",
+        target: "detection 42 note 2" }),
+      expect.objectContaining({ kind: "outcome", operation: "qux.detection.note.delete", httpStatus: 200,
+        outcome: "SUCCESS" }),
+    ]);
+  expect(readFileSync(journal, "utf8")).not.toContain("short synthetic note");
+});
+
 it("previews and executes a gated assignment set through the packaged binary", () => {
   const config = join(scratch, "assignment-set.json");
   const trace = join(scratch, "assignment-set-requests.jsonl");
@@ -1370,7 +1457,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, doctor, detection list, detection show, detection event list, host list, host show, account list, account show, entity list, entity show, entity scoring list, detection note list, detection tag list, detection tag set, detection tag bulk-set, detection tag bulk-delete, detection note add, host note list, host tag list, host tag set, host tag bulk-set, host tag bulk-delete, host note add, account note list, account tag list, account tag set, account tag bulk-set, account tag bulk-delete, account note add, assignment list, assignment set, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
+  expect(result.stdout).toContain("Available commands: home, setup, doctor, detection list, detection show, detection event list, host list, host show, account list, account show, entity list, entity show, entity scoring list, detection note list, detection tag list, detection tag set, detection tag bulk-set, detection tag bulk-delete, detection note add, detection note edit, detection note delete, host note list, host tag list, host tag set, host tag bulk-set, host tag bulk-delete, host note add, host note edit, host note delete, account note list, account tag list, account tag set, account tag bulk-set, account tag bulk-delete, account note add, account note edit, account note delete, assignment list, assignment set, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
   expect(result.stdout).toContain("lockdown list");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);

@@ -297,6 +297,89 @@
       ]
     },
     {
+      "id": "qux.host.note.edit",
+      "command": "host note edit",
+      "slice": "WRITE-N",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled note-edit scope; PATCH replaces one addressed note's text with a {\"note\"} payload after a list re-read confirms the text is unchanged since the preview.",
+      "method": "PATCH",
+      "path": "/api/v2.5/hosts/{id}/notes/{note_id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "update_host_note: PATCH /hosts/{id}/notes/{note_id} with {\"note\"} payload"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "p30; Appendix A host notes"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-N (2a); `host note edit` drives the coordinator desired-state note-text replace with its kind retained.",
+      "fixtureCases": [
+        "dry-run-before-after",
+        "exact-replacement-body",
+        "already-matching-noop",
+        "changed-since-preview",
+        "missing-note",
+        "confirmation-required",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
+      "id": "qux.host.note.delete",
+      "command": "host note delete",
+      "slice": "WRITE-N",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled note-delete scope; DELETE removes one addressed note after a list re-read confirms the text is unchanged since the preview.",
+      "method": "DELETE",
+      "path": "/api/v2.5/hosts/{id}/notes/{note_id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "id",
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "delete_host_note: DELETE /hosts/{id}/notes/{note_id}"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "p30; Appendix A host notes"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-N (2a); `host note delete` drives the coordinator desired-state note removal with its kind retained.",
+      "fixtureCases": [
+        "dry-run-removed-note",
+        "already-deleted-noop",
+        "changed-since-preview",
+        "confirmation-required",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
       "id": "qux.host.tag.list",
       "command": "host tag list",
       "slice": "READ-03",
@@ -605,6 +688,89 @@
       ]
     },
     {
+      "id": "qux.account.note.edit",
+      "command": "account note edit",
+      "slice": "WRITE-N",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled note-edit scope; PATCH replaces one addressed note's text with a {\"note\"} payload after a list re-read confirms the text is unchanged since the preview.",
+      "method": "PATCH",
+      "path": "/api/v2.5/accounts/{id}/notes/{note_id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "update_account_note: PATCH /accounts/{id}/notes/{note_id} with {\"note\"} payload"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "p24; Appendix A account notes"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-N (2a); `account note edit` drives the coordinator desired-state note-text replace with its kind retained.",
+      "fixtureCases": [
+        "dry-run-before-after",
+        "exact-replacement-body",
+        "already-matching-noop",
+        "changed-since-preview",
+        "missing-note",
+        "confirmation-required",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
+      "id": "qux.account.note.delete",
+      "command": "account note delete",
+      "slice": "WRITE-N",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled note-delete scope; DELETE removes one addressed note after a list re-read confirms the text is unchanged since the preview.",
+      "method": "DELETE",
+      "path": "/api/v2.5/accounts/{id}/notes/{note_id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "id",
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "delete_account_note: DELETE /accounts/{id}/notes/{note_id}"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "p24; Appendix A account notes"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-N (2a); `account note delete` drives the coordinator desired-state note removal with its kind retained.",
+      "fixtureCases": [
+        "dry-run-removed-note",
+        "already-deleted-noop",
+        "changed-since-preview",
+        "confirmation-required",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
       "id": "qux.account.tag.list",
       "command": "account tag list",
       "slice": "READ-03",
@@ -824,6 +990,89 @@
       "fixtureCases": [
         "dry-run-preview",
         "exact-appended-body",
+        "confirmation-required",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
+      "id": "qux.detection.note.edit",
+      "command": "detection note edit",
+      "slice": "WRITE-N",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled note-edit scope; PATCH replaces one addressed note's text with a {\"note\"} payload after a list re-read confirms the text is unchanged since the preview.",
+      "method": "PATCH",
+      "path": "/api/v2.5/detections/{id}/notes/{note_id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "update_detection_note: PATCH /detections/{id}/notes/{note_id} with {\"note\"} payload"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "p17; Appendix A Detection (Notes)"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-N (2a); `detection note edit` drives the coordinator desired-state note-text replace with its kind retained.",
+      "fixtureCases": [
+        "dry-run-before-after",
+        "exact-replacement-body",
+        "already-matching-noop",
+        "changed-since-preview",
+        "missing-note",
+        "confirmation-required",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
+      "id": "qux.detection.note.delete",
+      "command": "detection note delete",
+      "slice": "WRITE-N",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled note-delete scope; DELETE removes one addressed note after a list re-read confirms the text is unchanged since the preview.",
+      "method": "DELETE",
+      "path": "/api/v2.5/detections/{id}/notes/{note_id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "id",
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "delete_detection_note: DELETE /detections/{id}/notes/{note_id}"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "p17; Appendix A Detection (Notes)"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-N (2a); `detection note delete` drives the coordinator desired-state note removal with its kind retained.",
+      "fixtureCases": [
+        "dry-run-removed-note",
+        "already-deleted-noop",
+        "changed-since-preview",
         "confirmation-required",
         "access-denied",
         "unknown-outcome",
@@ -2018,6 +2267,89 @@
       ]
     },
     {
+      "id": "rux.host.note.edit",
+      "command": "host note edit",
+      "slice": "WRITE-N",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit RUX v3.4 profile with hand-enabled note-edit scope; PATCH replaces one addressed note's text with a {\"note\"} payload after a list re-read confirms the text is unchanged since the preview. No type query: the hosts segment selects the kind.",
+      "method": "PATCH",
+      "path": "/api/v3.4/hosts/{id}/notes/{note_id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource write permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "PATCH /api/v3.4/{tvui_types}/{type_id}/notes/{note_id}/ (v3.4_notes_partial_update, NotesBodyV3); tvui_types=hosts"
+        },
+        {
+          "source": "vat-rux",
+          "locator": "update_entity_note: PATCH .../notes/{note_id} with {\"note\"} payload"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-N (2a); `host note edit` drives the coordinator desired-state note-text replace on a cloud profile with its kind retained.",
+      "fixtureCases": [
+        "dry-run-before-after",
+        "exact-replacement-body",
+        "already-matching-noop",
+        "changed-since-preview",
+        "missing-note",
+        "confirmation-required",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
+      "id": "rux.host.note.delete",
+      "command": "host note delete",
+      "slice": "WRITE-N",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit RUX v3.4 profile with hand-enabled note-delete scope; DELETE removes one addressed note after a list re-read confirms the text is unchanged since the preview. No type query: the hosts segment selects the kind.",
+      "method": "DELETE",
+      "path": "/api/v3.4/hosts/{id}/notes/{note_id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "id",
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource write permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "DELETE /api/v3.4/{tvui_types}/{type_id}/notes/{note_id}/ (v3.4_notes_delete); tvui_types=hosts"
+        },
+        {
+          "source": "vat-rux",
+          "locator": "delete_entity_note: DELETE .../notes/{note_id}"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-N (2a); `host note delete` drives the coordinator desired-state note removal on a cloud profile with its kind retained.",
+      "fixtureCases": [
+        "dry-run-removed-note",
+        "already-deleted-noop",
+        "changed-since-preview",
+        "confirmation-required",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
       "id": "rux.host.tag.list",
       "command": "host tag list",
       "slice": "RUX-04",
@@ -2170,6 +2502,89 @@
       ]
     },
     {
+      "id": "rux.account.note.edit",
+      "command": "account note edit",
+      "slice": "WRITE-N",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit RUX v3.4 profile with hand-enabled note-edit scope; PATCH replaces one addressed note's text with a {\"note\"} payload after a list re-read confirms the text is unchanged since the preview. No type query: the accounts segment selects the kind.",
+      "method": "PATCH",
+      "path": "/api/v3.4/accounts/{id}/notes/{note_id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource write permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "PATCH /api/v3.4/{tvui_types}/{type_id}/notes/{note_id}/ (v3.4_notes_partial_update, NotesBodyV3); tvui_types=accounts"
+        },
+        {
+          "source": "vat-rux",
+          "locator": "update_entity_note: PATCH .../notes/{note_id} with {\"note\"} payload"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-N (2a); `account note edit` drives the coordinator desired-state note-text replace on a cloud profile with its kind retained.",
+      "fixtureCases": [
+        "dry-run-before-after",
+        "exact-replacement-body",
+        "already-matching-noop",
+        "changed-since-preview",
+        "missing-note",
+        "confirmation-required",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
+      "id": "rux.account.note.delete",
+      "command": "account note delete",
+      "slice": "WRITE-N",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit RUX v3.4 profile with hand-enabled note-delete scope; DELETE removes one addressed note after a list re-read confirms the text is unchanged since the preview. No type query: the accounts segment selects the kind.",
+      "method": "DELETE",
+      "path": "/api/v3.4/accounts/{id}/notes/{note_id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "id",
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource write permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "DELETE /api/v3.4/{tvui_types}/{type_id}/notes/{note_id}/ (v3.4_notes_delete); tvui_types=accounts"
+        },
+        {
+          "source": "vat-rux",
+          "locator": "delete_entity_note: DELETE .../notes/{note_id}"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-N (2a); `account note delete` drives the coordinator desired-state note removal on a cloud profile with its kind retained.",
+      "fixtureCases": [
+        "dry-run-removed-note",
+        "already-deleted-noop",
+        "changed-since-preview",
+        "confirmation-required",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
       "id": "rux.account.tag.list",
       "command": "account tag list",
       "slice": "RUX-04",
@@ -2233,6 +2648,89 @@
         "empty",
         "access-denied",
         "embedded-summary-truncated"
+      ]
+    },
+    {
+      "id": "rux.detection.note.edit",
+      "command": "detection note edit",
+      "slice": "WRITE-N",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit RUX v3.4 profile with hand-enabled note-edit scope; PATCH replaces one addressed note's text with a {\"note\"} payload after a list re-read confirms the text is unchanged since the preview. No type query: the detections segment selects the kind.",
+      "method": "PATCH",
+      "path": "/api/v3.4/detections/{id}/notes/{note_id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource write permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "PATCH /api/v3.4/{tvui_types}/{type_id}/notes/{note_id}/ (v3.4_notes_partial_update, NotesBodyV3); tvui_types=detections"
+        },
+        {
+          "source": "vat-rux",
+          "locator": "update_entity_note: PATCH .../notes/{note_id} with {\"note\"} payload"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-N (2a); `detection note edit` drives the coordinator desired-state note-text replace on a cloud profile with its kind retained.",
+      "fixtureCases": [
+        "dry-run-before-after",
+        "exact-replacement-body",
+        "already-matching-noop",
+        "changed-since-preview",
+        "missing-note",
+        "confirmation-required",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
+      "id": "rux.detection.note.delete",
+      "command": "detection note delete",
+      "slice": "WRITE-N",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit RUX v3.4 profile with hand-enabled note-delete scope; DELETE removes one addressed note after a list re-read confirms the text is unchanged since the preview. No type query: the detections segment selects the kind.",
+      "method": "DELETE",
+      "path": "/api/v3.4/detections/{id}/notes/{note_id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "id",
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource write permission; authorization denial is an error, not an empty result.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "DELETE /api/v3.4/{tvui_types}/{type_id}/notes/{note_id}/ (v3.4_notes_delete); tvui_types=detections"
+        },
+        {
+          "source": "vat-rux",
+          "locator": "delete_entity_note: DELETE .../notes/{note_id}"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-N (2a); `detection note delete` drives the coordinator desired-state note removal on a cloud profile with its kind retained.",
+      "fixtureCases": [
+        "dry-run-removed-note",
+        "already-deleted-noop",
+        "changed-since-preview",
+        "confirmation-required",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
       ]
     },
     {
@@ -3881,7 +4379,7 @@
       "deployment": "qux",
       "apiVersion": "2.5",
       "disposition": "planned",
-      "rationale": "Per-object note append is a named WRITE-02 operation (qux.detection.note.add, qux.host.note.add, qux.account.note.add); edits and deletes remain planned with no authorized route.",
+      "rationale": "Per-object note append is a named WRITE-02 operation (qux.detection.note.add, qux.host.note.add, qux.account.note.add); per-note edit and delete are named WRITE-N (2a) operations (qux.{detection,host,account}.note.{edit,delete}). Bulk note creation stays planned with no authorized route.",
       "evidence": [
         {
           "source": "qux-guide",
@@ -3985,7 +4483,7 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "disposition": "planned",
-      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "rationale": "Per-note edit and delete are named WRITE-N (2a) operations (rux.{detection,host,account}.note.{edit,delete}). Note appends and bulk creation stay planned with no authorized route.",
       "evidence": [
         {
           "source": "rux-spec",

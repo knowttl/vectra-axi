@@ -37,8 +37,8 @@ const ruxFields = {
   apiVersion: z.literal("3.4"),
   caBundle: nonempty.optional(),
   // The write policy shape is shared so the coordinator compiles against
-  // every generation; it stays inert for RUX until a cloud mutation family
-  // ships, since no RUX operation can pass generation authorization.
+  // every generation; on RUX only the named note edit/delete operations
+  // pass the coordinator scope, since no other cloud mutation family ships.
   writes: writePolicy,
 };
 const envReference = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/);

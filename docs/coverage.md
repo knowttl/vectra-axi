@@ -2,7 +2,7 @@
 
 # vectra-axi coverage
 
-This is the supported QUX and RUX SOC read surface with gated QUX single and bulk tag-write, note-write and assignment-write families, not full Vectra API coverage.
+This is the supported QUX and RUX SOC read surface with gated QUX single and bulk tag-write, note-append and assignment-write families and the gated QUX/RUX note edit/delete family, not full Vectra API coverage.
 Only `named` operations have an implemented, tested command leaf; every other
 operation remains planned, blocked or unreviewed until its own slice ships.
 The reviewed `api get` raw-read leaf serves the allowlisted GET operations marked `raw` below;
@@ -10,7 +10,7 @@ there is no unrestricted passthrough.
 
 ## Counts
 
-- named: 86
+- named: 98
 - reviewed-raw: 0
 - planned: 4
 - blocked: 2
@@ -28,6 +28,8 @@ there is no unrestricted passthrough.
 | `qux.host.show` | host show | READ-02 | qux 2.5 | none | named | raw |
 | `qux.host.note.list` | host note list | READ-03 | qux 2.5 | none | named | raw |
 | `qux.host.note.add` | host note add | WRITE-02 | qux 2.5 | none | named | named |
+| `qux.host.note.edit` | host note edit | WRITE-N | qux 2.5 | none | named | named |
+| `qux.host.note.delete` | host note delete | WRITE-N | qux 2.5 | none | named | named |
 | `qux.host.tag.list` | host tag list | READ-03 | qux 2.5 | none | named | raw |
 | `qux.host.tag.set` | host tag set | WRITE-01 | qux 2.5 | none | named | named |
 | `qux.host.tag.bulk-set` | host tag bulk-set | WRITE-05 | qux 2.5 | none | named | named |
@@ -36,12 +38,16 @@ there is no unrestricted passthrough.
 | `qux.account.show` | account show | READ-02 | qux 2.5 | none | named | raw |
 | `qux.account.note.list` | account note list | READ-03 | qux 2.5 | none | named | raw |
 | `qux.account.note.add` | account note add | WRITE-02 | qux 2.5 | none | named | named |
+| `qux.account.note.edit` | account note edit | WRITE-N | qux 2.5 | none | named | named |
+| `qux.account.note.delete` | account note delete | WRITE-N | qux 2.5 | none | named | named |
 | `qux.account.tag.list` | account tag list | READ-03 | qux 2.5 | none | named | raw |
 | `qux.account.tag.set` | account tag set | WRITE-01 | qux 2.5 | none | named | named |
 | `qux.account.tag.bulk-set` | account tag bulk-set | WRITE-05 | qux 2.5 | none | named | named |
 | `qux.account.tag.bulk-delete` | account tag bulk-delete | WRITE-05 | qux 2.5 | none | named | named |
 | `qux.detection.note.list` | detection note list | READ-03 | qux 2.5 | none | named | raw |
 | `qux.detection.note.add` | detection note add | WRITE-02 | qux 2.5 | none | named | named |
+| `qux.detection.note.edit` | detection note edit | WRITE-N | qux 2.5 | none | named | named |
+| `qux.detection.note.delete` | detection note delete | WRITE-N | qux 2.5 | none | named | named |
 | `qux.detection.tag.list` | detection tag list | READ-03 | qux 2.5 | none | named | raw |
 | `qux.detection.tag.set` | detection tag set | WRITE-01 | qux 2.5 | none | named | named |
 | `qux.detection.tag.bulk-set` | detection tag bulk-set | WRITE-05 | qux 2.5 | none | named | named |
@@ -71,12 +77,18 @@ there is no unrestricted passthrough.
 | `rux.host.list` | host list | RUX-02 | rux 3.4 | collection | named | raw |
 | `rux.host.show` | host show | RUX-02 | rux 3.4 | none | named | raw |
 | `rux.host.note.list` | host note list | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.host.note.edit` | host note edit | WRITE-N | rux 3.4 | none | named | named |
+| `rux.host.note.delete` | host note delete | WRITE-N | rux 3.4 | none | named | named |
 | `rux.host.tag.list` | host tag list | RUX-04 | rux 3.4 | none | named | raw |
 | `rux.account.list` | account list | RUX-02 | rux 3.4 | collection | named | raw |
 | `rux.account.show` | account show | RUX-02 | rux 3.4 | none | named | raw |
 | `rux.account.note.list` | account note list | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.account.note.edit` | account note edit | WRITE-N | rux 3.4 | none | named | named |
+| `rux.account.note.delete` | account note delete | WRITE-N | rux 3.4 | none | named | named |
 | `rux.account.tag.list` | account tag list | RUX-04 | rux 3.4 | none | named | raw |
 | `rux.detection.note.list` | detection note list | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.detection.note.edit` | detection note edit | WRITE-N | rux 3.4 | none | named | named |
+| `rux.detection.note.delete` | detection note delete | WRITE-N | rux 3.4 | none | named | named |
 | `rux.detection.tag.list` | detection tag list | RUX-04 | rux 3.4 | none | named | raw |
 | `rux.assignment.list` | assignment list | RUX-04 | rux 3.4 | collection | named | raw |
 | `rux.assignment-outcome.list` | assignment outcome list | RUX-04 | rux 3.4 | collection | named | raw |
@@ -135,7 +147,7 @@ there is no unrestricted passthrough.
 - `rux.long-tail.proxies` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.unique-host-usage` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.ad-group-directory` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
-- `qux.later.note-writes` (qux 2.5, planned): Per-object note append is a named WRITE-02 operation (qux.detection.note.add, qux.host.note.add, qux.account.note.add); edits and deletes remain planned with no authorized route.
+- `qux.later.note-writes` (qux 2.5, planned): Per-object note append is a named WRITE-02 operation (qux.detection.note.add, qux.host.note.add, qux.account.note.add); per-note edit and delete are named WRITE-N (2a) operations (qux.{detection,host,account}.note.{edit,delete}). Bulk note creation stays planned with no authorized route.
 - `qux.later.tag-writes` (qux 2.5, planned): Per-object tag replace is a named WRITE-01 operation (qux.detection.tag.set, qux.host.tag.set, qux.account.tag.set); bulk set/delete are named WRITE-05 operations (qux.detection.tag.bulk-set, qux.detection.tag.bulk-delete, qux.host.tag.bulk-set, qux.host.tag.bulk-delete, qux.account.tag.bulk-set, qux.account.tag.bulk-delete) sequencing per-target PATCH replaces with no vendor bulk route.
 - `qux.later.assignment-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `qux.later.outcome-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
@@ -143,7 +155,7 @@ there is no unrestricted passthrough.
 - `qux.later.triage-rule-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `qux.later.detection-close-open` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `qux.later.entity-close` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
-- `rux.later.note-writes` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
+- `rux.later.note-writes` (rux 3.4, planned): Per-note edit and delete are named WRITE-N (2a) operations (rux.{detection,host,account}.note.{edit,delete}). Note appends and bulk creation stay planned with no authorized route.
 - `rux.later.tag-writes` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `rux.later.assignment-writes` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `rux.later.outcome-writes` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.

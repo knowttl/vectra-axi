@@ -25,6 +25,7 @@ import { entityKind, listFields as entityListFields, listLimit as entityListLimi
   showId as entityShowId } from "./entities.js";
 import { NOTE_KINDS, noteOwnerId, runNoteList, runTagList, type NoteKind } from "./notes.js";
 import { runNoteAdd } from "./note-add.js";
+import { noteEntryId, runNoteDelete, runNoteEdit } from "./note-edit.js";
 import { loadConfig, selectProfile } from "./profiles.js";
 import { SecretRedactor } from "./redact.js";
 import { createSession, nodeTransport, type RawTransport } from "./session.js";
@@ -105,6 +106,12 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         if (invocation.leaf === "detection note add" || invocation.leaf === "host note add"
           || invocation.leaf === "account note add") {
           return runNoteAdds(invocation.leaf, invocation.flags);
+        }
+        if (invocation.leaf === "detection note edit" || invocation.leaf === "host note edit"
+          || invocation.leaf === "account note edit"
+          || invocation.leaf === "detection note delete" || invocation.leaf === "host note delete"
+          || invocation.leaf === "account note delete") {
+          return runNoteEdits(invocation.leaf, invocation.flags);
         }
         if (invocation.leaf === "assignment list" || invocation.leaf === "assignment outcome list"
           || invocation.leaf === "assignment outcome show"
@@ -226,6 +233,31 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
     const coordinator = createMutationCoordinator({ profile: selected, configPath: loaded.path, redactor, transport });
     const result: LeafResult = await runNoteAdd(session, coordinator, flags, kind);
+    if (result.failed) process.exitCode = 1;
+    return result.output;
+  }
+  // One dispatch for every note edit/delete leaf: validate the owner and
+  // note IDs, select the profile, build the session and a WRITE-00
+  // coordinator on the injected transport, and run the desired-state edit
+  // or delete through the full gate pipeline. Reads stay on the session;
+  // the PATCH or DELETE travels only with a coordinator authorization
+  // after the gates pass.
+  type NoteEditLeaf = "detection note edit" | "host note edit" | "account note edit"
+    | "detection note delete" | "host note delete" | "account note delete";
+  async function runNoteEdits(leaf: NoteEditLeaf, flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
+    const kind = leaf.split(" ")[0] as NoteKind;
+    if (!(NOTE_KINDS as readonly string[]).includes(kind)) {
+      throw new Error(`Unknown note edit leaf: ${leaf}`);
+    }
+    noteOwnerId(flags, leaf, kind);
+    noteEntryId(flags, leaf);
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
+    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+    const coordinator = createMutationCoordinator({ profile: selected, configPath: loaded.path, redactor, transport });
+    const result: LeafResult = leaf.endsWith("note edit")
+      ? await runNoteEdit(session, coordinator, flags, kind)
+      : await runNoteDelete(session, coordinator, flags, kind);
     if (result.failed) process.exitCode = 1;
     return result.output;
   }

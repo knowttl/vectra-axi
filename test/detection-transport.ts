@@ -238,10 +238,15 @@ const responses = new Map<string, { status: number; body: unknown }>([
 // read; the accepted replace answers 200 with an empty body.
 // WRITE-02: the gated detection note append sends one POST after its
 // preview read; the accepted append answers 200 with an empty body.
+// WRITE-N (2a): the gated detection note edit sends one PATCH and the
+// delete sends one DELETE to the addressed note route after their preview
+// and re-reads; both answer 200 with an empty body in the fixture.
 const mutations = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/tagging/host/7", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/tagging/host/8", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/detections/42/notes", { status: 200, body: {} }],
+  ["https://fixture.invalid/api/v2.5/detections/42/notes/1", { status: 200, body: {} }],
+  ["https://fixture.invalid/api/v2.5/detections/42/notes/2", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/assignments", { status: 201,
     body: { assignment: { id: 21, host_id: 7, account_id: null, date_resolved: null,
       assigned_to: { id: 3, username: "soc-analyst" } } } }],
