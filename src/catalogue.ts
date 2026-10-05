@@ -274,6 +274,40 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi detection tag set --profile <name> --id 42 --tags a,b --execute --confirm 'detection 42'",
     ],
   },
+  "detection tag bulk-set": {
+    description: "Add tags to QUX detections in bulk with per-target diffs through the gated write pipeline",
+    flags: {
+      ...globals,
+      ids: { kind: "value", valueName: "ids", description: "Comma-separated target detection IDs to change (positive integers, at most 100; required with no --ids-file)" },
+      "ids-file": { kind: "value", valueName: "path", description: "Read target detection IDs from a file, one per line; use - for stdin (required with no --ids)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target count and set when executing a change" },
+      tags: { kind: "value", valueName: "tags", description: "Comma-separated tags to add (at least one)" },
+      "tags-file": { kind: "value", valueName: "path", description: "Read tags to add from a file, one per line; use - for stdin" },
+      execute: { kind: "boolean", description: "Send the changes after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi detection tag bulk-set --profile <name> --ids 41,42 --tags a,b",
+      "vectra-axi detection tag bulk-set --profile <name> --ids 41,42 --tags a,b --execute --confirm '2 targets: detection 41, detection 42'",
+    ],
+  },
+  "detection tag bulk-delete": {
+    description: "Remove tags from QUX detections in bulk with per-target diffs through the gated write pipeline",
+    flags: {
+      ...globals,
+      ids: { kind: "value", valueName: "ids", description: "Comma-separated target detection IDs to change (positive integers, at most 100; required with no --ids-file)" },
+      "ids-file": { kind: "value", valueName: "path", description: "Read target detection IDs from a file, one per line; use - for stdin (required with no --ids)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target count and set when executing a change" },
+      tags: { kind: "value", valueName: "tags", description: "Comma-separated tags to remove (at least one)" },
+      "tags-file": { kind: "value", valueName: "path", description: "Read tags to remove from a file, one per line; use - for stdin" },
+      execute: { kind: "boolean", description: "Send the changes after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi detection tag bulk-delete --profile <name> --ids 41,42 --tags a,b",
+      "vectra-axi detection tag bulk-delete --profile <name> --ids 41,42 --tags a,b --execute --confirm '2 targets: detection 41, detection 42'",
+    ],
+  },
   "detection note add": {
     description: "Append one QUX detection note through the gated write pipeline",
     flags: {
@@ -360,6 +394,40 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi host tag set --profile <name> --id 19 --tags a,b --execute --confirm 'host 19'",
     ],
   },
+  "host tag bulk-set": {
+    description: "Add tags to QUX hosts in bulk with per-target diffs through the gated write pipeline",
+    flags: {
+      ...globals,
+      ids: { kind: "value", valueName: "ids", description: "Comma-separated target host IDs to change (positive integers, at most 100; required with no --ids-file)" },
+      "ids-file": { kind: "value", valueName: "path", description: "Read target host IDs from a file, one per line; use - for stdin (required with no --ids)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target count and set when executing a change" },
+      tags: { kind: "value", valueName: "tags", description: "Comma-separated tags to add (at least one)" },
+      "tags-file": { kind: "value", valueName: "path", description: "Read tags to add from a file, one per line; use - for stdin" },
+      execute: { kind: "boolean", description: "Send the changes after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi host tag bulk-set --profile <name> --ids 7,8 --tags a,b",
+      "vectra-axi host tag bulk-set --profile <name> --ids 7,8 --tags a,b --execute --confirm '2 targets: host 7, host 8'",
+    ],
+  },
+  "host tag bulk-delete": {
+    description: "Remove tags from QUX hosts in bulk with per-target diffs through the gated write pipeline",
+    flags: {
+      ...globals,
+      ids: { kind: "value", valueName: "ids", description: "Comma-separated target host IDs to change (positive integers, at most 100; required with no --ids-file)" },
+      "ids-file": { kind: "value", valueName: "path", description: "Read target host IDs from a file, one per line; use - for stdin (required with no --ids)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target count and set when executing a change" },
+      tags: { kind: "value", valueName: "tags", description: "Comma-separated tags to remove (at least one)" },
+      "tags-file": { kind: "value", valueName: "path", description: "Read tags to remove from a file, one per line; use - for stdin" },
+      execute: { kind: "boolean", description: "Send the changes after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi host tag bulk-delete --profile <name> --ids 7,8 --tags a,b",
+      "vectra-axi host tag bulk-delete --profile <name> --ids 7,8 --tags a,b --execute --confirm '2 targets: host 7, host 8'",
+    ],
+  },
   "host note add": {
     description: "Append one QUX host note through the gated write pipeline",
     flags: {
@@ -444,6 +512,40 @@ export const catalogue: Readonly<Record<string, {
     examples: [
       "vectra-axi account tag set --profile <name> --id 19 --tags a,b",
       "vectra-axi account tag set --profile <name> --id 19 --tags a,b --execute --confirm 'account 19'",
+    ],
+  },
+  "account tag bulk-set": {
+    description: "Add tags to QUX accounts in bulk with per-target diffs through the gated write pipeline",
+    flags: {
+      ...globals,
+      ids: { kind: "value", valueName: "ids", description: "Comma-separated target account IDs to change (positive integers, at most 100; required with no --ids-file)" },
+      "ids-file": { kind: "value", valueName: "path", description: "Read target account IDs from a file, one per line; use - for stdin (required with no --ids)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target count and set when executing a change" },
+      tags: { kind: "value", valueName: "tags", description: "Comma-separated tags to add (at least one)" },
+      "tags-file": { kind: "value", valueName: "path", description: "Read tags to add from a file, one per line; use - for stdin" },
+      execute: { kind: "boolean", description: "Send the changes after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi account tag bulk-set --profile <name> --ids 7,8 --tags a,b",
+      "vectra-axi account tag bulk-set --profile <name> --ids 7,8 --tags a,b --execute --confirm '2 targets: account 7, account 8'",
+    ],
+  },
+  "account tag bulk-delete": {
+    description: "Remove tags from QUX accounts in bulk with per-target diffs through the gated write pipeline",
+    flags: {
+      ...globals,
+      ids: { kind: "value", valueName: "ids", description: "Comma-separated target account IDs to change (positive integers, at most 100; required with no --ids-file)" },
+      "ids-file": { kind: "value", valueName: "path", description: "Read target account IDs from a file, one per line; use - for stdin (required with no --ids)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target count and set when executing a change" },
+      tags: { kind: "value", valueName: "tags", description: "Comma-separated tags to remove (at least one)" },
+      "tags-file": { kind: "value", valueName: "path", description: "Read tags to remove from a file, one per line; use - for stdin" },
+      execute: { kind: "boolean", description: "Send the changes after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi account tag bulk-delete --profile <name> --ids 7,8 --tags a,b",
+      "vectra-axi account tag bulk-delete --profile <name> --ids 7,8 --tags a,b --execute --confirm '2 targets: account 7, account 8'",
     ],
   },
   "account note add": {
@@ -830,7 +932,7 @@ export function parseInvocation(argv: readonly string[]): {
       if (inline.length) usage(`--${name} does not accept a value`);
     } else {
       const next = inline.length ? inline.join("=") : args[++index];
-      if (!next?.trim() || (!inline.length && next.startsWith("-") && !((name === "tags-file" || name === "note-file") && next === "-"))) usage(`--${name} requires a non-empty value`);
+      if (!next?.trim() || (!inline.length && next.startsWith("-") && !((name === "tags-file" || name === "note-file" || name === "ids-file") && next === "-"))) usage(`--${name} requires a non-empty value`);
       value = next!;
     }
     flags.set(name!, value);

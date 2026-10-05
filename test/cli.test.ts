@@ -232,6 +232,66 @@ it("refuses a packaged tag replace without hand opt-in", () => {
   expect(refused.stderr).toBe("");
 });
 
+it("previews and executes a gated bulk tag set through the packaged binary", () => {
+  const config = join(scratch, "tagbulk.json");
+  const trace = join(scratch, "tagbulk-requests.jsonl");
+  const journal = join(scratch, "tagbulk-writes.log");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: ["qux.host.tag.bulk-set"] } } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    VECTRA_AXI_WRITE_LOG: journal,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const preview = invoke(["host", "tag", "bulk-set", ...context, "--ids", "7,8",
+    "--tags", "fresh"], fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(preview.stderr).toBe("");
+  expect(decode(preview.stdout)).toMatchObject({ profile: "lab", type: "host",
+    operation: "qux.host.tag.bulk-set", targets: "2 targets: host 7, host 8", count: 2 });
+  const unconfirmed = invoke(["host", "tag", "bulk-set", ...context, "--ids", "7,8",
+    "--tags", "fresh", "--execute"], fixtureEnv);
+  expect(unconfirmed.status).toBe(1);
+  expect(unconfirmed.stdout).toContain("code: CONFIRM_REQUIRED");
+  expect(unconfirmed.stderr).toBe("");
+  expect(() => readFileSync(journal, "utf8")).toThrow();
+  const applied = invoke(["host", "tag", "bulk-set", ...context, "--ids", "7,8",
+    "--tags", "fresh", "--execute", "--confirm", "2 targets: host 7, host 8"], fixtureEnv);
+  expect(applied.status).toBe(0);
+  expect(applied.stderr).toBe("");
+  const appliedOutput = decode(applied.stdout) as Record<string, unknown>;
+  expect(appliedOutput).toMatchObject({ profile: "lab", type: "host",
+    operation: "qux.host.tag.bulk-set", targets: "2 targets: host 7, host 8",
+    summary: "2 applied, 0 unchanged, 0 failed, 0 unknown, 0 refused of 2 targets" });
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/7" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/8" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/7" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/8" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/7" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/8" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/7" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/7" },
+    { method: "PATCH", url: "https://fixture.invalid/api/v2.5/tagging/host/7",
+      body: { tags: ["synthetic-tag", "fresh"] } },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/8" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/tagging/host/8" },
+    { method: "PATCH", url: "https://fixture.invalid/api/v2.5/tagging/host/8",
+      body: { tags: ["synthetic-tag", "other", "fresh"] } },
+  ]);
+  expect(readFileSync(journal, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line)))
+    .toEqual([
+      expect.objectContaining({ kind: "intent", operation: "qux.host.tag.bulk-set", method: "PATCH",
+        target: "host 7" }),
+      expect.objectContaining({ kind: "outcome", operation: "qux.host.tag.bulk-set", httpStatus: 200,
+        outcome: "SUCCESS", target: "host 7" }),
+      expect.objectContaining({ kind: "intent", operation: "qux.host.tag.bulk-set", method: "PATCH",
+        target: "host 8" }),
+      expect.objectContaining({ kind: "outcome", operation: "qux.host.tag.bulk-set", httpStatus: 200,
+        outcome: "SUCCESS", target: "host 8" }),
+    ]);
+});
+
 it("previews and executes a gated note append through the packaged binary", () => {
   const config = join(scratch, "noteadd.json");
   const trace = join(scratch, "noteadd-requests.jsonl");
@@ -1352,7 +1412,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, doctor, detection list, detection show, detection event list, host list, host show, account list, account show, entity list, entity show, entity scoring list, detection note list, detection tag list, detection tag set, detection note add, detection note edit, detection note delete, host note list, host tag list, host tag set, host note add, host note edit, host note delete, account note list, account tag list, account tag set, account note add, account note edit, account note delete, assignment list, assignment set, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
+  expect(result.stdout).toContain("Available commands: home, setup, doctor, detection list, detection show, detection event list, host list, host show, account list, account show, entity list, entity show, entity scoring list, detection note list, detection tag list, detection tag set, detection tag bulk-set, detection tag bulk-delete, detection note add, detection note edit, detection note delete, host note list, host tag list, host tag set, host tag bulk-set, host tag bulk-delete, host note add, host note edit, host note delete, account note list, account tag list, account tag set, account tag bulk-set, account tag bulk-delete, account note add, account note edit, account note delete, assignment list, assignment set, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
   expect(result.stdout).toContain("lockdown list");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
