@@ -1,3 +1,4 @@
+import { rawAllowed } from "./api-get.js";
 import { catalogue, inventory } from "./catalogue.js";
 
 // PACK-01: single source for generated release records. The committed
@@ -28,8 +29,12 @@ export function coverageDocument(): string {
   const operations = inventory.operations;
   const count = (disposition: string): number =>
     operations.filter((operation) => operation.disposition === disposition).length;
+  // The Raw column records each route's raw disposition: `raw` where the
+  // `api get` leaf serves the operation under its recorded query/field
+  // policy, otherwise the operation's own disposition. Raw-eligible
+  // operations keep their `named` disposition and their named leaves.
   const rows = operations.map((operation) =>
-    `| \`${operation.id}\` | ${operation.command ?? "-"} | ${operation.slice} | ${operation.deployment} ${operation.apiVersion} | ${operation.paging} | ${operation.disposition} |`);
+    `| \`${operation.id}\` | ${operation.command ?? "-"} | ${operation.slice} | ${operation.deployment} ${operation.apiVersion} | ${operation.paging} | ${operation.disposition} | ${rawAllowed(operation) ? "raw" : operation.disposition} |`);
   const families = inventory.deferredFamilies.map((family) =>
     `- \`${family.id}\` (${family.deployment} ${family.apiVersion}, ${family.disposition}): ${family.rationale}`);
   return [
@@ -40,6 +45,8 @@ export function coverageDocument(): string {
     "This is the supported QUX and RUX SOC read surface with gated QUX single and bulk tag-write, note-write and assignment-write families, not full Vectra API coverage.",
     "Only `named` operations have an implemented, tested command leaf; every other",
     "operation remains planned, blocked or unreviewed until its own slice ships.",
+    "The reviewed `api get` raw-read leaf serves the allowlisted GET operations marked `raw` below;",
+    "there is no unrestricted passthrough.",
     "",
     "## Counts",
     "",
@@ -47,8 +54,8 @@ export function coverageDocument(): string {
     "",
     "## Operations",
     "",
-    "| Operation | Command | Slice | Deployment/API | Paging | Disposition |",
-    "|---|---|---|---|---|---|",
+    "| Operation | Command | Slice | Deployment/API | Paging | Disposition | Raw |",
+    "|---|---|---|---|---|---|---|",
     ...rows,
     "",
     "## Deferred families",

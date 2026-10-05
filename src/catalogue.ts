@@ -760,6 +760,31 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
 
+  "api get": {
+    // API-01: reviewed raw read over the operation catalogue. --operation
+    // names an allowlisted GET read by inventory ID; --path binds its route
+    // template variables and --query passes only its recorded server-side
+    // keys. The destination stays the configured profile's instance: there
+    // is no URL argument, no custom header and no other method. Checkpoint
+    // and date-window feeds, writes and sensitive routes are refused with
+    // guidance to their named leaves or the block reason.
+    description: "Read one allowlisted GET operation by inventory ID with its recorded query and field policy",
+    flags: {
+      ...globals,
+      operation: { kind: "value", valueName: "id", description: "Reviewed operation ID to read, for example qux.detection.list (required)" },
+      path: { kind: "value", valueName: "pairs", description: "Route template bindings as name=value pairs joined with &" },
+      query: { kind: "value", valueName: "pairs", description: "Server-side filters as name=value pairs joined with &" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over the operation's recorded fields" },
+      limit: { kind: "value", valueName: "rows", description: "Row window for collection reads; default 100" },
+      cursor: { kind: "value", valueName: "cursor", description: "Resume a capped collection read with its original operation and filters" },
+      full: { kind: "boolean", description: "Show complete long text; default previews truncated values" },
+    },
+    examples: [
+      "vectra-axi api get --profile <name> --operation qux.detection.list --query state=active --limit 20",
+      "vectra-axi api get --profile <name> --operation qux.detection.show --path id=42",
+      "vectra-axi api get --profile <name> --operation rux.detection.list --fields id,state",
+    ],
+  },
   "lockdown list": {
     // The kind selects a QUX status route or the RUX type query; there is no
     // execution leaf, so no action flag exists to validate here.

@@ -44,6 +44,8 @@ export type Session = {
 const MAX_REDIRECTS = 3;
 const REQUEST_TIMEOUT_MS = 30_000;
 export const RESPONSE_BODY_LIMIT_BYTES = 8 * 1024 * 1024;
+export const HEALTH_CHECKS = ["cpu", "disk", "network", "memory", "power", "sensors",
+  "system", "hostid", "connectivity", "trafficdrop"] as const;
 
 function ensureActive(signal: AbortSignal | undefined): void {
   if (signal?.aborted) {
@@ -90,6 +92,17 @@ function cleanParam(name: string, value: string | number): string {
   return encodeURIComponent(text);
 }
 
+export function fieldSelection(record: CapabilityOperation, raw: string, source: string): readonly string[] {
+  const fields = raw.split(",").map((field) => field.trim()).filter(Boolean);
+  const unknown = fields.filter((field) => !record.fields.includes(field));
+  if (fields.length === 0 || unknown.length > 0) {
+    throw new AxiError(`Unknown ${source} value: ${unknown.join(", ") || "(empty)"}`, "VALIDATION_ERROR", [
+      `Operation ${record.id} supports fields: ${record.fields.join(", ")}`,
+    ]);
+  }
+  return [...new Set(fields)];
+}
+
 // URL construction validates the template binding, then re-checks the built
 // destination before any credential is resolved or attached.
 function buildOperationUrl(
@@ -100,6 +113,12 @@ function buildOperationUrl(
     if (!Object.hasOwn(params, name)) {
       throw new AxiError(`Missing path parameter: ${name}`, "VALIDATION_ERROR", [
         `Provide ${name} for operation ${record.id}`,
+      ]);
+    }
+    if ((record.id === "qux.health.show" || record.id === "rux.health.show")
+      && !(HEALTH_CHECKS as readonly string[]).includes(String(params[name]))) {
+      throw new AxiError(`Unsupported health check: ${String(params[name])}`, "VALIDATION_ERROR", [
+        `Supported checks: ${HEALTH_CHECKS.join(", ")}`,
       ]);
     }
     return cleanParam(name, params[name]!);
@@ -146,6 +165,9 @@ function assertDestination(profile: SelectedProfile, record: CapabilityOperation
     throw new AxiError(`Refusing destination outside operation ${record.id}`, "DESTINATION_DENIED", [
       "Destinations must retain the operation's bound route and use only its declared query keys; no credential was sent",
     ]);
+  }
+  for (const [key, value] of url.searchParams) {
+    if (key === "fields" || key === "exclude_fields") fieldSelection(record, value, `query ${key}`);
   }
 }
 
