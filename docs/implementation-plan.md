@@ -249,7 +249,7 @@ WRITE-N (2a) selects per-object detection, host and account note edit and note d
 Its [offline acceptance suite](../test/note-edit.test.ts) covers desired-state before/after previews, exact replacement bodies, file/stdin inputs, already-matching and already-deleted no-ops, missing notes, changed current state, exact target-plus-note confirmation, policy refusal, denied reads, server rejection and unknown outcomes without replay.
 All acceptance uses synthetic fixtures; no live instance, real credentials or customer data is used.
 See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
-Bulk tag set/delete remains planned and requires its own separately selected WRITE-N slice; triage rules and group membership writes are not approved.
+Triage rules and group membership writes are not approved.
 
 WRITE-03 selects desired-state QUX host and account assignment, built on READ-04 and WRITE-00.
 Detection assignment is outside this approved slice; see [README.md](../README.md) for the upstream limitation.
