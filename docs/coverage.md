@@ -94,7 +94,7 @@ there is no unrestricted passthrough.
 | `qux.lockdown.account.list` | lockdown list | READ-08 | qux 2.5 | none | named | raw |
 | `rux.entity.list` | entity list | RUX-02 | rux 3.4 | collection | named | raw |
 | `rux.entity.show` | entity show | RUX-02 | rux 3.4 | none | named | raw |
-| `rux.lockdown.list` | lockdown list | RUX-06 | rux 3.4 | none | named | raw |
+| `rux.lockdown.list` | lockdown list | RUX-06 | rux 3.4 | none | named | named |
 | `rux.detection.event.list` | detection event list | RUX-03 | rux 3.4 | checkpoint | named | named |
 | `rux.entity.scoring.list` | entity scoring list | RUX-03 | rux 3.4 | checkpoint | named | named |
 | `rux.health.external-connectors.show` | health show | RUX-06 | rux 3.4 | none | named | raw |
