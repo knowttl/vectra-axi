@@ -204,6 +204,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
+  // One dispatch for every note append leaf: validate the owner ID, select
   // the profile, build the session and a WRITE-00 coordinator on the
   // injected transport, and run the action-shaped append through the full
   // gate pipeline. Reads stay on the session; the POST travels only with

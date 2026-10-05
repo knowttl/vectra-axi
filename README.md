@@ -168,12 +168,16 @@ Choose exactly one input; tags are trimmed, blank entries dropped and duplicates
 Intent and outcome are journaled durably; server rejections return an error with the audit id and exit 1, and ambiguous timeouts report the audit id with read-back guidance instead of replaying.
 `<kind> tag bulk-set --profile <name> --ids 7,8 --tags a,b` unions the named tags onto each explicit target's set, and `<kind> tag bulk-delete --profile <name> --ids 7,8 --tags a,b` subtracts them, through the WRITE-00 gate pipeline: the profile must hand-enable `qux.<kind>.tag.bulk-set` or `qux.<kind>.tag.bulk-delete` in its `writes` scope (the single-target `tag set` scope does not cover bulk), the dry run previews the per-target added and removed diffs, and `--execute --confirm '<n> targets: <kind> <id>, ...'` sends one PATCH per target only for targets whose set would change (already-steady targets are exit-0 no-ops that send nothing).
 Targets come from `--ids` (comma-separated) or `--ids-file` (one ID per line, `-` for stdin), at most 100 per run in ascending order with duplicates collapsed; query-selected targets are never accepted.
+Choose exactly one target input and exactly one tag input: `--tags` (comma-separated) or `--tags-file` (one tag per line, `-` for stdin); tags are trimmed, blank entries dropped and duplicates collapsed in first-seen order.
+For one target, confirmation is `1 target: <kind> <id>`; for example, two hosts require `--confirm '2 targets: host 7, host 8'`.
 No vendor bulk tagging route is evidenced, so bulk runs sequence per-target full-replace PATCHes through the QUX tagging route and refuse RUX profiles outright.
 Both actions reject empty tag input; deleting all existing named tags leaves a target empty.
 A denied or malformed preview read aborts the run before anything is sent.
-The pre-send re-read refuses a moved target with `VERSION_CONFLICT` unless it already equals the desired set, which is a no-op.
+Every confirmed target is read again at its execution turn, including targets unchanged in the preview; targets still requiring a PATCH are also re-read immediately before sending.
+Either re-read refuses a moved target with `VERSION_CONFLICT` unless it already equals the previewed desired set, which is a no-op.
 This is a non-atomic comparison of tag contents, not an ETag or server-side version check; a change after the re-read can still be overwritten.
-One moved, rejected or timed-out target is recorded for that target and the confirmed rest still send; the report lists every target's applied, unchanged, failed, unknown or refused outcome with its audit id and exits 1 unless all reported targets applied or were already steady.
+One moved, rejected or timed-out target is reported for that target and the confirmed rest continue; the report lists every target's `applied`, `noop` (unchanged), `failed`, `unknown` or `refused` outcome and exits 1 unless all reported targets applied or were already steady.
+Applied, failed and unknown results include an audit id; no-op and refused results do not.
 Omitting `--execute` previews only; explicit `--dry-run` cannot be combined with `--execute`.
 Per-target intent and outcome are journaled durably as metadata only; server rejections return an error with the audit id and exit 1, and ambiguous timeouts report the audit id with read-back guidance instead of replaying.
 
