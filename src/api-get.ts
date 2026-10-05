@@ -21,11 +21,11 @@ function invalid(message: string, ...suggestions: string[]): never {
   throw new AxiError(message, "VALIDATION_ERROR", suggestions);
 }
 
-// The raw allowlist is exactly the reviewed named GET reads with collection
-// or single-response paging. Checkpoint and date-window feeds keep their
-// named leaves (returned-checkpoint semantics cannot be expressed as generic
-// key/value filters); writes, credential exchanges, sensitive routes and
-// unreviewed operations are never raw-addressable.
+// The raw allowlist is exactly the reviewed named GET reads with a nonempty
+// field policy and collection or single-response paging. Checkpoint and
+// date-window feeds keep their named leaves (returned-checkpoint semantics
+// cannot be expressed as generic key/value filters); writes, credential
+// exchanges, sensitive routes and unreviewed operations are never raw-addressable.
 export function rawRecord(operation: string): CapabilityOperation {
   const record = inventory.operations.find((candidate) => candidate.id === operation);
   if (!record) {
@@ -85,8 +85,9 @@ export function rawOperation(flags: ReadonlyMap<string, string | boolean>): Capa
 const PAIR_KEY = /^[A-Za-z0-9_]+$/;
 
 // One generic pair grammar for --path and --query: `name=value` pairs joined
-// with `&`, mirroring a URL query string. Values pass through to the server;
-// the server applies them, so no per-operation value enum is invented here.
+// with `&`. Values are percent-decoded once before the session encodes them
+// for transport; plus signs remain literal. The server applies filters,
+// while field selectors and route bindings retain the session's policy.
 function parsePairs(raw: string, flag: string): Array<[string, string]> {
   const pairs = raw.split("&").map((pair) => pair.trim()).filter(Boolean);
   if (pairs.length === 0) {

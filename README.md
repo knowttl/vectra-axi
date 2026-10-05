@@ -281,8 +281,10 @@ QUX host status requires the configured Microsoft Defender ATP Lockdown integrat
 Empty status succeeds with an explicit zero message; permission or licence denial reports `ACCESS_DENIED` with exit 1, never an empty healthy result.
 
 `api get --profile <name> --operation <id>` reads one allowlisted GET operation by inventory ID through the session, never a parallel HTTP path: `--operation` is required and must name a reviewed collection or single-response read, `--path` binds the route template variables and `--query` passes only the operation's recorded server-side keys, both as `name=value` pairs joined with `&`.
+Quote pairs containing shell metacharacters and percent-encode reserved characters inside values, for example `--query 'name=R%26D'` for `R&D`.
+Values are percent-decoded once before the session encodes them for transport; use `%25` for a literal percent sign, and `+` remains a literal plus.
 The destination stays the configured profile's instance: there is no URL or host argument, no custom header and no other method.
-Raw reads return only the operation's recorded fields; `--fields` narrows that projection.
+Raw reads require a nonempty recorded field policy and return only those fields; `--fields` narrows that projection.
 The `fields` and `exclude_fields` query selectors also accept only recorded field names.
 Collection operations return a bounded window (`--limit`, default 100) with an opaque `--cursor` that resumes with the same operation and filters; single responses return in one body.
 Both share the named output contracts: explicit zero results, retained partial rows with `complete:false` and exit 1, redaction, and the 1200-character truncation preview with a `--full` escape.

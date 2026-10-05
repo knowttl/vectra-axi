@@ -27,7 +27,7 @@ They must not be reused for a different operation.
 | `constraints` | Authentication, release-dependent fields, selectors and generation-specific semantics that cannot be inferred from a route. |
 | `method`, `path`, `effect` | Exact method and resource path template, plus read, auth-exchange, credential-export, write or disruptive classification. |
 | `query` | Conservative subset of evidenced upstream query names for the initial journey; not a CLI flag list or an exhaustive upstream parameter inventory. |
-| `fields` | Conservative subset of evidenced response fields useful to callers; not an upstream projection allowlist or a decoder. |
+| `fields` | Conservative subset of evidenced response fields useful to callers and the reviewed raw field policy; not an exhaustive upstream field inventory or a decoder. |
 | `paging` | `none` for a single response, `collection` for count/results/next, `checkpoint` for returned event checkpoints, or `date-window` for QUX audits. |
 | `permissions`, `licence` | Established prerequisites or explicit gaps in evidence; unknown entitlement is never assumed unrestricted access. |
 | `evidence` | Source ID plus page, method/path or symbol locator supporting the record. |
@@ -37,7 +37,7 @@ They must not be reused for a different operation.
 `query: []` and `fields: []` mean no initial subset has been pinned, not that the endpoint accepts no parameters or returns no fields.
 Later slices must recheck supported query values, projection fields, response shapes, budgets and release gates before enabling a leaf.
 Nontrivial transformations and future decoders belong in ordinary code, not inventory expressions.
-The inventory records evidence; the [strict executable catalogue](../src/catalogue.ts) is the sole owner of shipped grammar/help/support claims.
+The inventory records evidence; the [strict executable catalogue](../src/catalogue.ts) owns shipped grammar/help, and the generated [coverage record](coverage.md) records named and raw availability from the executable policy.
 
 ## Dispositions and exclusions
 
@@ -53,7 +53,7 @@ The inventory records evidence; the [strict executable catalogue](../src/catalog
 
 The [capability records](../inventory/capabilities.json) own each operation's delivery state; see [README.md](../README.md) for shipped commands.
 Neither an upstream GET nor a downloaded schema enables an endpoint.
-The QUX sensor registration token and AWS connector credential reads are `blocked` and cannot be exposed through later raw-read access.
+The QUX sensor registration token and AWS connector credential reads are `blocked` and cannot be exposed through raw-read access.
 OAuth exchanges are separate effects; a token POST does not authorize business POSTs.
 Unknown routes remain outside the catalogue; see [README.md](../README.md) for the session's shipped authorization policy.
 
