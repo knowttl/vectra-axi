@@ -165,7 +165,7 @@ export function createMutationCoordinator(args: {
         "WRITES_DISABLED",
         [
           "Writes are disabled for this profile",
-          "Gated `tag set` replaces, `note add` appends and `assignment set` changes need a hand-edited writes scope on this profile",
+          "Gated `tag set` replaces, bulk `tag bulk-set`/`tag bulk-delete` changes, `note add` appends and `assignment set` changes need a hand-edited writes scope on this profile",
         ],
       );
     }
@@ -176,7 +176,7 @@ export function createMutationCoordinator(args: {
         "OPERATION_NOT_WRITABLE",
         [
           "Writes are limited to this profile's configured operations",
-          "Only implemented operations can run: `tag set` replaces, `note add` appends and `assignment set` changes",
+          "Only implemented operations can run: `tag set` replaces, bulk `tag bulk-set`/`tag bulk-delete` changes, `note add` appends and `assignment set` changes",
         ],
       );
     }

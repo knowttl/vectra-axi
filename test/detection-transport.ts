@@ -51,6 +51,9 @@ const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/detections/42/notes",
     { status: 200, body: [{ id: 1, note: "synthetic detail ".repeat(100) }, { id: 2, note: "short synthetic note" }] }],
   ["https://fixture.invalid/api/v2.5/tagging/host/7", { status: 200, body: { tags: ["synthetic-tag"] } }],
+  // WRITE-05: the bulk tag journey reads a second host's tags before
+  // fanning out one replace per explicit target.
+  ["https://fixture.invalid/api/v2.5/tagging/host/8", { status: 200, body: { tags: ["synthetic-tag", "other"] } }],
   ["https://fixture.invalid/api/v2.5/accounts/7/notes", { status: 200, body: [] }],
   // READ-04: unresolved and resolved assignments stay distinct rows; the
   // resolution taxonomy and users are separate resources on their own routes.
@@ -237,6 +240,7 @@ const responses = new Map<string, { status: number; body: unknown }>([
 // preview read; the accepted append answers 200 with an empty body.
 const mutations = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/tagging/host/7", { status: 200, body: {} }],
+  ["https://fixture.invalid/api/v2.5/tagging/host/8", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/detections/42/notes", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/assignments", { status: 201,
     body: { assignment: { id: 21, host_id: 7, account_id: null, date_resolved: null,

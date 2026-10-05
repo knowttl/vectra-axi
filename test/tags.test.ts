@@ -101,7 +101,7 @@ it.each(["detection", "host", "account"] as const)("requires confirmation before
 });
 
 it.each(Object.entries(catalogue).flatMap(([command, entry]) =>
-  Object.entries(entry.flags).filter(([name, flag]) => flag.kind === "value" && name !== "tags-file" && name !== "note-file")
+  Object.entries(entry.flags).filter(([name, flag]) => flag.kind === "value" && name !== "tags-file" && name !== "note-file" && name !== "ids-file")
     .map(([name]) => [command, name]),
 ))("rejects a separate bare dash for %s --%s", (command, name) => {
   expect(() => parseInvocation([...command!.split(" "), `--${name}`, "-"]))
