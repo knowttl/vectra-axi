@@ -1,13 +1,13 @@
 ---
 name: vectra-axi
-description: Use vectra-axi for Vectra SOC inspection through explicit profiles, plus gated tag replaces, note appends and assignment sets.
+description: Use vectra-axi for Vectra SOC inspection through explicit profiles, plus gated tag replaces, bulk tag changes, note appends and assignment sets.
 user-invocable: false
 ---
 
 # vectra-axi
 
 Agent-ergonomic CLI for Vectra AI, read-only by default, through token-efficient TOON output.
-Gated tag replaces (`detection|host|account tag set`), note appends (`detection|host|account note add`) and assignment sets (`assignment set --host|--account --user|--unassign`) require hand-enabled profiles.
+Gated tag replaces (`detection|host|account tag set`), bulk tag changes (`detection|host|account tag bulk-set|bulk-delete`), note appends (`detection|host|account note add`) and assignment sets (`assignment set --host|--account --user|--unassign`) require hand-enabled profiles.
 See [README.md](../../README.md) for shipped reads by deployment and write restrictions.
 
 Run `vectra-axi doctor` first.
@@ -17,7 +17,7 @@ See [README release guidance](../../README.md#release) for its profile selection
 
 The exact current leaf registry is `src/catalogue.ts`. Its capability labels
 are `native` (implemented by a vectra-axi handler) and its Vectra effect is
-`read` for reads and `write` for the gated tag replaces, note appends and assignment sets. The list below
+`read` for reads and `write` for the gated tag replaces, bulk tag changes, note appends and assignment sets. The list below
 records current executable leaves; it
 makes no coverage claim for other Vectra operations. See `docs/coverage.md`
 for the per-operation disposition records.
@@ -42,14 +42,20 @@ See [README release guidance](../../README.md#release) for generating and checki
 | `vectra-axi detection note list` | native | read |
 | `vectra-axi detection tag list` | native | read |
 | `vectra-axi detection tag set` | native | write |
+| `vectra-axi detection tag bulk-set` | native | write |
+| `vectra-axi detection tag bulk-delete` | native | write |
 | `vectra-axi detection note add` | native | write |
 | `vectra-axi host note list` | native | read |
 | `vectra-axi host tag list` | native | read |
 | `vectra-axi host tag set` | native | write |
+| `vectra-axi host tag bulk-set` | native | write |
+| `vectra-axi host tag bulk-delete` | native | write |
 | `vectra-axi host note add` | native | write |
 | `vectra-axi account note list` | native | read |
 | `vectra-axi account tag list` | native | read |
 | `vectra-axi account tag set` | native | write |
+| `vectra-axi account tag bulk-set` | native | write |
+| `vectra-axi account tag bulk-delete` | native | write |
 | `vectra-axi account note add` | native | write |
 | `vectra-axi assignment list` | native | read |
 | `vectra-axi assignment set` | native | write |
