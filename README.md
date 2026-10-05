@@ -157,17 +157,19 @@ Omitting `--execute` previews only; explicit `--dry-run` cannot be combined with
 Each successful execution appends one note; repeated identical notes each send, and there is no no-op or conflict comparison.
 The notes resource is read for the preview and again before sending; a failed read blocks the append, while concurrent additions do not block it.
 Choose exactly one of `--note` (inline text) or `--note-file` (a file path, `-` for stdin); file content is appended exactly as read and empty or whitespace-only notes are rejected.
-No upstream note length limit is evidenced, so none is enforced; long text is preview-truncated at 1200 characters with its total.
-Intent and outcome are journaled as metadata only, never the note text; server rejections return an error with the audit id and exit 1, and ambiguous timeouts report the audit id with read-back guidance instead of replaying.
-`<kind> note edit --profile <name> --id <id> --note-id <note-id> --note <text>` replaces one addressed note's text through the WRITE-00 gate pipeline: the profile must hand-enable `<qux|rux>.<kind>.note.edit` in its `writes` scope, the dry run previews the exact before/after, and `--execute --confirm '<kind> <id> note <note-id>'` sends a PATCH only when the text differs (an already-matching text is an exit-0 no-op; a missing note is refused before any preview).
+No upstream note length limit is evidenced, so none is enforced; append previews include the complete text.
+`<kind> note edit --profile <name> --id <id> --note-id <note-id> --note <text>` replaces one addressed note's text through the WRITE-00 gate pipeline: the profile must hand-enable `<qux|rux>.<kind>.note.edit` in its `writes` scope, the dry run previews the before/after text, and `--execute --confirm '<kind> <id> note <note-id>'` sends a PATCH only when the text differs (an already-matching text is an exit-0 no-op; a missing note is refused before any preview).
 Omitting `--execute` previews only; explicit `--dry-run` cannot be combined with `--execute`.
-The pre-send re-read refuses a moved or deleted note with `VERSION_CONFLICT`, unless the fresh text already equals the replacement, which is a no-op.
+The pre-send re-read refuses changed text or a deleted note with `VERSION_CONFLICT`, unless the fresh text already equals the replacement, which is a no-op.
 This is a non-atomic comparison of note contents, not an ETag or server-side version check; a change after the re-read can still overwrite.
 Choose exactly one of `--note` (inline text) or `--note-file` (a file path, `-` for stdin); file content is used exactly as read and empty or whitespace-only replacement text is rejected.
 `<kind> note delete --profile <name> --id <id> --note-id <note-id>` removes one addressed note through the same pipeline: the profile must hand-enable `<qux|rux>.<kind>.note.delete`, the dry run previews the note being removed, and `--execute --confirm '<kind> <id> note <note-id>'` sends a DELETE (an already-deleted note is an exit-0 no-op).
 The pre-send re-read refuses a changed note with `VERSION_CONFLICT`, unless the note is already gone, which is a no-op.
-QUX sends PATCH/DELETE to `/api/v2.5/<kind>s/<id>/notes/<note-id>`; RUX sends the same methods to the trailing-slash `/api/v3.4/<kind>s/<id>/notes/<note-id>/` item route.
-Intent and outcome are journaled as metadata only, never the note text; server rejections return an error with the audit id and exit 1, and ambiguous timeouts report the audit id with read-back guidance instead of replaying.
+Edit/delete previews truncate text at 1200 characters with its total length; neither leaf accepts `--full`.
+Use `note list --full` to inspect the complete current text before confirming; edits send the complete replacement text without an enforced length limit.
+A change after the delete re-read can still remove text that was never previewed.
+See the [capability records](inventory/capabilities.json) for exact generation-specific item routes.
+For note append, edit and delete, intent and outcome are journaled as metadata only, never the note text; server rejections return an error with the audit id and exit 1, and ambiguous timeouts report the audit id with read-back guidance instead of replaying.
 `<kind> tag set --profile <name> --id <id> --tags a,b` replaces the owner's tag set with exactly the desired tags through the WRITE-00 gate pipeline: the profile must hand-enable `qux.<kind>.tag.set` in its `writes` scope, the dry run previews added and removed tags, and `--execute --confirm '<kind> <id>'` sends a PATCH only when the diff is non-empty (an already-matching set is an exit-0 no-op).
 Omitting `--execute` previews only; explicit `--dry-run` cannot be combined with `--execute`.
 The pre-send re-read refuses changed tags with `VERSION_CONFLICT`, unless they already equal the desired set, which is a no-op.

@@ -24,12 +24,12 @@ import type { MutationCoordinator, MutationDefinition } from "./writes.js";
 //
 // Reads come from the READ-03/RUX-04 note list routes (the pre-send state
 // source): the item is addressed by owner ID plus note ID, the preview
-// shows the exact before/after (edit) or the note being removed (delete),
-// and the pre-send re-read refuses a moved note with VERSION_CONFLICT
+// shows bounded before/after text (edit) or the note being removed (delete),
+// and the pre-send re-read refuses changed text with VERSION_CONFLICT
 // unless the fresh state already matches the desired state, which is an
 // exit-0 no-op. There is no evidenced ETag contract, so the comparison is
-// client-side like WRITE-01/WRITE-03. Bulk tag set/delete stays the
-// separate WRITE-05 slice; triage rules and group membership have no leaf.
+// client-side like WRITE-01/WRITE-03. See docs/implementation-plan.md for
+// separately commissioned mutation families.
 
 const noteEntrySchema = z.object({
   id: z.number().int().positive(),

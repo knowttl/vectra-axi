@@ -42,8 +42,8 @@ function invalid(message: string, ...suggestions: string[]): never {
 
 // The note comes from exactly one of --note (inline text) or --note-file
 // (a file path, `-` reads stdin). File content is appended exactly as read.
-// Empty or whitespace-only notes are rejected: clearing, editing and
-// deleting notes have no evidenced contract and no leaf. No upstream note
+// Empty or whitespace-only notes are rejected; edits and deletes use the
+// separate src/note-edit.ts leaves. No upstream note
 // length grammar is evidenced (VAT type-checks a string only), so no maximum
 // is invented here.
 export function desiredNote(

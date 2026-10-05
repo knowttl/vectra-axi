@@ -247,7 +247,6 @@ Tests cover changed current state, denied target, missing/mismatched confirmatio
 WRITE-N (2a) selects per-object detection, host and account note edit and note delete, built on READ-03/RUX-04 note reads and WRITE-00.
 Its [offline acceptance suite](../test/note-edit.test.ts) covers desired-state before/after previews, exact replacement bodies, file/stdin inputs, already-matching and already-deleted no-ops, missing notes, changed current state, exact target-plus-note confirmation, policy refusal, denied reads, server rejection and unknown outcomes without replay.
 All acceptance uses synthetic fixtures; no live instance, real credentials or customer data is used.
-QUX sends PATCH/DELETE to the VAT-evidenced `/{plural}/{id}/notes/{note_id}` item routes; RUX sends the same methods to the spec-evidenced trailing-slash v3.4 item routes, which the coordinator authorizes as documented bound routes.
 See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 Bulk tag set/delete remains planned and requires its own separately selected WRITE-N slice; triage rules and group membership writes are not approved.
 

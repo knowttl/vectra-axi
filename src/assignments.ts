@@ -10,8 +10,8 @@ import type { Session } from "./session.js";
 // outcomes (the resolution taxonomy) are distinct resources: an assignment is
 // unresolved exactly when date_resolved is null, never a missing or zero
 // outcome, and each row keeps the host or account ID that names its target
-// kind. No assignment mutation exists: resolve/reassign routes stay blocked
-// and no PUT/POST/DELETE leaf is declared. Notes/tags stay READ-03 and
+// kind. Assignment mutations use the separate src/assignment-set.ts
+// coordinator leaves; resolution stays blocked. Notes/tags stay READ-03 and
 // RUX-04a.
 
 export const ASSIGNMENT_LIST_OPERATION = "qux.assignment.list";
