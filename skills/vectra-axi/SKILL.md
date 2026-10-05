@@ -1,23 +1,28 @@
 ---
 name: vectra-axi
-description: Use vectra-axi for Vectra SOC inspection through explicit profiles, plus gated tag replaces, bulk tag changes, note appends, note edits/deletes and assignment sets.
+description: "Inspect Vectra QUX and RUX detections, hosts, accounts, notes, tags, assignments, groups, health and lockdown, plus reviewed raw reads and gated tag, note and assignment writes, through token-efficient TOON output."
 user-invocable: false
 ---
 
 # vectra-axi
 
 Agent-ergonomic CLI for Vectra AI, read-only by default, through token-efficient TOON output.
+Covers QUX (on-prem v2.5) and RUX (cloud v3.4) detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage-rule, audit, health, lockdown, detection-event and entity-scoring reads, plus the reviewed `api get` raw-read leaf over allowlisted GET operations.
 Gated tag replaces (`detection|host|account tag set`), bulk tag changes (`detection|host|account tag bulk-set|bulk-delete`), note appends (`detection|host|account note add`), note edits/deletes (`detection|host|account note edit|delete`) and assignment sets (`assignment set --host|--account --user|--unassign`) require hand-enabled profiles.
 See [README.md](../../README.md) for shipped reads by deployment and write restrictions.
 
-Run `vectra-axi doctor` first.
+Run commands non-interactively as `npx -y @knowttl/vectra-axi ...`: no global install needed and no interactive prompts.
+Version pinning is the installer's choice: use `npx -y @knowttl/vectra-axi@<version> ...` to select a specific release.
+Never run against a real Vectra instance in tests; use the offline suite instead.
+
+Run `npx -y @knowttl/vectra-axi doctor` first.
 See [README release guidance](../../README.md#release) for its profile selection, bounded checks and recovery behavior.
 
 ## Orientation
 
 The exact current leaf registry is `src/catalogue.ts`. Its capability labels
 are `native` (implemented by a vectra-axi handler) and its Vectra effect is
-`read` for reads and `write` for the gated tag replaces, bulk tag changes, note appends, note edits/deletes and assignment sets. The list below
+`read` for reads (including the reviewed `api get` raw reads) and `write` for the gated tag replaces, bulk tag changes, note appends, note edits/deletes and assignment sets. The list below
 records current executable leaves; it
 makes no coverage claim for other Vectra operations. See `docs/coverage.md`
 for the per-operation disposition records.
@@ -82,7 +87,7 @@ See [README release guidance](../../README.md#release) for generating and checki
 | `vectra-axi lockdown list` | native | read |
 <!-- command-registry:end -->
 
-Run `vectra-axi <complete-leaf-path> --help` for that leaf's accepted flags
+Run `npx -y @knowttl/vectra-axi <complete-leaf-path> --help` for that leaf's accepted flags
 and reference. Unknown flags fail before any credential or HTTP work.
 
 ## Setup (explicit only)
@@ -106,13 +111,13 @@ No ordinary command installs or changes configuration. Hand-edit
 ```
 
 Set the variable named by `tokenEnv` outside the CLI. Never pass a secret in
-argv or the config file. `vectra-axi setup` shows the selected config path
+argv or the config file. `npx -y @knowttl/vectra-axi setup` shows the selected config path
 and a synthetic example; it writes nothing.
 
 ```sh
-vectra-axi setup                  # selected config path and example
-vectra-axi doctor                 # explicit profile check
-vectra-axi detection list --profile <name> --state active --limit 100
+npx -y @knowttl/vectra-axi setup                  # selected config path and example
+npx -y @knowttl/vectra-axi doctor                 # explicit profile check
+npx -y @knowttl/vectra-axi detection list --profile <name> --state active --limit 100
 ```
 
 ## Selecting a profile
@@ -121,6 +126,9 @@ See [README.md](../../README.md) for profile flags, selection precedence and mis
 
 ## Safety
 
+Read-only by default. Every write previews first and sends only with `--execute` plus a typed `--confirm` naming the exact target; the profile must hand-enable the operation in its `writes` scope, and `VECTRA_AXI_READ_ONLY=1` forces read-only for the whole process.
+Unknown outcomes are never replayed: ambiguous timeouts report the audit id with read-back guidance instead of resending.
+Known secret values are scrubbed from output and error metadata.
 See [README.md](../../README.md) for the session's generation-specific authorization and credential behavior.
 Host 7 and account 7 are different objects: `entity show` requires `--type host|account`.
 See [README audit guidance](../../README.md) for QUX date windows and RUX checkpoint feeds.
