@@ -80,6 +80,82 @@ it("reads a collection through the operation ID with recorded query keys", async
   } });
 });
 
+it.each([
+  ["R%26D", "R&D"],
+  ["R%3DD", "R=D"],
+  ["R%20D", "R D"],
+  ["R%2BD", "R+D"],
+  ["R+D", "R+D"],
+  ["50%25", "50%"],
+  ["caf%C3%A9", "café"],
+  ["R%2526D", "R%26D"],
+  ["ordinary", "ordinary"],
+])("decodes query value %s once before transport", async (encoded, expected) => {
+  let url = "";
+  const transport: RawTransport = async (request) => {
+    url = request.url;
+    return listPage([{ id: 1, name: expected }], { count: 1 });
+  };
+  const result = await runApiGet(session(transport),
+    flags(["api", "get", "--operation", "qux.group.list", "--query", `name=${encoded}`]));
+  expect(new URL(url).searchParams.get("name")).toBe(expected);
+  expect(result.output.rows).toEqual([{ id: 1, name: expected }]);
+});
+
+it.each([
+  ["%31", "1"],
+  ["R%26D", "R%26D"],
+  ["R%2526D", "R%2526D"],
+  ["42", "42"],
+])("decodes path value %s once before transport", async (encoded, expected) => {
+  let url = "";
+  const transport: RawTransport = async (request) => {
+    url = request.url;
+    return { status: 200, bodyText: JSON.stringify(detection(1)) };
+  };
+  await runApiGet(session(transport),
+    flags(["api", "get", "--operation", "qux.detection.show", "--path", `id=${encoded}`]));
+  expect(url).toBe(`https://fixture.invalid/api/v2.5/detections/${expected}`);
+});
+
+it("resumes a collection with its decoded filter value", async () => {
+  const first: RawTransport = async () => listPage([{ id: 1, name: "R&D" }],
+    { count: 2, next: "https://fixture.invalid/api/v2.5/groups?name=R%26D&page=2" });
+  const started = await runApiGet(session(first),
+    flags(["api", "get", "--operation", "qux.group.list", "--query", "name=R%26D", "--limit", "1"]));
+  let url = "";
+  const second: RawTransport = async (request) => {
+    url = request.url;
+    return listPage([{ id: 2, name: "R&D" }], { count: 2 });
+  };
+  const resumed = await runApiGet(session(second),
+    flags(["api", "get", "--operation", "qux.group.list", "--query", "name=R%26D",
+      "--cursor", started.output.cursor as string]));
+  expect(new URL(url).searchParams.get("name")).toBe("R&D");
+  expect(resumed.output.rows).toEqual([{ id: 2, name: "R&D" }]);
+});
+
+it.each([
+  ["qux.group.list", "query", "name=%"],
+  ["qux.group.list", "query", "name=%GG"],
+  ["qux.group.list", "query", "name=%FF"],
+  ["qux.detection.show", "path", "id=%"],
+  ["qux.detection.show", "path", "id=%GG"],
+  ["qux.detection.show", "path", "id=%FF"],
+  ["qux.detection.show", "path", "id=%2F"],
+  ["qux.detection.show", "path", "id=%20"],
+  ["qux.group.list", "query", "name=R%26D&name=other"],
+  ["qux.detection.show", "path", "id=%31&id=2"],
+  ["qux.group.list", "query", "token=R%26D"],
+  ["qux.detection.show", "path", "other=%31"],
+])("refuses invalid %s %s binding %s before HTTP", async (operation, flag, binding) => {
+  const transport = vi.fn<RawTransport>();
+  await expect(runApiGet(session(transport),
+    flags(["api", "get", "--operation", operation, `--${flag}`, binding])))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  expect(transport).not.toHaveBeenCalled();
+});
+
 it("refuses an unknown operation before any HTTP", async () => {
   let calls = 0;
   const spy: RawTransport = async (request) => {

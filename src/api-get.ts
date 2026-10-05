@@ -99,7 +99,11 @@ function parsePairs(raw: string, flag: string): Array<[string, string]> {
     if (!PAIR_KEY.test(name) || !value) {
       invalid(`Invalid --${flag} pair: ${pair}`, `Use --${flag} name=value pairs joined with &`);
     }
-    return [name, value];
+    try {
+      return [name, decodeURIComponent(value)];
+    } catch {
+      invalid(`Invalid --${flag} value encoding: ${value}`, "Use valid percent-encoded values, for example R%26D");
+    }
   });
 }
 
