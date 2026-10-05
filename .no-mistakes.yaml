@@ -1,3 +1,4 @@
+agent: pi
 commands:
   prepare: 'corepack pnpm install --frozen-lockfile --ignore-scripts --config.confirm-modules-purge=false'
   test: 'corepack pnpm run build && corepack pnpm test'
