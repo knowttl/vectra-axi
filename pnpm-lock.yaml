@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@toon-format/toon':
+        specifier: 2.3.1
+        version: 2.3.1
       axi-sdk-js:
         specifier: 0.1.13
         version: 0.1.13
@@ -15,9 +18,6 @@ importers:
         specifier: 4.3.6
         version: 4.3.6
     devDependencies:
-      '@toon-format/toon':
-        specifier: 2.3.1
-        version: 2.3.1
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5

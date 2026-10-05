@@ -359,6 +359,16 @@ The window uses the normal bounded collection retries and budgets; OAuth profile
 RUX profiles keep the exchange-only check: `doctor` checks each selected RUX profile with its named OAuth exchange alone; resource reads use the leaves documented above.
 Success and recovery commands preserve the checked config path and profile, using shell quoting and inline `--profile=<name>` syntax.
 It never tries passwords, signs in interactively or enables writes.
-The static skill at `skills/vectra-axi/SKILL.md` is installed only by explicit setup (`npx skills add knowttl/vectra-axi --skill vectra-axi`); no ordinary command installs hooks, plugins or configuration.
+Agent discovery has two install paths, and either suffices alone.
+The static skill at `skills/vectra-axi/SKILL.md` is installed only by explicit setup (`npx skills add knowttl/vectra-axi --skill vectra-axi`).
+For ambient context at every agent session start instead, install the CLI globally and opt into the session hook:
+```sh
+npm install --global @knowttl/vectra-axi
+vectra-axi setup hooks
+```
+This installs a `SessionStart` hook for Claude Code, Codex and OpenCode that prints a short local-only summary (configured profile names with their qux/rux kind, read-only/write posture, version and one next step).
+The hook makes no network, Vectra or OAuth call, and prints a short `not configured` line with exit 0 when unconfigured.
+Restart the agent session after running the installer.
+No ordinary command installs hooks, plugins or configuration.
 The command table in `skills/vectra-axi/SKILL.md` and all of `docs/coverage.md` are generated from the executable catalogue and capability inventory; the skill's surrounding guidance is maintained manually.
 After `corepack pnpm run build`, regenerate these projections with `corepack pnpm run docs:generate` and verify freshness with `corepack pnpm run docs:check` (also enforced by the test suite).

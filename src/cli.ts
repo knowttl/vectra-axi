@@ -1,4 +1,6 @@
-import { runAxiCli } from "axi-sdk-js";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { AxiError, installSessionStartHooks, runAxiCli } from "axi-sdk-js";
 import { rawFields, rawLimit, rawOperation, rawPathParams, rawQuery,
   runApiGet, type LeafResult as ApiLeafResult } from "./api-get.js";
 import { runAuditEventList, type LeafResult as AuditEventLeafResult } from "./audit-events.js";
@@ -72,6 +74,9 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
       // unknown flags and invalid combinations never reach credentials.
       shell: () => guarded(async (): Promise<Record<string, unknown>> => {
         if (invocation.help) return help(invocation.home ? undefined : invocation.leaf);
+        if (invocation.leaf === "setup hooks") {
+          return runSetupHooks();
+        }
         if (invocation.leaf === "doctor") {
           return runDoctorLeaf(invocation.flags);
         }
@@ -503,6 +508,36 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
       : await runRuleShow(session, flags);
     if (result.failed) process.exitCode = 1;
     return result.output;
+  }
+  // One dispatch for the hook installer: resolve the sibling hook entry
+  // point installed next to this binary and register it as the SessionStart
+  // command for Claude Code, Codex and OpenCode through the SDK. No config,
+  // profile, transport or network is involved; the hook itself prints the
+  // local-only summary from src/hook.ts. Install failures throw loudly;
+  // hook failures never do.
+  function runSetupHooks(): Record<string, unknown> {
+    const hookPath = join(dirname(process.argv[1] ?? ""), "vectra-axi-hook.js");
+    if (!existsSync(hookPath)) {
+      throw new AxiError("Cannot locate the vectra-axi-hook entry point", "HOOK_INSTALL_FAILED", [
+        "Reinstall @knowttl/vectra-axi so bin/vectra-axi-hook.js sits next to the main entry point",
+        "Run vectra-axi setup hooks again after reinstalling",
+      ]);
+    }
+    const failures: string[] = [];
+    installSessionStartHooks({
+      marker: "vectra-axi-hook",
+      execPath: hookPath,
+      binaryNames: ["vectra-axi-hook"],
+      distEntrypoints: ["bin/vectra-axi-hook.js"],
+      onError: (message) => { failures.push(message); },
+    });
+    if (failures.length > 0) {
+      throw new AxiError("Failed to install vectra-axi agent hooks", "HOOK_INSTALL_FAILED", failures);
+    }
+    return {
+      hooks: { status: "installed", integrations: "Claude Code, Codex, OpenCode" },
+      help: ["Restart your agent session to receive vectra-axi ambient context"],
+    };
   }
   // One dispatch for the doctor leaf: load the configuration, resolve the
   // explicit profile or every configured profile, and report the bounded

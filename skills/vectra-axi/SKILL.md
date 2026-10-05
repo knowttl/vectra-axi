@@ -33,6 +33,7 @@ See [README release guidance](../../README.md#release) for generating and checki
 |---|---|---|
 | `vectra-axi home` | native | read |
 | `vectra-axi setup` | native | read |
+| `vectra-axi setup hooks` | native | read |
 | `vectra-axi doctor` | native | read |
 | `vectra-axi detection list` | native | read |
 | `vectra-axi detection show` | native | read |
@@ -92,7 +93,8 @@ and reference. Unknown flags fail before any credential or HTTP work.
 
 ## Setup (explicit only)
 
-No ordinary command installs or changes configuration. Hand-edit
+No ordinary command installs or changes configuration, except the explicit
+`vectra-axi setup hooks` session-hook installer (see [README.md](../../README.md) for that opt-in path). Hand-edit
 `~/.vectra-axi/config.json`, or select a file with `--config <path>`:
 
 ```json
