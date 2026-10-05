@@ -33,6 +33,7 @@ See [README release guidance](../../README.md#release) for generating and checki
 |---|---|---|
 | `vectra-axi home` | native | read |
 | `vectra-axi setup` | native | read |
+| `vectra-axi setup hooks` | native | read |
 | `vectra-axi doctor` | native | read |
 | `vectra-axi detection list` | native | read |
 | `vectra-axi detection show` | native | read |

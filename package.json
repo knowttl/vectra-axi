@@ -3,7 +3,8 @@
   "version": "0.1.2",
   "description": "Read-only-first Vectra AXI CLI",
   "bin": {
-    "vectra-axi": "bin/vectra-axi.js"
+    "vectra-axi": "bin/vectra-axi.js",
+    "vectra-axi-hook": "bin/vectra-axi-hook.js"
   },
   "files": [
     "bin",
@@ -31,11 +32,11 @@
     "docs:check": "node scripts/generate-docs.mjs --check"
   },
   "dependencies": {
+    "@toon-format/toon": "2.3.1",
     "axi-sdk-js": "0.1.13",
     "zod": "4.3.6"
   },
   "devDependencies": {
-    "@toon-format/toon": "2.3.1",
     "@types/node": "22.20.5",
     "typescript": "7.0.2",
     "vitest": "5.0.2",

@@ -43,6 +43,17 @@ export const catalogue: Readonly<Record<string, {
     flags: globals,
     examples: ["vectra-axi setup", "vectra-axi setup --help"],
   },
+  "setup hooks": {
+    // AXI principle 7 ambient context: explicit opt-in installer for the
+    // SessionStart hook. The hook runs the vectra-axi-hook entry point (a
+    // local-only config summary from src/hook.ts), never the home view and
+    // never the network.
+    description: "Install or repair agent SessionStart hooks for vectra-axi ambient context",
+    flags: globals,
+    examples: [
+      "vectra-axi setup hooks",
+    ],
+  },
   doctor: {
     // See README.md#release for generation-specific checks and safety
     // constraints; src/doctor.ts implements the leaf: one bounded detection
