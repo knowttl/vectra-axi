@@ -7,6 +7,14 @@ const skill = readFileSync(new URL("../skills/vectra-axi/SKILL.md", import.meta.
 const coverage = readFileSync(new URL("../docs/coverage.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 
 describe("generated release records", () => {
+  it("keeps skill discovery frontmatter valid for loaders", () => {
+    const frontmatter = skill.match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
+    expect(frontmatter).toContain("name: vectra-axi");
+    // A bare colon inside a YAML plain scalar breaks skill discovery, so the
+    // outcome-focused description stays quoted.
+    expect(frontmatter.split("\n").find((line) => line.startsWith("description:"))).toMatch(/^description: ".*"$/);
+    expect(frontmatter).toContain("user-invocable: false");
+  });
   it("keeps the committed skill command table generated from the catalogue", () => {
     const block = skill.split("<!-- command-registry:start -->\n")[1]?.split("\n<!-- command-registry:end -->")[0];
     expect(block).toBe(skillCommandTable());
