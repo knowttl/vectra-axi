@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { AxiError } from "axi-sdk-js";
 import { decodeTags, type LeafResult, type NoteKind } from "./notes.js";
 import type { Session } from "./session.js";
@@ -14,9 +15,10 @@ import { tagDiff } from "./tags.js";
 // leaf sequences one per-target full-replace PATCH through the coordinator:
 // bulk-set unions the named tags onto each target's current set and
 // bulk-delete subtracts them, and the per-target desired set travels as the
-// same {"tags"} payload WRITE-01 sends. A bulk run never clears: both
-// actions require at least one named tag, and deleting tags a target does
-// not hold is a per-target no-op. RUX profiles are refused outright: no RUX
+// same {"tags"} payload WRITE-01 sends. Both actions require at least one
+// named tag; deleting all existing named tags leaves a target empty.
+// Deleting tags a target does not hold is a per-target no-op.
+// RUX profiles are refused outright: no RUX
 // tag write route is evidenced.
 
 export const BULK_TAG_ACTIONS = ["bulk-set", "bulk-delete"] as const;
@@ -130,9 +132,9 @@ export function bulkTagTargets(
 // The named tags come from exactly one of --tags (comma-separated) or
 // --tags-file (one tag per line, `-` reads stdin), trimmed with blanks
 // dropped and duplicates collapsed in first-seen order. Unlike the
-// single-target replace, a bulk run never clears: both actions require at
-// least one tag, so an empty file or blank --tags is rejected rather than
-// wiping every target's set.
+// single-target replace, both bulk actions require at least one tag, so an
+// empty file or blank --tags is rejected. Deleting all existing named tags
+// leaves a target empty.
 export function bulkTags(
   flags: ReadonlyMap<string, string | boolean>,
   kind: NoteKind,
@@ -167,7 +169,7 @@ export function bulkTags(
   }
   if (seen.size === 0) {
     invalid(`${command} requires at least one tag in --${source}`,
-      "Bulk runs never clear: use the single-target `tag set` with an empty file to clear one owner's tags",
+      "Empty bulk tag input is rejected; deleting all existing named tags leaves a target empty",
       `Run \`vectra-axi ${command} --help\``);
   }
   return [...seen];
@@ -215,7 +217,6 @@ function definitionFor(
 }
 
 function errorMessage(error: unknown): string {
-  if (error instanceof AxiError) return error.message;
   return error instanceof Error && error.message ? error.message : "Unknown bulk tag error";
 }
 
@@ -223,8 +224,8 @@ export type BulkTagTargetResult =
   | { id: number; outcome: "applied"; added: string[]; removed: string[]; tags: string[]; audit: string }
   | { id: number; outcome: "noop" }
   | { id: number; outcome: "failed"; error: string; audit: string }
-  | { id: number; outcome: "unknown"; error: string; audit: string }
-  | { id: number; outcome: "refused"; error: string };
+  | { id: number; outcome: "unknown"; error: string; audit: string; code?: string; suggestions?: string[] }
+  | { id: number; outcome: "refused"; error: string; code?: string; suggestions?: string[] };
 
 export async function runTagBulk(
   session: Session,
@@ -321,12 +322,7 @@ export async function runTagBulk(
   for (const { id, current, desired } of previewed) {
     const target = owner(kind, id);
     const { added, removed } = tagDiff(current, desired);
-    let previewedRead = false;
     const readState = async (): Promise<string[]> => {
-      if (!previewedRead) {
-        previewedRead = true;
-        return current;
-      }
       const fresh = await readTags(session, kind, id);
       if (!sortedEqual(current, fresh) && !sortedEqual(fresh, desired)) {
         throw new AxiError(
@@ -337,9 +333,11 @@ export async function runTagBulk(
       }
       return fresh;
     };
+    const intentId = randomUUID();
     try {
       const result = await coordinator.execute(definitionFor(session, kind, action, id, desired), {
         execute: true,
+        intentId,
         readState,
         isNoop: (seen: unknown) => Array.isArray(seen) && sortedEqual(seen, desired),
       });
@@ -356,7 +354,15 @@ export async function runTagBulk(
         throw new Error(`Unreachable bulk tag result for ${target}: dry runs never execute`);
       }
     } catch (error) {
-      results.push({ id, outcome: "refused", error: errorMessage(error) });
+      const details = error instanceof AxiError
+        ? { code: error.code, suggestions: error.suggestions } : {};
+      if (error instanceof AxiError && error.code === "OUTCOME_NOT_RECORDED") {
+        results.push({ id, outcome: "unknown", audit: intentId,
+          error: `${errorMessage(error)}; the mutation may have been applied; read back ${target} before doing anything else; never replay this intent`,
+          ...details });
+      } else {
+        results.push({ id, outcome: "refused", error: errorMessage(error), ...details });
+      }
     }
   }
   const count = (outcome: BulkTagTargetResult["outcome"]): number =>

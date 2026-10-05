@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
 import { parseInvocation } from "../src/catalogue.js";
@@ -233,9 +233,36 @@ it("refuses a moved target while applying the confirmed rest", async () => {
   expect(seen.filter((call) => call.method === "PATCH")).toHaveLength(1);
   expect(auditLines().filter((line) => line.kind === "outcome")).toEqual([
     expect.objectContaining({ target: "host 7", outcome: "SUCCESS" }),
-    expect.objectContaining({ target: "host 8", httpStatus: 0, outcome: "NOT_SENT" }),
   ]);
 });
+
+it.each([
+  ["detection", "bulk-set", ["a"], ["a", "b"], ["a"]],
+  ["host", "bulk-set", ["a"], ["a", "b"], ["a"]],
+  ["account", "bulk-set", ["a"], ["a", "b"], ["a"]],
+  ["detection", "bulk-delete", ["a", "b"], ["a"], ["a", "b"]],
+  ["host", "bulk-delete", ["a", "b"], ["a"], ["a", "b"]],
+  ["account", "bulk-delete", ["a", "b"], ["a"], ["a", "b"]],
+] as const)("refuses a preview no-op that moves before its turn for %s %s",
+  async (kind, action, first, steady, moved) => {
+    const seen: Seen[] = [];
+    const state = new Map([[7, [...first]], [8, [...steady]]]);
+    const transport = bulkTransport(state, seen);
+    const { run } = harness({ transport: async (request) => {
+      const response = await transport(request);
+      if (request.method === "PATCH") state.set(8, [...moved]);
+      return response;
+    } });
+    const result = await run([kind, "tag", action, "--ids", "7,8", "--tags", "b",
+      "--execute", "--confirm", bulkTargetLabel(kind, [7, 8])], kind, action);
+    expect(result.failed).toBe(true);
+    expect(result.output).toMatchObject({ results: [
+      { id: 7, outcome: "applied" },
+      { id: 8, outcome: "refused", code: "VERSION_CONFLICT" },
+    ] });
+    expect(seen.filter((call) => call.method === "PATCH")).toHaveLength(1);
+    expect(state.get(8)).toEqual(moved);
+  });
 
 it("treats a concurrent change that already matches as a no-op", async () => {
   const seen: Seen[] = [];
@@ -304,6 +331,33 @@ it("reports OUTCOME_UNKNOWN without replay when one send times out", async () =>
     expect.objectContaining({ id: auditId, target: "host 8", httpStatus: 0, outcome: "OUTCOME_UNKNOWN" }),
   ]);
 });
+
+it.each(["accepted", "rejected", "timed out"] as const)(
+  "reports unknown with audit identity when a %s send cannot record its outcome", async (outcome) => {
+    const seen: Seen[] = [];
+    let intent: Record<string, unknown>;
+    const transport = bulkTransport(new Map([[7, ["a"]]]), seen);
+    const { run } = harness({ transport: async (request) => {
+      if (request.method === "GET") return transport(request);
+      seen.push({ method: request.method, url: request.url });
+      intent = auditLines()[0]!;
+      rmSync(auditPath, { force: true });
+      mkdirSync(auditPath);
+      if (outcome === "timed out") throw new Error("socket timed out");
+      return { status: outcome === "accepted" ? 200 : 403, bodyText: "{}" };
+    } });
+    const result = await run(["host", "tag", "bulk-set", "--ids", "7", "--tags", "b",
+      "--execute", "--confirm", "1 target: host 7"], "host", "bulk-set");
+    expect(result.failed).toBe(true);
+    expect(result.output).toMatchObject({
+      results: [{ id: 7, outcome: "unknown", audit: intent!.id, code: "OUTCOME_NOT_RECORDED",
+        suggestions: expect.arrayContaining([
+          "The mutation may have been applied; read back the target before doing anything else",
+        ]), error: expect.stringContaining("never replay") }],
+      summary: "0 applied, 0 unchanged, 0 failed, 1 unknown, 0 refused of 1 targets",
+    });
+    expect(seen.filter((call) => call.method === "PATCH")).toHaveLength(1);
+  });
 
 it("refuses writes without hand opt-in", async () => {
   const seen: Seen[] = [];

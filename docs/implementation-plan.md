@@ -253,7 +253,8 @@ See [README.md](../README.md) for shipped usage and concurrency limits, and the 
 
 WRITE-05 selects QUX detection, host and account bulk tag set/delete, built on READ-03 and WRITE-00.
 No catalogue version documents a vendor bulk tagging route, so each bulk leaf sequences one per-target full-replace PATCH through the coordinator: bulk-set unions the named tags onto each explicit target's set and bulk-delete subtracts them.
-Targets come from `--ids` or `--ids-file` only (at most 100 per run, never query-selected), both actions require at least one named tag so a bulk run never clears, and RUX profiles are refused outright.
+Targets come from `--ids` or `--ids-file` only (at most 100 per run, never query-selected), both actions reject empty tag input, and RUX profiles are refused outright.
+Deleting all existing named tags leaves a target empty.
 Its [offline acceptance suite](../test/tags-bulk.test.ts) covers explicit target parsing, per-target dry-run diffs, no-ops, union/subtract sends with per-target audits, changed current state, exact count-and-set confirmation, policy refusal, denied reads, server rejection, partial failures and unknown outcomes without replay.
 The [packaged CLI journey](../test/cli.test.ts) exercises preview, confirmation and execution through synthetic profiles and transport fixtures.
 All acceptance uses synthetic fixtures; no live instance, real credentials or customer data is used.

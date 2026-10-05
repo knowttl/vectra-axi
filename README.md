@@ -169,7 +169,8 @@ Intent and outcome are journaled durably; server rejections return an error with
 `<kind> tag bulk-set --profile <name> --ids 7,8 --tags a,b` unions the named tags onto each explicit target's set, and `<kind> tag bulk-delete --profile <name> --ids 7,8 --tags a,b` subtracts them, through the WRITE-00 gate pipeline: the profile must hand-enable `qux.<kind>.tag.bulk-set` or `qux.<kind>.tag.bulk-delete` in its `writes` scope (the single-target `tag set` scope does not cover bulk), the dry run previews the per-target added and removed diffs, and `--execute --confirm '<n> targets: <kind> <id>, ...'` sends one PATCH per target only for targets whose set would change (already-steady targets are exit-0 no-ops that send nothing).
 Targets come from `--ids` (comma-separated) or `--ids-file` (one ID per line, `-` for stdin), at most 100 per run in ascending order with duplicates collapsed; query-selected targets are never accepted.
 No vendor bulk tagging route is evidenced, so bulk runs sequence per-target full-replace PATCHes through the QUX tagging route and refuse RUX profiles outright.
-Both actions require at least one named tag, so a bulk run never clears; a denied or malformed preview read aborts the run before anything is sent.
+Both actions reject empty tag input; deleting all existing named tags leaves a target empty.
+A denied or malformed preview read aborts the run before anything is sent.
 The pre-send re-read refuses a moved target with `VERSION_CONFLICT` unless it already equals the desired set, which is a no-op.
 This is a non-atomic comparison of tag contents, not an ETag or server-side version check; a change after the re-read can still be overwritten.
 One moved, rejected or timed-out target is recorded for that target and the confirmed rest still send; the report lists every target's applied, unchanged, failed, unknown or refused outcome with its audit id and exits 1 unless all reported targets applied or were already steady.
