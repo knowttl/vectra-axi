@@ -5,6 +5,8 @@
 This is the supported QUX and RUX SOC read surface with gated QUX tag-write, note-write and assignment-write families, not full Vectra API coverage.
 Only `named` operations have an implemented, tested command leaf; every other
 operation remains planned, blocked or unreviewed until its own slice ships.
+The reviewed `api get` raw-read leaf serves the allowlisted GET operations marked `raw` below;
+there is no unrestricted passthrough.
 
 ## Counts
 
@@ -18,94 +20,94 @@ operation remains planned, blocked or unreviewed until its own slice ships.
 
 ## Operations
 
-| Operation | Command | Slice | Deployment/API | Paging | Disposition |
-|---|---|---|---|---|---|
-| `qux.detection.list` | detection list | READ-01 | qux 2.5 | collection | named |
-| `qux.detection.show` | detection show | READ-01 | qux 2.5 | none | named |
-| `qux.host.list` | host list | READ-02 | qux 2.5 | collection | named |
-| `qux.host.show` | host show | READ-02 | qux 2.5 | none | named |
-| `qux.host.note.list` | host note list | READ-03 | qux 2.5 | none | named |
-| `qux.host.note.add` | host note add | WRITE-02 | qux 2.5 | none | named |
-| `qux.host.tag.list` | host tag list | READ-03 | qux 2.5 | none | named |
-| `qux.host.tag.set` | host tag set | WRITE-01 | qux 2.5 | none | named |
-| `qux.account.list` | account list | READ-02 | qux 2.5 | collection | named |
-| `qux.account.show` | account show | READ-02 | qux 2.5 | none | named |
-| `qux.account.note.list` | account note list | READ-03 | qux 2.5 | none | named |
-| `qux.account.note.add` | account note add | WRITE-02 | qux 2.5 | none | named |
-| `qux.account.tag.list` | account tag list | READ-03 | qux 2.5 | none | named |
-| `qux.account.tag.set` | account tag set | WRITE-01 | qux 2.5 | none | named |
-| `qux.detection.note.list` | detection note list | READ-03 | qux 2.5 | none | named |
-| `qux.detection.note.add` | detection note add | WRITE-02 | qux 2.5 | none | named |
-| `qux.detection.tag.list` | detection tag list | READ-03 | qux 2.5 | none | named |
-| `qux.detection.tag.set` | detection tag set | WRITE-01 | qux 2.5 | none | named |
-| `qux.assignment.list` | assignment list | READ-04 | qux 2.5 | collection | named |
-| `qux.assignment-outcome.list` | assignment outcome list | READ-04 | qux 2.5 | collection | named |
-| `qux.assignment-outcome.show` | assignment outcome show | READ-04 | qux 2.5 | none | named |
-| `qux.host.assignment.create` | assignment set | WRITE-03 | qux 2.5 | none | named |
-| `qux.host.assignment.reassign` | assignment set | WRITE-03 | qux 2.5 | none | named |
-| `qux.host.assignment.unassign` | assignment set | WRITE-03 | qux 2.5 | none | named |
-| `qux.account.assignment.create` | assignment set | WRITE-03 | qux 2.5 | none | named |
-| `qux.account.assignment.reassign` | assignment set | WRITE-03 | qux 2.5 | none | named |
-| `qux.account.assignment.unassign` | assignment set | WRITE-03 | qux 2.5 | none | named |
-| `qux.user.list` | user list | READ-04 | qux 2.5 | collection | named |
-| `qux.user.show` | user show | READ-04 | qux 2.5 | none | named |
-| `qux.group.list` | group list | READ-05 | qux 2.5 | collection | named |
-| `qux.group.show` | group show | READ-05 | qux 2.5 | none | named |
-| `qux.triage-rule.list` | triage rule list | READ-05 | qux 2.5 | collection | named |
-| `qux.triage-rule.show` | triage rule show | READ-05 | qux 2.5 | none | named |
-| `qux.group.member.list` | group member list | READ-05 | qux 2.5 | collection | named |
-| `qux.audit.list` | audit list | READ-06 | qux 2.5 | date-window | named |
-| `qux.health.list` | health list | READ-07 | qux 2.5 | none | named |
-| `qux.health.show` | health show | READ-07 | qux 2.5 | none | named |
-| `qux.health.event.list` | health event list | READ-07 | qux 2.5 | checkpoint | named |
-| `rux.detection.list` | detection list | RUX-02 | rux 3.4 | collection | named |
-| `rux.detection.show` | detection show | RUX-02 | rux 3.4 | none | named |
-| `rux.host.list` | host list | RUX-02 | rux 3.4 | collection | named |
-| `rux.host.show` | host show | RUX-02 | rux 3.4 | none | named |
-| `rux.host.note.list` | host note list | RUX-04 | rux 3.4 | none | named |
-| `rux.host.tag.list` | host tag list | RUX-04 | rux 3.4 | none | named |
-| `rux.account.list` | account list | RUX-02 | rux 3.4 | collection | named |
-| `rux.account.show` | account show | RUX-02 | rux 3.4 | none | named |
-| `rux.account.note.list` | account note list | RUX-04 | rux 3.4 | none | named |
-| `rux.account.tag.list` | account tag list | RUX-04 | rux 3.4 | none | named |
-| `rux.detection.note.list` | detection note list | RUX-04 | rux 3.4 | none | named |
-| `rux.detection.tag.list` | detection tag list | RUX-04 | rux 3.4 | none | named |
-| `rux.assignment.list` | assignment list | RUX-04 | rux 3.4 | collection | named |
-| `rux.assignment-outcome.list` | assignment outcome list | RUX-04 | rux 3.4 | collection | named |
-| `rux.assignment-outcome.show` | assignment outcome show | RUX-04 | rux 3.4 | none | named |
-| `rux.user.list` | user list | RUX-04 | rux 3.4 | collection | named |
-| `rux.user.show` | user show | RUX-04 | rux 3.4 | none | named |
-| `rux.group.list` | group list | RUX-05 | rux 3.4 | collection | named |
-| `rux.group.show` | group show | RUX-05 | rux 3.4 | none | named |
-| `rux.triage-rule.list` | triage rule list | RUX-05 | rux 3.4 | collection | named |
-| `rux.triage-rule.show` | triage rule show | RUX-05 | rux 3.4 | none | named |
-| `rux.group.member.list` | group member list | RUX-05 | rux 3.4 | collection | named |
-| `rux.audit.list` | audit list | RUX-03 | rux 3.4 | checkpoint | named |
-| `rux.health.list` | health list | RUX-06 | rux 3.4 | none | named |
-| `rux.health.show` | health show | RUX-06 | rux 3.4 | none | named |
-| `rux.health.event.list` | health event list | RUX-06 | rux 3.4 | checkpoint | named |
-| `qux.entity.host.list` | entity list | READ-02 | qux 2.5 | collection | named |
-| `qux.entity.host.show` | entity show | READ-02 | qux 2.5 | none | named |
-| `qux.lockdown.host.list` | lockdown list | READ-08 | qux 2.5 | none | named |
-| `qux.entity.account.list` | entity list | READ-02 | qux 2.5 | collection | named |
-| `qux.entity.account.show` | entity show | READ-02 | qux 2.5 | none | named |
-| `qux.lockdown.account.list` | lockdown list | READ-08 | qux 2.5 | none | named |
-| `rux.entity.list` | entity list | RUX-02 | rux 3.4 | collection | named |
-| `rux.entity.show` | entity show | RUX-02 | rux 3.4 | none | named |
-| `rux.lockdown.list` | lockdown list | RUX-06 | rux 3.4 | none | named |
-| `rux.detection.event.list` | detection event list | RUX-03 | rux 3.4 | checkpoint | named |
-| `rux.entity.scoring.list` | entity scoring list | RUX-03 | rux 3.4 | checkpoint | named |
-| `rux.health.external-connectors.show` | health show | RUX-06 | rux 3.4 | none | named |
-| `rux.health.external-connectors.details.show` | health show | RUX-06 | rux 3.4 | none | named |
-| `rux.health.edr.show` | health show | RUX-06 | rux 3.4 | none | named |
-| `rux.health.edr.details.show` | health show | RUX-06 | rux 3.4 | none | named |
-| `rux.health.network-brain.ping.show` | health show | RUX-06 | rux 3.4 | none | named |
-| `qux.oauth.exchange` | - | AUTH-02 | qux 2.5 | none | planned |
-| `rux.oauth.exchange` | - | RUX-01 | rux 3.4 | none | planned |
-| `qux.sensor-token.export` | - | excluded | qux 2.5 | none | blocked |
-| `qux.aws-credentials.export` | - | excluded | qux 2.5 | none | blocked |
-| `rux.entity.note.list` | entity note list | RUX-04 | rux 3.4 | none | planned |
-| `rux.entity.tag.list` | entity tag list | RUX-04 | rux 3.4 | none | planned |
+| Operation | Command | Slice | Deployment/API | Paging | Disposition | Raw |
+|---|---|---|---|---|---|---|
+| `qux.detection.list` | detection list | READ-01 | qux 2.5 | collection | named | raw |
+| `qux.detection.show` | detection show | READ-01 | qux 2.5 | none | named | raw |
+| `qux.host.list` | host list | READ-02 | qux 2.5 | collection | named | raw |
+| `qux.host.show` | host show | READ-02 | qux 2.5 | none | named | raw |
+| `qux.host.note.list` | host note list | READ-03 | qux 2.5 | none | named | raw |
+| `qux.host.note.add` | host note add | WRITE-02 | qux 2.5 | none | named | named |
+| `qux.host.tag.list` | host tag list | READ-03 | qux 2.5 | none | named | raw |
+| `qux.host.tag.set` | host tag set | WRITE-01 | qux 2.5 | none | named | named |
+| `qux.account.list` | account list | READ-02 | qux 2.5 | collection | named | raw |
+| `qux.account.show` | account show | READ-02 | qux 2.5 | none | named | raw |
+| `qux.account.note.list` | account note list | READ-03 | qux 2.5 | none | named | raw |
+| `qux.account.note.add` | account note add | WRITE-02 | qux 2.5 | none | named | named |
+| `qux.account.tag.list` | account tag list | READ-03 | qux 2.5 | none | named | raw |
+| `qux.account.tag.set` | account tag set | WRITE-01 | qux 2.5 | none | named | named |
+| `qux.detection.note.list` | detection note list | READ-03 | qux 2.5 | none | named | raw |
+| `qux.detection.note.add` | detection note add | WRITE-02 | qux 2.5 | none | named | named |
+| `qux.detection.tag.list` | detection tag list | READ-03 | qux 2.5 | none | named | raw |
+| `qux.detection.tag.set` | detection tag set | WRITE-01 | qux 2.5 | none | named | named |
+| `qux.assignment.list` | assignment list | READ-04 | qux 2.5 | collection | named | raw |
+| `qux.assignment-outcome.list` | assignment outcome list | READ-04 | qux 2.5 | collection | named | raw |
+| `qux.assignment-outcome.show` | assignment outcome show | READ-04 | qux 2.5 | none | named | raw |
+| `qux.host.assignment.create` | assignment set | WRITE-03 | qux 2.5 | none | named | named |
+| `qux.host.assignment.reassign` | assignment set | WRITE-03 | qux 2.5 | none | named | named |
+| `qux.host.assignment.unassign` | assignment set | WRITE-03 | qux 2.5 | none | named | named |
+| `qux.account.assignment.create` | assignment set | WRITE-03 | qux 2.5 | none | named | named |
+| `qux.account.assignment.reassign` | assignment set | WRITE-03 | qux 2.5 | none | named | named |
+| `qux.account.assignment.unassign` | assignment set | WRITE-03 | qux 2.5 | none | named | named |
+| `qux.user.list` | user list | READ-04 | qux 2.5 | collection | named | raw |
+| `qux.user.show` | user show | READ-04 | qux 2.5 | none | named | raw |
+| `qux.group.list` | group list | READ-05 | qux 2.5 | collection | named | raw |
+| `qux.group.show` | group show | READ-05 | qux 2.5 | none | named | raw |
+| `qux.triage-rule.list` | triage rule list | READ-05 | qux 2.5 | collection | named | raw |
+| `qux.triage-rule.show` | triage rule show | READ-05 | qux 2.5 | none | named | raw |
+| `qux.group.member.list` | group member list | READ-05 | qux 2.5 | collection | named | raw |
+| `qux.audit.list` | audit list | READ-06 | qux 2.5 | date-window | named | named |
+| `qux.health.list` | health list | READ-07 | qux 2.5 | none | named | raw |
+| `qux.health.show` | health show | READ-07 | qux 2.5 | none | named | raw |
+| `qux.health.event.list` | health event list | READ-07 | qux 2.5 | checkpoint | named | named |
+| `rux.detection.list` | detection list | RUX-02 | rux 3.4 | collection | named | raw |
+| `rux.detection.show` | detection show | RUX-02 | rux 3.4 | none | named | raw |
+| `rux.host.list` | host list | RUX-02 | rux 3.4 | collection | named | raw |
+| `rux.host.show` | host show | RUX-02 | rux 3.4 | none | named | raw |
+| `rux.host.note.list` | host note list | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.host.tag.list` | host tag list | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.account.list` | account list | RUX-02 | rux 3.4 | collection | named | raw |
+| `rux.account.show` | account show | RUX-02 | rux 3.4 | none | named | raw |
+| `rux.account.note.list` | account note list | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.account.tag.list` | account tag list | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.detection.note.list` | detection note list | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.detection.tag.list` | detection tag list | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.assignment.list` | assignment list | RUX-04 | rux 3.4 | collection | named | raw |
+| `rux.assignment-outcome.list` | assignment outcome list | RUX-04 | rux 3.4 | collection | named | raw |
+| `rux.assignment-outcome.show` | assignment outcome show | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.user.list` | user list | RUX-04 | rux 3.4 | collection | named | raw |
+| `rux.user.show` | user show | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.group.list` | group list | RUX-05 | rux 3.4 | collection | named | raw |
+| `rux.group.show` | group show | RUX-05 | rux 3.4 | none | named | raw |
+| `rux.triage-rule.list` | triage rule list | RUX-05 | rux 3.4 | collection | named | raw |
+| `rux.triage-rule.show` | triage rule show | RUX-05 | rux 3.4 | none | named | raw |
+| `rux.group.member.list` | group member list | RUX-05 | rux 3.4 | collection | named | raw |
+| `rux.audit.list` | audit list | RUX-03 | rux 3.4 | checkpoint | named | named |
+| `rux.health.list` | health list | RUX-06 | rux 3.4 | none | named | raw |
+| `rux.health.show` | health show | RUX-06 | rux 3.4 | none | named | raw |
+| `rux.health.event.list` | health event list | RUX-06 | rux 3.4 | checkpoint | named | named |
+| `qux.entity.host.list` | entity list | READ-02 | qux 2.5 | collection | named | raw |
+| `qux.entity.host.show` | entity show | READ-02 | qux 2.5 | none | named | raw |
+| `qux.lockdown.host.list` | lockdown list | READ-08 | qux 2.5 | none | named | raw |
+| `qux.entity.account.list` | entity list | READ-02 | qux 2.5 | collection | named | raw |
+| `qux.entity.account.show` | entity show | READ-02 | qux 2.5 | none | named | raw |
+| `qux.lockdown.account.list` | lockdown list | READ-08 | qux 2.5 | none | named | raw |
+| `rux.entity.list` | entity list | RUX-02 | rux 3.4 | collection | named | raw |
+| `rux.entity.show` | entity show | RUX-02 | rux 3.4 | none | named | raw |
+| `rux.lockdown.list` | lockdown list | RUX-06 | rux 3.4 | none | named | raw |
+| `rux.detection.event.list` | detection event list | RUX-03 | rux 3.4 | checkpoint | named | named |
+| `rux.entity.scoring.list` | entity scoring list | RUX-03 | rux 3.4 | checkpoint | named | named |
+| `rux.health.external-connectors.show` | health show | RUX-06 | rux 3.4 | none | named | raw |
+| `rux.health.external-connectors.details.show` | health show | RUX-06 | rux 3.4 | none | named | raw |
+| `rux.health.edr.show` | health show | RUX-06 | rux 3.4 | none | named | raw |
+| `rux.health.edr.details.show` | health show | RUX-06 | rux 3.4 | none | named | raw |
+| `rux.health.network-brain.ping.show` | health show | RUX-06 | rux 3.4 | none | named | raw |
+| `qux.oauth.exchange` | - | AUTH-02 | qux 2.5 | none | planned | planned |
+| `rux.oauth.exchange` | - | RUX-01 | rux 3.4 | none | planned | planned |
+| `qux.sensor-token.export` | - | excluded | qux 2.5 | none | blocked | blocked |
+| `qux.aws-credentials.export` | - | excluded | qux 2.5 | none | blocked | blocked |
+| `rux.entity.note.list` | entity note list | RUX-04 | rux 3.4 | none | planned | planned |
+| `rux.entity.tag.list` | entity tag list | RUX-04 | rux 3.4 | none | planned | planned |
 
 ## Deferred families
 

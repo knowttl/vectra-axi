@@ -66,6 +66,7 @@ See [README release guidance](../../README.md#release) for generating and checki
 | `vectra-axi health list` | native | read |
 | `vectra-axi health show` | native | read |
 | `vectra-axi health event list` | native | read |
+| `vectra-axi api get` | native | read |
 | `vectra-axi lockdown list` | native | read |
 <!-- command-registry:end -->
 

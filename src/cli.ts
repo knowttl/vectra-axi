@@ -1,4 +1,6 @@
 import { runAxiCli } from "axi-sdk-js";
+import { rawFields, rawLimit, rawOperation, rawPathParams, rawQuery,
+  runApiGet, type LeafResult as ApiLeafResult } from "./api-get.js";
 import { runAuditEventList, type LeafResult as AuditEventLeafResult } from "./audit-events.js";
 import { auditFlagShapes, runAuditList, type LeafResult as AuditLeafResult } from "./audits.js";
 import { healthEventFlags, healthEventRelease, healthShowFlags, runHealthEventList, runHealthList,
@@ -111,6 +113,9 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         }
         if (invocation.leaf === "lockdown list") {
           return runLockdown(invocation.flags);
+        }
+        if (invocation.leaf === "api get") {
+          return runRaw(invocation.flags);
         }
         if (invocation.leaf === "group list" || invocation.leaf === "group show"
           || invocation.leaf === "group member list"
@@ -367,6 +372,25 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
+  // One dispatch for the raw read leaf: validate the operation and its
+  // path/query/field policy before any configuration work, select the
+  // profile, build the session on the injected transport, and return the
+  // shaped output. Generation mismatches surface from the session before
+  // any credential is attached; partial collection reads keep their rows
+  // with a nonzero exit status.
+  async function runRaw(flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
+    const record = rawOperation(flags);
+    rawPathParams(record, flags);
+    rawQuery(record, flags);
+    rawFields(record, flags);
+    rawLimit(record, flags);
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
+    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+    const result: ApiLeafResult = await runApiGet(session, flags);
+    if (result.failed) process.exitCode = 1;
+    return result.output;
+  }
   // One dispatch for the lockdown leaf: validate the status kind, select
   // the profile, build the session on the injected transport, and return
   // the shaped single-response output. On a cloud profile the kind selects
@@ -451,7 +475,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         config: loaded.path,
         guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use tokenEnv or secretEnv references",
         example: { profiles: { lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "VECTRA_LAB_TOKEN" } } },
-        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health, lockdown, detection event and entity scoring reads call the session; doctor checks each QUX profile with one bounded detection read and each RUX profile with the named OAuth exchange; the static skill at skills/vectra-axi/SKILL.md is installed only by explicit setup",
+        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health, lockdown, detection event and entity scoring reads call the session; reviewed raw reads (api get) call the session with the operation's recorded query and field policy; doctor checks each QUX profile with one bounded detection read and each RUX profile with the named OAuth exchange; the static skill at skills/vectra-axi/SKILL.md is installed only by explicit setup",
       },
       capabilities: {
         implemented: Object.keys(catalogue),
