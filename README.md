@@ -344,7 +344,7 @@ See [AUTH-02 handoff](docs/auth-02-handoff.md) for the credential seam, [CORE-01
 ## Release
 
 See the [shipped behavior above](#vectra-axi) and the generated [coverage record](docs/coverage.md) for supported operations, per-operation dispositions and coverage limits.
-Install from npm with `npm install --global @knowttl/vectra-axi`, or run without installing via `npx -y @knowttl/vectra-axi --help`.
+Install from npm with `npm install --global @knowttl/vectra-axi`, or run without a global install via `npx -y @knowttl/vectra-axi --help`.
 For a local build, install its tarball with `npm install --global ./vectra-axi.tgz` after `corepack pnpm pack --out vectra-axi.tgz`, or run `node bin/vectra-axi.js` from a built checkout.
 The package is configured for public npm publication as `@knowttl/vectra-axi`.
 The `.github/workflows/release-please.yml` workflow manages release PRs on `main` and builds, checks and publishes newly created releases with provenance using npm trusted publishing from the public repository.
