@@ -93,7 +93,8 @@ and reference. Unknown flags fail before any credential or HTTP work.
 
 ## Setup (explicit only)
 
-No ordinary command installs or changes configuration. Hand-edit
+No ordinary command installs or changes configuration, except the explicit
+`vectra-axi setup hooks` session-hook installer (see [README.md](../../README.md) for that opt-in path). Hand-edit
 `~/.vectra-axi/config.json`, or select a file with `--config <path>`:
 
 ```json
