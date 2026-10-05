@@ -92,6 +92,17 @@ function cleanParam(name: string, value: string | number): string {
   return encodeURIComponent(text);
 }
 
+export function fieldSelection(record: CapabilityOperation, raw: string, source: string): readonly string[] {
+  const fields = raw.split(",").map((field) => field.trim()).filter(Boolean);
+  const unknown = fields.filter((field) => !record.fields.includes(field));
+  if (fields.length === 0 || unknown.length > 0) {
+    throw new AxiError(`Unknown ${source} value: ${unknown.join(", ") || "(empty)"}`, "VALIDATION_ERROR", [
+      `Operation ${record.id} supports fields: ${record.fields.join(", ")}`,
+    ]);
+  }
+  return [...new Set(fields)];
+}
+
 // URL construction validates the template binding, then re-checks the built
 // destination before any credential is resolved or attached.
 function buildOperationUrl(
@@ -154,6 +165,9 @@ function assertDestination(profile: SelectedProfile, record: CapabilityOperation
     throw new AxiError(`Refusing destination outside operation ${record.id}`, "DESTINATION_DENIED", [
       "Destinations must retain the operation's bound route and use only its declared query keys; no credential was sent",
     ]);
+  }
+  for (const [key, value] of url.searchParams) {
+    if (key === "fields" || key === "exclude_fields") fieldSelection(record, value, `query ${key}`);
   }
 }
 

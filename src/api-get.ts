@@ -2,7 +2,7 @@ import { AxiError } from "axi-sdk-js";
 import { collect, DEFAULT_COLLECTION_LIMIT, resume } from "./collections.js";
 import { inventory } from "./catalogue.js";
 import type { CapabilityOperation } from "./inventory/schema.js";
-import type { Session } from "./session.js";
+import { fieldSelection, type Session } from "./session.js";
 
 // API-01: reviewed raw-read surface over the operation catalogue. `api get`
 // addresses an allowlisted GET read operation by its inventory ID and passes
@@ -151,26 +151,19 @@ export function rawQuery(
         `Operation ${record.id} supports: ${record.query.join(", ") || "no query parameters"}`);
     }
     if (Object.hasOwn(query, name)) invalid(`Repeated query parameter: ${name}`);
-    query[name] = value;
+    query[name] = name === "fields" || name === "exclude_fields"
+      ? fieldSelection(record, value, `--query ${name}`).join(",") : value;
   }
   return query;
 }
 
-// Field projection over the operation's recorded fields. Without --fields
-// the returned body passes through whole, as the named show leaves do.
 export function rawFields(
   record: CapabilityOperation, flags: ReadonlyMap<string, string | boolean>,
-): readonly string[] | undefined {
+): readonly string[] {
   const raw = flags.get("fields");
-  if (raw === undefined) return undefined;
+  if (raw === undefined) return record.fields;
   if (typeof raw !== "string") invalid("--fields needs a comma-separated field list");
-  const fields = raw.split(",").map((field) => field.trim()).filter(Boolean);
-  const unknown = fields.filter((field) => !record.fields.includes(field));
-  if (fields.length === 0 || unknown.length > 0) {
-    invalid(`Unknown --fields value: ${unknown.join(", ") || "(empty)"}`,
-      `Operation ${record.id} supports fields: ${record.fields.join(", ")}`);
-  }
-  return [...new Set(fields)];
+  return fieldSelection(record, raw, "--fields");
 }
 
 export function rawLimit(
@@ -215,8 +208,7 @@ function decodeRow(row: unknown): Record<string, unknown> {
   return row as Record<string, unknown>;
 }
 
-function project(row: Record<string, unknown>, fields: readonly string[] | undefined): Record<string, unknown> {
-  if (fields === undefined) return { ...row };
+function project(row: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {
   return Object.fromEntries(fields.filter((field) => Object.hasOwn(row, field)).map((field) => [field, row[field]]));
 }
 
@@ -314,16 +306,7 @@ export async function runApiGet(session: Session, flags: ReadonlyMap<string, str
     ...(Object.keys(query).length > 0 ? { query } : {}),
   });
   if (Array.isArray(body)) {
-    const rows = body.map((row) => {
-      if (typeof row === "object" && row !== null && !Array.isArray(row)) {
-        return truncateValue(project(row as Record<string, unknown>, fields), full);
-      }
-      if (fields !== undefined) {
-        throw new AxiError("Vectra raw response is malformed: --fields needs named object fields",
-          "RESPONSE_INVALID", ["Omit --fields to read scalar rows whole"]);
-      }
-      return truncateValue(row, full);
-    });
+    const rows = body.map((row) => truncateValue(project(decodeRow(row), fields), full));
     if (rows.length === 0) {
       return { failed: false, output: {
         profile,

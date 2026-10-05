@@ -1,6 +1,6 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterAll, afterEach, beforeEach, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
 import { RAW_TRUNCATE_AT, runApiGet } from "../src/api-get.js";
 import { parseInvocation } from "../src/catalogue.js";
 import { createSession, type RawTransport, type Session } from "../src/session.js";
@@ -209,6 +209,118 @@ it("projects a --fields subset and refuses unknown fields before any HTTP", asyn
   expect(calls).toBe(0);
 });
 
+it.each([
+  [session, "qux.detection.list", [], { results: [{ ...detection(1), metadata: "private" }], count: 1 },
+    "rows", [detection(1)]],
+  [cloudSession, "rux.detection.list", [], { results: [{ ...detection(1), metadata: "private" }], count: 1 },
+    "rows", [detection(1)]],
+  [session, "qux.host.note.list", ["--path", "id=1"],
+    [{ id: 1, note: "synthetic note", created_by: "private", date_created: "private" }],
+    "rows", [{ id: 1, note: "synthetic note" }]],
+  [cloudSession, "rux.host.note.list", ["--path", "id=1"],
+    [{ id: 1, note: "synthetic note", created_by: "private", modified_by: "private",
+      date_created: "private", date_modified: "private" }],
+    "rows", [{ id: 1, note: "synthetic note" }]],
+  [session, "qux.detection.show", ["--path", "id=1"], { ...detection(1), metadata: "private" },
+    "result", detection(1)],
+  [cloudSession, "rux.host.tag.list", ["--path", "id=1"], { tags: ["synthetic"], status: "private", tag_id: 9 },
+    "result", { tags: ["synthetic"] }],
+] as const)("limits %s %s output to recorded fields", async (create, operation, bindings, body, key, expected) => {
+  const transport: RawTransport = async () => ({ status: 200, bodyText: JSON.stringify(body) });
+  const result = await runApiGet(create(transport), flags(["api", "get", "--operation", operation, ...bindings]));
+  expect(result.failed).toBe(false);
+  expect(result.output[key]).toEqual(expected);
+});
+
+it.each(["private", 42, null, ["private"]])("rejects unprojectable array row %s", async (row) => {
+  const transport: RawTransport = async () => ({ status: 200, bodyText: JSON.stringify([row]) });
+  await expect(runApiGet(cloudSession(transport),
+    flags(["api", "get", "--operation", "rux.host.note.list", "--path", "id=1"])))
+    .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+});
+
+const queryFieldOperations = [
+  [session, "qux.triage-rule.list", "fields"],
+  [cloudSession, "rux.triage-rule.list", "fields"],
+  [cloudSession, "rux.detection.list", "fields"],
+  [cloudSession, "rux.entity.list", "fields"],
+  [cloudSession, "rux.detection.list", "exclude_fields"],
+  [cloudSession, "rux.entity.list", "exclude_fields"],
+] as const;
+
+it.each(queryFieldOperations)("accepts recorded query selections for %s %s %s", async (create, operation, selector) => {
+  let url = "";
+  const transport: RawTransport = async (request) => {
+    url = request.url;
+    return listPage([{ id: 1 }], { count: 1 });
+  };
+  const result = await runApiGet(create(transport),
+    flags(["api", "get", "--operation", operation, "--query", `${selector}=id`]));
+  expect(result.failed).toBe(false);
+  expect(new URL(url).searchParams.get(selector)).toBe("id");
+});
+
+it.each(queryFieldOperations)("refuses unrecorded query selections for %s %s %s", async (create, operation, selector) => {
+  const transport = vi.fn<RawTransport>();
+  await expect(runApiGet(create(transport),
+    flags(["api", "get", "--operation", operation, "--query", `${selector}=id,metadata`])))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  expect(transport).not.toHaveBeenCalled();
+});
+
+it.each(["fields", "exclude_fields"])("refuses an empty %s query selection", async (selector) => {
+  const transport = vi.fn<RawTransport>();
+  await expect(runApiGet(cloudSession(transport),
+    flags(["api", "get", "--operation", "rux.detection.list", "--query", `${selector}=,`])))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  expect(transport).not.toHaveBeenCalled();
+});
+
+it("projects retained collection rows after a later page fails", async () => {
+  const transport = vi.fn<RawTransport>()
+    .mockResolvedValueOnce(listPage([{ ...detection(1), metadata: "private" }],
+      { count: 2, next: "https://fixture.invalid/api/v2.5/detections?min_id=2" }))
+    .mockResolvedValueOnce({ status: 403, bodyText: "{}" });
+  const result = await runApiGet(session(transport),
+    flags(["api", "get", "--operation", "qux.detection.list"]));
+  expect(result).toMatchObject({ failed: true, output: { code: "ACCESS_DENIED", complete: false } });
+  expect(result.output.rows).toEqual([detection(1)]);
+});
+
+it.each(["fields", "exclude_fields"])("refuses unrecorded %s in a continuation", async (selector) => {
+  const transport = vi.fn<RawTransport>().mockResolvedValueOnce(listPage([detection(1)],
+    { count: 2, next: `https://fixture.invalid/api/v3.4/detections/?${selector}=metadata` }));
+  const result = await runApiGet(cloudSession(transport),
+    flags(["api", "get", "--operation", "rux.detection.list"]));
+  expect(result).toMatchObject({ failed: true, output: { code: "VALIDATION_ERROR", complete: false } });
+  expect(result.output.rows).toEqual([detection(1)]);
+  expect(transport).toHaveBeenCalledTimes(1);
+});
+
+it.each(["fields", "exclude_fields"])("refuses unrecorded %s in a redirect", async (selector) => {
+  const transport = vi.fn<RawTransport>().mockResolvedValueOnce({
+    status: 302, location: `?${selector}=metadata`, bodyText: "",
+  });
+  await expect(runApiGet(cloudSession(transport),
+    flags(["api", "get", "--operation", "rux.detection.list"])))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  expect(transport).toHaveBeenCalledTimes(1);
+});
+
+it.each(["fields", "exclude_fields"])("refuses unrecorded %s in a cursor page before HTTP", async (selector) => {
+  const first: RawTransport = async () => listPage([detection(1), detection(2)], { count: 2 });
+  const started = await runApiGet(cloudSession(first),
+    flags(["api", "get", "--operation", "rux.detection.list", "--limit", "1"]));
+  const cursor = JSON.parse(Buffer.from(started.output.cursor as string, "base64url").toString("utf8"));
+  cursor.page[selector] = "metadata";
+  const modified = Buffer.from(JSON.stringify(cursor)).toString("base64url");
+  const transport = vi.fn<RawTransport>();
+  await expect(runApiGet(cloudSession(transport),
+    flags(["api", "get", "--operation", "rux.detection.list", "--cursor", modified])))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  expect(transport).not.toHaveBeenCalled();
+});
+
 it("requires the route template variable before any HTTP", async () => {
   let calls = 0;
   const spy: RawTransport = async (request) => {
@@ -252,15 +364,17 @@ it("refuses a generation mismatch without sending a credential", async () => {
 
 it("resumes a capped collection with the bound query and refuses a changed one", async () => {
   const next = "https://fixture.invalid/api/v2.5/detections?state=active&min_id=2";
-  const first: RawTransport = async () => listPage([detection(1)], { count: 2, next });
+  const first: RawTransport = async () => listPage([{ ...detection(1), metadata: "private" }], { count: 2, next });
   const started = await runApiGet(session(first),
     flags(["api", "get", "--operation", "qux.detection.list", "--query", "state=active", "--limit", "1"]));
   expect(started.output).toMatchObject({ count: "1 of 2 rows", cursor: expect.any(String) });
+  expect(started.output.rows).toEqual([detection(1)]);
   const cursor = (started.output as { cursor: string }).cursor;
-  const second: RawTransport = async () => listPage([detection(2)], { count: 2, next: null });
+  const second: RawTransport = async () => listPage([{ ...detection(2), metadata: "private" }], { count: 2, next: null });
   const resumed = await runApiGet(session(second),
     flags(["api", "get", "--operation", "qux.detection.list", "--query", "state=active", "--cursor", cursor]));
   expect(resumed.output).toMatchObject({ rows: [detection(2)], complete: true });
+  expect(resumed.output.rows).toEqual([detection(2)]);
   expect(resumed.output).not.toHaveProperty("cursor");
   const changed: RawTransport = async () => listPage([detection(2)], { count: 2, next: null });
   await expect(runApiGet(session(changed),
