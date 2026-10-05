@@ -32,8 +32,8 @@ export function resolveWriteLogPath(env: NodeJS.ProcessEnv = process.env): strin
 export type MutationEffect = "write" | "disruptive";
 
 // A named mutation bound by its domain caller. The operation must fall
-// inside the profile's configured scope; tag replaces and note appends also
-// require confirmation.
+// inside the profile's configured scope. Exact target confirmation is required
+// for disruptive effects or when the domain caller sets requiresConfirmation.
 export type MutationDefinition = {
   operation: string;
   method: MutationMethod;

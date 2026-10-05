@@ -166,7 +166,7 @@ Choose exactly one of `--note` (inline text) or `--note-file` (a file path, `-` 
 `<kind> note delete --profile <name> --id <id> --note-id <note-id>` removes one addressed note through the same pipeline: the profile must hand-enable `<qux|rux>.<kind>.note.delete`, the dry run previews the note being removed, and `--execute --confirm '<kind> <id> note <note-id>'` sends a DELETE (an already-deleted note is an exit-0 no-op).
 The pre-send re-read refuses a changed note with `VERSION_CONFLICT`, unless the note is already gone, which is a no-op.
 Edit/delete previews truncate text at 1200 characters with its total length; neither leaf accepts `--full`.
-Use `note list --full` to inspect the complete current text before confirming; edits send the complete replacement text without an enforced length limit.
+Use `<kind> note list --profile <name> --id <id> --full` to inspect the complete current text before confirming; edits send the complete replacement text without an enforced length limit.
 A change after the delete re-read can still remove text that was never previewed.
 See the [capability records](inventory/capabilities.json) for exact generation-specific item routes.
 For note append, edit and delete, intent and outcome are journaled as metadata only, never the note text; server rejections return an error with the audit id and exit 1, and ambiguous timeouts report the audit id with read-back guidance instead of replaying.
