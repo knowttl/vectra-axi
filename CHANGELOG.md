@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/knowttl/vectra-axi/compare/v0.1.2...v0.1.3) (2026-10-05)
+
+
+### Features
+
+* add opt-in session-start hook with local-only summary ([#40](https://github.com/knowttl/vectra-axi/issues/40)) ([cf6b116](https://github.com/knowttl/vectra-axi/commit/cf6b116beb8c7f3aaf4cf9f0668939cb992ba89f))
+
 ## [0.1.2](https://github.com/knowttl/vectra-axi/compare/v0.1.1...v0.1.2) (2026-10-05)
 
 
