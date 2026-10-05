@@ -49,16 +49,10 @@ jobs:
             writeFileSync(path, readFileSync(path, "utf8").split("\n").filter(line => !line.includes(":_authToken=")).join("\n"));
           '
       - name: Publish to npm
-        # No --provenance flag: knowttl/vectra-axi is a private repository and npm
-        # generates provenance attestations only for publishes from public
-        # repositories. Trusted publishing (OIDC) itself works from private
-        # repositories - provenance is simply not generated for them.
-        # See https://docs.npmjs.com/trusted-publishers/#automatic-provenance-generation
-        # and the troubleshooting note on private repositories.
         run: |
           version=$(node -p "require('./package.json').version")
           if npm view "@knowttl/vectra-axi@$version" version > /dev/null 2>&1; then
             echo "@knowttl/vectra-axi@$version is already published; skipping."
           else
-            npm publish --access public
+            npm publish --access public --provenance
           fi
