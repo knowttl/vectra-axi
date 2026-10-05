@@ -144,6 +144,21 @@ it("previews without sending when --execute is absent", async () => {
   expect(() => readFileSync(auditPath, "utf8")).toThrow();
 });
 
+it("authorizes a documented trailing-slash bound route and sends it unchanged", async () => {
+  const seen: { method: string; url: string }[] = [];
+  const transport: RawTransport = async (request) => {
+    seen.push({ method: request.method, url: request.url });
+    return ok({ id: 1 });
+  };
+  const { coordinator: writes } = coordinator({ transport });
+  const slashed = { ...mutation, path: "/api/v2.5/fixture/notes/1/" };
+  const previewed = writes.preview(slashed, { notes: [] });
+  expect(previewed.url).toBe("https://fixture.invalid/api/v2.5/fixture/notes/1/");
+  const result = await writes.execute(slashed, { execute: true, readState });
+  expect(result.kind).toBe("success");
+  expect(seen).toEqual([{ method: "POST", url: "https://fixture.invalid/api/v2.5/fixture/notes/1/" }]);
+});
+
 it("rejects --dry-run combined with --execute", async () => {
   const transport = vi.fn<RawTransport>().mockResolvedValue(ok({ id: 1 }));
   const { coordinator: writes } = coordinator({ transport });

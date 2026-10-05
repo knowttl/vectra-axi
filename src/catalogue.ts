@@ -290,6 +290,38 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi detection note add --profile <name> --id 42 --note <text> --execute --confirm 'detection 42'",
     ],
   },
+  "detection note edit": {
+    description: "Replace one detection note's text through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Detection ID owning the note (positive integer, required)" },
+      "note-id": { kind: "value", valueName: "id", description: "Note ID to replace (positive integer, required)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target detection <id> note <note-id> when executing a change" },
+      note: { kind: "value", valueName: "text", description: "Replacement note text (non-empty)" },
+      "note-file": { kind: "value", valueName: "path", description: "Read the replacement text from a file exactly as stored; use - for stdin" },
+      execute: { kind: "boolean", description: "Send the edit after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi detection note edit --profile <name> --id 42 --note-id 7 --note <text>",
+      "vectra-axi detection note edit --profile <name> --id 42 --note-id 7 --note <text> --execute --confirm 'detection 42 note 7'",
+    ],
+  },
+  "detection note delete": {
+    description: "Delete one detection note through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Detection ID owning the note (positive integer, required)" },
+      "note-id": { kind: "value", valueName: "id", description: "Note ID to delete (positive integer, required)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target detection <id> note <note-id> when executing a change" },
+      execute: { kind: "boolean", description: "Send the delete after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi detection note delete --profile <name> --id 42 --note-id 7",
+      "vectra-axi detection note delete --profile <name> --id 42 --note-id 7 --execute --confirm 'detection 42 note 7'",
+    ],
+  },
   "host note list": {
     description: "List full QUX host notes through the versioned notes route",
     flags: {
@@ -344,6 +376,38 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi host note add --profile <name> --id 19 --note <text> --execute --confirm 'host 19'",
     ],
   },
+  "host note edit": {
+    description: "Replace one host note's text through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Host ID owning the note (positive integer, required)" },
+      "note-id": { kind: "value", valueName: "id", description: "Note ID to replace (positive integer, required)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target host <id> note <note-id> when executing a change" },
+      note: { kind: "value", valueName: "text", description: "Replacement note text (non-empty)" },
+      "note-file": { kind: "value", valueName: "path", description: "Read the replacement text from a file exactly as stored; use - for stdin" },
+      execute: { kind: "boolean", description: "Send the edit after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi host note edit --profile <name> --id 19 --note-id 7 --note <text>",
+      "vectra-axi host note edit --profile <name> --id 19 --note-id 7 --note <text> --execute --confirm 'host 19 note 7'",
+    ],
+  },
+  "host note delete": {
+    description: "Delete one host note through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Host ID owning the note (positive integer, required)" },
+      "note-id": { kind: "value", valueName: "id", description: "Note ID to delete (positive integer, required)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target host <id> note <note-id> when executing a change" },
+      execute: { kind: "boolean", description: "Send the delete after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi host note delete --profile <name> --id 19 --note-id 7",
+      "vectra-axi host note delete --profile <name> --id 19 --note-id 7 --execute --confirm 'host 19 note 7'",
+    ],
+  },
   "account note list": {
     description: "List full QUX account notes through the versioned notes route",
     flags: {
@@ -396,6 +460,38 @@ export const catalogue: Readonly<Record<string, {
     examples: [
       "vectra-axi account note add --profile <name> --id 19 --note <text>",
       "vectra-axi account note add --profile <name> --id 19 --note <text> --execute --confirm 'account 19'",
+    ],
+  },
+  "account note edit": {
+    description: "Replace one account note's text through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Account ID owning the note (positive integer, required)" },
+      "note-id": { kind: "value", valueName: "id", description: "Note ID to replace (positive integer, required)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target account <id> note <note-id> when executing a change" },
+      note: { kind: "value", valueName: "text", description: "Replacement note text (non-empty)" },
+      "note-file": { kind: "value", valueName: "path", description: "Read the replacement text from a file exactly as stored; use - for stdin" },
+      execute: { kind: "boolean", description: "Send the edit after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi account note edit --profile <name> --id 19 --note-id 7 --note <text>",
+      "vectra-axi account note edit --profile <name> --id 19 --note-id 7 --note <text> --execute --confirm 'account 19 note 7'",
+    ],
+  },
+  "account note delete": {
+    description: "Delete one account note through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Account ID owning the note (positive integer, required)" },
+      "note-id": { kind: "value", valueName: "id", description: "Note ID to delete (positive integer, required)" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact target account <id> note <note-id> when executing a change" },
+      execute: { kind: "boolean", description: "Send the delete after the preview; default shows the dry run" },
+      "dry-run": { kind: "boolean", description: "Show the preview without sending; cannot be combined with --execute" },
+    },
+    examples: [
+      "vectra-axi account note delete --profile <name> --id 19 --note-id 7",
+      "vectra-axi account note delete --profile <name> --id 19 --note-id 7 --execute --confirm 'account 19 note 7'",
     ],
   },
   "assignment list": {

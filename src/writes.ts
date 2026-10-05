@@ -165,7 +165,7 @@ export function createMutationCoordinator(args: {
         "WRITES_DISABLED",
         [
           "Writes are disabled for this profile",
-          "Gated `tag set` replaces, `note add` appends and `assignment set` changes need a hand-edited writes scope on this profile",
+          "Gated `tag set` replaces, `note add` appends, `note edit`/`note delete` changes and `assignment set` changes need a hand-edited writes scope on this profile",
         ],
       );
     }
@@ -176,7 +176,7 @@ export function createMutationCoordinator(args: {
         "OPERATION_NOT_WRITABLE",
         [
           "Writes are limited to this profile's configured operations",
-          "Only implemented operations can run: `tag set` replaces, `note add` appends and `assignment set` changes",
+          "Only implemented operations can run: `tag set` replaces, `note add` appends, `note edit`/`note delete` changes and `assignment set` changes",
         ],
       );
     }
@@ -194,8 +194,14 @@ export function createMutationCoordinator(args: {
       ]);
     }
     const prefix = `/api/v${scope.apiVersion}/`;
-    const segments = definition.path.split("/");
-    if (!definition.path.startsWith(prefix) || segments[0] !== ""
+    // RUX v3.4 documents trailing-slash item routes; that single slash is
+    // part of the bound route, not traversal, so it is set aside for the
+    // segment check while the authorized URL keeps the documented form.
+    const route = definition.path.length > 1 && definition.path.endsWith("/")
+      ? definition.path.slice(0, -1)
+      : definition.path;
+    const segments = route.split("/");
+    if (!route.startsWith(prefix) || segments[0] !== ""
       || segments.slice(1).some((segment) => !segment || segment === "." || segment === "..")
       || /[\s\x00-\x1f\x7f\\?#]/.test(definition.path)) {
       throw new AxiError("Refusing mutation path outside the bound operation scope", "VALIDATION_ERROR", [

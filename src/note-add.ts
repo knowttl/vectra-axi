@@ -13,8 +13,7 @@ import type { MutationCoordinator, MutationDefinition } from "./writes.js";
 // repeated identical notes each send and are never collapsed into a no-op.
 // There is no evidenced ETag contract, and a concurrent append between the
 // preview read and the pre-send re-read is compatible, so no conflict
-// comparison is invented. Note edits and deletes have no evidenced contract
-// and no leaf here.
+// comparison is invented. Note edits and deletes live in src/note-edit.ts.
 
 function leaf(kind: NoteKind): string {
   return `${kind} note add`;
@@ -71,7 +70,7 @@ export function desiredNote(
   }
   if (!note!.trim()) {
     invalid(`${command} requires a non-empty note`,
-      "Note edits and deletes are not implemented; only appending is supported",
+      `To replace the text of an existing note, run \`vectra-axi ${kind} note edit\`; to remove one, run \`vectra-axi ${kind} note delete\``,
       `Run \`vectra-axi ${command} --help\``);
   }
   return note!;

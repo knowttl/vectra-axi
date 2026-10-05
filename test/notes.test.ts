@@ -440,21 +440,27 @@ it("rejects a malformed embedded summary", async () => {
     .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
 });
 
-it("routes note appends through the coordinator, never the read session", async () => {
+it("routes note appends, edits and deletes through the coordinator, never the read session", async () => {
   expect(Object.keys(catalogue).filter((leaf) =>
     leaf.includes("note") || leaf.includes("tag"))).toEqual([
     "detection note list",
     "detection tag list",
     "detection tag set",
     "detection note add",
+    "detection note edit",
+    "detection note delete",
     "host note list",
     "host tag list",
     "host tag set",
     "host note add",
+    "host note edit",
+    "host note delete",
     "account note list",
     "account tag list",
     "account tag set",
     "account note add",
+    "account note edit",
+    "account note delete",
   ]);
   const deferred = inventory.deferredFamilies
     .filter((family) => family.id.endsWith("note-writes") || family.id.endsWith("tag-writes"));
@@ -471,6 +477,12 @@ it("routes note appends through the coordinator, never the read session", async 
     return { status: 200, bodyText: "{}" };
   };
   await expect(session(transport).request("qux.detection.note.add", { pathParams: { id: 42 } }))
+    .rejects.toMatchObject({ code: "OPERATION_BLOCKED" });
+  await expect(session(transport).request("qux.detection.note.edit", { pathParams: { id: 42 } }))
+    .rejects.toMatchObject({ code: "OPERATION_BLOCKED" });
+  await expect(session(transport).request("qux.detection.note.delete", { pathParams: { id: 42 } }))
+    .rejects.toMatchObject({ code: "OPERATION_BLOCKED" });
+  await expect(cloudSession(transport).request("rux.detection.note.delete", { pathParams: { id: 42 } }))
     .rejects.toMatchObject({ code: "OPERATION_BLOCKED" });
   await expect(session(transport).request("qux.detection.note.create", { pathParams: { id: 42 } }))
     .rejects.toMatchObject({ code: "OPERATION_UNKNOWN" });

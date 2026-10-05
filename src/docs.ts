@@ -9,7 +9,8 @@ import { catalogue, inventory } from "./catalogue.js";
 // One row per executable leaf in catalogue order, matching the home-view
 // help. Every leaf is implemented by a vectra-axi handler (native).
 // Local views stay offline; QUX and RUX reads use the read-only session, tag
-// replaces, note appends and assignment sets use the gated WRITE-00 coordinator.
+// replaces, note appends, note edits/deletes and assignment sets use the
+// gated WRITE-00 coordinator.
 export function skillCommandTable(): string {
   return [
     "| Command | Capability | Vectra effect |",
@@ -36,7 +37,7 @@ export function coverageDocument(): string {
     "",
     "# vectra-axi coverage",
     "",
-    "This is the supported QUX and RUX SOC read surface with gated QUX tag-write, note-write and assignment-write families, not full Vectra API coverage.",
+    "This is the supported QUX and RUX SOC read surface with gated QUX tag-write, note-append and assignment-write families and the gated QUX/RUX note edit/delete family, not full Vectra API coverage.",
     "Only `named` operations have an implemented, tested command leaf; every other",
     "operation remains planned, blocked or unreviewed until its own slice ships.",
     "",
