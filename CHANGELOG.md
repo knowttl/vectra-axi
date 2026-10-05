@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2](https://github.com/knowttl/vectra-axi/compare/v0.1.1...v0.1.2) (2026-10-05)
+
+
+### Features
+
+* add gated QUX and RUX note edits and deletes ([#32](https://github.com/knowttl/vectra-axi/issues/32)) ([e2c3fa3](https://github.com/knowttl/vectra-axi/commit/e2c3fa37685c904273e0496e375e5c466bb9254e))
+* add reviewed raw API reads ([#36](https://github.com/knowttl/vectra-axi/issues/36)) ([276ce6e](https://github.com/knowttl/vectra-axi/commit/276ce6e8bcaac7bba8de154699ddc311f7e2c9a7))
+
 ## [0.1.1](https://github.com/knowttl/vectra-axi/compare/v0.1.0...v0.1.1) (2026-10-05)
 
 
