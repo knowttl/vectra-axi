@@ -54,6 +54,11 @@ export function rawRecord(operation: string): CapabilityOperation {
       `Checkpoint and date-window feeds keep their named leaf; run \`vectra-axi ${leaf}\` instead`,
     ]);
   }
+  if (record.fields.length === 0) {
+    throw new AxiError(`Operation ${operation} has no reviewed raw field policy`, "OPERATION_BLOCKED", [
+      `Run \`vectra-axi ${record.command}\` instead`,
+    ]);
+  }
   return record;
 }
 

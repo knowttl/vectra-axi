@@ -113,6 +113,15 @@ it("refuses a planned operation that has no reviewed read contract", async () =>
   expect(calls).toBe(0);
 });
 
+it.each(["host", "account", "traffic"])("refuses raw lockdown %s without a reviewed field policy", async (type) => {
+  const transport = vi.fn<RawTransport>().mockResolvedValue({ status: 200,
+    bodyText: JSON.stringify([{ entity_id: 7, type, locked_by: "synthetic-admin" }]) });
+  await expect(runApiGet(cloudSession(transport),
+    flags(["api", "get", "--operation", "rux.lockdown.list", "--query", `type=${type}`])))
+    .rejects.toMatchObject({ code: "OPERATION_BLOCKED", suggestions: ["Run `vectra-axi lockdown list` instead"] });
+  expect(transport).not.toHaveBeenCalled();
+});
+
 it("refuses a write operation before any HTTP", async () => {
   let calls = 0;
   const spy: RawTransport = async (request) => {
