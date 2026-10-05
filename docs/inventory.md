@@ -52,6 +52,7 @@ The inventory records evidence; the [strict executable catalogue](../src/catalog
 | `deprecated` | Previously supported contract deliberately retired with documented guidance. |
 
 The [capability records](../inventory/capabilities.json) own each operation's delivery state; see [README.md](../README.md) for shipped commands.
+The generated [coverage record](coverage.md) reports raw availability separately in its `Raw` column; enabling raw access to a `named` operation does not change its inventory disposition to `reviewed-raw`.
 Neither an upstream GET nor a downloaded schema enables an endpoint.
 The QUX sensor registration token and AWS connector credential reads are `blocked` and cannot be exposed through raw-read access.
 OAuth exchanges are separate effects; a token POST does not authorize business POSTs.

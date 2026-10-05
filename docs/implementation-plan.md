@@ -35,7 +35,7 @@ Recheck cited upstream contracts when implementing; record deployment/API/applia
 | RUX-04 | RUX notes/tags and assignments/context | RUX-02, READ-03, READ-04 | Version-specific entity/table selectors, note shapes and assignment semantics; split note/tag and assignment changes. |
 | RUX-05 | RUX groups/members and triage rules | RUX-02, READ-05 | Group-kind and filter mappings, permissions and paged memberships; no QUX wire assumptions. |
 | RUX-06 | RUX health and lockdown status | RUX-01, READ-07, READ-08 | Subscription-sensitive shapes, generation-specific routes and unsupported-check guidance. |
-| API-01 | Optional reviewed raw-read surface | PACK-01 and explicit scope choice | Allowlisted operation/query/field policy, no arbitrary destination/header/method or sensitive-route bypass. |
+| API-01 | Reviewed raw-read surface | PACK-01 and explicit scope choice | Allowlisted operation/query/field policy, no arbitrary destination/header/method or sensitive-route bypass. |
 | WRITE-00 | Mutation coordinator, fixture-only enablement | PACK-01 | Forced read-only, hand opt-in, original configured scope, preview/execute/confirm, durable intent/outcome, no ambiguous replay. |
 | WRITE-01 | Detection/host/account desired-state tag replace | WRITE-00, READ-03 | Exact desired set, file/stdin inputs, dry-run diff, no-op, pre-send state comparison, exact target confirmation, permission and audit tests. |
 | WRITE-02 | Detection/host/account action-shaped note append | WRITE-00, READ-03 | Exact appended note, file/stdin inputs, action preview, exact target confirmation, unknown-outcome no-replay, permission and audit tests. |
@@ -69,7 +69,7 @@ Do not make every phase one umbrella task or commission the entire catalogue as 
 | 2: useful QUX release | READ-02 through READ-08, PACK-01 | A complete synthetic on-prem investigation can inspect entities, notes/tags, assignment, rules/groups, audit, health and lockdown status. |
 | 3: cloud adoption | RUX-01 through RUX-06 | Explicit cloud profile passes the shared contracts; QUX output stays stable and generation-specific semantics remain visible. |
 | 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-03/WRITE-05/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
-| 5: deliberate expansion | Optional API-01 and separately selected long-tail families | The capability map records exact named/raw/blocked/planned dispositions; there is no unrestricted passthrough. |
+| 5: deliberate expansion | Selected API-01 and separately selected long-tail families | The capability map records exact named/raw/blocked/planned dispositions; there is no unrestricted passthrough. |
 
 Phase 1 is sequential because each step establishes a contract used by the next.
 After READ-02 and CORE-02 merge, phases within the remaining QUX read tranche may be commissioned independently if their files and public contracts do not conflict.
@@ -261,6 +261,13 @@ Further writes require exact upstream concurrency evidence, effect classificatio
 Closing/reopening detections, resolving assignments and changing triage rules must remain distinct operations.
 If safe concurrency is unavailable for a high-impact operation, document the limitation and keep that operation disabled until its policy is deliberately resolved.
 Do not promise rollback for actions without a reliable inverse.
+
+## Phase 5: deliberate expansion
+
+API-01 implements the separately approved reviewed raw-read slice through the existing session.
+Its [offline acceptance suite](../test/api-get.test.ts) covers operation refusal, generation isolation, query and field policy, encoded pair values, bounded windows and cursor resumption, partial failures, redaction and truncation.
+See [README.md](../README.md) for shipped usage and [generated coverage](coverage.md) for per-operation availability.
+Long-tail families remain separately commissioned scope.
 
 ## Per-slice handoff template
 
