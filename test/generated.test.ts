@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { parse } from "yaml";
 import { catalogue, inventory } from "../src/catalogue.js";
 import { coverageDocument, skillCommandTable } from "../src/docs.js";
 
@@ -8,12 +9,13 @@ const coverage = readFileSync(new URL("../docs/coverage.md", import.meta.url), "
 
 describe("generated release records", () => {
   it("keeps skill discovery frontmatter valid for loaders", () => {
-    const frontmatter = skill.match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
-    expect(frontmatter).toContain("name: vectra-axi");
-    // A bare colon inside a YAML plain scalar breaks skill discovery, so the
-    // outcome-focused description stays quoted.
-    expect(frontmatter.split("\n").find((line) => line.startsWith("description:"))).toMatch(/^description: ".*"$/);
-    expect(frontmatter).toContain("user-invocable: false");
+    const frontmatter = skill.match(/^---\n([\s\S]*?)\n---\n/)?.[1];
+    expect(frontmatter).toBeDefined();
+    const metadata = parse(frontmatter!);
+    expect(metadata.name).toBe("vectra-axi");
+    expect(typeof metadata.description).toBe("string");
+    expect(metadata.description.trim()).not.toBe("");
+    expect(metadata["user-invocable"]).toBe(false);
   });
   it("keeps the committed skill command table generated from the catalogue", () => {
     const block = skill.split("<!-- command-registry:start -->\n")[1]?.split("\n<!-- command-registry:end -->")[0];
