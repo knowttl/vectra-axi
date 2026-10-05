@@ -1,6 +1,6 @@
 {
   "name": "@knowttl/vectra-axi",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Read-only-first Vectra AXI CLI",
   "bin": {
     "vectra-axi": "bin/vectra-axi.js"
