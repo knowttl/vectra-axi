@@ -40,6 +40,7 @@ Recheck cited upstream contracts when implementing; record deployment/API/applia
 | WRITE-01 | Detection/host/account desired-state tag replace | WRITE-00, READ-03 | Exact desired set, file/stdin inputs, dry-run diff, no-op, pre-send state comparison, exact target confirmation, permission and audit tests. |
 | WRITE-02 | Detection/host/account action-shaped note append | WRITE-00, READ-03 | Exact appended note, file/stdin inputs, action preview, exact target confirmation, unknown-outcome no-replay, permission and audit tests. |
 | WRITE-03 | QUX host/account desired-state assignment | WRITE-00, READ-04 | Assign/reassign/unassign previews, exact user validation, no-op, pre-send state comparison, malformed-row refusal, exact target confirmation, policy and audit tests. |
+| WRITE-05 | QUX detection/host/account bulk tag set/delete | WRITE-00, READ-03 | Explicit bounded target list, per-target dry-run diffs, no-op detection, pre-send re-read per target, count-and-set confirmation, per-target audit, partial-failure reporting, unknown-outcome no-replay, permission and audit tests. |
 | WRITE-N | Remaining separately approved mutation families | WRITE-00, corresponding reads | One reviewed family per change; concurrency evidence, unknown outcome, audit failure and disruptive-confirmation cases. |
 
 PACK-01 is a useful SOC read release, not full Vectra API coverage.
@@ -67,7 +68,7 @@ Do not make every phase one umbrella task or commission the entire catalogue as 
 | 1: first investigation | AUTH-01, AUTH-02, CORE-01, CORE-02, READ-01 | Packaged CLI lists a synthetic detection, shows it, resumes safely and refuses all business writes. |
 | 2: useful QUX release | READ-02 through READ-08, PACK-01 | A complete synthetic on-prem investigation can inspect entities, notes/tags, assignment, rules/groups, audit, health and lockdown status. |
 | 3: cloud adoption | RUX-01 through RUX-06 | Explicit cloud profile passes the shared contracts; QUX output stays stable and generation-specific semantics remain visible. |
-| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-03/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
+| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-03/WRITE-05/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
 | 5: deliberate expansion | Optional API-01 and separately selected long-tail families | The capability map records exact named/raw/blocked/planned dispositions; there is no unrestricted passthrough. |
 
 Phase 1 is sequential because each step establishes a contract used by the next.
@@ -234,7 +235,7 @@ WRITE-01 selects per-object detection, host and account tag replacement, built o
 Its [offline acceptance suite](../test/tags.test.ts) covers desired-state diffs, no-ops, file/stdin inputs and clearing, changed current state, exact target confirmation, policy refusal, denied reads, server rejection and unknown outcomes without replay.
 All acceptance uses synthetic fixtures; no live instance, real credentials or customer data is used.
 See [README.md](../README.md) for shipped usage and concurrency limits, and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
-Bulk tag set/delete and note edits/deletes remain planned and require separately selected WRITE-N slices.
+Note edits/deletes remain planned and require separately selected WRITE-N slices.
 
 WRITE-02 selects per-object detection, host and account note append, built on READ-03 and WRITE-00.
 Its [offline acceptance suite](../test/note-add.test.ts) covers action-shaped previews, exact appended bodies, file/stdin inputs, exact target confirmation, policy refusal, denied targets, server rejection and unknown outcomes without replay.
@@ -248,6 +249,14 @@ WRITE-03 selects desired-state QUX host and account assignment, built on READ-04
 Detection assignment is outside this approved slice; see [README.md](../README.md) for the upstream limitation.
 Its [offline acceptance suite](../test/assignment-set.test.ts) covers assign/reassign/unassign, exact user validation, no-ops, changed current state, duplicate open assignments across pages, omitted assignee or entity identity on both entity paths, confirmation, policy refusal, audit records, server rejection and unknown outcomes without replay.
 The [packaged CLI journey](../test/cli.test.ts) exercises preview, confirmation and execution through synthetic profiles and transport fixtures.
+See [README.md](../README.md) for shipped usage and concurrency limits, and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+
+WRITE-05 selects QUX detection, host and account bulk tag set/delete, built on READ-03 and WRITE-00.
+No catalogue version documents a vendor bulk tagging route, so each bulk leaf sequences one per-target full-replace PATCH through the coordinator: bulk-set unions the named tags onto each explicit target's set and bulk-delete subtracts them.
+Targets come from `--ids` or `--ids-file` only (at most 100 per run, never query-selected), both actions require at least one named tag so a bulk run never clears, and RUX profiles are refused outright.
+Its [offline acceptance suite](../test/tags-bulk.test.ts) covers explicit target parsing, per-target dry-run diffs, no-ops, union/subtract sends with per-target audits, changed current state, exact count-and-set confirmation, policy refusal, denied reads, server rejection, partial failures and unknown outcomes without replay.
+The [packaged CLI journey](../test/cli.test.ts) exercises preview, confirmation and execution through synthetic profiles and transport fixtures.
+All acceptance uses synthetic fixtures; no live instance, real credentials or customer data is used.
 See [README.md](../README.md) for shipped usage and concurrency limits, and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 
 Further writes require exact upstream concurrency evidence, effect classification and the same coordinator.

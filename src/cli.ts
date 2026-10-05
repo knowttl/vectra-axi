@@ -26,6 +26,7 @@ import { runNoteAdd } from "./note-add.js";
 import { loadConfig, selectProfile } from "./profiles.js";
 import { SecretRedactor } from "./redact.js";
 import { createSession, nodeTransport, type RawTransport } from "./session.js";
+import { runTagBulk, type BulkTagAction } from "./tags-bulk.js";
 import { runTagSet } from "./tags.js";
 import { createMutationCoordinator, readOnlyForced } from "./writes.js";
 
@@ -93,6 +94,11 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         if (invocation.leaf === "detection tag set" || invocation.leaf === "host tag set"
           || invocation.leaf === "account tag set") {
           return runTagSets(invocation.leaf, invocation.flags);
+        }
+        if (invocation.leaf === "detection tag bulk-set" || invocation.leaf === "detection tag bulk-delete"
+          || invocation.leaf === "host tag bulk-set" || invocation.leaf === "host tag bulk-delete"
+          || invocation.leaf === "account tag bulk-set" || invocation.leaf === "account tag bulk-delete") {
+          return runTagBulks(invocation.leaf, invocation.flags);
         }
         if (invocation.leaf === "detection note add" || invocation.leaf === "host note add"
           || invocation.leaf === "account note add") {
@@ -176,7 +182,28 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
-  // One dispatch for every note append leaf: validate the owner ID, select
+  // One dispatch for every bulk tag leaf: select the profile, build the
+  // session and a WRITE-00 coordinator on the injected transport, and run
+  // the per-target fan-out through the full gate pipeline. Reads stay on
+  // the session; each PATCH travels only with a coordinator authorization
+  // after the whole-run gates pass. Targets come from --ids/--ids-file
+  // only; RUX profiles are refused because no tag write route is evidenced.
+  type TagBulkLeaf = "detection tag bulk-set" | "detection tag bulk-delete"
+    | "host tag bulk-set" | "host tag bulk-delete"
+    | "account tag bulk-set" | "account tag bulk-delete";
+  async function runTagBulks(leaf: TagBulkLeaf, flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
+    const [kind, , action] = leaf.split(" ") as [NoteKind, string, BulkTagAction];
+    if (!(NOTE_KINDS as readonly string[]).includes(kind)) {
+      throw new Error(`Unknown bulk tag leaf: ${leaf}`);
+    }
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
+    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+    const coordinator = createMutationCoordinator({ profile: selected, configPath: loaded.path, redactor, transport });
+    const result: LeafResult = await runTagBulk(session, coordinator, flags, kind, action);
+    if (result.failed) process.exitCode = 1;
+    return result.output;
+  }
   // the profile, build the session and a WRITE-00 coordinator on the
   // injected transport, and run the action-shaped append through the full
   // gate pipeline. Reads stay on the session; the POST travels only with

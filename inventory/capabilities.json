@@ -368,6 +368,88 @@
       ]
     },
     {
+      "id": "qux.host.tag.bulk-set",
+      "command": "host tag bulk-set",
+      "slice": "WRITE-05",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled bulk-set scope; unions the named tags onto each explicit target's set through one full-replace PATCH per target with no vendor bulk route.",
+      "method": "PATCH",
+      "path": "/api/v2.5/tagging/host/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "set_host_tags: PATCH /tagging/host/{id} with full-replace {\"tags\"} payload; empty list clears"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "pp40-41 tagging routes"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-05; `host tag bulk-set` sequences one coordinator desired-state replace per explicit target with no vendor bulk route.",
+      "fixtureCases": [
+        "dry-run-diff",
+        "no-op",
+        "partial-failure",
+        "version-conflict",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in",
+        "rux-refusal"
+      ]
+    },
+    {
+      "id": "qux.host.tag.bulk-delete",
+      "command": "host tag bulk-delete",
+      "slice": "WRITE-05",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled bulk-delete scope; subtracts the named tags from each explicit target's set through one full-replace PATCH per target with no vendor bulk route; at least one tag is required, so bulk runs never clear.",
+      "method": "PATCH",
+      "path": "/api/v2.5/tagging/host/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "set_host_tags: PATCH /tagging/host/{id} with full-replace {\"tags\"} payload; empty list clears"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "pp40-41 tagging routes"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-05; `host tag bulk-delete` sequences one coordinator desired-state replace per explicit target with no vendor bulk route.",
+      "fixtureCases": [
+        "dry-run-diff",
+        "no-op",
+        "partial-failure",
+        "version-conflict",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in",
+        "rux-refusal"
+      ]
+    },
+    {
       "id": "qux.account.list",
       "command": "account list",
       "slice": "READ-02",
@@ -594,6 +676,88 @@
       ]
     },
     {
+      "id": "qux.account.tag.bulk-set",
+      "command": "account tag bulk-set",
+      "slice": "WRITE-05",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled bulk-set scope; unions the named tags onto each explicit target's set through one full-replace PATCH per target with no vendor bulk route.",
+      "method": "PATCH",
+      "path": "/api/v2.5/tagging/account/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "set_account_tags: PATCH /tagging/account/{id} with full-replace {\"tags\"} payload; empty list clears"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "pp40-41 tagging routes"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-05; `account tag bulk-set` sequences one coordinator desired-state replace per explicit target with no vendor bulk route.",
+      "fixtureCases": [
+        "dry-run-diff",
+        "no-op",
+        "partial-failure",
+        "version-conflict",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in",
+        "rux-refusal"
+      ]
+    },
+    {
+      "id": "qux.account.tag.bulk-delete",
+      "command": "account tag bulk-delete",
+      "slice": "WRITE-05",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled bulk-delete scope; subtracts the named tags from each explicit target's set through one full-replace PATCH per target with no vendor bulk route; at least one tag is required, so bulk runs never clear.",
+      "method": "PATCH",
+      "path": "/api/v2.5/tagging/account/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "set_account_tags: PATCH /tagging/account/{id} with full-replace {\"tags\"} payload; empty list clears"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "pp40-41 tagging routes"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-05; `account tag bulk-delete` sequences one coordinator desired-state replace per explicit target with no vendor bulk route.",
+      "fixtureCases": [
+        "dry-run-diff",
+        "no-op",
+        "partial-failure",
+        "version-conflict",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in",
+        "rux-refusal"
+      ]
+    },
+    {
       "id": "qux.detection.note.list",
       "command": "detection note list",
       "slice": "READ-03",
@@ -735,6 +899,88 @@
         "access-denied",
         "unknown-outcome",
         "refused-without-opt-in"
+      ]
+    },
+    {
+      "id": "qux.detection.tag.bulk-set",
+      "command": "detection tag bulk-set",
+      "slice": "WRITE-05",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled bulk-set scope; unions the named tags onto each explicit target's set through one full-replace PATCH per target with no vendor bulk route.",
+      "method": "PATCH",
+      "path": "/api/v2.5/tagging/detection/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "set_detection_tags: PATCH /tagging/detection/{id} with full-replace {\"tags\"} payload; empty list clears"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "pp40-41 tagging routes"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-05; `detection tag bulk-set` sequences one coordinator desired-state replace per explicit target with no vendor bulk route.",
+      "fixtureCases": [
+        "dry-run-diff",
+        "no-op",
+        "partial-failure",
+        "version-conflict",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in",
+        "rux-refusal"
+      ]
+    },
+    {
+      "id": "qux.detection.tag.bulk-delete",
+      "command": "detection tag bulk-delete",
+      "slice": "WRITE-05",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit QUX v2.5 profile with hand-enabled bulk-delete scope; subtracts the named tags from each explicit target's set through one full-replace PATCH per target with no vendor bulk route; at least one tag is required, so bulk runs never clear.",
+      "method": "PATCH",
+      "path": "/api/v2.5/tagging/detection/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "tags"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "set_detection_tags: PATCH /tagging/detection/{id} with full-replace {\"tags\"} payload; empty list clears"
+        },
+        {
+          "source": "qux-guide",
+          "locator": "pp40-41 tagging routes"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-05; `detection tag bulk-delete` sequences one coordinator desired-state replace per explicit target with no vendor bulk route.",
+      "fixtureCases": [
+        "dry-run-diff",
+        "no-op",
+        "partial-failure",
+        "version-conflict",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in",
+        "rux-refusal"
       ]
     },
     {
@@ -3648,7 +3894,7 @@
       "deployment": "qux",
       "apiVersion": "2.5",
       "disposition": "planned",
-      "rationale": "Per-object tag replace is a named WRITE-01 operation (qux.detection.tag.set, qux.host.tag.set, qux.account.tag.set); bulk set/delete remain planned with no authorized route.",
+      "rationale": "Per-object tag replace is a named WRITE-01 operation (qux.detection.tag.set, qux.host.tag.set, qux.account.tag.set); bulk set/delete are named WRITE-05 operations (qux.detection.tag.bulk-set, qux.detection.tag.bulk-delete, qux.host.tag.bulk-set, qux.host.tag.bulk-delete, qux.account.tag.bulk-set, qux.account.tag.bulk-delete) sequencing per-target PATCH replaces with no vendor bulk route.",
       "evidence": [
         {
           "source": "qux-guide",

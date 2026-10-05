@@ -205,7 +205,7 @@ Do not automatically replay ambiguous mutations.
 See [README.md](../README.md) for the shipped operation surface.
 Raw requests are deferred; later reviewed raw reads must use the same operation catalogue and cannot bypass sensitive-route or write policy.
 
-WRITE-00 implements the coordinator in `src/writes.ts`; WRITE-01 binds desired-state tag replaces in `src/tags.ts`, WRITE-02 binds action-shaped note appends in `src/note-add.ts` and WRITE-03 binds desired-state assignment changes in `src/assignment-set.ts` to it.
+WRITE-00 implements the coordinator in `src/writes.ts`; WRITE-01 binds desired-state tag replaces in `src/tags.ts`, WRITE-02 binds action-shaped note appends in `src/note-add.ts`, WRITE-03 binds desired-state assignment changes in `src/assignment-set.ts` and WRITE-05 binds bulk tag set/delete fan-out in `src/tags-bulk.ts` to it.
 See [README.md](../README.md) for shipped write behavior and [the implementation plan](implementation-plan.md#phase-4-add-writes-as-a-new-capability-one-family-at-a-time) for selected and future write slices.
 The coordinator keeps its original policy private and exposes a frozen scope snapshot, including the operation allowlist.
 Its sender independently consumes a single-use authorization bound to that sender, method and URL; authorization issuance is private to the coordinator.
