@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.4](https://github.com/knowttl/vectra-axi/compare/v0.1.3...v0.1.4) (2026-10-12)
+
+
+### Features
+
+* adopt AXI credential profiles and private file protection ([#45](https://github.com/knowttl/vectra-axi/issues/45)) ([a4940da](https://github.com/knowttl/vectra-axi/commit/a4940daec739db8ffe411c205ff9ebeb9eb08431))
+
+
+### Bug Fixes
+
+* guard persistent hooks against disposable build targets ([#43](https://github.com/knowttl/vectra-axi/issues/43)) ([12bd939](https://github.com/knowttl/vectra-axi/commit/12bd9395da57358ef3aa01256014a23d4b57aa03))
+
 ## [0.1.3](https://github.com/knowttl/vectra-axi/compare/v0.1.2...v0.1.3) (2026-10-05)
 
 
