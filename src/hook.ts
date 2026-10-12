@@ -1,5 +1,6 @@
 import { encode } from "@toon-format/toon";
 import { loadConfig } from "./profiles.js";
+import { SecretRedactor } from "./redact.js";
 
 // Session-start ambient summary behind the vectra-axi-hook entry point.
 // Local configuration state only: every configured profile name with its
@@ -26,17 +27,18 @@ const CONFIGURED_HINT = "Run vectra-axi doctor --profile <name> to check a profi
 const SETUP_HINT = "Run vectra-axi setup to find the config path and example";
 
 export function hookSummary(options: HookOptions): string {
+  const redactor = new SecretRedactor();
   try {
-    return renderHookSummary(options);
+    return redactor.text(renderHookSummary(options, redactor));
   } catch {
     return "vectra: status unavailable\n";
   }
 }
 
-function renderHookSummary({ version, env = process.env, configPath }: HookOptions): string {
+function renderHookSummary({ version, env = process.env, configPath }: HookOptions, redactor: SecretRedactor): string {
   let loaded;
   try {
-    loaded = loadConfig(configPath ?? env.VECTRA_AXI_CONFIG, undefined);
+    loaded = loadConfig(configPath ?? env.VECTRA_AXI_CONFIG, redactor);
   } catch {
     return `${encode({ vectra: "configuration invalid",
       help: ["Check the selected config file's path, permissions and JSON syntax"] })}\n`;
@@ -45,7 +47,9 @@ function renderHookSummary({ version, env = process.env, configPath }: HookOptio
   if (names.length === 0) {
     return `${encode({ vectra: "not configured", help: [SETUP_HINT] })}\n`;
   }
-  const forced = env[READ_ONLY_ENV_MIRROR] === "1";
+  const readOnly = env[READ_ONLY_ENV_MIRROR]?.toLowerCase();
+  if (readOnly !== undefined && !["1", "true", "0", "false"].includes(readOnly)) throw new Error("Invalid read-only boolean");
+  const forced = readOnly === "1" || readOnly === "true";
   return `${encode({
     vectra: "configured",
     version,

@@ -10,6 +10,7 @@
     "bin",
     "dist/src",
     "inventory/capabilities.json",
+    "axi-credential.schema.json",
     "skills/vectra-axi"
   ],
   "publishConfig": {

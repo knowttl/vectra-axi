@@ -35,6 +35,9 @@ See [README release guidance](../../README.md#release) for generating and checki
 | `vectra-axi setup` | native | read |
 | `vectra-axi setup hooks` | native | read |
 | `vectra-axi doctor` | native | read |
+| `vectra-axi auth status` | native | read |
+| `vectra-axi profile list` | native | read |
+| `vectra-axi config path` | native | read |
 | `vectra-axi detection list` | native | read |
 | `vectra-axi detection show` | native | read |
 | `vectra-axi detection event list` | native | read |
@@ -95,10 +98,11 @@ and reference. Unknown flags fail before any credential or HTTP work.
 
 No ordinary command installs or changes configuration, except the explicit
 `vectra-axi setup hooks` session-hook installer (see [README.md](../../README.md) for that opt-in path). Hand-edit
-`~/.vectra-axi/config.json`, or select a file with `--config <path>`:
+`$XDG_CONFIG_HOME/vectra-axi/config.json` (default `~/.config/vectra-axi/config.json`), or select a file with `--config <path>`:
 
 ```json
 {
+  "version": 1,
   "defaultProfile": "lab",
   "profiles": {
     "lab": {
@@ -106,15 +110,20 @@ No ordinary command installs or changes configuration, except the explicit
       "origin": "https://qux.example.invalid",
       "apiVersion": "2.5",
       "auth": "token",
-      "tokenEnv": "VECTRA_LAB_TOKEN"
+      "token": { "env": "VECTRA_AXI_TOKEN" }
     }
   }
 }
 ```
 
-Set the variable named by `tokenEnv` outside the CLI. Never pass a secret in
-argv or the config file. `npx -y @knowttl/vectra-axi setup` shows the selected config path
-and a synthetic example; it writes nothing.
+Set the variable named by the SecretRef outside the CLI.
+Never pass a secret in argv or the config file.
+`npx -y @knowttl/vectra-axi setup` shows the selected config path and a synthetic example; it writes nothing.
+
+Windows uses `%APPDATA%\vectra-axi\config.json` and ignores XDG variables.
+The old `~/.vectra-axi/config.json` triggers `CONFIG_MOVED` with a move command.
+See the [AXI credential standard](https://github.com/knowttl/artium-axi/blob/main/docs/credential-standard.md).
+Use `npx -y @knowttl/vectra-axi auth status` to verify local credential availability without network access.
 
 ```sh
 npx -y @knowttl/vectra-axi setup                  # selected config path and example

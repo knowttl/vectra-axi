@@ -28,7 +28,8 @@ import { entityKind, listFields as entityListFields, listLimit as entityListLimi
 import { NOTE_KINDS, noteOwnerId, runNoteList, runTagList, type NoteKind } from "./notes.js";
 import { runNoteAdd } from "./note-add.js";
 import { noteEntryId, runNoteDelete, runNoteEdit } from "./note-edit.js";
-import { loadConfig, selectProfile } from "./profiles.js";
+import { configPath, envProfile, loadConfig, selectProfile } from "./profiles.js";
+import { authStatus } from "./auth.js";
 import { SecretRedactor } from "./redact.js";
 import { createSession, nodeTransport, type RawTransport } from "./session.js";
 import { runTagBulk, type BulkTagAction } from "./tags-bulk.js";
@@ -57,6 +58,8 @@ const GROUP_FIELDS = {
 export async function main(argv = process.argv.slice(2), transport: RawTransport = nodeTransport()): Promise<void> {
   let invocation: ReturnType<typeof parseInvocation>;
   const redactor = new SecretRedactor();
+  redactor.add(process.env.VECTRA_AXI_TOKEN);
+  redactor.add(process.env.VECTRA_AXI_CLIENT_SECRET);
   const stdout = {
     write: (chunk: string) => process.stdout.write(redactor.text(chunk)),
     on: process.stdout.on.bind(process.stdout),
@@ -74,6 +77,16 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
       // unknown flags and invalid combinations never reach credentials.
       shell: () => guarded(async (): Promise<Record<string, unknown>> => {
         if (invocation.help) return help(invocation.home ? undefined : invocation.leaf);
+        readOnlyForced();
+        if (invocation.leaf === "config path") return { config: configPath(invocation.flags.get("config") as string | undefined) };
+        if (invocation.leaf === "auth status" || invocation.leaf === "profile list") {
+          const loaded = loadConfig(invocation.flags.get("config") as string | undefined, redactor, invocation.leaf === "auth status");
+          if (invocation.leaf === "profile list") return { count: Object.keys(loaded.config.profiles).length,
+            profiles: Object.entries(loaded.config.profiles).map(([name, p]) => ({ name, origin: p.origin, auth: p.auth })) };
+          const status = authStatus(selectProfile(loaded.config, invocation.flags.get("profile") as string | undefined), redactor);
+          if (status.status === "unavailable") process.exitCode = 1;
+          return status;
+        }
         if (invocation.leaf === "setup hooks") {
           return runSetupHooks();
         }
@@ -544,16 +557,17 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
   // per-profile reads with a nonzero exit status when any profile fails.
   // Configuration errors throw before any HTTP; doctor --help stays offline.
   async function runDoctorLeaf(flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
-    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor, true);
     const names = doctorTargets(loaded.config, flags.get("profile") as string | undefined);
-    const result = await runDoctor({ loaded, names, redactor, transport });
+    const result = await runDoctor({ loaded, names, redactor, transport, profileFlag: flags.get("profile") as string | undefined });
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
   function state(): Record<string, unknown> {
+    readOnlyForced();
     const loaded = loadConfig(invocation.flags.get("config") as string | undefined, redactor);
     const count = Object.keys(loaded.config.profiles).length;
-    const selected = count || invocation.flags.has("profile") || process.env.VECTRA_AXI_PROFILE
+    const selected = count || invocation.flags.has("profile") || process.env.VECTRA_AXI_PROFILE || envProfile()
       ? selectProfile(loaded.config, invocation.flags.get("profile") as string | undefined) : undefined;
     return {
       ...(invocation.home ? {} : { command: `vectra-axi ${invocation.leaf}` }),
@@ -568,8 +582,8 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
       } } : {}),
       setup: {
         config: loaded.path,
-        guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use tokenEnv or secretEnv references",
-        example: { profiles: { lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "VECTRA_LAB_TOKEN" } } },
+        guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use token or clientSecret SecretRefs",
+        example: { version: 1, defaultProfile: "lab", profiles: { lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", token: { env: "VECTRA_AXI_TOKEN" } } } },
         integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health, lockdown, detection event and entity scoring reads call the session; reviewed raw reads (api get) call the session with the operation's recorded query and field policy; doctor checks each QUX profile with one bounded detection read and each RUX profile with the named OAuth exchange; the static skill at skills/vectra-axi/SKILL.md is installed only by explicit setup",
       },
       capabilities: {

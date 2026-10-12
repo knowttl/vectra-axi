@@ -71,10 +71,20 @@ describe("hookSummary", () => {
     expect(out).not.toContain("hook-secret-SENTINEL");
   });
 
+  it("redacts referenced secrets appearing in hook metadata", () => {
+    const sentinel = "hook-token-SENTINEL";
+    vi.stubEnv("SENTINEL_TOKEN", sentinel);
+    const config = join(scratch, "redacted-metadata.json");
+    writeFileSync(config, JSON.stringify({ profiles: { [sentinel]: quxProfile } }));
+    const out = hookSummary({ version, configPath: config });
+    expect(out).toContain("***redacted***");
+    expect(out).not.toContain(sentinel);
+  });
+
   it("mirrors the forced-read-only switch owned by writes.ts", () => {
-    for (const value of ["1", "0", "", undefined]) {
+    for (const value of ["1", "true", "TRUE", "0", "false", undefined]) {
       const env = value === undefined ? {} : { [READ_ONLY_ENV]: value };
-      expect(readOnlyForced(env)).toBe(value === "1");
+      expect(readOnlyForced(env)).toBe(["1", "true", "TRUE"].includes(value ?? ""));
       const out = hookSummary({ version, env: hookEnv(env), configPath: writesConfig });
       expect(out).toContain(readOnlyForced(env) ? "disabled" : "qux.host.tag.set");
     }
@@ -95,6 +105,7 @@ describe("vectra-axi-hook entry point", () => {
     return spawnSync(process.execPath, [bin], {
       cwd: home,
       env: { HOME: home, USERPROFILE: home, NODE_OPTIONS: `--import=${preload}`,
+        XDG_CONFIG_HOME: join(home, "config"), XDG_STATE_HOME: join(home, "state"), XDG_CACHE_HOME: join(home, "cache"), APPDATA: join(home, "roaming"), LOCALAPPDATA: join(home, "local"),
         SystemRoot: process.env.SystemRoot ?? "", ...extraEnv },
       encoding: "utf8", input: "", timeout: 5_000,
     });
@@ -129,6 +140,7 @@ describe("vectra-axi setup hooks", () => {
     return spawnSync(process.execPath, [bin, ...args], {
       cwd: home,
       env: { HOME: home, USERPROFILE: home, NODE_OPTIONS: `--import=${preload}`,
+        XDG_CONFIG_HOME: join(home, "config"), XDG_STATE_HOME: join(home, "state"), XDG_CACHE_HOME: join(home, "cache"), APPDATA: join(home, "roaming"), LOCALAPPDATA: join(home, "local"),
         SystemRoot: process.env.SystemRoot ?? "" },
       encoding: "utf8", input: "", timeout: 10_000,
     });

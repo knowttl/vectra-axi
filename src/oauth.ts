@@ -1,5 +1,5 @@
 import { AxiError } from "axi-sdk-js";
-import { authFailure, tlsOptions } from "./auth.js";
+import { authFailure, resolveSecret, tlsOptions } from "./auth.js";
 import type { LoadedConfig, SelectedProfile } from "./profiles.js";
 import type { SecretRedactor } from "./redact.js";
 
@@ -28,7 +28,7 @@ export type TokenTransport = (request: {
 export function oauthCredentials(
   profile: OAuthProfile, configPath: LoadedConfig["path"], redactor: SecretRedactor, transport: TokenTransport,
 ): (signal?: AbortSignal) => Promise<OAuthCredential> {
-  const { origin, clientId, secretEnv } = profile;
+  const { origin, clientId } = profile;
   const route = tokenRoute(profile);
   const generation = profile.kind === "rux" ? "RUX v3.4" : "QUX v2.5";
   let cached: OAuthCredential | undefined;
@@ -39,13 +39,7 @@ export function oauthCredentials(
     signal?.throwIfAborted();
     if (cached && Date.now() < cached.expiresAt) return { ...cached };
     cached = undefined;
-    const secret = process.env[secretEnv];
-    redactor.add(secret);
-    if (!secret?.trim()) {
-      throw new AxiError("The profile's OAuth secret environment reference is unset or empty", "AUTH_REQUIRED", [
-        "Set the environment variable named by secretEnv to the API client's secret; UI login is not reused",
-      ]);
-    }
+    const secret = resolveSecret(profile, redactor);
     const authorization = `Basic ${Buffer.from(`${clientId}:${secret}`, "utf8").toString("base64")}`;
     redactor.add(authorization.slice("Basic ".length));
     const tls = tlsOptions(profile, configPath);
@@ -85,7 +79,7 @@ export function oauthCredentials(
     }
     const { response, body, started } = result;
     if (response.status === 401 || (response.status === 400 && body.error === "invalid_client")) {
-      throw new AxiError("OAuth client credentials were rejected", "AUTH_FAILED", ["Check clientId and the secret referenced by secretEnv"]);
+      throw new AxiError("OAuth client credentials were rejected", "AUTH_FAILED", ["Check clientId and the clientSecret SecretRef"]);
     }
     const failure = authFailure({ status: response.status });
     if (failure) throw failure;

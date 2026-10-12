@@ -24,7 +24,7 @@ type Flag = { description: string } & (
 const globals: Readonly<Record<string, Flag>> = {
   help: { kind: "boolean", description: "Show concise help; default false" },
   profile: { kind: "value", valueName: "name", description: "Select a profile by name; default environment, config default, then sole profile" },
-  config: { kind: "value", valueName: "path", description: "Read an explicit config; default VECTRA_AXI_CONFIG or ~/.vectra-axi/config.json" },
+  config: { kind: "value", valueName: "path", description: "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory" },
 };
 const exclusiveFlags = [["help", "profile"]] as const;
 
@@ -64,6 +64,21 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi doctor",
       "vectra-axi doctor --profile <name>",
     ],
+  },
+  "auth status": {
+    description: "Check local credentials and permissions without a network request; never print secrets",
+    flags: globals,
+    examples: ["vectra-axi auth status", "vectra-axi auth status --profile <name>"],
+  },
+  "profile list": {
+    description: "List configured profiles without resolving secrets",
+    flags: globals,
+    examples: ["vectra-axi profile list", "vectra-axi profile list --config <path>"],
+  },
+  "config path": {
+    description: "Show the selected configuration path",
+    flags: globals,
+    examples: ["vectra-axi config path", "vectra-axi config path --config <path>"],
   },
   "detection list": {
     // Filter flags cover the inventory's conservative qux.detection.list
