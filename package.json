@@ -26,7 +26,7 @@
   "packageManager": "pnpm@10.34.6",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "vitest run",
+    "test": "node scripts/isolated.mjs node node_modules/vitest/vitest.mjs run",
     "lint": "tsc --noEmit -p tsconfig.json",
     "docs:generate": "node scripts/generate-docs.mjs",
     "docs:check": "node scripts/generate-docs.mjs --check"

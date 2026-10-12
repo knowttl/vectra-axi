@@ -59,6 +59,8 @@ vectra-axi setup hooks
 ```
 
 This explicitly installs optional SessionStart hooks for Claude Code, Codex, and OpenCode.
+Setup refuses hook targets in temporary directories, Git worktrees, and pipeline builds, including symlink targets.
+Install the package in a stable location before setting up hooks.
 Restart the agent session after installation.
 The hook prints a local summary of profile names, deployment kinds, write posture, version, and a next step.
 It makes no Vectra or OAuth request and succeeds with a short status when unconfigured.
@@ -327,10 +329,11 @@ corepack pnpm run build
 corepack pnpm test
 corepack pnpm run lint
 corepack pnpm run docs:check
-node bin/vectra-axi.js --help
+node scripts/isolated.mjs node bin/vectra-axi.js --help
 ```
 
-Tests deny external network and require no Vectra credentials.
+Tests deny external network, run with a temporary HOME and XDG directories, and require no Vectra credentials.
+For manual CLI validation, use `node scripts/isolated.mjs node bin/vectra-axi.js --help` to keep agent configuration isolated.
 After changing the executable catalogue or capability inventory, rebuild and regenerate documentation with `corepack pnpm run docs:generate`.
 The generated command table in the skill and the coverage record are checked for freshness by the test suite.
 

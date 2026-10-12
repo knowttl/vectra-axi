@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -94,7 +94,9 @@ describe("vectra-axi-hook entry point", () => {
     const home = mkdtempSync(join(scratch, "home-"));
     return spawnSync(process.execPath, [bin], {
       cwd: home,
-      env: { HOME: home, USERPROFILE: home, NODE_OPTIONS: `--import=${preload}`,
+      env: { HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: join(home, ".config"),
+        XDG_DATA_HOME: join(home, ".local/share"), XDG_CACHE_HOME: join(home, ".cache"),
+        XDG_STATE_HOME: join(home, ".local/state"), NODE_OPTIONS: `--import=${preload}`,
         SystemRoot: process.env.SystemRoot ?? "", ...extraEnv },
       encoding: "utf8", input: "", timeout: 5_000,
     });
@@ -128,7 +130,9 @@ describe("vectra-axi setup hooks", () => {
   function invoke(args: string[], home: string) {
     return spawnSync(process.execPath, [bin, ...args], {
       cwd: home,
-      env: { HOME: home, USERPROFILE: home, NODE_OPTIONS: `--import=${preload}`,
+      env: { HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: join(home, ".config"),
+        XDG_DATA_HOME: join(home, ".local/share"), XDG_CACHE_HOME: join(home, ".cache"),
+        XDG_STATE_HOME: join(home, ".local/state"), NODE_OPTIONS: `--import=${preload}`,
         SystemRoot: process.env.SystemRoot ?? "" },
       encoding: "utf8", input: "", timeout: 10_000,
     });
@@ -142,23 +146,18 @@ describe("vectra-axi setup hooks", () => {
     expect(result.stdout).toContain("vectra-axi setup hooks");
   });
 
-  it("installs session hooks idempotently", () => {
+  it("refuses a disposable checkout without creating agent configuration", () => {
     const home = mkdtempSync(join(scratch, "install-home-"));
-    mkdirSync(home, { recursive: true });
     const first = invoke(["setup", "hooks"], home);
-    expect(first.status).toBe(0);
+    expect(first.status).toBe(1);
     expect(first.stderr).toBe("");
-    expect(first.stdout).toContain("installed");
+    expect(first.stdout).toContain("HOOK_INSTALL_FAILED");
+    expect(first.stdout).toContain("stable directory");
     const claude = join(home, ".claude", "settings.json");
     const codex = join(home, ".codex", "hooks.json");
     const plugin = join(home, ".config", "opencode", "plugins", "axi-vectra-axi-hook.js");
-    for (const path of [claude, codex, plugin]) {
-      expect(readFileSync(path, "utf8")).toContain("vectra-axi-hook");
+    for (const path of [claude, codex, plugin, join(home, ".codex", "config.toml")]) {
+      expect(existsSync(path)).toBe(false);
     }
-    const before = [claude, codex, plugin].map((path) => readFileSync(path, "utf8"));
-    const second = invoke(["setup", "hooks"], home);
-    expect(second.status).toBe(0);
-    expect(second.stderr).toBe("");
-    expect([claude, codex, plugin].map((path) => readFileSync(path, "utf8"))).toEqual(before);
   });
 });
