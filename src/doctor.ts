@@ -1,7 +1,8 @@
 import { AxiError } from "axi-sdk-js";
 import { runDetectionList } from "./detections.js";
 import { createSession, credentialProvider, type RawTransport } from "./session.js";
-import { selectProfile, type LoadedConfig } from "./profiles.js";
+import { envProfile, selectProfile, type LoadedConfig } from "./profiles.js";
+import { resolveSecret } from "./auth.js";
 import type { SecretRedactor } from "./redact.js";
 
 // Explicit checks use the session's credential and transport policy.
@@ -21,6 +22,7 @@ export const RUX_DOCTOR_CHECK = "oauth exchange (rux.oauth.exchange)";
 // sole profile select one target. With no selection among several profiles,
 // doctor checks every profile instead of failing ambiguous.
 export function doctorTargets(config: LoadedConfig["config"], flag?: string): string[] {
+  if (flag === undefined && process.env.VECTRA_AXI_PROFILE === undefined && envProfile()) return ["env"];
   if ((flag ?? process.env.VECTRA_AXI_PROFILE ?? config.defaultProfile) !== undefined) {
     return [selectProfile(config, flag).name];
   }
@@ -40,6 +42,7 @@ export async function runDoctor(args: {
   names: string[];
   redactor: SecretRedactor;
   transport: RawTransport;
+  profileFlag?: string;
 }): Promise<DoctorResult> {
   const { loaded, names, redactor, transport } = args;
   const rows: Record<string, unknown>[] = [];
@@ -53,15 +56,19 @@ export async function runDoctor(args: {
   };
   let ok = 0;
   let sawRux = false;
+  const useEnvProfile = args.profileFlag === undefined && process.env.VECTRA_AXI_PROFILE === undefined && envProfile() !== undefined;
+  const selectedProfile = (name: string) => useEnvProfile ? selectProfile(loaded.config) : selectProfile(loaded.config, name);
+  const profileContext = (name: string) => useEnvProfile ? "" : ` --config ${shellQuote(loaded.path)} --profile=${shellQuote(name)}`;
   for (const name of names) {
-    const selected = selectProfile(loaded.config, name);
+    const selected = selectedProfile(name);
     const check = selected.kind === "rux" ? RUX_DOCTOR_CHECK : DOCTOR_CHECK;
     if (selected.kind === "rux") sawRux = true;
     const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
     const flags = new Map<string, string | boolean>([["limit", String(DOCTOR_WINDOW)]]);
-    const context = ` --config ${shellQuote(loaded.path)} --profile=${shellQuote(name)}`;
+    const context = profileContext(name);
     const recovery = `[${name}] Check the reported failure, then rerun \`vectra-axi doctor${context}\``;
     try {
+      resolveSecret(selected, redactor, true);
       if (selected.kind === "rux") {
         await credentialProvider({ profile: selected, configPath: loaded.path, redactor, transport })();
         ok += 1;
@@ -91,11 +98,11 @@ export async function runDoctor(args: {
   const failed = ok !== names.length;
   if (!failed) {
     for (const name of names) {
-      const selected = selectProfile(loaded.config, name);
+      const selected = selectedProfile(name);
       if (selected.kind === "rux") {
-        note(`[${name}] Run \`vectra-axi detection list --config ${shellQuote(loaded.path)} --profile=${shellQuote(name)}\` to start a cloud investigation`);
+        note(`[${name}] Run \`vectra-axi detection list${profileContext(name)}\` to start a cloud investigation`);
       } else {
-        note(`Run \`vectra-axi detection list --config ${shellQuote(loaded.path)} --profile=${shellQuote(name)}\` to start an investigation`);
+        note(`Run \`vectra-axi detection list${profileContext(name)}\` to start an investigation`);
       }
     }
   }

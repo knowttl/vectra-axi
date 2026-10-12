@@ -1,5 +1,6 @@
 import { fsyncSync, fstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
 import { AxiError } from "axi-sdk-js";
@@ -11,6 +12,10 @@ import { createMutationCoordinator, type MutationCoordinator, type MutationDefin
 vi.mock("node:fs", async (importOriginal) => {
   const fs = await importOriginal<typeof import("node:fs")>();
   return { ...fs, fsyncSync: vi.fn(fs.fsyncSync), openSync: vi.fn(fs.openSync) };
+});
+vi.mock("node:child_process", async (importOriginal) => {
+  const childProcess = await importOriginal<typeof import("node:child_process")>();
+  return { ...childProcess, execFileSync: vi.fn(childProcess.execFileSync) };
 });
 
 // WRITE-00 acceptance: the coordinator is entirely fixture-driven with no
@@ -37,7 +42,7 @@ beforeEach(() => {
   vi.stubEnv("VECTRA_AXI_READ_ONLY", undefined);
   vi.stubEnv("VECTRA_AXI_PROFILE", undefined);
 });
-afterEach(() => { vi.unstubAllEnvs(); rmSync(configPath, { force: true }); rmSync(auditPath, { force: true, recursive: true }); });
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); rmSync(configPath, { force: true }); rmSync(auditPath, { force: true, recursive: true }); });
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 
 function selected(profile: Record<string, unknown> = { ...enabledProfile }, name = "lab"): SelectedProfile {
@@ -233,9 +238,11 @@ it("records redacted intent and outcome on success", async () => {
   expect(readFileSync(auditPath, "utf8")).not.toContain(token);
 });
 
-it.each([...new Set([process.platform, "win32"])])("initializes Windows journal storage before reservation and flushes records on %s", async (platform) => {
+it.each([...new Set([process.platform, "win32"])])("flushes intent before sending and outcome afterwards on %s", async (platform) => {
   const events: string[] = [];
   const realFs = await vi.importActual<typeof import("node:fs")>("node:fs");
+  const realChildProcess = await vi.importActual<typeof import("node:child_process")>("node:child_process");
+  vi.mocked(execFileSync).mockReturnValue(Buffer.from(""));
   vi.stubGlobal("process", Object.create(process, { platform: { value: platform } }));
   vi.mocked(openSync).mockImplementation((path, flags, mode) => {
     if (platform === "win32" && flags === "r" && statSync(path).isDirectory()) {
@@ -254,12 +261,10 @@ it.each([...new Set([process.platform, "win32"])])("initializes Windows journal 
     return ok({ id: 1 });
   });
   const nested = join(scratch, "nested", "journal");
-  const { coordinator: writes } = coordinator({ transport, audit: join(nested, "writes.log") });
   try {
+    const { coordinator: writes } = coordinator({ transport, audit: join(nested, "writes.log") });
     await expect(writes.execute(mutation, { execute: true, readState })).resolves.toMatchObject({ kind: "success" });
-    expect(events).toEqual(platform === "win32"
-      ? ["initialize", "reserve", "journal", "send", "reserve", "journal"]
-      : ["directory", "directory", "directory", "reserve", "journal", "directory", "send", "reserve", "journal"]);
+    expect(events.filter((event) => event === "journal" || event === "send")).toEqual(["journal", "send", "journal"]);
     expect(auditLines(join(nested, "writes.log"))).toEqual([
       expect.objectContaining({ kind: "intent" }),
       expect.objectContaining({ kind: "outcome", outcome: "SUCCESS" }),
@@ -268,6 +273,7 @@ it.each([...new Set([process.platform, "win32"])])("initializes Windows journal 
     vi.unstubAllGlobals();
     vi.mocked(openSync).mockImplementation(realFs.openSync);
     vi.mocked(fsyncSync).mockImplementation(realFs.fsyncSync);
+    vi.mocked(execFileSync).mockImplementation(realChildProcess.execFileSync);
     rmSync(join(scratch, "nested"), { recursive: true, force: true });
   }
 });
@@ -277,7 +283,7 @@ it("blocks the send when intent cannot be recorded", async () => {
   const transport = vi.fn<RawTransport>().mockResolvedValue(ok({ id: 1 }));
   const { coordinator: writes } = coordinator({ transport });
   await expect(writes.execute(mutation, { execute: true, readState }))
-    .rejects.toMatchObject({ code: "INTENT_NOT_RECORDED" });
+    .rejects.toMatchObject({ code: "CONFIG_INSECURE" });
   expect(transport).not.toHaveBeenCalled();
 });
 

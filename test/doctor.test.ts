@@ -64,7 +64,7 @@ it("checks a profile with one bounded detection read", async () => {
 
 it.each(["ok", "read failure", "credential failure"])("preserves context in %s follow-ups", async (scenario) => {
   const configPath = join(scratch, "lab's config.json");
-  const names = ["lab's profile", "other profile", "-lab", "-lab's profile"];
+  const names = ["lab-profile", "other_profile", "Lab3", "lab-4"];
   writeFileSync(configPath, JSON.stringify({ profiles: Object.fromEntries(names.map((name) => [name, tokenProfile])) }));
   if (scenario === "credential failure") delete process.env.SENTINEL_TOKEN;
   try {

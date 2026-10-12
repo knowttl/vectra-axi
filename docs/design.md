@@ -121,12 +121,16 @@ Coverage distinguishes named support, reviewed raw support, planned, blocked, un
 ## Profiles and authentication
 
 A profile contains deployment kind, exact HTTPS origin, API version string, known appliance release when available, authentication mode, secret references, optional private CA bundle and a separately hand-edited write policy.
-Token mode requires a token environment reference; OAuth mode requires client ID and a secret environment reference.
+Token mode uses a `token` SecretRef; OAuth mode requires client ID and a `clientSecret` SecretRef.
+Secrets resolve from an environment name or a private absolute file, defaulting to the corresponding `VECTRA_AXI_*` environment reference.
+The legacy `tokenEnv` and `secretEnv` keys remain accepted for one minor release.
 Reject mixed or incomplete authentication modes.
 Do not take secret values in argv or emit them in profile output.
 Use a user configuration file or explicitly selected config; do not automatically trust repository-local credential configuration.
 
-Profile precedence is explicit flag, environment, configured default, then the sole configured profile.
+Profile precedence is explicit flag, environment selector, a complete env profile, configured default, then the sole configured profile.
+Partial env profiles are rejected; explicit file profile selection ignores env profile fields.
+Paths and file protection follow the [AXI credential standard](https://github.com/knowttl/artium-axi/blob/main/docs/credential-standard.md).
 An ambiguous or missing profile produces actionable setup guidance.
 Do not guess the deployment from hostnames or silently reuse interactive browser login.
 Cache credentials in memory for the invocation initially; a persistent credential vault is outside launch scope.
@@ -224,7 +228,8 @@ Use conditional writes only where the exact endpoint supports them; a re-read al
 After an ambiguous timeout, report `OUTCOME_UNKNOWN` with audit ID and read-back guidance rather than replaying or claiming nothing changed.
 Failure to record intent blocks the send; failure to record outcome after send must report possible remote success.
 The audit contains metadata, not raw secrets, headers or note bodies, and is not represented as tamper-proof.
-The journal defaults to `~/.vectra-axi/writes.log`, with a nonblank `VECTRA_AXI_WRITE_LOG` override or an explicit internal `auditPath`.
+The journal defaults to `$XDG_STATE_HOME/vectra-axi/writes.log` (otherwise `~/.local/state/vectra-axi/writes.log`), or `%LOCALAPPDATA%\vectra-axi\writes.log` on Windows, with a nonblank `VECTRA_AXI_WRITE_LOG` override or an explicit internal `auditPath`.
+Journal updates use the private-file module's atomic replacement and preserve the lock and durable intent before any send.
 Intent reservation reads the durable journal under an exclusive lock and refuses any previously reserved intent ID, including across coordinator recreation, with `ALREADY_EXECUTED` and manual reconciliation guidance.
 Intent records are flushed with `fsync` before sending a mutation, and outcome records before reporting completion on every platform.
 On platforms other than Windows, first creation also flushes the journal directory and any newly created parent directories.

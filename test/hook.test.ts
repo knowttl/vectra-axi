@@ -71,10 +71,20 @@ describe("hookSummary", () => {
     expect(out).not.toContain("hook-secret-SENTINEL");
   });
 
+  it("redacts referenced secrets appearing in hook metadata", () => {
+    const sentinel = "hook-token-SENTINEL";
+    vi.stubEnv("SENTINEL_TOKEN", sentinel);
+    const config = join(scratch, "redacted-metadata.json");
+    writeFileSync(config, JSON.stringify({ profiles: { [sentinel]: quxProfile } }));
+    const out = hookSummary({ version, configPath: config });
+    expect(out).toContain("***redacted***");
+    expect(out).not.toContain(sentinel);
+  });
+
   it("mirrors the forced-read-only switch owned by writes.ts", () => {
-    for (const value of ["1", "0", "", undefined]) {
+    for (const value of ["1", "true", "TRUE", "0", "false", undefined]) {
       const env = value === undefined ? {} : { [READ_ONLY_ENV]: value };
-      expect(readOnlyForced(env)).toBe(value === "1");
+      expect(readOnlyForced(env)).toBe(["1", "true", "TRUE"].includes(value ?? ""));
       const out = hookSummary({ version, env: hookEnv(env), configPath: writesConfig });
       expect(out).toContain(readOnlyForced(env) ? "disabled" : "qux.host.tag.set");
     }
@@ -96,7 +106,8 @@ describe("vectra-axi-hook entry point", () => {
       cwd: home,
       env: { HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: join(home, ".config"),
         XDG_DATA_HOME: join(home, ".local/share"), XDG_CACHE_HOME: join(home, ".cache"),
-        XDG_STATE_HOME: join(home, ".local/state"), NODE_OPTIONS: `--import=${preload}`,
+        XDG_STATE_HOME: join(home, ".local/state"), APPDATA: join(home, "roaming"), LOCALAPPDATA: join(home, "local"),
+        NODE_OPTIONS: `--import=${preload}`,
         SystemRoot: process.env.SystemRoot ?? "", ...extraEnv },
       encoding: "utf8", input: "", timeout: 5_000,
     });
@@ -132,7 +143,8 @@ describe("vectra-axi setup hooks", () => {
       cwd: home,
       env: { HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: join(home, ".config"),
         XDG_DATA_HOME: join(home, ".local/share"), XDG_CACHE_HOME: join(home, ".cache"),
-        XDG_STATE_HOME: join(home, ".local/state"), NODE_OPTIONS: `--import=${preload}`,
+        XDG_STATE_HOME: join(home, ".local/state"), APPDATA: join(home, "roaming"), LOCALAPPDATA: join(home, "local"),
+        NODE_OPTIONS: `--import=${preload}`,
         SystemRoot: process.env.SystemRoot ?? "" },
       encoding: "utf8", input: "", timeout: 10_000,
     });

@@ -215,7 +215,13 @@ Checkpoint and date-window operations use their named commands instead.
 
 ## Configuration
 
-Hand-edit `~/.vectra-axi/config.json`, or select a file with `--config <path>`.
+Hand-edit `$XDG_CONFIG_HOME/vectra-axi/config.json` (default `~/.config/vectra-axi/config.json`), or select a file with `--config <path>`.
+On Windows, configuration lives in `%APPDATA%\vectra-axi\config.json`; XDG variables are ignored.
+State lives in `$XDG_STATE_HOME/vectra-axi` (default `~/.local/state/vectra-axi`), or `%LOCALAPPDATA%\vectra-axi` on Windows.
+Relative XDG paths are ignored.
+The old `~/.vectra-axi/config.json` is never read: when it alone exists, `CONFIG_MOVED` supplies the exact move command.
+The same hard cut applies to `~/.vectra-axi/writes.log`; move it into the state directory before issuing another mutation.
+See the [AXI credential standard](https://github.com/knowttl/artium-axi/blob/main/docs/credential-standard.md) and the packaged `axi-credential.schema.json` for one profile's schema.
 Repository-local configuration is never discovered automatically.
 An absent default file means unconfigured state; an invalid file or missing explicitly selected file reports `CONFIG_INVALID`.
 
@@ -223,12 +229,15 @@ An absent default file means unconfigured state; an invalid file or missing expl
 | --- | --- |
 | `VECTRA_AXI_CONFIG` | Config path; overridden by `--config` |
 | `VECTRA_AXI_PROFILE` | Profile name; overridden by `--profile` |
-| `VECTRA_AXI_READ_ONLY` | Set to `1` to refuse every mutation |
-| `VECTRA_AXI_WRITE_LOG` | Mutation journal path; defaults to `~/.vectra-axi/writes.log` |
-| Variable named by `tokenEnv` | QUX personal API token |
-| Variable named by `secretEnv` | OAuth client secret |
+| `VECTRA_AXI_READ_ONLY` | `1` or `true` forces read-only; `0`, `false` or unset is off; other values fail closed (case-insensitive) |
+| `VECTRA_AXI_WRITE_LOG` | Mutation journal path; defaults to `writes.log` in the state directory |
+| `VECTRA_AXI_TOKEN` | Default token SecretRef and env profile token |
+| `VECTRA_AXI_CLIENT_SECRET` | Default clientSecret SecretRef and env profile OAuth secret |
 
-Profile selection follows `--profile`, `VECTRA_AXI_PROFILE`, `defaultProfile`, then the sole configured profile.
+Profile selection follows `--profile`, `VECTRA_AXI_PROFILE`, a complete env profile, `defaultProfile`, then the sole configured profile.
+An env profile sets `VECTRA_AXI_KIND`, `VECTRA_AXI_ORIGIN`, `VECTRA_AXI_API_VERSION`, `VECTRA_AXI_AUTH`, and `VECTRA_AXI_TOKEN` or both `VECTRA_AXI_CLIENT_ID` and `VECTRA_AXI_CLIENT_SECRET`.
+Optional fields use `VECTRA_AXI_APPLIANCE_RELEASE` and `VECTRA_AXI_CA_BUNDLE`.
+Partial env profiles fail with `CONFIG_INVALID`; explicit file profile selection ignores those field variables.
 Multiple profiles without a selection normally report `PROFILE_AMBIGUOUS`.
 Names match exactly, and `defaultProfile` must name an existing profile.
 
@@ -236,6 +245,7 @@ This example uses placeholder origins and credential references:
 
 ```json
 {
+  "version": 1,
   "defaultProfile": "onprem",
   "profiles": {
     "onprem": {
@@ -244,7 +254,7 @@ This example uses placeholder origins and credential references:
       "apiVersion": "2.5",
       "applianceRelease": "9.4",
       "auth": "token",
-      "tokenEnv": "VECTRA_TOKEN"
+      "token": { "env": "VECTRA_AXI_TOKEN" }
     },
     "cloud": {
       "kind": "rux",
@@ -252,13 +262,23 @@ This example uses placeholder origins and credential references:
       "apiVersion": "3.4",
       "auth": "oauth",
       "clientId": "example-client",
-      "secretEnv": "VECTRA_CLIENT_SECRET"
+      "clientSecret": { "env": "VECTRA_AXI_CLIENT_SECRET" }
     }
   }
 }
 ```
 
 Replace the origins and client ID, then set the referenced secret variables outside the CLI.
+SecretRefs accept `{"env":"NAME"}` or `{"file":"/absolute/path"}`; file content has a leading BOM and trailing whitespace removed.
+Windows file references require an absolute drive path, with UNC and device paths refused.
+Omitted secrets default to the corresponding `VECTRA_AXI_*` environment reference.
+`{"stored":true}` reports `AUTH_REQUIRED` because vectra-axi does not implement credential storage or login.
+The deprecated `tokenEnv` and `secretEnv` keys, including unversioned legacy config envelopes, remain accepted for one minor release.
+Config reads require an owned regular file with no group or other write bits; secret files require no group or other permission bits (0400 is accepted).
+Use `chmod 600 <path>` to repair Unix permissions.
+Windows writes set a protected DACL for the current account, SYSTEM and Administrators; `auth status` and `doctor` verify it, and ordinary reads reject reparse points.
+`vectra-axi config path`, `vectra-axi profile list`, and `vectra-axi auth status` inspect local configuration without network access.
+Auth status verifies secret availability and reports its reference, never its value.
 Never put secrets in command arguments or the config file.
 Origins must be exact HTTPS origins without credentials, paths, queries, fragments, or trailing slashes.
 Unknown fields, inline secrets, mixed authentication settings, UI-login fields, and TLS bypass settings are rejected, including in unselected profiles.
@@ -266,7 +286,7 @@ There are no credential prompts, browser login reuse, or persistent credential c
 Known referenced secrets and OAuth credentials are scrubbed from output.
 
 QUX supports personal tokens or OAuth client credentials; OAuth requires appliance release 9.1 or later.
-For QUX OAuth, replace `auth` and `tokenEnv` with `"auth": "oauth"`, `"clientId": "example-client"`, and `"secretEnv": "VECTRA_CLIENT_SECRET"`.
+For QUX OAuth, replace `auth` and `token` with `"auth": "oauth"`, `"clientId": "example-client"`, and `"clientSecret": {"env":"VECTRA_AXI_CLIENT_SECRET"}`.
 QUX exchanges credentials at `/api/v2.5/oauth2/token`; RUX uses `/oauth2/token` and supports OAuth only, with no `applianceRelease` field.
 Access-token lifetimes use the returned expiry, with QUX reacquiring client credentials and RUX supporting refresh-token rotation.
 Credentials remain in invocation memory.
