@@ -21,6 +21,7 @@ import { detectionEventFlags, runDetectionEventList, type LeafResult as Detectio
 import { entityScoringFlags, runEntityScoringList, type LeafResult as EntityScoringLeafResult } from "./entity-scoring.js";
 import { listFields, listLimit, listQuery, runDetectionList, runDetectionShow, showId, type LeafResult } from "./detections.js";
 import { doctorTargets, runDoctor } from "./doctor.js";
+import { stableHookTarget } from "./hook-target.js";
 import { lockdownKind, runLockdownList, type LeafResult as LockdownLeafResult } from "./lockdown.js";
 import { entityKind, listFields as entityListFields, listLimit as entityListLimit, listQuery as entityListQuery,
   runAccountList, runAccountShow, runEntityList, runEntityShow, runHostList, runHostShow,
@@ -526,7 +527,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     const failures: string[] = [];
     installSessionStartHooks({
       marker: "vectra-axi-hook",
-      execPath: hookPath,
+      execPath: stableHookTarget(hookPath),
       binaryNames: ["vectra-axi-hook"],
       distEntrypoints: ["bin/vectra-axi-hook.js"],
       onError: (message) => { failures.push(message); },

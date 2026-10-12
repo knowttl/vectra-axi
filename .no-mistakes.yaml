@@ -1,8 +1,8 @@
 agent: pi
 commands:
   prepare: 'corepack pnpm install --frozen-lockfile --ignore-scripts --config.confirm-modules-purge=false'
-  test: 'corepack pnpm run build && corepack pnpm test'
-  lint: 'corepack pnpm run lint'
+  test: 'node scripts/isolated.mjs corepack pnpm run build && corepack pnpm test'
+  lint: 'node scripts/isolated.mjs corepack pnpm run lint'
 document:
   instructions: |
     README.md owns the product introduction, development commands and shipped behavior.

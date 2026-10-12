@@ -12,7 +12,9 @@ const home = join(scratch, "home");
 const unpacked = join(scratch, "package");
 const preload = pathToFileURL(join(root, "dist/test/network-guard.js")).href;
 const version = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
-const env = { HOME: home, USERPROFILE: home, NODE_OPTIONS: `--import=${preload}`,
+const env = { HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: join(home, ".config"),
+  XDG_DATA_HOME: join(home, ".local/share"), XDG_CACHE_HOME: join(home, ".cache"),
+  XDG_STATE_HOME: join(home, ".local/state"), NODE_OPTIONS: `--import=${preload}`,
   SystemRoot: process.env.SystemRoot ?? "" };
 let bin: string;
 
