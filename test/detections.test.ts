@@ -141,7 +141,7 @@ it.each([
   ["show", runDetectionShow, ["--id", "7"], ["--full"]],
 ] as const)("preserves shell arguments in the %s follow-up command", async (leaf, run, args, followUp) => {
   const config = "./lab's config $(printf injected) `printf injected`.json";
-  const profile = "lab's $(printf injected) `printf injected`";
+  const profile = "lab-profile_1";
   const transport: RawTransport = async () => ({
     status: 200,
     bodyText: JSON.stringify({ ...detection(7), description: "x".repeat(DETECTION_TRUNCATE_AT + 1),

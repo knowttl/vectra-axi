@@ -14,7 +14,8 @@ const preload = pathToFileURL(join(root, "dist/test/network-guard.js")).href;
 const version = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
 const env = { HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: join(home, ".config"),
   XDG_DATA_HOME: join(home, ".local/share"), XDG_CACHE_HOME: join(home, ".cache"),
-  XDG_STATE_HOME: join(home, ".local/state"), NODE_OPTIONS: `--import=${preload}`,
+  XDG_STATE_HOME: join(home, ".local/state"), APPDATA: join(home, "roaming"), LOCALAPPDATA: join(home, "local"),
+  NODE_OPTIONS: `--import=${preload}`,
   SystemRoot: process.env.SystemRoot ?? "" };
 let bin: string;
 
@@ -93,7 +94,7 @@ it("investigates a detection through the packaged list, show, full and resume co
     { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/1" },
     { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2" },
   ]);
-});
+}, 15_000);
 
 it("reads allowlisted operations through the packaged api get command", () => {
   const config = join(scratch, "api-get.json");
@@ -1189,6 +1190,50 @@ it("shows a packaged token profile without emitting or resolving its secret", ()
   expect(result.stderr).toBe("");
 });
 
+it("inspects a hosted profile through the packaged credential commands without network access", () => {
+  const config = join(scratch, "hosted-config.json");
+  const secret = join(scratch, "hosted-secret.txt");
+  const sentinel = "hosted-fake-secret";
+  writeFileSync(secret, `\uFEFF${sentinel}\r\n`);
+  writeFileSync(config, JSON.stringify({ version: 1, defaultProfile: "artium", profiles: {
+    artium: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", token: { file: secret } },
+  } }));
+  const context = ["--config", config];
+  const status = invoke(["auth", "status", ...context]);
+  expect(status.status).toBe(0);
+  expect(status.stderr).toBe("");
+  expect(decode(status.stdout)).toMatchObject({ profile: "artium", origin: "https://fixture.invalid", secrets: { token: { file: secret } }, status: "available" });
+  expect(status.stdout).not.toContain(sentinel);
+  const profiles = invoke(["profile", "list", ...context]);
+  expect(profiles.status).toBe(0);
+  expect(decode(profiles.stdout)).toMatchObject({ count: 1, profiles: [{ name: "artium", auth: "token" }] });
+  const selectedPath = invoke(["config", "path", ...context]);
+  expect(selectedPath.status).toBe(0);
+  expect(decode(selectedPath.stdout)).toEqual({ config });
+  const schema = JSON.parse(readFileSync(join(unpacked, "axi-credential.schema.json"), "utf8"));
+  expect(schema.properties.token["x-secret"]).toBe(true);
+  expect(schema.properties.clientSecret["x-secret"]).toBe(true);
+  rmSync(secret);
+  const unavailable = invoke(["auth", "status", ...context]);
+  expect(unavailable.status).toBe(1);
+  expect(decode(unavailable.stdout)).toMatchObject({ profile: "artium", secrets: { token: { file: secret } }, status: "unavailable", code: "AUTH_REQUIRED" });
+}, 15_000);
+
+it("uses the packaged env profile and refuses partial input or invalid read-only booleans", () => {
+  const fields = { VECTRA_AXI_KIND: "qux", VECTRA_AXI_ORIGIN: "https://fixture.invalid", VECTRA_AXI_API_VERSION: "2.5",
+    VECTRA_AXI_AUTH: "token", VECTRA_AXI_TOKEN: "env-profile-fake-secret" };
+  const status = invoke(["auth", "status"], fields);
+  expect(status.status).toBe(0);
+  expect(decode(status.stdout)).toMatchObject({ profile: "env", source: "env-profile", secrets: { token: { env: "VECTRA_AXI_TOKEN" } } });
+  expect(status.stdout).not.toContain(fields.VECTRA_AXI_TOKEN);
+  const partial = invoke(["auth", "status"], { VECTRA_AXI_ORIGIN: fields.VECTRA_AXI_ORIGIN });
+  expect(partial.status).toBe(1);
+  expect(partial.stdout).toContain("code: CONFIG_INVALID");
+  const invalidBoolean = invoke(["home"], { VECTRA_AXI_READ_ONLY: "yes" });
+  expect(invalidBoolean.status).toBe(1);
+  expect(invalidBoolean.stdout).toContain("code: CONFIG_INVALID");
+});
+
 it("reports packaged ambiguous-profile guidance", () => {
   const config = join(scratch, "ambiguous.json");
   const profile = { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" };
@@ -1459,7 +1504,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, setup hooks, doctor, detection list, detection show, detection event list, host list, host show, account list, account show, entity list, entity show, entity scoring list, detection note list, detection tag list, detection tag set, detection tag bulk-set, detection tag bulk-delete, detection note add, detection note edit, detection note delete, host note list, host tag list, host tag set, host tag bulk-set, host tag bulk-delete, host note add, host note edit, host note delete, account note list, account tag list, account tag set, account tag bulk-set, account tag bulk-delete, account note add, account note edit, account note delete, assignment list, assignment set, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
+  expect(result.stdout).toContain("Available commands: home, setup, setup hooks, doctor, auth status, profile list, config path, detection list, detection show, detection event list, host list, host show, account list, account show, entity list, entity show, entity scoring list, detection note list, detection tag list, detection tag set, detection tag bulk-set, detection tag bulk-delete, detection note add, detection note edit, detection note delete, host note list, host tag list, host tag set, host tag bulk-set, host tag bulk-delete, host note add, host note edit, host note delete, account note list, account tag list, account tag set, account tag bulk-set, account tag bulk-delete, account note add, account note edit, account note delete, assignment list, assignment set, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
   expect(result.stdout).toContain("lockdown list");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);

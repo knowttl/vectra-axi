@@ -30,6 +30,19 @@ export class SecretRedactor {
     return value;
   }
 
+  // Service payloads carry unknown secrets as well as registered credentials.
+  payload(value: unknown): unknown {
+    if (typeof value === "string") return this.text(value)
+      .replace(/-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z]+ )*PRIVATE KEY-----/g, REDACTED)
+      .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, REDACTED)
+      .replace(/(\bAccountKey=)[^;\s]+/gi, `$1${REDACTED}`)
+      .replace(/([?&]sig=)[^&\s]+/gi, `$1${REDACTED}`);
+    if (Array.isArray(value)) return value.map((child) => this.payload(child));
+    if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, child]) => [this.text(key),
+      /^(?:password|secret|client[_-]?secret|token|access[_-]?token|refresh[_-]?token|authorization|private[_-]?key|accountkey|sas[_-]?token)$/i.test(key) ? REDACTED : this.payload(child)]));
+    return value;
+  }
+
   // Discard raw stacks/causes; the SDK only receives sanitized error metadata.
   boundary<T>(action: () => T): T {
     try { return action(); } catch (error) {

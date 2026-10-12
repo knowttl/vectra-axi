@@ -1,10 +1,11 @@
-import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, openSync, unlinkSync } from "node:fs";
 import { createHash, randomUUID } from "node:crypto";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { AxiError } from "axi-sdk-js";
 import type { LoadedConfig, SelectedProfile } from "./profiles.js";
 import type { SecretRedactor } from "./redact.js";
+import { configMoved, privateFiles, toolDirectory } from "./private-file.js";
 import { createMutationSender, mutationNotSent, mutationAccepted, mutationHttpStatus,
   type MutationAuthorization, type MutationMethod, type MutationResponse, type RawTransport } from "./session.js";
 
@@ -18,15 +19,20 @@ export const READ_ONLY_ENV = "VECTRA_AXI_READ_ONLY";
 export const WRITE_LOG_ENV = "VECTRA_AXI_WRITE_LOG";
 
 export function readOnlyForced(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env[READ_ONLY_ENV] === "1";
+  const value = env[READ_ONLY_ENV]?.toLowerCase();
+  if (value === undefined || value === "0" || value === "false") return false;
+  if (value === "1" || value === "true") return true;
+  throw new AxiError("Invalid VECTRA_AXI_READ_ONLY boolean", "CONFIG_INVALID", ["Use 1, true, 0 or false"]);
 }
 
 // Executed mutations are recorded here: VECTRA_AXI_WRITE_LOG when set,
-// otherwise ~/.vectra-axi/writes.log. A blank override falls back.
+// otherwise the platform state directory. A blank override falls back.
 export function resolveWriteLogPath(env: NodeJS.ProcessEnv = process.env): string {
   const override = env[WRITE_LOG_ENV]?.trim();
-  if (override) return override;
-  return join(homedir(), ".vectra-axi", "writes.log");
+  const path = join(toolDirectory("state", env), "writes.log");
+  const legacy = join(homedir(), ".vectra-axi", "writes.log");
+  if (override && resolve(override) === legacy || !override && !existsSync(path) && existsSync(legacy)) throw configMoved(legacy, path);
+  return override || path;
 }
 
 export type MutationEffect = "write" | "disruptive";
@@ -114,13 +120,6 @@ export function consumeMutationAuthorization(authorization: MutationAuthorizatio
   if (authorizations.get(authorization) !== sender) return false;
   authorizations.delete(authorization);
   return true;
-}
-
-function flushDirectory(path: string): void {
-  // Node cannot open directory handles on Windows; journal fsync still applies.
-  if (process.platform === "win32") return;
-  const fd = openSync(path, "r");
-  try { fsyncSync(fd); } finally { closeSync(fd); }
 }
 
 function serialize(value: unknown): string | undefined {
@@ -232,51 +231,34 @@ export function createMutationCoordinator(args: {
     const line = JSON.stringify({ ...safe, intentKey: record.intentKey });
     try {
       const directory = dirname(auditPath);
-      const firstCreated = mkdirSync(directory, { recursive: true, mode: 0o700 });
-      if (firstCreated) {
-        let path = directory;
-        const parent = dirname(firstCreated);
-        while (path !== parent) {
-          flushDirectory(path);
-          path = dirname(path);
-        }
-        flushDirectory(parent);
-      }
-      if (process.platform === "win32" && !existsSync(auditPath)) {
-        const journal = openSync(auditPath, "a", 0o600);
-        try { fsyncSync(journal); } finally { closeSync(journal); }
-      }
+      const files = privateFiles();
+      files.directory(directory);
       const lockPath = `${auditPath}.lock`;
       const lock = openSync(lockPath, "wx", 0o600);
       try {
-        const created = !existsSync(auditPath);
-        const journal = openSync(auditPath, "a+", 0o600);
-        try {
-          if (record.kind === "intent") {
-            const contents = readFileSync(journal, "utf8");
-            if (contents && !contents.endsWith("\n")) throw new Error("Incomplete mutation journal");
-            const records = contents.split("\n").filter(Boolean)
-              .map((entry) => JSON.parse(entry) as AuditRecord);
-            if (records.some((entry) => !entry || !["intent", "outcome"].includes(entry.kind)
-              || typeof entry.intentKey !== "string" || !/^[a-f0-9]{64}$/.test(entry.intentKey))) {
-              throw new Error("Invalid mutation journal");
-            }
-            if (records.some((entry) => entry.kind === "intent" && entry.intentKey === record.intentKey)) {
-              throw new AxiError(`blocked: intent '${record.id}' was already reserved`, "ALREADY_EXECUTED", [
-                `Intent '${record.id}' requires manual reconciliation; read back its target and never resend it`,
-              ]);
-            }
+        files.protect(lockPath);
+        const contents = existsSync(auditPath) ? files.read(auditPath, true) : "";
+        if (record.kind === "intent") {
+          if (contents && !contents.endsWith("\n")) throw new Error("Incomplete mutation journal");
+          const records = contents.split("\n").filter(Boolean)
+            .map((entry) => JSON.parse(entry) as AuditRecord);
+          if (records.some((entry) => !entry || !["intent", "outcome"].includes(entry.kind)
+            || typeof entry.intentKey !== "string" || !/^[a-f0-9]{64}$/.test(entry.intentKey))) {
+            throw new Error("Invalid mutation journal");
           }
-          writeFileSync(journal, `${line}\n`);
-          fsyncSync(journal);
-          if (created) flushDirectory(directory);
-        } finally { closeSync(journal); }
+          if (records.some((entry) => entry.kind === "intent" && entry.intentKey === record.intentKey)) {
+            throw new AxiError(`blocked: intent '${record.id}' was already reserved`, "ALREADY_EXECUTED", [
+              `Intent '${record.id}' requires manual reconciliation; read back its target and never resend it`,
+            ]);
+          }
+        }
+        files.write(auditPath, `${contents}${line}\n`);
       } finally {
         closeSync(lock);
         unlinkSync(lockPath);
       }
     } catch (error) {
-      if (error instanceof AxiError && error.code === "ALREADY_EXECUTED") throw error;
+      if (error instanceof AxiError && (error.code === "ALREADY_EXECUTED" || record.kind === "intent" && error.code === "CONFIG_INSECURE")) throw error;
       if (record.kind === "intent") {
         throw new AxiError(`Mutation intent '${record.id}' could not be recorded`, "INTENT_NOT_RECORDED", [
           "The mutation was not sent",
@@ -286,6 +268,7 @@ export function createMutationCoordinator(args: {
       throw new AxiError(`Mutation outcome '${record.id}' could not be recorded`, "OUTCOME_NOT_RECORDED", [
         "The mutation may have been applied; read back the target before doing anything else",
         `Check the audit path ${auditPath}`,
+        ...(error instanceof AxiError ? error.suggestions : []),
       ]);
     }
   }

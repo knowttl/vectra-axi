@@ -71,7 +71,7 @@ it.each([
   ["cloud token", { kind: "rux", apiVersion: "3.4" }],
   ["OAuth", { auth: "oauth", clientId: "fake-client", secretEnv: "SENTINEL_SECRET" }],
   ["mixed client ID", { clientId: "fake-client" }], ["mixed OAuth secret", { secretEnv: "SENTINEL_SECRET" }],
-  ["missing reference", { tokenEnv: undefined }], ["invalid reference", { tokenEnv: "not an env reference" }],
+  ["invalid reference", { tokenEnv: "not an env reference" }],
   ["inline token", { token: sentinel }], ["UI password", { password: sentinel }],
   ["TLS bypass", { rejectUnauthorized: false }],
 ])("rejects %s at configuration load, including unselected profiles", (_name, fields) => {

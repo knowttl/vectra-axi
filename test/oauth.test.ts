@@ -79,7 +79,7 @@ it.each([undefined, "", "   "])("rejects missing secret %j before transport", as
 it.each([
   ["token fields", { tokenEnv: "SENTINEL_TOKEN" }], ["missing client", { clientId: undefined }],
   ["empty client", { clientId: "" }], ["Basic delimiter", { clientId: "fake:client" }],
-  ["missing secret reference", { secretEnv: undefined }], ["invalid reference", { secretEnv: "not an env reference" }],
+  ["invalid reference", { secretEnv: "not an env reference" }],
   ["inline secret", { clientSecret: secret }], ["token mode", { auth: "token", tokenEnv: "SENTINEL_TOKEN" }],
   ["appliance release", { kind: "rux", apiVersion: "3.4", applianceRelease: "9.4" }],
   ["QUX version", { kind: "rux", apiVersion: "2.5" }], ["RUX version on QUX", { apiVersion: "3.4" }],

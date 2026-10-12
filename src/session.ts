@@ -343,7 +343,7 @@ export function createSession(args: {
       const response = await sendRaw(profile, configPath, redactor, transport,
         { method: "GET", url: current, headers: { Authorization: authorization, Accept: "application/json" },
           ...(signal ? { signal } : {}) });
-      if (response.status < 300 || response.status > 399) return { status: 200, body: decodeResourceBody(profile, response) };
+      if (response.status < 300 || response.status > 399) return { status: 200, body: redactor.payload(decodeResourceBody(profile, response)) };
       if (!response.location) {
         throw new AxiError(`Vectra redirect for ${record.id} has no destination`, "REQUEST_FAILED", [
           "The redirect response carried no Location header; no credential was forwarded",
@@ -530,7 +530,7 @@ export function createMutationSender(args: {
         ...(options?.signal ? { signal: options.signal } : {}),
       });
       ensureActive(options?.signal);
-      return { status: response.status, body: decodeMutationBody(response) };
+      return { status: response.status, body: redactor.payload(decodeMutationBody(response)) };
     } catch (error) {
       if (!handedOff && error instanceof Error) mutationsNotSent.add(error);
       throw error;
