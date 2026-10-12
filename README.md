@@ -93,7 +93,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 
 | Domain | Subcommands | Deployment |
 | --- | --- | --- |
-| Local setup | `home`, `setup`, `setup hooks`, `doctor` | Both |
+| Local setup | `home`, `setup`, `setup hooks`, `doctor`, `auth status`, `profile list`, `config path` | Both |
 | `detection` | `list`, `show`, `event list` | Both; events are RUX-only |
 | `host`, `account` | `list`, `show` | Both |
 | `entity` | `list`, `show`, `scoring list` | Both; scoring events are RUX-only |
