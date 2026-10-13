@@ -142,6 +142,8 @@ describe("vectra-axi setup hooks", () => {
     return spawnSync(process.execPath, [bin, ...args], {
       cwd: home,
       env: { HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: join(home, ".config"),
+        // Classify this checkout as disposable regardless of the runner's checkout path.
+        TMPDIR: root, TMP: root, TEMP: root,
         XDG_DATA_HOME: join(home, ".local/share"), XDG_CACHE_HOME: join(home, ".cache"),
         XDG_STATE_HOME: join(home, ".local/state"), APPDATA: join(home, "roaming"), LOCALAPPDATA: join(home, "local"),
         NODE_OPTIONS: `--import=${preload}`,
