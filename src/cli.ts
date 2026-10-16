@@ -30,6 +30,7 @@ import { NOTE_KINDS, noteOwnerId, runNoteList, runTagList, type NoteKind } from 
 import { runNoteAdd } from "./note-add.js";
 import { noteEntryId, runNoteDelete, runNoteEdit } from "./note-edit.js";
 import { configPath, envProfile, loadConfig, selectProfile } from "./profiles.js";
+import { SKILL_HINT_LINE, needsSkillHint } from "./skill-hint.js";
 import { authStatus } from "./auth.js";
 import { SecretRedactor } from "./redact.js";
 import { createSession, nodeTransport, type RawTransport } from "./session.js";
@@ -57,6 +58,9 @@ const GROUP_FIELDS = {
 } as const;
 
 export async function main(argv = process.argv.slice(2), transport: RawTransport = nodeTransport()): Promise<void> {
+  // Only the no-argument home view carries the skill-install hint; the
+  // shell fallback below renders the same state without it.
+  const bareHome = argv.length === 0;
   let invocation: ReturnType<typeof parseInvocation>;
   const redactor = new SecretRedactor();
   redactor.add(process.env.VECTRA_AXI_TOKEN);
@@ -593,7 +597,8 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         planned: inventory.operations.filter((operation) => operation.disposition === "planned").length,
         blocked: inventory.operations.filter((operation) => operation.disposition === "blocked").length,
       },
-      help: ["Run vectra-axi setup --help", "Run vectra-axi --help"],
+      help: ["Run vectra-axi setup --help", "Run vectra-axi --help",
+        ...(bareHome && needsSkillHint(process.env) ? [SKILL_HINT_LINE] : [])],
     };
   }
 }
