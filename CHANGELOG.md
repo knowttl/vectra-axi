@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/knowttl/vectra-axi/compare/v0.1.5...v0.1.6) (2026-10-16)
+
+
+### Features
+
+* show skill-install hint on bare home view when skill is missing ([0f037ea](https://github.com/knowttl/vectra-axi/commit/0f037ea715b7d90aa6fb5c68c0417f7035a93cd3))
+
 ## [0.1.5](https://github.com/knowttl/vectra-axi/compare/v0.1.4...v0.1.5) (2026-10-13)
 
 
