@@ -26,7 +26,7 @@ const globals: Readonly<Record<string, Flag>> = {
   profile: { kind: "value", valueName: "name", description: "Select a profile by name; default environment, config default, then sole profile" },
   config: { kind: "value", valueName: "path", description: "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory" },
 };
-const exclusiveFlags = [["help", "profile"]] as const;
+const exclusiveFlags = [["help", "profile"], ["all", "limit"]] as const;
 
 export const catalogue: Readonly<Record<string, {
   description: string;
@@ -99,6 +99,7 @@ export const catalogue: Readonly<Record<string, {
       "max-id": { kind: "value", valueName: "id", description: "Server-side maximum detection ID (non-negative integer)" },
       limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
       fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,detection_type,state,threat,certainty" },
+      all: { kind: "boolean", description: "Traverse pages within 10 requests, 8 MiB, 60 seconds and 10000 rows; cannot combine with --limit" },
       cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
     },
     examples: [
@@ -152,6 +153,7 @@ export const catalogue: Readonly<Record<string, {
       "certainty-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum certainty score" },
       tags: { kind: "value", valueName: "tags", description: "Filter by server-side tags" },
       "min-id": { kind: "value", valueName: "id", description: "Server-side minimum host ID (non-negative integer)" },
+      all: { kind: "boolean", description: "Traverse pages within 10 requests, 8 MiB, 60 seconds and 10000 rows; cannot combine with --limit" },
       "max-id": { kind: "value", valueName: "id", description: "Server-side maximum host ID (non-negative integer)" },
       limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
       fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,name,state,threat,certainty" },
@@ -182,6 +184,7 @@ export const catalogue: Readonly<Record<string, {
       "certainty-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum certainty score" },
       tags: { kind: "value", valueName: "tags", description: "Filter by server-side tags" },
       "min-id": { kind: "value", valueName: "id", description: "Server-side minimum account ID (non-negative integer)" },
+      all: { kind: "boolean", description: "Traverse pages within 10 requests, 8 MiB, 60 seconds and 10000 rows; cannot combine with --limit" },
       "max-id": { kind: "value", valueName: "id", description: "Server-side maximum account ID (non-negative integer)" },
       limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
       fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,name,state,threat,certainty" },
@@ -212,6 +215,7 @@ export const catalogue: Readonly<Record<string, {
     flags: {
       ...globals,
       type: { kind: "value", valueName: "kind", description: "Entity kind to list: host or account (required)" },
+      all: { kind: "boolean", description: "Traverse pages within 10 requests, 8 MiB, 60 seconds and 10000 rows; cannot combine with --limit" },
       "threat-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum threat score" },
       "certainty-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum certainty score" },
       tags: { kind: "value", valueName: "tags", description: "Filter by server-side tags" },

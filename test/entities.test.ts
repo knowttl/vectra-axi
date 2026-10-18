@@ -48,6 +48,27 @@ const listPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
 });
 const hostNext = "https://fixture.invalid/api/v2.5/hosts?min_id=2";
 
+it.each([
+  { noun: "host", run: runHostList, route: "hosts", key: "hosts", extra: [] },
+  { noun: "account", run: runAccountList, route: "accounts", key: "accounts", extra: [] },
+  { noun: "entity", run: runEntityList, route: "hosts", key: "entities", extra: ["--type", "host"] },
+  { noun: "entity", run: runEntityList, route: "accounts", key: "entities", extra: ["--type", "account"] },
+])("traverses QUX $noun $route pages with --all", async ({ noun, run, route, key, extra }) => {
+  const urls: string[] = [];
+  const next = `https://fixture.invalid/api/v2.5/${route}?min_id=102`;
+  const transport: RawTransport = async (request) => {
+    expect(request.method).toBe("GET");
+    urls.push(request.url);
+    return request.url === next ? listPage([host(102)])
+      : listPage(Array.from({ length: 101 }, (_, i) => host(i + 1)), { next });
+  };
+  const result = await run(session(transport), flags([noun, "list", "--all", ...extra]));
+  expect(result.failed).toBe(false);
+  expect(result.output[key]).toHaveLength(102);
+  expect(result.output).toMatchObject({ complete: true, profile: "lab" });
+  expect(urls).toEqual([`https://fixture.invalid/api/v2.5/${route}`, next]);
+});
+
 it("maps host flags to the wire score keys before any HTTP", async () => {
   const transport: RawTransport = async () => listPage([host(1)], { count: 1 });
   let url = "";
@@ -449,6 +470,26 @@ const ruxEntity = (kind: string, id: number, extra: Record<string, unknown> = {}
 });
 const ruxListPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
   status: 200, bodyText: JSON.stringify({ results: rows, ...extra }),
+});
+
+it.each([
+  { noun: "host", run: runHostList, route: "hosts", key: "hosts", extra: [], query: "" },
+  { noun: "account", run: runAccountList, route: "accounts", key: "accounts", extra: [], query: "" },
+  { noun: "entity", run: runEntityList, route: "entities", key: "entities", extra: ["--type", "host"], query: "type=host&" },
+  { noun: "entity", run: runEntityList, route: "entities", key: "entities", extra: ["--type", "account"], query: "type=account&" },
+])("traverses RUX $noun pages with --all $query", async ({ noun, run, route, key, extra, query }) => {
+  const urls: string[] = [];
+  const next = `https://fixture.invalid/api/v3.4/${route}/?${query}page=2`;
+  const owned = cloudSession(cloudFixture((url) => {
+    urls.push(url);
+    return url === next ? ruxListPage([ruxEntity("host", 102)])
+      : ruxListPage(Array.from({ length: 101 }, (_, i) => ruxEntity("host", i + 1)), { next });
+  }));
+  const result = await run(owned, flags([noun, "list", "--all", ...extra]));
+  expect(result.failed).toBe(false);
+  expect(result.output[key]).toHaveLength(102);
+  expect(result.output).toMatchObject({ complete: true, profile: "cloud" });
+  expect(urls).toEqual([`https://fixture.invalid/api/v3.4/${route}/?${query}page_size=100`, next]);
 });
 
 it("maps host flags to the v3.4 host route on a cloud profile", async () => {

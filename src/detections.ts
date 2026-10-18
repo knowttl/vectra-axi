@@ -1,6 +1,6 @@
 import { AxiError } from "axi-sdk-js";
 import { z } from "zod";
-import { collect, DEFAULT_COLLECTION_LIMIT, resume } from "./collections.js";
+import { collect, collectionLimit, resume } from "./collections.js";
 import { embeddedNoteSummary } from "./notes.js";
 import type { Session } from "./session.js";
 
@@ -88,14 +88,7 @@ export function listQuery(flags: ReadonlyMap<string, string | boolean>): ListQue
   return query;
 }
 
-export function listLimit(flags: ReadonlyMap<string, string | boolean>): number {
-  const raw = flags.get("limit");
-  if (raw === undefined) return DEFAULT_COLLECTION_LIMIT;
-  if (typeof raw !== "string" || !/^\d+$/.test(raw) || Number(raw) < 1) {
-    invalid("--limit must be a positive integer row limit", "Example: --limit 20");
-  }
-  return Number(raw);
-}
+export const listLimit = collectionLimit;
 
 // Client-side projection over the inventory's field subset. Unknown fields
 // fail explicitly instead of silently returning short rows.
@@ -161,13 +154,14 @@ export async function runDetectionList(
 ): Promise<LeafResult> {
   const query = listQuery(flags);
   const limit = listLimit(flags);
+  const all = flags.has("all");
   const fields = listFields(flags);
   const cursor = flags.get("cursor");
   const decodeRow = (row: unknown): Record<string, unknown> => decodeDetection(row, detectionSchema);
   const operation = session.profile.kind === "rux" ? RUX_DETECTION_LIST_OPERATION : DETECTION_LIST_OPERATION;
   const result = typeof cursor === "string"
-    ? await resume(session, operation, cursor, { query, limit, decodeRow })
-    : await collect(session, operation, { query, limit, decodeRow });
+    ? await resume(session, operation, cursor, { query, limit, all, decodeRow })
+    : await collect(session, operation, { query, limit, all, decodeRow });
   const rows = result.rows.map((row) =>
     Object.fromEntries(fields.filter((field) => Object.hasOwn(row, field)).map((field) => [field, row[field]])));
   const shown = rows.length;

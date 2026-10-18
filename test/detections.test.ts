@@ -44,6 +44,49 @@ const listPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
 });
 const nextPage = "https://fixture.invalid/api/v2.5/detections?min_id=2";
 
+it("traverses detection pages with --all beyond the default window", async () => {
+  const requests: string[] = [];
+  const transport: RawTransport = async (request) => {
+    requests.push(request.url);
+    expect(request.method).toBe("GET");
+    return request.url === nextPage
+      ? listPage([detection(102)], { count: 102 })
+      : listPage(Array.from({ length: 101 }, (_, i) => detection(i + 1)), { count: 102, next: nextPage });
+  };
+  const result = await runDetectionList(session(transport), flags(["detection", "list", "--all"]));
+  expect(result.failed).toBe(false);
+  expect(result.output.detections).toHaveLength(102);
+  expect(result.output).toMatchObject({ complete: true, total: 102 });
+  expect(result.output.cursor).toBeUndefined();
+  expect(requests).toEqual(["https://fixture.invalid/api/v2.5/detections", nextPage]);
+});
+
+it.each(["detection", "host", "account", "entity"])("rejects --all with --limit for %s lists", (noun) => {
+  expect(() => flags([noun, "list", "--all", "--limit", "1"]))
+    .toThrow("--all cannot be combined with --limit");
+});
+
+it("discloses partial --all output and resumes from the request-budget cursor", async () => {
+  const urls: string[] = [];
+  const transport: RawTransport = async (request) => {
+    urls.push(request.url);
+    expect(request.method).toBe("GET");
+    const id = Number(new URL(request.url).searchParams.get("min_id") ?? 1);
+    return listPage([detection(id)], { next: `https://fixture.invalid/api/v2.5/detections?min_id=${id + 1}` });
+  };
+  const owned = session(transport);
+  const first = await runDetectionList(owned, flags(["detection", "list", "--all"]));
+  expect(first.failed).toBe(true);
+  expect(first.output).toMatchObject({ complete: false, code: "REQUEST_BUDGET_EXCEEDED", cursor: expect.any(String) });
+  expect(first.output.detections).toHaveLength(10);
+  expect(urls).toHaveLength(10);
+  const rest = await runDetectionList(owned,
+    flags(["detection", "list", "--all", "--cursor", String(first.output.cursor)]));
+  expect(rest.output.detections).toHaveLength(10);
+  expect(urls[10]).toBe("https://fixture.invalid/api/v2.5/detections?min_id=11");
+  expect(urls).toHaveLength(20);
+});
+
 it("maps catalogue flags to server-side query keys before any HTTP", async () => {
   const transport: RawTransport = async () => listPage([detection(1)], { count: 1 });
   let url = "";
@@ -497,6 +540,19 @@ const ruxListPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
   status: 200, bodyText: JSON.stringify({ results: rows, ...extra }),
 });
 const ruxNext = "https://fixture.invalid/api/v3.4/detections/?state=active&page=2";
+
+it("traverses RUX detection pages with --all and the original filters", async () => {
+  const urls: string[] = [];
+  const owned = cloudSession(cloudFixture((url) => {
+    urls.push(url);
+    return url === ruxNext ? ruxListPage([ruxDetection(102)])
+      : ruxListPage(Array.from({ length: 101 }, (_, i) => ruxDetection(i + 1)), { next: ruxNext });
+  }));
+  const result = await runDetectionList(owned, flags(["detection", "list", "--all", "--state", "active"]));
+  expect(result.failed).toBe(false);
+  expect(result.output.detections).toHaveLength(102);
+  expect(urls).toEqual(["https://fixture.invalid/api/v3.4/detections/?state=active&page_size=100", ruxNext]);
+});
 
 it("maps catalogue flags to the v3.4 detection route on a cloud profile", async () => {
   let url = "";
