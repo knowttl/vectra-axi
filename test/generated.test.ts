@@ -1,13 +1,41 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { catalogue, inventory } from "../src/catalogue.js";
+import { catalogue, help, inventory } from "../src/catalogue.js";
 import { coverageDocument, skillCommandTable } from "../src/docs.js";
 
 const skill = readFileSync(new URL("../skills/vectra-axi/SKILL.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 const coverage = readFileSync(new URL("../docs/coverage.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 
 describe("generated release records", () => {
+  it.each([...new Set(inventory.operations
+    .filter((operation) => operation.disposition === "named" && operation.id.startsWith("rux."))
+    .map((operation) => operation.command!))])("does not label %s QUX-only when it supports RUX", (leaf) => {
+    expect(help(leaf).description).not.toMatch(/^(?!.*\bRUX\b).*\bQUX\b/);
+  });
+
+  it.each([...new Set(inventory.operations
+    .filter((operation) => operation.disposition === "named" && operation.command)
+    .map((operation) => operation.command!))]
+    .filter((leaf) => !inventory.operations.some((operation) =>
+      operation.disposition === "named" && operation.command === leaf && operation.deployment === "rux")))
+  ("keeps QUX-only deployment wording in %s help", (leaf) => {
+    expect(help(leaf).description).toMatch(/\bQUX\b/);
+    expect(help(leaf).description).not.toMatch(/\bRUX\b/);
+  });
+
+  it.each(["detection event list", "entity scoring list"])("keeps %s RUX-only", (leaf) => {
+    expect(help(leaf).description).toMatch(/\bRUX\b/);
+    expect(help(leaf).description).not.toMatch(/\bQUX\b/);
+  });
+
+  it("retains deployment-specific entity filters and member release requirements", () => {
+    expect(help("entity list").description).toContain("score filters are QUX-only");
+    expect(help("group member list").description).toContain("QUX v2.5 (appliance 9.2+)");
+    expect(help("group member list").description).toContain("RUX v3.4");
+    expect(help("user list").description).toContain("username filtering is QUX-only");
+  });
+
   it("keeps skill discovery frontmatter valid for loaders", () => {
     const frontmatter = skill.match(/^---\n([\s\S]*?)\n---\n/)?.[1];
     expect(frontmatter).toBeDefined();
