@@ -78,5 +78,5 @@ The separately updated guide change log adds detection EDR context in 9.8.
 Individual QUX health checks require the view-health permission; denials must never appear as healthy empty results.
 
 The inventory's `az-tooling` source pins the tooling reference separately from the older design research reference.
-See [README.md](../README.md) for development requirements and commands, [the CI workflow](../.github/workflows/ci.yml) for the validation matrix and [.no-mistakes.yaml](../.no-mistakes.yaml) for gate commands.
+See [README.md](../README.md) for development requirements and commands and [.no-mistakes.yaml](../.no-mistakes.yaml) for local validation and gate commands; the test workflow file remains in the repository but is disabled on GitHub.
 The [shared network guard](../test/network-guard.ts) owns automated network denial for Vitest and packaged CLI subprocesses.

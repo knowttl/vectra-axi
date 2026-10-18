@@ -363,7 +363,7 @@ The generated command table in the skill and the coverage record are checked for
 - [Operation coverage](docs/coverage.md)
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for local validation and contribution guidance.
-GitHub Actions is release-only; pull requests require local validation before merge.
+Tests run locally through no-mistakes; pull requests require local validation before merge. The test workflow file remains in the repository but is disabled on GitHub, so Actions runs only the release pipeline.
 The release publish job checks build, lint, tests and generated documentation before publishing.
 
 ## License

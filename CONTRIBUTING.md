@@ -15,7 +15,7 @@ corepack pnpm test
 corepack pnpm run docs:check
 ```
 
-GitHub Actions is release-only; there are no required pull-request CI checks.
+Tests run locally through no-mistakes; the test workflow file remains in the repository but is disabled on GitHub, so Actions runs only the release pipeline.
 Local validation is required before merge, and the release publish job repeats these checks before publishing.
 Tests use temporary HOME and XDG directories, synthetic credentials and fixtures, and deny external network access.
 Do not use real services, credentials or customer data for automated validation.
