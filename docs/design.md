@@ -123,7 +123,7 @@ Coverage distinguishes named support, reviewed raw support, planned, blocked, un
 A profile contains deployment kind, exact HTTPS origin, API version string, known appliance release when available, authentication mode, secret references, optional private CA bundle and a separately hand-edited write policy.
 Token mode uses a `token` SecretRef; OAuth mode requires client ID and a `clientSecret` SecretRef.
 Secrets resolve from an environment name or a private absolute file, defaulting to the corresponding `VECTRA_AXI_*` environment reference.
-The legacy `tokenEnv` and `secretEnv` keys remain accepted for one minor release.
+The deprecated `tokenEnv` and `secretEnv` keys, including unversioned legacy config envelopes, remain accepted through the `0.1.x` minor line and retire in `0.2.0`; patch releases do not end this compatibility window.
 Reject mixed or incomplete authentication modes.
 Do not take secret values in argv or emit them in profile output.
 Use a user configuration file or explicitly selected config; do not automatically trust repository-local credential configuration.
