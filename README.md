@@ -2,7 +2,6 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@knowttl/vectra-axi"><img alt="npm" src="https://img.shields.io/npm/v/@knowttl/vectra-axi?style=flat-square" /></a>
-  <a href="https://github.com/knowttl/vectra-axi/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/knowttl/vectra-axi/actions/workflows/ci.yml/badge.svg" /></a>
   <a href="https://github.com/kunchenguid/axi"><img alt="AXI" src="https://img.shields.io/badge/AXI-Agent%20eXperience%20Interface-green?style=flat-square" /></a>
 </p>
 
@@ -273,7 +272,8 @@ SecretRefs accept `{"env":"NAME"}` or `{"file":"/absolute/path"}`; file content 
 Windows file references require an absolute drive path, with UNC and device paths refused.
 Omitted secrets default to the corresponding `VECTRA_AXI_*` environment reference.
 `{"stored":true}` reports `AUTH_REQUIRED` because vectra-axi does not implement credential storage or login.
-The deprecated `tokenEnv` and `secretEnv` keys, including unversioned legacy config envelopes, remain accepted for one minor release.
+The deprecated `tokenEnv` and `secretEnv` keys, including unversioned legacy config envelopes, remain accepted through the `0.1.x` minor line and retire in `0.2.0`.
+Migrate to the versioned profile envelope and `token`/`clientSecret` SecretRefs before upgrading to `0.2.0`; patch releases do not end this compatibility window.
 Config reads require an owned regular file with no group or other write bits; secret files require no group or other permission bits (0400 is accepted).
 Use `chmod 600 <path>` to repair Unix permissions.
 Windows writes set a protected DACL for the current account, SYSTEM and Administrators; `auth status` and `doctor` verify it, and ordinary reads reject reparse points.
@@ -361,3 +361,11 @@ The generated command table in the skill and the coverage record are checked for
 - [Implementation plan and offline acceptance](docs/implementation-plan.md)
 - [Inventory format, dispositions, and verification](docs/inventory.md)
 - [Operation coverage](docs/coverage.md)
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local validation and contribution guidance.
+Tests run locally through no-mistakes; pull requests require local validation before merge. The test workflow file remains in the repository but is disabled on GitHub, so Actions runs only the release pipeline.
+The release publish job checks build, lint, tests and generated documentation before publishing.
+
+## License
+
+Released under the [MIT License](LICENSE).

@@ -36,10 +36,11 @@ jobs:
           package-manager-cache: false
       - name: Enable pnpm
         run: corepack enable
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm run build
       - run: pnpm run lint
       - run: pnpm test
+      - run: pnpm run docs:check
       # Keep the registry URL but remove setup-node's placeholder authentication.
       - name: Enable npm OIDC trusted publishing
         run: |
