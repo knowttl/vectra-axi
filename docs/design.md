@@ -102,7 +102,7 @@ Validated results return through safe projection/redaction -> AXI TOON output.
 The mutation coordinator uses a separate authorized sender in `src/session.ts`, sharing the read session's credential and HTTP transport seams.
 
 As domain slices land, the session will expose caller-shaped operations such as `listDetections(query, window)`, `getDetection(id)` and `listEntities(kind, query, window)`.
-CORE-01 supplies the operation-scoped foundation described in the [session interface](core-01-handoff.md), and CORE-02 supplies the [collection interface](core-02-handoff.md).
+CORE-01 supplies the operation-scoped foundation described in the [archived session interface](https://github.com/knowttl/vectra-axi/blob/archive/internal-docs/docs/core-01-handoff.md), and CORE-02 supplies the [archived collection interface](https://github.com/knowttl/vectra-axi/blob/archive/internal-docs/docs/core-02-handoff.md).
 See [README.md](../README.md) for shipped domain reads.
 The session and collection reader own profile/version resolution, capability checks, origin enforcement, credential lifecycle, retries, response validation and pagination.
 Deleting this module would distribute those responsibilities across commands, so it earns its interface through depth and locality.

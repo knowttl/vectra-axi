@@ -1,4 +1,5 @@
 agent: pi
+no_ci: true
 commands:
   prepare: 'corepack pnpm install --frozen-lockfile --ignore-scripts --config.confirm-modules-purge=false'
   test: 'node scripts/isolated.mjs corepack pnpm run build && corepack pnpm test'

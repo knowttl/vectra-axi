@@ -3,9 +3,7 @@
 Status: planning baseline following the selected TypeScript, read-only-first and existing-SDK direction.
 Repository: `knowttl/vectra-axi`; base: `main`.
 Implementation is not authorized by this plan alone.
-Use fresh implementation crews only after the separate build instruction.
-The requested implementation model is GPT-6.1 Sol at medium effort.
-This design session does not spawn those crews or switch its own model.
+Historical handoffs and the original process history are preserved on [archive/internal-docs](https://github.com/knowttl/vectra-axi/tree/archive/internal-docs).
 
 A dependency means its public contract is merged and usable.
 Every slice uses synthetic fixtures and denies external network by default.
@@ -59,7 +57,7 @@ See [design.md](design.md) for source evidence, architecture, paging, profile, o
 ## Commissioning sequence
 
 Use one isolated feature branch and one narrowly scoped handoff per slice.
-The next crew receives merged prerequisite contracts, not another crew's in-progress private interface.
+Each change builds on merged prerequisite contracts rather than an in-progress private interface.
 Do not make every phase one umbrella task or commission the entire catalogue as a single change.
 
 | Phase | Slices | Review checkpoint |
@@ -73,7 +71,7 @@ Do not make every phase one umbrella task or commission the entire catalogue as 
 
 Phase 1 is sequential because each step establishes a contract used by the next.
 After READ-02 and CORE-02 merge, phases within the remaining QUX read tranche may be commissioned independently if their files and public contracts do not conflict.
-Phase 3 and the mutation coordinator may follow PACK-01 independently, subject to firstmate's dispatch and the user's priorities.
+Phase 3 and the mutation coordinator may follow PACK-01 independently, subject to separately approved scope and priorities.
 No worker edits the common session's public interface unilaterally while another commissioned slice relies on it.
 A change to that interface gets a small prerequisite change and updated handoffs.
 
@@ -111,7 +109,7 @@ Known secret values are scrubbed from errors as well as ordinary results, debug 
 
 ### AUTH-01 handoff and acceptance
 
-AUTH-01 on `fm/vx-auth-01` uses CLI-01 commit `184a57a` as its prerequisite and changes no inventory records or dispositions.
+AUTH-01 uses CLI-01 commit `184a57a` as its prerequisite and changes no inventory records or dispositions.
 See [README.md](../README.md) for shipped configuration and behavior, and [design.md](design.md#evidence-and-api-contracts) for upstream evidence.
 OAuth remains AUTH-02, authenticated transport remains CORE-01, and cloud profiles remain RUX-01.
 See [README.md](../README.md) for write policy configuration and [design.md](design.md#later-mutation-coordinator) for coordinator enforcement.
@@ -122,8 +120,8 @@ Both reuse the [network-denying fixture harness](../test/network-guard.ts); no l
 
 ### AUTH-02 handoff and acceptance
 
-AUTH-02 on `fm/vx-auth-02` uses merged AUTH-01 commit `f93e287` as its prerequisite and changes no inventory dispositions or command grammar.
-The [handoff](auth-02-handoff.md) records the named fake transport seam and CORE-01 integration responsibilities, with pointers to shipped behavior, upstream evidence and the `qux.oauth.exchange` inventory record.
+AUTH-02 uses merged AUTH-01 commit `f93e287` as its prerequisite and changes no inventory dispositions or command grammar.
+The [archived handoff](https://github.com/knowttl/vectra-axi/blob/archive/internal-docs/docs/auth-02-handoff.md) records the named fake transport seam and CORE-01 integration responsibilities, with pointers to shipped behavior, upstream evidence and the `qux.oauth.exchange` inventory record.
 The [OAuth acceptance suite](../test/oauth.test.ts) verifies the exact named exchange, returned expiry boundaries, cache isolation, client-credentials reacquisition, malformed replies, Bearer token syntax rejection before caching, bounded status/transport failures, CA failure and sentinel redaction through SDK formatting.
 It also covers malformed Unicode in rejected tokens and unused refresh tokens with fake time and synthetic fixtures.
 The [packaged suite](../test/cli.test.ts) verifies OAuth status remains offline with closed stdin without resolving a secret or calling a transport.
@@ -135,7 +133,7 @@ See [README.md](../README.md) for write-policy fields.
 ### CORE-01 handoff and acceptance
 
 CORE-01 builds on AUTH-01 and AUTH-02 without enabling command leaves or changing inventory dispositions.
-See [README.md](../README.md) for shipped behavior and the [handoff](core-01-handoff.md) for the session interface.
+See [README.md](../README.md) for shipped behavior and the [archived handoff](https://github.com/knowttl/vectra-axi/blob/archive/internal-docs/docs/core-01-handoff.md) for the session interface.
 The [session acceptance suite](../test/session.test.ts) verifies operation authorization before credentials, bound-route and query validation for redirects and continuations, shared token/OAuth transport, credential reuse and expiry, failure mapping and redaction.
 It also exercises production-adapter deadline cleanup, premature response termination, body limits and IPv6 transport options through a fake HTTPS boundary.
 The suite uses synthetic fixtures and the [external-network guard](../test/network-guard.ts); it does not establish live appliance or TLS-handshake compatibility.
@@ -277,7 +275,7 @@ Long-tail families remain separately commissioned scope.
 
 ## Per-slice handoff template
 
-Every fresh GPT-6.1 Sol medium-effort crew receives:
+Each implementation change specifies:
 
 1. The slice ID, exact goal, prerequisite commits and owning branch/base.
 2. The relevant accepted design paragraphs and operation catalogue records.
