@@ -84,7 +84,7 @@ export const catalogue: Readonly<Record<string, {
     // Filter flags cover the inventory's conservative qux.detection.list
     // query subset. Kebab-case names map to snake_case keys in
     // src/detections.ts; values pass through to the server.
-    description: "List QUX detections with server-side filters and a bounded window",
+    description: "List detections on QUX v2.5 or RUX v3.4 with server-side filters and a bounded window",
     flags: {
       ...globals,
       state: { kind: "value", valueName: "state", description: "Filter by server-side detection state" },
@@ -108,7 +108,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "detection show": {
-    description: "Show one QUX detection in full detail",
+    description: "Show one detection on QUX v2.5 or RUX v3.4 in full detail",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Detection ID to show (positive integer, required)" },
@@ -145,7 +145,7 @@ export const catalogue: Readonly<Record<string, {
     // Filter flags cover the inventory's conservative qux.host.list query
     // subset. Score filters keep QUX display names while mapping to the wire
     // t_score_gte/c_score_gte keys in src/entities.ts.
-    description: "List QUX hosts with server-side filters and a bounded window",
+    description: "List hosts on QUX v2.5 or RUX v3.4 with server-side filters and a bounded window",
     flags: {
       ...globals,
       "threat-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum threat score" },
@@ -164,7 +164,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "host show": {
-    description: "Show one QUX host in full detail",
+    description: "Show one host on QUX v2.5 or RUX v3.4 in full detail",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Host ID to show (positive integer, required)" },
@@ -175,7 +175,7 @@ export const catalogue: Readonly<Record<string, {
   },
   "account list": {
     // Same conservative query subset as hosts, per the qux.account.list record.
-    description: "List QUX accounts with server-side filters and a bounded window",
+    description: "List accounts on QUX v2.5 or RUX v3.4 with server-side filters and a bounded window",
     flags: {
       ...globals,
       "threat-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum threat score" },
@@ -194,7 +194,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "account show": {
-    description: "Show one QUX account in full detail",
+    description: "Show one account on QUX v2.5 or RUX v3.4 in full detail",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Account ID to show (positive integer, required)" },
@@ -208,7 +208,7 @@ export const catalogue: Readonly<Record<string, {
     // selects one kind's operation, never a merged ranking. The facade
     // CLI exposes no min/max ID flags and its fields carry no state;
     // the session still permits ID keys in server continuation links.
-    description: "List QUX entities of one kind with server-side filters and a bounded window",
+    description: "List entities of one kind on QUX v2.5 or RUX v3.4 with a bounded window; score filters are QUX-only",
     flags: {
       ...globals,
       type: { kind: "value", valueName: "kind", description: "Entity kind to list: host or account (required)" },
@@ -225,7 +225,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "entity show": {
-    description: "Show one QUX entity of one kind in full detail",
+    description: "Show one entity of one kind on QUX v2.5 or RUX v3.4 in full detail",
     flags: {
       ...globals,
       type: { kind: "value", valueName: "kind", description: "Entity kind to show: host or account (required)" },
@@ -263,7 +263,7 @@ export const catalogue: Readonly<Record<string, {
     // Notes come only from the dedicated versioned notes resource, never
     // from the embedded detail summary. --full prints the complete returned
     // text; it cannot restore content the upstream response never returned.
-    description: "List full QUX detection notes through the versioned notes route",
+    description: "List full detection notes on QUX v2.5 or RUX v3.4 through the dedicated notes route",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Detection ID whose notes to list (positive integer, required)" },
@@ -275,7 +275,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "detection tag list": {
-    description: "List QUX detection tags through the versioned tagging route",
+    description: "List detection tags on QUX v2.5 or RUX v3.4 through the tagging route",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Detection ID whose tags to list (positive integer, required)" },
@@ -383,7 +383,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "host note list": {
-    description: "List full QUX host notes through the versioned notes route",
+    description: "List full host notes on QUX v2.5 or RUX v3.4 through the dedicated notes route",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Host ID whose notes to list (positive integer, required)" },
@@ -395,7 +395,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "host tag list": {
-    description: "List QUX host tags through the versioned tagging route",
+    description: "List host tags on QUX v2.5 or RUX v3.4 through the tagging route",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Host ID whose tags to list (positive integer, required)" },
@@ -503,7 +503,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "account note list": {
-    description: "List full QUX account notes through the versioned notes route",
+    description: "List full account notes on QUX v2.5 or RUX v3.4 through the dedicated notes route",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Account ID whose notes to list (positive integer, required)" },
@@ -515,7 +515,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "account tag list": {
-    description: "List QUX account tags through the versioned tagging route",
+    description: "List account tags on QUX v2.5 or RUX v3.4 through the tagging route",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Account ID whose tags to list (positive integer, required)" },
@@ -751,7 +751,7 @@ export const catalogue: Readonly<Record<string, {
     // Filter flags cover the inventory's qux.group.list query subset.
     // Type values pass through to the server with no client-side allowlist,
     // so host, account, IP, domain and release-dependent AD kinds survive.
-    description: "List QUX groups with server-side filters and a bounded window",
+    description: "List groups on QUX v2.5 or RUX v3.4 with server-side filters and a bounded window",
     flags: {
       ...globals,
       name: { kind: "value", valueName: "name", description: "Filter by server-side group name" },
@@ -767,7 +767,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "group show": {
-    description: "Show one QUX group in full detail",
+    description: "Show one group on QUX v2.5 or RUX v3.4 in full detail",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Group ID to show (positive integer, required)" },
@@ -781,7 +781,7 @@ export const catalogue: Readonly<Record<string, {
     // from embedded detail members capped at 2000 rows. The group ID is a
     // path parameter, so windows stay scoped to one group and kinds are
     // never merged into one ranking.
-    description: "List one QUX group's members through the paged member route",
+    description: "List one group's members on QUX v2.5 (appliance 9.2+) or RUX v3.4 through the paged member route",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Group ID whose members to list (positive integer, required)" },
@@ -801,7 +801,7 @@ export const catalogue: Readonly<Record<string, {
     // Filter flags cover the inventory's qux.triage-rule.list query subset
     // minus the wire fields selector, which has no CLI flag: rows arrive
     // whole and the CLI projects its recorded subset client-side.
-    description: "List QUX triage rules with server-side filters and a bounded window",
+    description: "List triage rules on QUX v2.5 or RUX v3.4 with server-side filters and a bounded window",
     flags: {
       ...globals,
       contains: { kind: "value", valueName: "text", description: "Filter by server-side rule text match" },
@@ -816,7 +816,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "triage rule show": {
-    description: "Show one QUX triage rule in full detail",
+    description: "Show one triage rule on QUX v2.5 or RUX v3.4 in full detail",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Rule ID to show (positive integer, required)" },
