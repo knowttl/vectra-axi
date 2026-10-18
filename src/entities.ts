@@ -1,6 +1,6 @@
 import { AxiError } from "axi-sdk-js";
 import { z } from "zod";
-import { collect, DEFAULT_COLLECTION_LIMIT, resume } from "./collections.js";
+import { collect, collectionLimit, resume } from "./collections.js";
 import { embeddedNoteSummary } from "./notes.js";
 import type { Session } from "./session.js";
 
@@ -138,14 +138,7 @@ export function listQuery(flags: ReadonlyMap<string, string | boolean>, facade =
   return query;
 }
 
-export function listLimit(flags: ReadonlyMap<string, string | boolean>): number {
-  const raw = flags.get("limit");
-  if (raw === undefined) return DEFAULT_COLLECTION_LIMIT;
-  if (typeof raw !== "string" || !/^\d+$/.test(raw) || Number(raw) < 1) {
-    invalid("--limit must be a positive integer row limit", "Example: --limit 20");
-  }
-  return Number(raw);
-}
+export const listLimit = collectionLimit;
 
 // Client-side projection over the inventory's field subset: the direct
 // host/account leaves keep state on both generations, the QUX facade keeps
@@ -241,6 +234,7 @@ async function runKindList(
   const rux = session.profile.kind === "rux";
   const query = listQuery(flags, facade, rux);
   const limit = listLimit(flags);
+  const all = flags.has("all");
   const fields = listFields(flags, facade, rux);
   const cursor = flags.get("cursor");
   const operation = listOperation(kind, facade, rux);
@@ -248,8 +242,8 @@ async function runKindList(
     ? decodeEntity(row, ruxEntitySchema, "RUX v3.4", "entity")
     : decodeEntity(row, entitySchema, rux ? "RUX v3.4" : "QUX v2.5");
   const result = typeof cursor === "string"
-    ? await resume(session, operation, cursor, { query, limit, decodeRow })
-    : await collect(session, operation, { query, limit, decodeRow });
+    ? await resume(session, operation, cursor, { query, limit, all, decodeRow })
+    : await collect(session, operation, { query, limit, all, decodeRow });
   const rows = result.rows.map((row) => project(row, fields));
   const nouns = plural(kind);
   const shown = rows.length;

@@ -66,6 +66,26 @@ const DEFAULT_POLICY: CollectionPolicy = {
 
 // Default normal list output, per design.md.
 export const DEFAULT_COLLECTION_LIMIT = 100;
+export const ALL_COLLECTION_LIMIT = 10_000;
+
+// Shared CLI output controls; undefined removes the normal row window only
+// when the caller also passes all:true to the bounded reader.
+export function collectionLimit(flags: ReadonlyMap<string, string | boolean>): number | undefined {
+  if (flags.has("all")) {
+    if (flags.has("limit")) {
+      throw new AxiError("--all cannot be combined with --limit", "VALIDATION_ERROR", [
+        "Use --all for bounded traversal or --limit <rows> for one output window",
+      ]);
+    }
+    return undefined;
+  }
+  const raw = flags.get("limit");
+  if (raw === undefined) return DEFAULT_COLLECTION_LIMIT;
+  if (typeof raw !== "string" || !/^\d+$/.test(raw) || !Number.isSafeInteger(Number(raw)) || Number(raw) < 1) {
+    throw new AxiError("--limit must be a positive integer row limit", "VALIDATION_ERROR", ["Example: --limit 20"]);
+  }
+  return Number(raw);
+}
 
 // Reviewed transient conditions for read retries, following the az-axi
 // reference (429/503 retried, 504 surfaced) plus 502 as an equally transient
@@ -91,6 +111,7 @@ export type CollectionArgs<T = unknown> = {
   query?: SessionRequestOptions["query"];
   pathParams?: SessionRequestOptions["pathParams"];
   limit?: number;
+  all?: boolean;
   signal?: AbortSignal;
   clock?: Clock;
   policy?: Partial<CollectionPolicy>;
@@ -123,6 +144,23 @@ function checkLimit(limit: number): number {
     ]);
   }
   return limit;
+}
+
+function readPolicy(args: CollectionArgs): CollectionPolicy {
+  if (args.all && args.limit !== undefined) {
+    throw new AxiError("--all cannot be combined with --limit", "VALIDATION_ERROR", [
+      "Omit the row limit when traversing all pages",
+    ]);
+  }
+  const policy = { ...DEFAULT_POLICY, ...args.policy };
+  for (const [key, value] of Object.entries(policy)) {
+    if (!Number.isSafeInteger(value) || value < (key === "baseDelayMs" || key === "maxDelayMs" ? 0 : 1)) {
+      throw new AxiError(`Invalid collection policy: ${key}`, "VALIDATION_ERROR", [
+        "Collection budgets must be finite positive integers; retry delays may be zero",
+      ]);
+    }
+  }
+  return policy;
 }
 
 // Unknown operations fall through to the session, which reports
@@ -361,6 +399,7 @@ class AdvanceFailed extends Error {
 }
 
 type PageRun<T> = {
+  all: boolean;
   session: Session;
   operation: string;
   record: CapabilityOperation | undefined;
@@ -416,6 +455,14 @@ async function runPages<T>(run: PageRun<T>): Promise<CollectionResult<T>> {
     const left = remaining === 0 ? DEFAULT_COLLECTION_LIMIT : remaining;
     return { rows, total, complete: false, cursor: cursorFor(pending.page, pending.offset, left), error: failure };
   };
+  const capped = (page: Record<string, Scalar>, at: number): CollectionResult<T> => {
+    if (!run.all) return { rows, total, complete: true, cursor: cursorFor(page, at, DEFAULT_COLLECTION_LIMIT) };
+    pending = { page, offset: at };
+    return partial(new AxiError(
+      `Collection read exceeded its ${ALL_COLLECTION_LIMIT} row budget`, "ROW_BUDGET_EXCEEDED",
+      ["Pass --all with the returned --cursor and original filters to continue"],
+    ));
+  };
   try {
     for (;;) {
       pending = { page: pageQuery, offset };
@@ -451,8 +498,7 @@ async function runPages<T>(run: PageRun<T>): Promise<CollectionResult<T>> {
         const rest = available.length - take;
         // The limit is satisfied; a resumed read defaults to a fresh window.
         if (rest > 0) {
-          return { rows, total, complete: true,
-            cursor: cursorFor(pageQuery, page.rows.length - rest, DEFAULT_COLLECTION_LIMIT) };
+          return capped(pageQuery, page.rows.length - rest);
         }
       }
       if (page.next === null) return { rows, total, complete: true };
@@ -470,7 +516,7 @@ async function runPages<T>(run: PageRun<T>): Promise<CollectionResult<T>> {
         ]);
       }
       if (remaining === 0) {
-        return { rows, total, complete: true, cursor: cursorFor(nextQuery, 0, DEFAULT_COLLECTION_LIMIT) };
+        return capped(nextQuery, 0);
       }
       pageQuery = nextQuery;
       offset = 0;
@@ -486,10 +532,11 @@ export async function collect<T = unknown>(
   session: Session, operation: string, args: CollectionArgs<T> = {},
 ): Promise<CollectionResult<T>> {
   const record = collectionRecord(session, operation);
-  const policy = { ...DEFAULT_POLICY, ...args.policy };
+  const policy = readPolicy(args);
   const query = { ...(args.query ?? {}) };
   const pathParams = { ...(args.pathParams ?? {}) };
   return runPages({
+    all: args.all === true,
     session,
     operation,
     record,
@@ -497,7 +544,7 @@ export async function collect<T = unknown>(
     contextQuery: query,
     startQuery: withPageSize(record, query, policy.pageSize),
     offset: 0,
-    remaining: checkLimit(args.limit ?? DEFAULT_COLLECTION_LIMIT),
+    remaining: args.all ? ALL_COLLECTION_LIMIT : checkLimit(args.limit ?? DEFAULT_COLLECTION_LIMIT),
     startTotal: null,
     visited: [],
     policy,
@@ -528,8 +575,9 @@ export async function resume<T = unknown>(
     throw cursorInvalid("the path context changed since the cursor was issued");
   }
   const record = collectionRecord(session, operation);
-  const policy = { ...DEFAULT_POLICY, ...args.policy };
+  const policy = readPolicy(args);
   return runPages({
+    all: args.all === true,
     session,
     operation,
     record,
@@ -537,7 +585,7 @@ export async function resume<T = unknown>(
     contextQuery: cursor.query,
     startQuery: cursor.page,
     offset: cursor.offset,
-    remaining: checkLimit(args.limit ?? cursor.remaining),
+    remaining: args.all ? ALL_COLLECTION_LIMIT : checkLimit(args.limit ?? cursor.remaining),
     startTotal: cursor.total,
     visited: cursor.visited,
     policy,

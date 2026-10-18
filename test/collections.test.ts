@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
-import { collect, DEFAULT_COLLECTION_LIMIT, resume, type Clock } from "../src/collections.js";
+import { ALL_COLLECTION_LIMIT, collect, DEFAULT_COLLECTION_LIMIT, resume, type Clock } from "../src/collections.js";
 import { loadConfig, selectProfile } from "../src/profiles.js";
 import { SecretRedactor } from "../src/redact.js";
 import { createSession, parseRetryAfter, type RawTransport, type Session } from "../src/session.js";
@@ -36,6 +36,76 @@ const page = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
   status: 200, bodyText: JSON.stringify({ results: rows, ...extra }),
 });
 const nextPage = "https://fixture.invalid/api/v2.5/detections?min_id=9";
+
+it.each([0, ALL_COLLECTION_LIMIT])("finishes --all at exactly %i rows without another request", async (count) => {
+  const transport = vi.fn<RawTransport>().mockResolvedValue(page(ids(count), { count }));
+  const result = await collect(session(transport), "qux.detection.list", { all: true });
+  expect(result).toEqual({ rows: ids(count), total: count, complete: true });
+  expect(transport).toHaveBeenCalledTimes(1);
+});
+
+it("resumes --all from the first unreturned row after the row budget", async () => {
+  const transport = vi.fn<RawTransport>().mockResolvedValue(page(ids(ALL_COLLECTION_LIMIT + 1)));
+  const owned = session(transport);
+  const first = await collect(owned, "qux.detection.list", { all: true });
+  expect(first.rows).toHaveLength(ALL_COLLECTION_LIMIT);
+  expect(first).toMatchObject({ complete: false, error: { code: "ROW_BUDGET_EXCEEDED" } });
+  expect(transport).toHaveBeenCalledTimes(1);
+  const rest = await resume(owned, "qux.detection.list", first.cursor!, { all: true });
+  expect(rest).toEqual({ rows: ids(1, ALL_COLLECTION_LIMIT + 1), total: null, complete: true });
+  expect(transport).toHaveBeenCalledTimes(2);
+});
+
+it("resumes --all at the next page when the row budget ends exactly on a page", async () => {
+  const transport = vi.fn<RawTransport>()
+    .mockResolvedValueOnce(page(ids(ALL_COLLECTION_LIMIT), { next: nextPage }))
+    .mockResolvedValueOnce(page(ids(1, ALL_COLLECTION_LIMIT + 1)));
+  const owned = session(transport);
+  const first = await collect(owned, "qux.detection.list", { all: true });
+  expect(first).toMatchObject({ complete: false, error: { code: "ROW_BUDGET_EXCEEDED" } });
+  expect(transport).toHaveBeenCalledTimes(1);
+  const rest = await resume(owned, "qux.detection.list", first.cursor!, { all: true });
+  expect(rest.rows).toEqual(ids(1, ALL_COLLECTION_LIMIT + 1));
+  expect(transport.mock.calls[1]![0].url).toBe(nextPage);
+});
+
+it("stops --all at its request budget and resumes without a hidden fetch", async () => {
+  const transport = vi.fn<RawTransport>()
+    .mockResolvedValueOnce(page(ids(1), { next: nextPage }))
+    .mockResolvedValueOnce(page(ids(1, 2)));
+  const owned = session(transport);
+  const first = await collect(owned, "qux.detection.list", { all: true, policy: { maxRequests: 1 } });
+  expect(first).toMatchObject({ rows: ids(1), complete: false, error: { code: "REQUEST_BUDGET_EXCEEDED" } });
+  expect(transport).toHaveBeenCalledTimes(1);
+  const rest = await resume(owned, "qux.detection.list", first.cursor!, { all: true });
+  expect(rest).toEqual({ rows: ids(1, 2), complete: true, total: null });
+  expect(transport.mock.calls[1]![0].url).toBe(nextPage);
+});
+
+it("replays an over-budget byte page without skipping rows", async () => {
+  const transport = vi.fn<RawTransport>()
+    .mockResolvedValueOnce(page(ids(1), { next: nextPage }))
+    .mockResolvedValue(page(ids(20, 2)));
+  const owned = session(transport);
+  const first = await collect(owned, "qux.detection.list", { all: true, policy: { maxBytes: 200 } });
+  expect(first).toMatchObject({ rows: ids(1), complete: false, error: { code: "BYTE_BUDGET_EXCEEDED" } });
+  expect(transport).toHaveBeenCalledTimes(2);
+  const rest = await resume(owned, "qux.detection.list", first.cursor!, { all: true });
+  expect(rest.rows).toEqual(ids(20, 2));
+  expect(transport.mock.calls[2]![0].url).toBe(nextPage);
+});
+
+it.each([
+  { all: true, limit: 1 },
+  { all: true, policy: { maxRequests: Infinity } },
+  { all: true, policy: { maxBytes: NaN } },
+  { all: true, policy: { deadlineMs: 0 } },
+])("refuses invalid traversal controls before HTTP: %j", async (args) => {
+  const transport = vi.fn<RawTransport>();
+  await expect(collect(session(transport), "qux.detection.list", args))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  expect(transport).not.toHaveBeenCalled();
+});
 
 // Manual clock: no timers, no sleeps. Tests flush microtasks, then advance.
 function fakeClock() {
@@ -331,6 +401,24 @@ it("rejects a successful response whose arrival exceeds the deadline", async () 
     clock, policy: { deadlineMs: 1000 },
   });
   expect(result).toMatchObject({ rows: [], complete: false, error: { code: "DEADLINE_EXCEEDED" } });
+});
+
+it("resumes --all at the pending page after its deadline", async () => {
+  const { clock, advance, flush } = fakeClock();
+  const transport = vi.fn<RawTransport>()
+    .mockResolvedValueOnce(page(ids(1), { next: nextPage }))
+    .mockImplementationOnce(() => new Promise(() => {}))
+    .mockResolvedValueOnce(page(ids(1, 2)));
+  const owned = session(transport);
+  const reading = collect(owned, "qux.detection.list", { all: true, clock, policy: { deadlineMs: 1000 } });
+  await flush();
+  await advance(1000);
+  const first = await reading;
+  expect(first).toMatchObject({ rows: ids(1), complete: false, error: { code: "DEADLINE_EXCEEDED" } });
+  expect(transport).toHaveBeenCalledTimes(2);
+  const rest = await resume(owned, "qux.detection.list", first.cursor!, { all: true, clock });
+  expect(rest).toEqual({ rows: ids(1, 2), total: null, complete: true });
+  expect(transport.mock.calls[2]![0].url).toBe(nextPage);
 });
 
 it.each([1, 5])("resumes after a denied continuation without replaying rows at limit %i", async (limit) => {
