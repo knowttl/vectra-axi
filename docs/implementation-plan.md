@@ -179,12 +179,12 @@ READ-07 differentiates health snapshots from checkpoint events and checks releas
 READ-08 reports account/host lockdown status without inventing a manual lockdown action.
 For these operational reads, permission or licence denial is an error/disposition, not an empty healthy result.
 
-PACK-01 assembles the first useful release, with installation instructions, explicit setup, doctor, generated help/skill and coverage records.
+PACK-01 assembles the first useful release, with installation instructions, explicit setup, doctor, generated help/skill, coverage, command-reference and README-summary records.
 Its offline acceptance covers configuration errors and synthetic connectivity/auth/access failures.
 Release notes must call this the supported QUX SOC read surface, not full Vectra coverage.
 See [doctor guidance](../README.md#doctor) for generation-specific checks and safety constraints, and [development guidance](../README.md#development--testing) for documentation generation.
 The [doctor suite](../test/doctor.test.ts) covers profile selection, bounded token/OAuth checks, failure reporting, redaction and context-preserving hints through synthetic transport.
-The [packaged suite](../test/cli.test.ts) covers doctor success, denied access, invalid configuration and offline help; the [generated-record suite](../test/generated.test.ts) checks skill-table and coverage freshness against their sources.
+The [packaged suite](../test/cli.test.ts) covers doctor success, denied access, invalid configuration and offline help; the [generated-record suite](../test/generated.test.ts) checks skill-table, coverage, command-reference and README-summary freshness against their sources.
 
 ## Phase 3: adopt RUX without making callers relearn the tool
 

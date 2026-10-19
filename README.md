@@ -450,7 +450,7 @@ node scripts/isolated.mjs node bin/vectra-axi.js --help
 Tests deny external network, run with a temporary HOME and XDG directories, and require no Vectra credentials.
 For manual CLI validation, use `node scripts/isolated.mjs node bin/vectra-axi.js --help` to keep agent configuration isolated.
 After changing the executable catalogue or capability inventory, rebuild and regenerate documentation with `corepack pnpm run docs:generate`.
-The generated command table in the skill and the coverage record are checked for freshness by the test suite.
+The generated command table in the skill, the coverage record, the README summary and the full command reference are checked for freshness by the test suite.
 The README summary and full command reference are generated from the same executable registry and checked by `docs:check`.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for local validation and contribution guidance.
