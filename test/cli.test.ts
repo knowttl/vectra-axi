@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import { performance } from "node:perf_hooks";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { decode } from "@toon-format/toon";
+import { catalogue } from "../src/catalogue.js";
 
 const root = resolve(import.meta.dirname, "..");
 const scratch = mkdtempSync(join(root, ".cli-test-"));
@@ -39,6 +40,36 @@ function invoke(args: string[], extraEnv: Record<string, string> = {}) {
     cwd: home, env: { ...env, ...extraEnv }, encoding: "utf8", input: "", timeout: 5_000,
   });
 }
+
+const groups = [...new Set(Object.keys(catalogue).flatMap((leaf) => {
+  const words = leaf.split(" ");
+  return words.slice(1).map((_word, index) => words.slice(0, index + 1).join(" "));
+}))];
+
+it.each(groups)("provides scoped offline group help for %s", (group) => {
+  const result = invoke([...group.split(" "), "--help", "--config", join(scratch, "absent.json")]);
+  expect(result.status).toBe(0);
+  expect(result.stderr).toBe("");
+  const output = decode(result.stdout) as Record<string, unknown>;
+  expect(output.command).toBe(`vectra-axi ${group}`);
+  const children = Object.keys(output.commands as Record<string, string>);
+  const expected = [...new Set(Object.keys(catalogue).filter((leaf) => leaf.startsWith(`${group} `))
+    .map((leaf) => leaf.split(" ").slice(0, group.split(" ").length + 1).join(" ")))];
+  expect(children).toEqual(expected);
+  expect(output).toHaveProperty("examples");
+});
+
+it.each(groups.filter((group) => !Object.hasOwn(catalogue, group)))
+("bounds incomplete %s errors to immediate choices", (group) => {
+  const result = invoke([...group.split(" "), "--config", join(scratch, "absent.json")]);
+  expect(result.status).toBe(2);
+  expect(result.stderr).toBe("");
+  expect(decode(result.stdout)).toMatchObject({
+    error: `Unknown command: ${group}`, code: "VALIDATION_ERROR",
+    help: [expect.stringContaining(`Available commands: ${group} `), `Run vectra-axi ${group} --help`],
+  });
+  expect(result.stdout.length).toBeLessThan(600);
+});
 
 it("investigates a detection through the packaged list, show, full and resume commands", () => {
   const config = join(scratch, "investigation.json");
@@ -1294,7 +1325,10 @@ it("shows unconfigured state with closed stdin and a clean home", () => {
   expect(result.stdout).toContain("bin:");
   expect(result.stdout).toContain("vectra-axi.js");
   expect(result.stdout).toContain("state: unconfigured\nprofiles: 0");
-  expect(result.stdout).toContain("See README.md for shipped operations and write restrictions");
+  expect(result.stdout).toContain("https://github.com/knowttl/vectra-axi/blob/main/README.md#command-surface-and-subcommands");
+  expect(result.stdout).not.toContain("src/");
+  expect(result.stdout).not.toContain("skills/vectra-axi/SKILL.md");
+  expect(result.stdout).toContain("Run vectra-axi setup hooks");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });
@@ -1422,7 +1456,7 @@ it.each([
 it.each([
   ["unknown host flag", ["host", "list", "--state", "active"], "Unknown flag: --state"],
   ["facade range flag", ["entity", "list", "--type", "host", "--min-id", "1"], "Unknown flag: --min-id"],
-  ["unknown detection leaf", ["detection", "note"], "Unknown command: detection note"],
+  ["incomplete detection leaf", ["detection", "note"], "Unknown command: detection note"],
   ["unknown note verb", ["detection", "note", "show", "--id", "7"], "Unknown command: detection note show"],
   ["bare detection group", ["detection"], "Unknown command: detection"],
   ["unknown list flag", ["detection", "list", "--stat", "active"], "Unknown flag: --stat"],
@@ -1504,8 +1538,9 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, setup hooks, doctor, auth status, profile list, config path, detection list, detection show, detection event list, host list, host show, account list, account show, entity list, entity show, entity scoring list, detection note list, detection tag list, detection tag set, detection tag bulk-set, detection tag bulk-delete, detection note add, detection note edit, detection note delete, host note list, host tag list, host tag set, host tag bulk-set, host tag bulk-delete, host note add, host note edit, host note delete, account note list, account tag list, account tag set, account tag bulk-set, account tag bulk-delete, account note add, account note edit, account note delete, assignment list, assignment set, assignment outcome list, assignment outcome show, user list, user show, audit list, group list, group show, group member list, triage rule list, triage rule show, health list, health show, health event list");
-  expect(result.stdout).toContain("lockdown list");
+  expect(result.stdout).toContain("Available commands: home, setup, doctor, auth, profile, config, detection, host, account, entity, assignment, user, audit, group, triage, health, api, lockdown");
+  expect(result.stdout).not.toContain("detection list");
+  expect(result.stdout.length).toBeLessThan(600);
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });

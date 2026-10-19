@@ -6,7 +6,7 @@ import { resolveSecret } from "./auth.js";
 import type { SecretRedactor } from "./redact.js";
 
 // Explicit checks use the session's credential and transport policy.
-// See README.md#release for generation-specific checks and usage.
+// See README.md#doctor for generation-specific checks and usage.
 
 export const DOCTOR_OPERATION = "qux.detection.list";
 export const DOCTOR_WINDOW = 1;
