@@ -1,54 +1,87 @@
-<h1 align="center">vectra-axi</h1>
+# vectra-axi
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/@knowttl/vectra-axi"><img alt="npm" src="https://img.shields.io/npm/v/@knowttl/vectra-axi?style=flat-square" /></a>
-  <a href="https://github.com/kunchenguid/axi"><img alt="AXI" src="https://img.shields.io/badge/AXI-Agent%20eXperience%20Interface-green?style=flat-square" /></a>
-</p>
+Vectra AI QUX and RUX CLI for agents and the humans running them, with reviewed investigation reads and explicitly gated writes.
 
-Vectra AI CLI for agents, designed with AXI (Agent eXperience Interface).
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![npm version](https://img.shields.io/npm/v/@knowttl/vectra-axi)](https://www.npmjs.com/package/@knowttl/vectra-axi)
+[![Node.js](https://img.shields.io/node/v/@knowttl/vectra-axi)](package.json)
+[![npm provenance](https://img.shields.io/badge/npm-provenance-verified)](https://www.npmjs.com/package/@knowttl/vectra-axi?activeTab=provenance)
 
-vectra-axi provides reviewed reads for QUX (on-premises API v2.5) and RUX (cloud API v3.4), with writes disabled by default.
-It emits compact TOON, contextual next-step suggestions, and structured errors on stdout.
-Supported writes use explicit profile scopes, previews, and target confirmation.
+Inspect local profiles without credentials or a network request.
+Actual output on an unconfigured installation:
 
-## Benchmarks & Agent Ergonomics
+```console
+$ npx -y @knowttl/vectra-axi profile list
+count: 0
+profiles: []
+```
 
-- Compact list projections keep rows small and actionable.
-- Empty results explicitly report zero; partial reads retain validated rows and report failure.
-- Bounded collection windows expose cursors for continuation.
-- Long descriptions and notes have previews with `--full` on supported read commands.
-- Structured errors include codes and recovery hints, with distinct usage and runtime exit codes.
+[Quickstart](#quickstart) • [Use with your agent](#use-with-your-agent) • [Features](#features) • [Safety](#safety-and-permissions) • [Configuration](#configuration) • [Commands](#command-surface-and-subcommands)
 
-## Quick Start
+## Why this exists
 
-Requires Node.js 22.12 or later.
+Investigating Vectra detections through REST means handling deployment-specific routes, authentication, pagination and verbose responses in each agent session.
+vectra-axi applies [AXI](https://github.com/kunchenguid/axi) conventions to QUX on-premises API v2.5 and RUX cloud API v3.4: compact TOON results, bounded reads and actionable errors from a CLI.
+It uses Vectra's APIs directly without an MCP server, and enables only reviewed operations.
 
-### Skill installation
+### Features
 
-Install the agent skill explicitly:
+- **Investigation:** detections, hosts, accounts, notes, tags, assignments, groups and triage rules, with deployment-specific coverage.
+- **Pagination:** bounded collection traversal with `--all` and resumable cursors; checkpoint feeds retain their own continuation rules.
+- **Output:** field projections, long-text previews, explicit empty results and validated rows retained on partial failure.
+- **Write policy:** per-profile operation allowlists, previews, exact target confirmations and a durable redacted journal.
+- **Credentials:** environment or file SecretRefs, mandatory TLS verification and invocation-only OAuth tokens.
+- **Agent context:** optional local SessionStart hooks and an installable skill.
+
+## Quickstart
+
+Requires Node.js 22.12 or later, npm, and a Vectra API credential for the deployment you administer.
+Start with a local read:
+
+```sh
+npx -y @knowttl/vectra-axi profile list
+npx -y @knowttl/vectra-axi setup
+```
+
+On an unconfigured installation, `profile list` prints `count: 0` and `profiles: []` as shown above.
+`setup` prints the config path and a profile example; it creates no configuration or integrations.
+Save the [profile example](#profiles-and-secretrefs) at that path, replace the `.invalid` origin with your deployment origin, and supply the referenced token through your secret manager's environment injection or a protected secret file.
+Never paste credentials into command arguments or chat.
+Use the cloud profile with OAuth instead for RUX.
+
+```sh
+npx -y @knowttl/vectra-axi auth status --profile onprem
+npx -y @knowttl/vectra-axi doctor --profile onprem
+npx -y @knowttl/vectra-axi detection list --profile onprem --ordering=-id --limit 2
+```
+
+Example output from the repository's synthetic QUX fixture; your rows and counts depend on your deployment and permissions:
+
+```text
+profile: onprem
+total: 2
+count: 2 detections
+detections[2]{id,detection_type,state,threat,certainty}:
+  2,synthetic-type,active,72,80
+  1,synthetic-type,active,null,80
+complete: true
+help[1]: Run `vectra-axi detection show --profile onprem --id 2` for full detail
+```
+
+`home`, `setup`, `profile list`, `auth status`, help and bare version flags stay offline.
+The first `npx` invocation may download the package from npm.
+When following CLI suggestions without a global install, prefix commands with `npx -y @knowttl/vectra-axi`.
+
+## Use with your agent
+
+Choose session hooks for automatic local context, or install the skill for discovery on demand.
+Either works independently; both may be installed.
 
 ```sh
 npx skills add knowttl/vectra-axi --skill vectra-axi
 ```
 
 The skill guides agents to invoke the CLI through `npx -y @knowttl/vectra-axi`.
-
-### Zero setup
-
-Inspect help and local configuration state without a global install:
-
-```sh
-npx -y @knowttl/vectra-axi
-npx -y @knowttl/vectra-axi --help
-npx -y @knowttl/vectra-axi setup
-```
-
-`home`, `setup`, help, and bare version flags are offline.
-`setup` shows the configuration path and an example; it does not create configuration or install integrations.
-Configure a profile as described in [Configuration](#configuration) before making API requests.
-When following CLI suggestions without a global install, prefix each command with `npx -y @knowttl/vectra-axi`.
-
-## Other ways to install
 
 ### Global install and session hooks
 
@@ -64,6 +97,9 @@ Restart the agent session after installation.
 The hook prints a local summary of profile names, deployment kinds, write posture, version, and a next step.
 It makes no Vectra or OAuth request and succeeds with a short status when unconfigured.
 Ordinary commands do not install hooks or change configuration.
+To remove hooks, delete only the SessionStart entries marked `vectra-axi-hook` from `~/.claude/settings.json` and `~/.codex/hooks.json`, and delete the managed `~/.config/opencode/plugins/axi-vectra-axi-hook.js` plugin.
+Keep other integrations and Codex's shared hooks feature setting intact.
+There is no CLI uninstall command.
 
 ### Direct install
 
@@ -80,81 +116,23 @@ corepack pnpm pack --out vectra-axi.tgz
 npm install --global ./vectra-axi.tgz
 ```
 
-## Usage
+## Safety and permissions
 
-The examples below use the globally installed `vectra-axi` command.
-Replace profile names and IDs with values from your deployment.
-Use `vectra-axi --help` for the command catalogue and a command's `--help` for its flags.
-Group help, such as `vectra-axi detection --help` or `vectra-axi detection note --help`, lists the immediate choices.
-Incomplete commands exit 2 with those choices and a focused help command.
-Help cannot be combined with `--profile`.
-Bare `-v`, `-V`, or `--version` prints the package version.
+Read-only is the default even when the upstream credential has write permissions.
+The CLI does not grant API permissions; configure the deployment's API role for the resources you need.
 
-### Command surface and subcommands
+| Access | Required upstream permission |
+| --- | --- |
+| QUX token reads | Personal API token with read access to the requested resource |
+| QUX OAuth reads | API client credentials on appliance 9.1+ with the requested resource access |
+| RUX reads | OAuth API client with read access to the requested resource; subscriptions may further restrict routes |
+| Named writes | Corresponding tag, note or assignment mutation permission, plus the local operation scope below |
 
-| Domain | Subcommands | Deployment |
-| --- | --- | --- |
-| Local setup | `home`, `setup`, `setup hooks`, `doctor`, `auth status`, `profile list`, `config path` | Both |
-| `detection` | `list`, `show`, `event list` | Both; events are RUX-only |
-| `host`, `account` | `list`, `show` | Both |
-| `entity` | `list`, `show`, `scoring list` | Both; scoring events are RUX-only |
-| `detection note`, `host note`, `account note` | `list`, `add`, `edit`, `delete` | Reads and edit/delete on both; add on QUX |
-| `detection tag`, `host tag`, `account tag` | `list`, `set`, `bulk-set`, `bulk-delete` | Reads on both; writes on QUX |
-| `assignment` | `list`, `set`, `outcome list`, `outcome show` | Reads on both; set on QUX |
-| `user` | `list`, `show` | Both |
-| `group` | `list`, `show`, `member list` | Both |
-| `triage rule` | `list`, `show` | Both |
-| `audit` | `list` | QUX date window; RUX checkpoint feed |
-| `health` | `list`, `show`, `event list` | Both; connector/EDR checks are RUX-only |
-| `lockdown` | `list` | Both; traffic status is RUX-only |
-| `api` | `get` | Reviewed, allowlisted reads on both |
-
-The [coverage record](docs/coverage.md) lists operation dispositions and limits.
-Unlisted operations are not implied by this table.
-There is no lockdown execution, assignment resolution, group mutation, or triage-rule mutation command.
-QUX lockdown status requires the corresponding Microsoft Defender ATP or AD Lockdown integration.
-RUX health and lockdown responses vary with subscriptions; empty or denied results do not establish that a deployment is healthy.
-Triage rules describe automation and do not establish that a detection is benign.
-
-```sh
-# Local state and explicit connectivity check
-vectra-axi home
-vectra-axi doctor --profile onprem
-
-# Investigate detections and their context
-vectra-axi detection list --profile onprem --state active --limit 20
-vectra-axi detection list --profile onprem --fields id,state,threat --ordering=-id
-vectra-axi detection show --profile onprem --id 42 --full
-vectra-axi detection note list --profile onprem --id 42 --full
-vectra-axi detection tag list --profile onprem --id 42
-vectra-axi host list --profile onprem --threat-gte 70
-vectra-axi account show --profile onprem --id 19
-vectra-axi entity list --profile cloud --type host
-
-# Assignments, groups, and triage rules
-vectra-axi assignment list --profile onprem
-vectra-axi assignment outcome list --profile onprem
-vectra-axi user list --profile cloud
-vectra-axi group list --profile cloud
-vectra-axi group member list --profile cloud --id 7
-vectra-axi triage rule show --profile onprem --id 3
-
-# Audit, health, lockdown status, and cloud event feeds
-vectra-axi audit list --profile onprem --start-date 2026-10-01 --end-date 2026-10-02
-vectra-axi health show --profile onprem --check connectivity --fresh
-vectra-axi lockdown list --profile cloud --type traffic
-vectra-axi detection event list --profile cloud --limit 20
-vectra-axi entity scoring list --profile cloud --type host --limit 20
-vectra-axi audit list --profile cloud --limit 20
-
-# Reviewed raw read, using an inventory operation ID
-vectra-axi api get --profile onprem --operation qux.detection.show --path id=42
-```
-
-`entity list` and `entity show` require `--type host|account`.
-RUX entity urgency and importance remain distinct from threat and certainty; its entity facade rejects threat/certainty filters.
-Use `host list` or `account list` for those filters on RUX.
-`user list --username` is QUX-only; RUX users expose `name` rather than `username`.
+Permission names vary by deployment; the CLI does not prescribe a universal OAuth scope string.
+Resource requests and OAuth exchanges send credentials and requested operation data only to the configured HTTPS origin.
+Read results leave the CLI through stdout for your terminal or agent to consume.
+Credentials are referenced from environment variables or protected files, never stored by the CLI or printed as values.
+There is no login command or persistent credential cache.
 
 ### Gated writes
 
@@ -194,34 +172,6 @@ These comparisons are not atomic server-side version checks; concurrent changes 
 Mutation intent and outcome are recorded durably as redacted metadata, without note text.
 If a timeout leaves the outcome unknown, use the audit ID and read-back guidance before taking another action; never replay an ambiguous mutation.
 
-### TOON output behavior
-
-- Structured results, help, and errors go to stdout; diagnostics go to stderr.
-- Collection lists use compact fields, counts, and a default 100-row window.
-  Supported `--fields` values depend on the command and deployment.
-- Resume collections with `--cursor` and the original filters and target context.
-  A successful bounded window can still have more rows; cursors do not provide snapshot isolation.
-- Detection, host, account, type-qualified entity, assignment, assignment outcome, user, group, group member and triage rule lists support `--all` on QUX and RUX.
-  It traverses pages within 10 requests (including retries), 8 MiB of decoded page bodies, 60 seconds and 10,000 output rows per invocation.
-  `--all` cannot be combined with `--limit`.
-  Exhausted budgets retain validated rows, report `complete: false` with an error and continuation cursor, and exit 1.
-  Resume with `--all --cursor <cursor>` and the original profile, filters and entity type to start fresh budgets at the next unread position.
-- Event feeds return checkpoints and may return a cursor inside a batch.
-  Drain that cursor with the original filters and without `--from` before continuing with `--from <checkpoint>`.
-  `remaining_count` is not a stable total; changed batches are refused during cursor replay.
-- Notes, tags, health summaries and lockdown status are nonpaged single responses and do not accept `--all`.
-  Checkpoint event feeds and date-window audits also do not accept `--all`.
-  Every list's help and the generated [skill command table](skills/vectra-axi/SKILL.md) state its pagination contract for each supported deployment.
-- QUX audits require both inclusive UTC dates and have no cursor; use smaller date windows if the response exceeds the byte budget.
-- Partial reads retain validated rows, report `complete: false`, and exit 1.
-  Access or licence denial is an error, never an empty success.
-- Exit codes are 0 for success, 1 for runtime failure, and 2 for usage failure.
-
-`api get` accepts inventory operation IDs, recorded path/query keys, and recorded field projections only.
-It does not accept arbitrary URLs, headers, methods, or credential-export operations.
-Quote `--path` and `--query` pairs joined with `&`, and percent-encode reserved characters inside values.
-Checkpoint and date-window operations use their named commands instead.
-
 ## Configuration
 
 Hand-edit `$XDG_CONFIG_HOME/vectra-axi/config.json` (default `~/.config/vectra-axi/config.json`), or select a file with `--config <path>`.
@@ -234,8 +184,13 @@ See the [AXI credential standard](https://github.com/knowttl/artium-axi/blob/mai
 Repository-local configuration is never discovered automatically.
 An absent default file means unconfigured state; an invalid file or missing explicitly selected file reports `CONFIG_INVALID`.
 
-| Variable | Meaning |
+| Flag or variable | Meaning |
 | --- | --- |
+| `--config <path>` | Explicit config file; overrides `VECTRA_AXI_CONFIG` |
+| `--profile <name>` | Explicit profile; overrides `VECTRA_AXI_PROFILE` |
+| `--limit`, `--all`, `--cursor` | Bounded list window, collection traversal, continuation; support varies by command |
+| `--fields`, `--full` | Field projection or full text on supported commands |
+| `--dry-run`, `--execute`, `--confirm` | Write preview or explicitly confirmed execution |
 | `VECTRA_AXI_CONFIG` | Config path; overridden by `--config` |
 | `VECTRA_AXI_PROFILE` | Profile name; overridden by `--profile` |
 | `VECTRA_AXI_READ_ONLY` | `1` or `true` forces read-only; `0`, `false` or unset is off; other values fail closed (case-insensitive) |
@@ -250,7 +205,13 @@ Partial env profiles fail with `CONFIG_INVALID`; explicit file profile selection
 Multiple profiles without a selection normally report `PROFILE_AMBIGUOUS`.
 Names match exactly, and `defaultProfile` must name an existing profile.
 
-This example uses placeholder origins and credential references:
+### Profiles and SecretRefs
+
+This example uses placeholder origins and credential references.
+`kind`, `origin`, `apiVersion` and `auth` select the deployment and authorization model; secret values stay outside this file.
+
+<details>
+<summary>QUX token and RUX OAuth profiles</summary>
 
 ```json
 {
@@ -276,6 +237,8 @@ This example uses placeholder origins and credential references:
   }
 }
 ```
+
+</details>
 
 Replace the origins and client ID, then set the referenced secret variables outside the CLI.
 SecretRefs accept `{"env":"NAME"}` or `{"file":"/absolute/path"}`; file content has a leading BOM and trailing whitespace removed.
@@ -347,7 +310,129 @@ With several profiles and no explicit, environment, or default selection, doctor
 Any failure returns a nonzero exit status; no configured profiles reports `PROFILE_REQUIRED`.
 Doctor never enables writes or signs in interactively.
 
-See [Development & Testing](#development--testing) for generating the packaged skill command table and coverage record.
+See [Development & Testing](#development--testing) for generating the packaged skill command table, coverage record, command reference and README summary.
+
+## Commands
+
+The examples below use the globally installed `vectra-axi` command.
+Replace profile names and IDs with values from your deployment.
+Use `vectra-axi --help` for the command catalogue and a command's `--help` for its flags.
+Group help, such as `vectra-axi detection --help` or `vectra-axi detection note --help`, lists the immediate choices.
+Incomplete commands exit 2 with those choices and a focused help command.
+Help cannot be combined with `--profile`.
+Bare `-v`, `-V`, or `--version` prints the package version.
+
+### Command surface and subcommands
+
+<!-- command-registry:start -->
+| Domain | Commands | Deployment |
+| --- | --- | --- |
+| `home` | `home` | Local |
+| `setup` | `setup`, `setup hooks` | Local |
+| `doctor` | `doctor` | QUX, RUX |
+| `auth` | `auth status` | Local |
+| `profile` | `profile list` | Local |
+| `config` | `config path` | Local |
+| `detection` | `detection list`, `detection show`, `detection event list`, `detection note list`, `detection tag list`, `detection tag set`, `detection tag bulk-set`, `detection tag bulk-delete`, `detection note add`, `detection note edit`, `detection note delete` | QUX, RUX |
+| `host` | `host list`, `host show`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
+| `account` | `account list`, `account show`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
+| `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |
+| `assignment` | `assignment list`, `assignment set`, `assignment outcome list`, `assignment outcome show` | QUX, RUX |
+| `user` | `user list`, `user show` | QUX, RUX |
+| `audit` | `audit list` | QUX, RUX |
+| `group` | `group list`, `group show`, `group member list` | QUX, RUX |
+| `triage` | `triage rule list`, `triage rule show` | QUX, RUX |
+| `health` | `health list`, `health show`, `health event list` | QUX, RUX |
+| `api` | `api get` | QUX, RUX |
+| `lockdown` | `lockdown list` | QUX, RUX |
+<!-- command-registry:end -->
+
+Deployment columns summarize each domain; individual commands have narrower support.
+Detection events and entity scoring are RUX-only; note append, tag writes and assignment set are QUX-only.
+Note edit/delete supports both deployments, as do detection/host/account note and tag reads.
+`health event list` supports both; connector/EDR checks and traffic lockdown status are RUX-only.
+QUX group membership requires appliance 9.2 or later.
+
+The generated [full command reference](docs/commands.md) lists every executable leaf, its deployment support and paging contract from the CLI registry and inventory.
+The [coverage record](docs/coverage.md) lists operation dispositions and limits.
+Unlisted operations are not implied by this table.
+There is no lockdown execution, assignment resolution, group mutation, or triage-rule mutation command.
+QUX lockdown status requires the corresponding Microsoft Defender ATP or AD Lockdown integration.
+RUX health and lockdown responses vary with subscriptions; empty or denied results do not establish that a deployment is healthy.
+Triage rules describe automation and do not establish that a detection is benign.
+
+```sh
+# Local state and explicit connectivity check
+vectra-axi home
+vectra-axi doctor --profile onprem
+
+# Investigate detections and their context
+vectra-axi detection list --profile onprem --state active --limit 20
+vectra-axi detection list --profile onprem --fields id,state,threat --ordering=-id
+vectra-axi detection show --profile onprem --id 42 --full
+vectra-axi detection note list --profile onprem --id 42 --full
+vectra-axi detection tag list --profile onprem --id 42
+vectra-axi host list --profile onprem --threat-gte 70
+vectra-axi account show --profile onprem --id 19
+vectra-axi entity list --profile cloud --type host
+
+# Assignments, groups, and triage rules
+vectra-axi assignment list --profile onprem
+vectra-axi assignment outcome list --profile onprem
+vectra-axi user list --profile cloud
+vectra-axi group list --profile cloud
+vectra-axi group member list --profile cloud --id 7
+vectra-axi triage rule show --profile onprem --id 3
+
+# Audit, health, lockdown status, and cloud event feeds
+vectra-axi audit list --profile onprem --start-date 2026-10-01 --end-date 2026-10-02
+vectra-axi health show --profile onprem --check connectivity --fresh
+vectra-axi lockdown list --profile cloud --type traffic
+vectra-axi detection event list --profile cloud --limit 20
+vectra-axi entity scoring list --profile cloud --type host --limit 20
+vectra-axi audit list --profile cloud --limit 20
+
+# Reviewed raw read, using an inventory operation ID
+vectra-axi api get --profile onprem --operation qux.detection.show --path id=42
+```
+
+`entity list` and `entity show` require `--type host|account`.
+RUX entity urgency and importance remain distinct from threat and certainty; its entity facade rejects threat/certainty filters.
+Use `host list` or `account list` for those filters on RUX.
+`user list --username` is QUX-only; RUX users expose `name` rather than `username`.
+
+### TOON output behavior
+
+- Structured results, help, and errors go to stdout; diagnostics go to stderr.
+- Collection lists use compact fields, counts, and a default 100-row window.
+  Supported `--fields` values depend on the command and deployment.
+- Resume collections with `--cursor` and the original filters and target context.
+  A successful bounded window can still have more rows; cursors do not provide snapshot isolation.
+- Detection, host, account, type-qualified entity, assignment, assignment outcome, user, group, group member and triage rule lists support `--all` on QUX and RUX.
+  It traverses pages within 10 requests (including retries), 8 MiB of decoded page bodies, 60 seconds and 10,000 output rows per invocation.
+  `--all` cannot be combined with `--limit`.
+  Exhausted budgets retain validated rows, report `complete: false` with an error and continuation cursor, and exit 1.
+  Resume with `--all --cursor <cursor>` and the original profile, filters and entity type to start fresh budgets at the next unread position.
+- Event feeds return checkpoints and may return a cursor inside a batch.
+  Drain that cursor with the original filters and without `--from` before continuing with `--from <checkpoint>`.
+  `remaining_count` is not a stable total; changed batches are refused during cursor replay.
+- Notes, tags, health summaries and lockdown status are nonpaged single responses and do not accept `--all`.
+  Checkpoint event feeds and date-window audits also do not accept `--all`.
+  Every list's help and the generated [skill command table](skills/vectra-axi/SKILL.md) state its pagination contract for each supported deployment.
+- QUX audits require both inclusive UTC dates and have no cursor; use smaller date windows if the response exceeds the byte budget.
+- Partial reads retain validated rows, report `complete: false`, and exit 1.
+  Access or licence denial is an error, never an empty success.
+- Exit codes are 0 for success, 1 for runtime failure, and 2 for usage failure.
+
+`api get` accepts inventory operation IDs, recorded path/query keys, and recorded field projections only.
+It does not accept arbitrary URLs, headers, methods, or credential-export operations.
+Quote `--path` and `--query` pairs joined with `&`, and percent-encode reserved characters inside values.
+Checkpoint and date-window operations use their named commands instead.
+
+## Coverage
+
+See the generated [operation coverage](docs/coverage.md) for supported operations and explicit limits, and the [command reference](docs/commands.md) for per-deployment commands.
+An inventory entry alone does not enable an operation.
 
 ## Development & Testing
 
@@ -365,17 +450,33 @@ node scripts/isolated.mjs node bin/vectra-axi.js --help
 Tests deny external network, run with a temporary HOME and XDG directories, and require no Vectra credentials.
 For manual CLI validation, use `node scripts/isolated.mjs node bin/vectra-axi.js --help` to keep agent configuration isolated.
 After changing the executable catalogue or capability inventory, rebuild and regenerate documentation with `corepack pnpm run docs:generate`.
-The generated command table in the skill and the coverage record are checked for freshness by the test suite.
-
-- [Design and source evidence](docs/design.md)
-- [Implementation plan and offline acceptance](docs/implementation-plan.md)
-- [Inventory format, dispositions, and verification](docs/inventory.md)
-- [Operation coverage](docs/coverage.md)
+The generated command table in the skill, the coverage record, the README summary and the full command reference are checked for freshness by the test suite.
+The README summary and full command reference are generated from the same executable registry and checked by `docs:check`.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for local validation and contribution guidance.
-Tests run locally through no-mistakes; pull requests require local validation before merge. The test workflow file remains in the repository but is disabled on GitHub, so Actions runs only the release pipeline.
+Tests run locally; pull requests require local validation before merge.
+The test workflow file remains in the repository but is disabled on GitHub, so Actions runs only the release pipeline.
 The release publish job checks build, lint, tests and generated documentation before publishing.
+
+## Versioning and releases
+
+vectra-axi remains pre-1.0; review release notes before upgrading.
+Deprecated aliases remain available for one minor release, not one patch release.
+Specifically, `tokenEnv`/`secretEnv` and unversioned config envelopes are accepted through `0.1.x` and retire in `0.2.0`; use versioned SecretRef profiles now.
+
+[GitHub releases](https://github.com/knowttl/vectra-axi/releases) and [npm versions](https://www.npmjs.com/package/@knowttl/vectra-axi?activeTab=versions) have two historical differences: `0.1.0` exists on npm without an initial GitHub release, and GitHub's `v0.1.4` publish failed, so npm skips from `0.1.3` to `0.1.5`.
+The `0.1.4` gap is preserved; it will not be republished.
+Release publication uses npm trusted publishing with provenance.
+
+## Security reporting
+
+GitHub private vulnerability reporting is currently disabled for this repository.
+For a sensitive report, [open an issue requesting a private contact channel](https://github.com/knowttl/vectra-axi/issues/new) without disclosing vulnerability details.
+Once a private channel is established, include the affected version and a reproduction using synthetic data.
+Do not include credentials, customer data or private deployment details in public issues.
 
 ## License
 
 Released under the [MIT License](LICENSE).
+
+If this project saved you time or helped your workflow, please consider giving it a ⭐ on GitHub to help others find it!

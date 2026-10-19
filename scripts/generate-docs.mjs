@@ -5,30 +5,36 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { coverageDocument, skillCommandTable } from "../dist/src/docs.js";
+import { commandDocument, commandSummary, coverageDocument, skillCommandTable } from "../dist/src/docs.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const skillPath = join(root, "skills", "vectra-axi", "SKILL.md");
 const coveragePath = join(root, "docs", "coverage.md");
+const commandsPath = join(root, "docs", "commands.md");
+const readmePath = join(root, "README.md");
 const start = "<!-- command-registry:start -->\n";
 const end = "\n<!-- command-registry:end -->";
 
-function withTable(skill, table) {
-  const before = skill.split(start);
-  if (before.length !== 2) throw new Error("SKILL.md is missing its command-registry markers");
+function withTable(content, table, label) {
+  const before = content.split(start);
+  if (before.length !== 2) throw new Error(`${label} is missing its command-registry markers`);
   const after = before[1].split(end);
-  if (after.length !== 2) throw new Error("SKILL.md is missing its command-registry markers");
+  if (after.length !== 2) throw new Error(`${label} is missing its command-registry markers`);
   return `${before[0]}${start}${table}${end}${after[1]}`;
 }
 
 const check = process.argv.includes("--check");
 const table = skillCommandTable();
-const skill = withTable(readFileSync(skillPath, "utf8").replace(/\r\n/g, "\n"), table);
+const skill = withTable(readFileSync(skillPath, "utf8").replace(/\r\n/g, "\n"), table, skillPath);
 const coverage = coverageDocument();
+const commands = commandDocument();
+const readme = withTable(readFileSync(readmePath, "utf8").replace(/\r\n/g, "\n"), commandSummary(), readmePath);
 if (check) {
   const stale = [
     ...(readFileSync(skillPath, "utf8").replace(/\r\n/g, "\n") === skill ? [] : [skillPath]),
     ...(readFileSync(coveragePath, "utf8").replace(/\r\n/g, "\n") === coverage ? [] : [coveragePath]),
+    ...(readFileSync(commandsPath, "utf8").replace(/\r\n/g, "\n") === commands ? [] : [commandsPath]),
+    ...(readFileSync(readmePath, "utf8").replace(/\r\n/g, "\n") === readme ? [] : [readmePath]),
   ];
   if (stale.length > 0) {
     process.stderr.write(`Stale generated docs: ${stale.join(", ")}. Run: node scripts/generate-docs.mjs\n`);
@@ -37,4 +43,6 @@ if (check) {
 } else {
   writeFileSync(skillPath, skill);
   writeFileSync(coveragePath, coverage);
+  writeFileSync(commandsPath, commands);
+  writeFileSync(readmePath, readme);
 }
