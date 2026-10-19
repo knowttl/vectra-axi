@@ -55,7 +55,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   doctor: {
-    // See README.md#release for generation-specific checks and safety
+    // See README.md#doctor for generation-specific checks and safety
     // constraints; src/doctor.ts implements the leaf: one bounded detection
     // read per QUX profile, the named OAuth exchange alone per RUX profile.
     description: "Check profile configuration with one bounded detection read per QUX profile or OAuth exchange per RUX profile",
@@ -936,6 +936,16 @@ function flagSyntax(name: string, flag: Flag): string {
   return `--${name}${flag.kind === "value" ? ` <${flag.valueName}>` : ""}`;
 }
 
+function childCommands(path = ""): Record<string, string> {
+  const prefix = path ? `${path} ` : "";
+  return Object.fromEntries(Object.keys(catalogue)
+    .filter((leaf) => leaf.startsWith(prefix))
+    .map((leaf) => {
+      const child = `${prefix}${leaf.slice(prefix.length).split(" ")[0]}`;
+      return [child, catalogue[child]?.description ?? `Explore ${child} commands`];
+    }));
+}
+
 // Describe only executable list routes; planned inventory routes confer no support.
 export function listPaging(leaf: string): string | undefined {
   if (!leaf.endsWith(" list") || !catalogue[leaf]) return undefined;
@@ -951,11 +961,14 @@ export function listPaging(leaf: string): string | undefined {
 }
 
 export function help(leaf?: string): Record<string, unknown> {
-  const entry = leaf === undefined ? undefined : catalogue[leaf];
+  const entry = leaf !== undefined && Object.hasOwn(catalogue, leaf) ? catalogue[leaf] : undefined;
+  const children = childCommands(leaf);
+  const group = leaf !== undefined && Object.keys(children).length > 0;
   return {
-    ...(entry ? {
+    ...(entry || group ? {
       command: `vectra-axi ${leaf}`,
-      description: entry.description,
+      description: entry?.description ?? `Explore ${leaf} commands`,
+      ...(group ? { commands: children } : {}),
       ...(listPaging(leaf!) ? { pagination: listPaging(leaf!) } : {}),
     } : {
       description: DESCRIPTION,
@@ -964,7 +977,9 @@ export function help(leaf?: string): Record<string, unknown> {
     }),
     flags: Object.fromEntries(Object.entries(entry?.flags ?? globals).map(([name, flag]) => [flagSyntax(name, flag), flag.description])),
     combinations: exclusiveFlags.map(([left, right]) => `--${left} cannot be combined with --${right}`),
-    examples: entry?.examples ?? ["vectra-axi", "vectra-axi setup --help"],
+    examples: entry?.examples ?? (group
+      ? Object.keys(children).slice(0, 3).map((child) => `vectra-axi ${child} --help`)
+      : ["vectra-axi", "vectra-axi setup --help"]),
   };
 }
 
@@ -972,35 +987,37 @@ export function parseInvocation(argv: readonly string[]): {
   leaf: string; flags: ReadonlyMap<string, string | boolean>; help: boolean; home: boolean;
 } {
   const home = argv.length === 0 || argv[0]?.startsWith("-") === true;
-  // Three-word leaves (`detection note list`, `host tag list`, ...) resolve
-  // from the first three tokens when the triple names a catalogue entry;
-  // two-word leaves resolve from the first two, single-word from the first.
+  // Resolve the longest known leaf or group before validating flags.
   const pair = argv[0] !== undefined && argv[1] !== undefined && !argv[1].startsWith("-")
     ? `${argv[0]} ${argv[1]}` : undefined;
   const triple = pair !== undefined && argv[2] !== undefined && !argv[2].startsWith("-")
     ? `${pair} ${argv[2]}` : undefined;
   const leaf = home ? "home"
     : triple !== undefined && Object.hasOwn(catalogue, triple) ? triple
-    : pair !== undefined && Object.hasOwn(catalogue, pair) ? pair
+    : pair !== undefined && (Object.hasOwn(catalogue, pair) || Object.keys(childCommands(pair)).length) ? pair
     : argv[0]!;
   const entry = Object.hasOwn(catalogue, leaf) ? catalogue[leaf]! : undefined;
+  const children = childCommands(leaf);
+  const group = Object.keys(children).length > 0;
+  const scope = entry || group ? leaf : undefined;
+  const allowedFlags = entry?.flags ?? globals;
   const usage = (message: string): never => {
     throw new AxiError(message, "VALIDATION_ERROR", [
       entry ? `Valid flags for ${leaf}: ${Object.entries(entry.flags).map(([name, flag]) => flagSyntax(name, flag)).join(", ")}`
-        : `Available commands: ${Object.keys(catalogue).join(", ")}`,
-      `Run vectra-axi${entry ? ` ${leaf}` : ""} --help`,
+        : `Available commands: ${Object.keys(childCommands(scope)).join(", ")}`,
+      `Run vectra-axi${scope ? ` ${scope}` : ""} --help`,
     ]);
   };
   const attempted = home ? "home"
     : triple !== undefined ? triple : pair !== undefined ? pair : argv[0]!;
-  if (!entry) usage(`Unknown command: ${attempted}`);
+  if (!entry && (!group || (triple ?? pair ?? leaf) !== leaf)) usage(`Unknown command: ${attempted}`);
   const flags = new Map<string, string | boolean>();
   const args = home ? argv : argv.slice(leaf.split(" ").length);
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]!;
     if (!arg.startsWith("--")) usage(`Unexpected argument: ${arg}`);
     const [name, ...inline] = arg.slice(2).split("=");
-    const flag = Object.hasOwn(entry!.flags, name!) ? entry!.flags[name!] : undefined;
+    const flag = Object.hasOwn(allowedFlags, name!) ? allowedFlags[name!] : undefined;
     if (!flag) usage(`Unknown flag: ${arg}`);
     if (flags.has(name!)) usage(`Repeated flag: --${name}`);
     let value: string | boolean = true;
@@ -1016,5 +1033,6 @@ export function parseInvocation(argv: readonly string[]): {
   for (const [left, right] of exclusiveFlags) {
     if (flags.has(left) && flags.has(right)) usage(`--${left} cannot be combined with --${right}`);
   }
+  if (!entry && !flags.has("help")) usage(`Unknown command: ${leaf}`);
   return { leaf, flags, help: flags.has("help"), home };
 }

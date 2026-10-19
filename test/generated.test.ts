@@ -74,12 +74,28 @@ describe("generated release records", () => {
     expect(rows).toHaveLength(Object.keys(catalogue).length);
     expect(rows).toEqual(Object.keys(catalogue).map((leaf) => {
       const effect = inventory.operations.find((operation) => operation.command === leaf)?.effect ?? "read";
-      return `| \`vectra-axi ${leaf}\` | native | ${effect} | ${listPaging(leaf) ?? "-"} |`;
+      return `| \`npx -y @knowttl/vectra-axi ${leaf}\` | native | ${effect} | ${listPaging(leaf) ?? "-"} |`;
     }));
   });
 
   it("keeps the committed coverage record generated from the inventory", () => {
     expect(coverage).toBe(coverageDocument());
+  });
+
+  it("keeps installed skill links public and README anchors valid", () => {
+    const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+    const anchors = [...readme.matchAll(/^#{1,6} (.+)$/gm)].map((match) =>
+      match[1]!.toLowerCase().replace(/[^\w -]/g, "").replace(/ /g, "-"));
+    const links = [...skill.matchAll(/\]\(([^)]+)\)/g)].map((match) => match[1]!);
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link).toMatch(/^https:\/\//);
+      if (link.includes("/README.md#")) expect(anchors).toContain(link.split("#")[1]);
+    }
+    expect(skill).not.toContain("src/catalogue.ts");
+    expect(skill).not.toMatch(/`vectra-axi /);
+    expect(skill).toContain("README.md#doctor");
+    expect(skill).toContain("README.md#development--testing");
   });
 
   it("calls the release the supported QUX and RUX SOC read surface with gated QUX single and bulk tag-write, note-append and assignment-write families and the gated QUX/RUX note edit/delete family, not full coverage", () => {

@@ -85,6 +85,8 @@ npm install --global ./vectra-axi.tgz
 The examples below use the globally installed `vectra-axi` command.
 Replace profile names and IDs with values from your deployment.
 Use `vectra-axi --help` for the command catalogue and a command's `--help` for its flags.
+Group help, such as `vectra-axi detection --help` or `vectra-axi detection note --help`, lists the immediate choices.
+Incomplete commands exit 2 with those choices and a focused help command.
 Help cannot be combined with `--profile`.
 Bare `-v`, `-V`, or `--version` prints the package version.
 
@@ -330,7 +332,7 @@ Assignment suffixes each require the full operation name, such as `qux.host.assi
 An absent scope or `allowWrites: false` disables writes; `operations` must be a nonempty array.
 Listing an operation does not implement or authorize an unsupported route.
 
-### Release
+### Doctor
 
 After configuring profiles, run the explicit check:
 

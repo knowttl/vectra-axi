@@ -18,7 +18,7 @@ export function skillCommandTable(): string {
     "|---|---|---|---|",
     ...Object.keys(catalogue).map((leaf) => {
       const effect = inventory.operations.find((operation) => operation.command === leaf)?.effect ?? "read";
-      return `| \`vectra-axi ${leaf}\` | native | ${effect} | ${listPaging(leaf) ?? "-"} |`;
+      return `| \`npx -y @knowttl/vectra-axi ${leaf}\` | native | ${effect} | ${listPaging(leaf) ?? "-"} |`;
     }),
   ].join("\n");
 }

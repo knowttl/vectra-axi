@@ -177,7 +177,7 @@ No interactive prompts are required.
 Exit 0 means success/no-op, 1 runtime failure, and 2 usage failure; structured errors use stdout, diagnostics use stderr.
 This follows AXI's exit semantics even though current az-axi maps some runtime auth/access failures to exit 2.
 Bare version flags bypass heavy imports and network.
-No-args shows compact local context or clear setup state without HTTP; see [README.md](../README.md#release) for the explicit doctor check.
+No-args shows compact local context or clear setup state without HTTP; see [README.md](../README.md#doctor) for the explicit doctor check.
 Generate a static installable skill from discovery metadata; session integration requires explicit setup and introduces no ordinary-command installation side effects.
 
 ## Collections, events and bounded reads

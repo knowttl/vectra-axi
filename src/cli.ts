@@ -589,11 +589,11 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         config: loaded.path,
         guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use token or clientSecret SecretRefs",
         example: { version: 1, defaultProfile: "lab", profiles: { lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", token: { env: "VECTRA_AXI_TOKEN" } } } },
-        integration: "Detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage rule, audit, health, lockdown, detection event and entity scoring reads call the session; reviewed raw reads (api get) call the session with the operation's recorded query and field policy; doctor checks each QUX profile with one bounded detection read and each RUX profile with the named OAuth exchange; the static skill at skills/vectra-axi/SKILL.md is installed only by explicit setup",
+        integration: "Run vectra-axi setup hooks to install agent session hooks; setup itself writes nothing",
       },
       capabilities: {
         implemented: Object.keys(catalogue),
-        api: "See README.md for shipped operations and write restrictions",
+        api: "https://github.com/knowttl/vectra-axi/blob/main/README.md#command-surface-and-subcommands",
         planned: inventory.operations.filter((operation) => operation.disposition === "planned").length,
         blocked: inventory.operations.filter((operation) => operation.disposition === "blocked").length,
       },
