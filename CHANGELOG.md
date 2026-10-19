@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.7](https://github.com/knowttl/vectra-axi/compare/v0.1.6...v0.1.7) (2026-10-18)
+
+
+### Features
+
+* add bounded --all traversal for detection and entity lists ([#54](https://github.com/knowttl/vectra-axi/issues/54)) ([50e9559](https://github.com/knowttl/vectra-axi/commit/50e9559c9101254689934a8dcc1dd2b812d68b14))
+
+
+### Bug Fixes
+
+* describe reviewed RUX support in command help ([#52](https://github.com/knowttl/vectra-axi/issues/52)) ([323d973](https://github.com/knowttl/vectra-axi/commit/323d9738434394fd6711798b00d7b5b62bb5625b))
+
 ## [0.1.6](https://github.com/knowttl/vectra-axi/compare/v0.1.5...v0.1.6) (2026-10-16)
 
 
