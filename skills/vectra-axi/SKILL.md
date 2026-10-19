@@ -29,66 +29,66 @@ for the per-operation disposition records.
 See [README release guidance](../../README.md#release) for generating and checking this table and the coverage record.
 
 <!-- command-registry:start -->
-| Command | Capability | Vectra effect |
-|---|---|---|
-| `vectra-axi home` | native | read |
-| `vectra-axi setup` | native | read |
-| `vectra-axi setup hooks` | native | read |
-| `vectra-axi doctor` | native | read |
-| `vectra-axi auth status` | native | read |
-| `vectra-axi profile list` | native | read |
-| `vectra-axi config path` | native | read |
-| `vectra-axi detection list` | native | read |
-| `vectra-axi detection show` | native | read |
-| `vectra-axi detection event list` | native | read |
-| `vectra-axi host list` | native | read |
-| `vectra-axi host show` | native | read |
-| `vectra-axi account list` | native | read |
-| `vectra-axi account show` | native | read |
-| `vectra-axi entity list` | native | read |
-| `vectra-axi entity show` | native | read |
-| `vectra-axi entity scoring list` | native | read |
-| `vectra-axi detection note list` | native | read |
-| `vectra-axi detection tag list` | native | read |
-| `vectra-axi detection tag set` | native | write |
-| `vectra-axi detection tag bulk-set` | native | write |
-| `vectra-axi detection tag bulk-delete` | native | write |
-| `vectra-axi detection note add` | native | write |
-| `vectra-axi detection note edit` | native | write |
-| `vectra-axi detection note delete` | native | write |
-| `vectra-axi host note list` | native | read |
-| `vectra-axi host tag list` | native | read |
-| `vectra-axi host tag set` | native | write |
-| `vectra-axi host tag bulk-set` | native | write |
-| `vectra-axi host tag bulk-delete` | native | write |
-| `vectra-axi host note add` | native | write |
-| `vectra-axi host note edit` | native | write |
-| `vectra-axi host note delete` | native | write |
-| `vectra-axi account note list` | native | read |
-| `vectra-axi account tag list` | native | read |
-| `vectra-axi account tag set` | native | write |
-| `vectra-axi account tag bulk-set` | native | write |
-| `vectra-axi account tag bulk-delete` | native | write |
-| `vectra-axi account note add` | native | write |
-| `vectra-axi account note edit` | native | write |
-| `vectra-axi account note delete` | native | write |
-| `vectra-axi assignment list` | native | read |
-| `vectra-axi assignment set` | native | write |
-| `vectra-axi assignment outcome list` | native | read |
-| `vectra-axi assignment outcome show` | native | read |
-| `vectra-axi user list` | native | read |
-| `vectra-axi user show` | native | read |
-| `vectra-axi audit list` | native | read |
-| `vectra-axi group list` | native | read |
-| `vectra-axi group show` | native | read |
-| `vectra-axi group member list` | native | read |
-| `vectra-axi triage rule list` | native | read |
-| `vectra-axi triage rule show` | native | read |
-| `vectra-axi health list` | native | read |
-| `vectra-axi health show` | native | read |
-| `vectra-axi health event list` | native | read |
-| `vectra-axi api get` | native | read |
-| `vectra-axi lockdown list` | native | read |
+| Command | Capability | Vectra effect | List pagination |
+|---|---|---|---|
+| `vectra-axi home` | native | read | - |
+| `vectra-axi setup` | native | read | - |
+| `vectra-axi setup hooks` | native | read | - |
+| `vectra-axi doctor` | native | read | - |
+| `vectra-axi auth status` | native | read | - |
+| `vectra-axi profile list` | native | read | Local configuration; no endpoint or --all |
+| `vectra-axi config path` | native | read | - |
+| `vectra-axi detection list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `vectra-axi detection show` | native | read | - |
+| `vectra-axi detection event list` | native | read | RUX: checkpoint batch; --cursor/--from continuation, no --all |
+| `vectra-axi host list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `vectra-axi host show` | native | read | - |
+| `vectra-axi account list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `vectra-axi account show` | native | read | - |
+| `vectra-axi entity list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `vectra-axi entity show` | native | read | - |
+| `vectra-axi entity scoring list` | native | read | RUX: checkpoint batch; --cursor/--from continuation, no --all |
+| `vectra-axi detection note list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `vectra-axi detection tag list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `vectra-axi detection tag set` | native | write | - |
+| `vectra-axi detection tag bulk-set` | native | write | - |
+| `vectra-axi detection tag bulk-delete` | native | write | - |
+| `vectra-axi detection note add` | native | write | - |
+| `vectra-axi detection note edit` | native | write | - |
+| `vectra-axi detection note delete` | native | write | - |
+| `vectra-axi host note list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `vectra-axi host tag list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `vectra-axi host tag set` | native | write | - |
+| `vectra-axi host tag bulk-set` | native | write | - |
+| `vectra-axi host tag bulk-delete` | native | write | - |
+| `vectra-axi host note add` | native | write | - |
+| `vectra-axi host note edit` | native | write | - |
+| `vectra-axi host note delete` | native | write | - |
+| `vectra-axi account note list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `vectra-axi account tag list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `vectra-axi account tag set` | native | write | - |
+| `vectra-axi account tag bulk-set` | native | write | - |
+| `vectra-axi account tag bulk-delete` | native | write | - |
+| `vectra-axi account note add` | native | write | - |
+| `vectra-axi account note edit` | native | write | - |
+| `vectra-axi account note delete` | native | write | - |
+| `vectra-axi assignment list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `vectra-axi assignment set` | native | write | - |
+| `vectra-axi assignment outcome list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `vectra-axi assignment outcome show` | native | read | - |
+| `vectra-axi user list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `vectra-axi user show` | native | read | - |
+| `vectra-axi audit list` | native | read | QUX: date window; narrow dates to bound the response, no --all; RUX: checkpoint batch; --cursor/--from continuation, no --all |
+| `vectra-axi group list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `vectra-axi group show` | native | read | - |
+| `vectra-axi group member list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `vectra-axi triage rule list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `vectra-axi triage rule show` | native | read | - |
+| `vectra-axi health list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `vectra-axi health show` | native | read | - |
+| `vectra-axi health event list` | native | read | QUX: checkpoint batch; --cursor/--from continuation, no --all; RUX: checkpoint batch; --cursor/--from continuation, no --all |
+| `vectra-axi api get` | native | read | - |
+| `vectra-axi lockdown list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
 <!-- command-registry:end -->
 
 Run `npx -y @knowttl/vectra-axi <complete-leaf-path> --help` for that leaf's accepted flags

@@ -46,6 +46,40 @@ const listPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
   status: 200, bodyText: JSON.stringify({ results: rows, ...extra }),
 });
 
+describe("bounded collection traversal", () => {
+  beforeEach(() => { process.env.CLOUD_SECRET = "fake-cloud-secret"; });
+  afterEach(() => { delete process.env.CLOUD_SECRET; });
+
+  it.each([
+    ["group list", runGroupList, "groups", hostGroup, []],
+    ["group member list", runGroupMemberList, "members", member7, ["--id", "8"]],
+    ["triage rule list", runRuleList, "rules", rule7, []],
+  ] as const)("traverses --all pages and resumes %s on both deployments", async (leaf, run, key, row, args) => {
+    for (const makeSession of [session, cloudSession]) {
+      const transport = cloudFixture((url) => {
+        const next = new URL(url);
+        next.searchParams.set("page", "2");
+        return new URL(url).searchParams.has("page")
+          ? listPage([{ ...row, id: 200 }], { count: 101 })
+          : listPage(Array.from({ length: 100 }, (_, index) => ({ ...row, id: index + 1 })),
+            { count: 101, next: next.href });
+      });
+      const owned = makeSession(transport);
+      const argv = [...leaf.split(" "), ...args];
+      const normal = await run(owned, flags(argv));
+      expect(normal.output[key]).toHaveLength(100);
+      expect(normal.output.cursor).toBeTypeOf("string");
+      const all = await run(owned, flags([...argv, "--all"]));
+      expect(all.failed).toBe(false);
+      expect(all.output[key]).toHaveLength(101);
+      expect(all.output).not.toHaveProperty("cursor");
+      const resumed = await run(owned, flags([...argv, "--all", "--cursor", normal.output.cursor as string]));
+      expect(resumed.output[key]).toHaveLength(1);
+      expect(resumed.failed).toBe(false);
+    }
+  });
+});
+
 it("maps group filters to the wire keys and preserves kinds verbatim", async () => {
   const transport: RawTransport = async (request) => {
     expect(request.url).toBe("https://fixture.invalid/api/v2.5/groups"

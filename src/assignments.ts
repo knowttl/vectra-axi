@@ -1,6 +1,6 @@
 import { AxiError } from "axi-sdk-js";
 import { z } from "zod";
-import { collect, DEFAULT_COLLECTION_LIMIT, resume } from "./collections.js";
+import { collect, collectionLimit, resume } from "./collections.js";
 import type { Session } from "./session.js";
 
 // READ-04: QUX assignments, assignment outcomes and users on the CORE-01
@@ -102,14 +102,7 @@ export function userQuery(flags: ReadonlyMap<string, string | boolean>, rux = fa
   return query;
 }
 
-export function listLimit(flags: ReadonlyMap<string, string | boolean>): number {
-  const raw = flags.get("limit");
-  if (raw === undefined) return DEFAULT_COLLECTION_LIMIT;
-  if (typeof raw !== "string" || !/^\d+$/.test(raw) || Number(raw) < 1) {
-    invalid("--limit must be a positive integer row limit", "Example: --limit 20");
-  }
-  return Number(raw);
-}
+export const listLimit = collectionLimit;
 
 // Client-side projection over each leaf's field subset, including the derived
 // assignment status. Unknown fields fail explicitly instead of silently
@@ -200,11 +193,12 @@ async function runCollectionList(
   decodeRow: (row: unknown) => Record<string, unknown>,
 ): Promise<LeafResult> {
   const limit = listLimit(flags);
+  const all = flags.has("all");
   const fields = listFields(flags, leaf.fields);
   const cursor = flags.get("cursor");
   const result = typeof cursor === "string"
-    ? await resume(session, leaf.operation, cursor, { query, limit, decodeRow })
-    : await collect(session, leaf.operation, { query, limit, decodeRow });
+    ? await resume(session, leaf.operation, cursor, { query, limit, all, decodeRow })
+    : await collect(session, leaf.operation, { query, limit, all, decodeRow });
   const rows = result.rows.map((row) => project(row, fields));
   const shown = rows.length;
   const count = result.total === null || result.total === shown
