@@ -1,6 +1,6 @@
 import { AxiError } from "axi-sdk-js";
 import { z } from "zod";
-import { collect, DEFAULT_COLLECTION_LIMIT, resume } from "./collections.js";
+import { collect, collectionLimit, resume } from "./collections.js";
 import type { Session } from "./session.js";
 
 // READ-05: QUX groups, paged group members and triage rules on the CORE-01
@@ -113,14 +113,7 @@ export function ruleQuery(flags: ReadonlyMap<string, string | boolean>): ListQue
   return query;
 }
 
-export function listLimit(flags: ReadonlyMap<string, string | boolean>): number {
-  const raw = flags.get("limit");
-  if (raw === undefined) return DEFAULT_COLLECTION_LIMIT;
-  if (typeof raw !== "string" || !/^\d+$/.test(raw) || Number(raw) < 1) {
-    invalid("--limit must be a positive integer row limit", "Example: --limit 20");
-  }
-  return Number(raw);
-}
+export const listLimit = collectionLimit;
 
 // Client-side projection over each leaf's recorded field subset. Unknown
 // fields fail explicitly instead of silently returning short rows.
@@ -332,12 +325,13 @@ async function runCollectionList(
   decodeRow: (row: unknown) => Record<string, unknown>,
 ): Promise<LeafResult> {
   const limit = listLimit(flags);
+  const all = flags.has("all");
   const rux = session.profile.kind === "rux";
   const fields = listFields(flags, rux && leaf.ruxFields ? leaf.ruxFields : leaf.fields);
   const cursor = flags.get("cursor");
   const window = typeof cursor === "string"
-    ? await resume(session, leaf.operation, cursor, { query, limit, decodeRow, ...(leaf.pathParams ? { pathParams: leaf.pathParams } : {}) })
-    : await collect(session, leaf.operation, { query, limit, decodeRow, ...(leaf.pathParams ? { pathParams: leaf.pathParams } : {}) });
+    ? await resume(session, leaf.operation, cursor, { query, limit, all, decodeRow, ...(leaf.pathParams ? { pathParams: leaf.pathParams } : {}) })
+    : await collect(session, leaf.operation, { query, limit, all, decodeRow, ...(leaf.pathParams ? { pathParams: leaf.pathParams } : {}) });
   const rows = window.rows.map((row) => project(row, fields));
   const shown = rows.length;
   const count = window.total === null || window.total === shown

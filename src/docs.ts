@@ -1,5 +1,5 @@
 import { rawAllowed } from "./api-get.js";
-import { catalogue, inventory } from "./catalogue.js";
+import { catalogue, inventory, listPaging } from "./catalogue.js";
 
 // PACK-01: single source for generated release records. The committed
 // skills/vectra-axi/SKILL.md command table and docs/coverage.md are
@@ -14,11 +14,11 @@ import { catalogue, inventory } from "./catalogue.js";
 // assignment sets use the gated WRITE-00 coordinator.
 export function skillCommandTable(): string {
   return [
-    "| Command | Capability | Vectra effect |",
-    "|---|---|---|",
+    "| Command | Capability | Vectra effect | List pagination |",
+    "|---|---|---|---|",
     ...Object.keys(catalogue).map((leaf) => {
       const effect = inventory.operations.find((operation) => operation.command === leaf)?.effect ?? "read";
-      return `| \`vectra-axi ${leaf}\` | native | ${effect} |`;
+      return `| \`vectra-axi ${leaf}\` | native | ${effect} | ${listPaging(leaf) ?? "-"} |`;
     }),
   ].join("\n");
 }

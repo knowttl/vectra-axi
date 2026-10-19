@@ -635,6 +635,7 @@ export const catalogue: Readonly<Record<string, {
     description: "List QUX or RUX assignments with server-side filters and a bounded window",
     flags: {
       ...globals,
+      all: { kind: "boolean", description: "Traverse pages within 10 requests, 8 MiB, 60 seconds and 10000 rows; cannot combine with --limit" },
       account: { kind: "value", valueName: "id", description: "Filter by server-side account ID (non-negative integer)" },
       host: { kind: "value", valueName: "id", description: "Filter by server-side host ID (non-negative integer)" },
       assignee: { kind: "value", valueName: "id", description: "Filter by server-side assignee user ID (non-negative integer)" },
@@ -678,6 +679,7 @@ export const catalogue: Readonly<Record<string, {
     description: "List QUX or RUX assignment outcomes with a bounded window",
     flags: {
       ...globals,
+      all: { kind: "boolean", description: "Traverse pages within 10 requests, 8 MiB, 60 seconds and 10000 rows; cannot combine with --limit" },
       limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
       fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,title,category,builtin" },
       cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
@@ -701,6 +703,7 @@ export const catalogue: Readonly<Record<string, {
     description: "List QUX or RUX users with a bounded window; username filtering is QUX-only",
     flags: {
       ...globals,
+      all: { kind: "boolean", description: "Traverse pages within 10 requests, 8 MiB, 60 seconds and 10000 rows; cannot combine with --limit" },
       username: { kind: "value", valueName: "name", description: "Filter by server-side username (QUX-only; unsupported on RUX)" },
       limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
       fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,username on QUX or id,name on RUX" },
@@ -758,6 +761,7 @@ export const catalogue: Readonly<Record<string, {
     description: "List groups on QUX v2.5 or RUX v3.4 with server-side filters and a bounded window",
     flags: {
       ...globals,
+      all: { kind: "boolean", description: "Traverse pages within 10 requests, 8 MiB, 60 seconds and 10000 rows; cannot combine with --limit" },
       name: { kind: "value", valueName: "name", description: "Filter by server-side group name" },
       type: { kind: "value", valueName: "kind", description: "Filter by server-side group kind; values pass through verbatim" },
       limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
@@ -788,6 +792,7 @@ export const catalogue: Readonly<Record<string, {
     description: "List one group's members on QUX v2.5 (appliance 9.2+) or RUX v3.4 through the paged member route",
     flags: {
       ...globals,
+      all: { kind: "boolean", description: "Traverse pages within 10 requests, 8 MiB, 60 seconds and 10000 rows; cannot combine with --limit" },
       id: { kind: "value", valueName: "id", description: "Group ID whose members to list (positive integer, required)" },
       name: { kind: "value", valueName: "name", description: "Filter by server-side member name" },
       ordering: { kind: "value", valueName: "ordering", description: "Server-side result ordering" },
@@ -808,6 +813,7 @@ export const catalogue: Readonly<Record<string, {
     description: "List triage rules on QUX v2.5 or RUX v3.4 with server-side filters and a bounded window",
     flags: {
       ...globals,
+      all: { kind: "boolean", description: "Traverse pages within 10 requests, 8 MiB, 60 seconds and 10000 rows; cannot combine with --limit" },
       contains: { kind: "value", valueName: "text", description: "Filter by server-side rule text match" },
       ordering: { kind: "value", valueName: "ordering", description: "Server-side result ordering" },
       limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
@@ -930,12 +936,27 @@ function flagSyntax(name: string, flag: Flag): string {
   return `--${name}${flag.kind === "value" ? ` <${flag.valueName}>` : ""}`;
 }
 
+// Describe only executable list routes; planned inventory routes confer no support.
+export function listPaging(leaf: string): string | undefined {
+  if (!leaf.endsWith(" list") || !catalogue[leaf]) return undefined;
+  if (leaf === "profile list") return "Local configuration; no endpoint or --all";
+  return [...new Set(inventory.operations
+    .filter((operation) => operation.command === leaf && operation.disposition === "named")
+    .map((operation) => `${operation.deployment.toUpperCase()}: ${
+      operation.paging === "collection" ? "collection pages; bounded --all supported"
+        : operation.paging === "none" ? "nonpaged single response; no --all"
+          : operation.paging === "checkpoint" ? "checkpoint batch; --cursor/--from continuation, no --all"
+            : "date window; narrow dates to bound the response, no --all"
+    }`))].join("; ");
+}
+
 export function help(leaf?: string): Record<string, unknown> {
   const entry = leaf === undefined ? undefined : catalogue[leaf];
   return {
     ...(entry ? {
       command: `vectra-axi ${leaf}`,
       description: entry.description,
+      ...(listPaging(leaf!) ? { pagination: listPaging(leaf!) } : {}),
     } : {
       description: DESCRIPTION,
       commands: Object.fromEntries(Object.entries(catalogue).map(([name, entry]) => [name, entry.description])),

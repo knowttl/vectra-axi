@@ -1,13 +1,32 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { catalogue, help, inventory } from "../src/catalogue.js";
+import { catalogue, help, inventory, listPaging, parseInvocation } from "../src/catalogue.js";
 import { coverageDocument, skillCommandTable } from "../src/docs.js";
 
 const skill = readFileSync(new URL("../skills/vectra-axi/SKILL.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 const coverage = readFileSync(new URL("../docs/coverage.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 
 describe("generated release records", () => {
+  it.each(Object.keys(catalogue).filter((leaf) => leaf.endsWith(" list")))
+  ("inventories the pagination contract of %s", (leaf) => {
+    expect(listPaging(leaf)).toBeTruthy();
+    expect(help(leaf).pagination).toBe(listPaging(leaf));
+    const operations = inventory.operations.filter((operation) =>
+      operation.command === leaf && operation.disposition === "named");
+    for (const operation of operations) {
+      expect(listPaging(leaf)).toContain(operation.deployment.toUpperCase());
+      expect(listPaging(leaf)).toContain(operation.paging === "none" ? "nonpaged" : operation.paging.replace("-", " "));
+    }
+    if (operations.some((operation) => operation.paging === "collection")) {
+      expect(parseInvocation([...leaf.split(" "), "--all"]).flags.has("all")).toBe(true);
+      expect(() => parseInvocation([...leaf.split(" "), "--all", "--limit", "1"]))
+        .toThrow("--all cannot be combined with --limit");
+    } else {
+      expect(() => parseInvocation([...leaf.split(" "), "--all"])).toThrow("Unknown flag");
+    }
+  });
+
   it.each([...new Set(inventory.operations
     .filter((operation) => operation.disposition === "named" && operation.id.startsWith("rux."))
     .map((operation) => operation.command!))])("does not label %s QUX-only when it supports RUX", (leaf) => {
@@ -55,7 +74,7 @@ describe("generated release records", () => {
     expect(rows).toHaveLength(Object.keys(catalogue).length);
     expect(rows).toEqual(Object.keys(catalogue).map((leaf) => {
       const effect = inventory.operations.find((operation) => operation.command === leaf)?.effect ?? "read";
-      return `| \`vectra-axi ${leaf}\` | native | ${effect} |`;
+      return `| \`vectra-axi ${leaf}\` | native | ${effect} | ${listPaging(leaf) ?? "-"} |`;
     }));
   });
 

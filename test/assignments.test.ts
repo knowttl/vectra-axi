@@ -324,6 +324,35 @@ const ruxListPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
 });
 
 describe("RUX assignments, outcomes and users", () => {
+  it.each([
+    ["assignment list", runAssignmentList, "assignments", openAssignment],
+    ["assignment outcome list", runOutcomeList, "outcomes", ruxOutcome],
+    ["user list", runUserList, "users", { ...ruxUser, username: "synthetic-analyst" }],
+  ] as const)("traverses bounded --all pages and resumes %s on both deployments", async (leaf, run, key, row) => {
+    for (const makeSession of [session, cloudSession]) {
+      const transport = cloudFixture((url) => {
+        const next = new URL(url);
+        next.searchParams.set("page", "2");
+        return new URL(url).searchParams.has("page")
+          ? listPage([{ ...row, id: 200 }], { count: 101 })
+          : listPage(Array.from({ length: 100 }, (_, index) => ({ ...row, id: index + 1 })),
+            { count: 101, next: next.href });
+      });
+      const owned = makeSession(transport);
+      const argv = leaf.split(" ");
+      const normal = await run(owned, flags(argv));
+      expect(normal.output[key]).toHaveLength(100);
+      expect(normal.output.cursor).toBeTypeOf("string");
+      const all = await run(owned, flags([...argv, "--all"]));
+      expect(all.failed).toBe(false);
+      expect(all.output[key]).toHaveLength(101);
+      expect(all.output).not.toHaveProperty("cursor");
+      const resumed = await run(owned, flags([...argv, "--all", "--cursor", normal.output.cursor as string]));
+      expect(resumed.output[key]).toHaveLength(1);
+      expect(resumed.failed).toBe(false);
+    }
+  });
+
   beforeEach(() => {
     process.env.CLOUD_SECRET = "fake-cloud-secret";
   });
