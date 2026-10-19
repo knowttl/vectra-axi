@@ -329,7 +329,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | --- | --- | --- |
 | `home` | `home` | Local |
 | `setup` | `setup`, `setup hooks` | Local |
-| `doctor` | `doctor` | Local |
+| `doctor` | `doctor` | QUX, RUX |
 | `auth` | `auth status` | Local |
 | `profile` | `profile list` | Local |
 | `config` | `config path` | Local |
@@ -343,7 +343,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `group` | `group list`, `group show`, `group member list` | QUX, RUX |
 | `triage` | `triage rule list`, `triage rule show` | QUX, RUX |
 | `health` | `health list`, `health show`, `health event list` | QUX, RUX |
-| `api` | `api get` | Local |
+| `api` | `api get` | QUX, RUX |
 | `lockdown` | `lockdown list` | QUX, RUX |
 <!-- command-registry:end -->
 

@@ -1,15 +1,36 @@
 import { rawAllowed } from "./api-get.js";
 import { catalogue, help, inventory, listPaging } from "./catalogue.js";
 
+const COMPOSITE_DEPLOYMENTS: Readonly<Record<string, readonly string[]>> = {
+  doctor: ["QUX", "RUX"],
+  "api get": ["QUX", "RUX"],
+};
+
+function compositeDocumentLines(leaf: string): string[] | undefined {
+  if (leaf === "doctor") {
+    const qux = inventory.operations.find((operation) => operation.id === "qux.detection.list");
+    const quxLabel = qux ? `${qux.deployment.toUpperCase()} API ${qux.apiVersion}` : "QUX API";
+    return [
+      `- \`qux.detection.list\`: ${quxLabel} bounded detection read per QUX profile`,
+      "- `rux.oauth.exchange`: RUX OAuth exchange per RUX profile (no resource read)",
+    ];
+  }
+  if (leaf === "api get") {
+    return ["Network command; reads one allowlisted QUX or RUX GET operation through the configured profile."];
+  }
+  return undefined;
+}
+
 export function commandSummary(): string {
   return [
     "| Domain | Commands | Deployment |",
     "| --- | --- | --- |",
     ...[...new Set(Object.keys(catalogue).map((leaf) => leaf.split(" ")[0]!))].map((domain) => {
       const leaves = Object.keys(catalogue).filter((leaf) => leaf.split(" ")[0] === domain);
-      const deployments = [...new Set(inventory.operations.filter((operation) =>
+      const deployments = [...new Set([...inventory.operations.filter((operation) =>
         operation.disposition === "named" && operation.command && leaves.includes(operation.command))
-        .map((operation) => operation.deployment.toUpperCase()))].sort();
+        .map((operation) => operation.deployment.toUpperCase()),
+        ...leaves.flatMap((leaf) => COMPOSITE_DEPLOYMENTS[leaf] ?? [])])].sort();
       return `| \`${domain}\` | ${leaves.map((leaf) => `\`${leaf}\``).join(", ")} | ${deployments.join(", ") || "Local"} |`;
     }),
   ].join("\n");
@@ -30,7 +51,7 @@ export function commandDocument(): string {
         "",
         command.description,
         "",
-        ...(operations.length ? operations.map((operation) => `- \`${operation.id}\`: ${operation.deployment.toUpperCase()} API ${operation.apiVersion}`) : ["Local command; no Vectra API request."]),
+        ...(operations.length ? operations.map((operation) => `- \`${operation.id}\`: ${operation.deployment.toUpperCase()} API ${operation.apiVersion}`) : (compositeDocumentLines(leaf) ?? ["Local command; no Vectra API request."])),
         "",
         ...(listPaging(leaf) ? [listPaging(leaf)!, ""] : []),
         "```json",

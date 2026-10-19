@@ -89,7 +89,8 @@ Local command; no Vectra API request.
 
 Check profile configuration with one bounded detection read per QUX profile or OAuth exchange per RUX profile
 
-Local command; no Vectra API request.
+- `qux.detection.list`: QUX API 2.5 bounded detection read per QUX profile
+- `rux.oauth.exchange`: RUX OAuth exchange per RUX profile (no resource read)
 
 ```json
 {
@@ -1834,7 +1835,7 @@ QUX: checkpoint batch; --cursor/--from continuation, no --all; RUX: checkpoint b
 
 Read one allowlisted GET operation by inventory ID with its recorded query and field policy
 
-Local command; no Vectra API request.
+Network command; reads one allowlisted QUX or RUX GET operation through the configured profile.
 
 ```json
 {
