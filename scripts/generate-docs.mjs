@@ -15,20 +15,20 @@ const readmePath = join(root, "README.md");
 const start = "<!-- command-registry:start -->\n";
 const end = "\n<!-- command-registry:end -->";
 
-function withTable(skill, table) {
-  const before = skill.split(start);
-  if (before.length !== 2) throw new Error("SKILL.md is missing its command-registry markers");
+function withTable(content, table, label) {
+  const before = content.split(start);
+  if (before.length !== 2) throw new Error(`${label} is missing its command-registry markers`);
   const after = before[1].split(end);
-  if (after.length !== 2) throw new Error("SKILL.md is missing its command-registry markers");
+  if (after.length !== 2) throw new Error(`${label} is missing its command-registry markers`);
   return `${before[0]}${start}${table}${end}${after[1]}`;
 }
 
 const check = process.argv.includes("--check");
 const table = skillCommandTable();
-const skill = withTable(readFileSync(skillPath, "utf8").replace(/\r\n/g, "\n"), table);
+const skill = withTable(readFileSync(skillPath, "utf8").replace(/\r\n/g, "\n"), table, skillPath);
 const coverage = coverageDocument();
 const commands = commandDocument();
-const readme = withTable(readFileSync(readmePath, "utf8").replace(/\r\n/g, "\n"), commandSummary());
+const readme = withTable(readFileSync(readmePath, "utf8").replace(/\r\n/g, "\n"), commandSummary(), readmePath);
 if (check) {
   const stale = [
     ...(readFileSync(skillPath, "utf8").replace(/\r\n/g, "\n") === skill ? [] : [skillPath]),

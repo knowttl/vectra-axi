@@ -348,7 +348,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 <!-- command-registry:end -->
 
 Deployment columns summarize each domain; individual commands have narrower support.
-Detection events and entity scoring are RUX-only; note append, tag writes and assignments are QUX-only.
+Detection events and entity scoring are RUX-only; note append, tag writes and assignment set are QUX-only.
 Note edit/delete supports both deployments, as do detection/host/account note and tag reads.
 `health event list` supports both; connector/EDR checks and traffic lockdown status are RUX-only.
 QUX group membership requires appliance 9.2 or later.
