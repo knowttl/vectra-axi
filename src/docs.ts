@@ -64,10 +64,12 @@ export function commandDocument(): string {
 }
 
 // PACK-01: single source for generated release records. The committed
-// skills/vectra-axi/SKILL.md command table and docs/coverage.md are
+// skills/vectra-axi/SKILL.md command table, docs/coverage.md,
+// docs/commands.md and the README command summary are
 // projections of the executable catalogue and the capability inventory, so
-// help, skill and coverage cannot drift apart. scripts/generate-docs.mjs
-// writes both files; test/generated.test.ts fails when they are stale.
+// help, skill, coverage and the command reference cannot drift apart.
+// scripts/generate-docs.mjs writes those files; test/generated.test.ts
+// and docs:check fail when they are stale.
 
 // One row per executable leaf in catalogue order, matching the home-view
 // help. Every leaf is implemented by a vectra-axi handler (native).

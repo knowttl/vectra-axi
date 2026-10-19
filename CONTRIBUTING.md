@@ -22,7 +22,7 @@ Do not use real services, credentials or customer data for automated validation.
 Use `node scripts/isolated.mjs node bin/vectra-axi.js --help` for an offline manual CLI check.
 
 After changing the command catalogue or capability inventory, rebuild and run `corepack pnpm run docs:generate`, then repeat `docs:check`.
-Do not edit generated command tables or coverage records by hand.
+Do not edit generated command tables, coverage records, the command reference or the README command summary by hand.
 See [development guidance](README.md#development--testing) and the [implementation plan](docs/implementation-plan.md) for the existing fixture conventions and acceptance contracts.
 
 ## Compatibility

@@ -310,7 +310,7 @@ With several profiles and no explicit, environment, or default selection, doctor
 Any failure returns a nonzero exit status; no configured profiles reports `PROFILE_REQUIRED`.
 Doctor never enables writes or signs in interactively.
 
-See [Development & Testing](#development--testing) for generating the packaged skill command table and coverage record.
+See [Development & Testing](#development--testing) for generating the packaged skill command table, coverage record, command reference and README summary.
 
 ## Commands
 
