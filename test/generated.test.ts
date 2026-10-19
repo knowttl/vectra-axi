@@ -91,7 +91,7 @@ describe("generated release records", () => {
     const named = inventory.operations.filter((operation) => operation.disposition === "named");
     expect(named.length).toBeGreaterThan(0);
     expect(named.every((operation) => operation.effect === "read" || operation.effect === "write")).toBe(true);
-    const counts = Object.fromEntries(["named", "planned", "blocked"].map((disposition) => [
+    const counts = Object.fromEntries(["named", "implemented", "planned", "blocked"].map((disposition) => [
       disposition,
       inventory.operations.filter((operation) => operation.disposition === disposition).length,
     ]));

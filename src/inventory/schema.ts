@@ -4,7 +4,7 @@ const text = z.string().trim().min(1);
 const names = z.array(text).refine((values) => new Set(values).size === values.length, "Duplicate value");
 const version = z.string().regex(/^\d+\.\d+$/);
 const evidence = z.array(z.strictObject({ source: text, locator: text })).min(1);
-const disposition = z.enum(["named", "reviewed-raw", "planned", "blocked", "unavailable", "deprecated", "unreviewed"]);
+const disposition = z.enum(["named", "implemented", "reviewed-raw", "planned", "blocked", "unavailable", "deprecated", "unreviewed"]);
 
 export const operationSchema = z.strictObject({
   id: z.string().regex(/^(qux|rux)\.[a-z0-9.-]+$/),
@@ -42,6 +42,7 @@ export const operationSchema = z.strictObject({
   if (operation.effect === "read" && operation.method !== "GET") reject("A read must use GET");
   if (["/api/v2.5/sensor_token", "/api/v2.5/settings/aws_connectors"].includes(operation.path.replace(/\/$/, "")) && operation.effect !== "credential-export") reject("Known secret route requires credential-export effect");
   if (operation.effect === "credential-export" && operation.disposition !== "blocked") reject("Credential exports must remain blocked");
+  if (operation.disposition === "implemented" && (operation.effect !== "auth-exchange" || operation.command !== null)) reject("Implemented disposition requires an internal auth exchange with no command leaf");
   if (["named", "reviewed-raw"].includes(operation.disposition) && operation.command === null) reject("Supported operation needs a command leaf");
 });
 

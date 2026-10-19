@@ -3966,8 +3966,8 @@
           "locator": "Getting Authorized: refresh tokens are not supported; retrieve a new access token after expiry"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to AUTH-02; no runtime support in INV-01.",
+      "disposition": "implemented",
+      "rationale": "Implemented in src/oauth.ts and src/session.ts, exercised by doctor and covered by test/oauth.test.ts, test/session.test.ts and test/doctor.test.ts; internal credential exchange with no command leaf.",
       "fixtureCases": [
         "returned-expiry",
         "invalid-client",
@@ -4002,8 +4002,8 @@
           "locator": "POST /oauth2/token; client_credentials and refresh_token responses"
         }
       ],
-      "disposition": "planned",
-      "rationale": "Deferred to RUX-01; no runtime support in INV-01.",
+      "disposition": "implemented",
+      "rationale": "Implemented in src/oauth.ts and src/session.ts, exercised by doctor and covered by test/oauth.test.ts, test/session.test.ts and test/doctor.test.ts; internal credential exchange with no command leaf.",
       "fixtureCases": [
         "returned-expiry",
         "invalid-client",
