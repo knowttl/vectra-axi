@@ -116,7 +116,7 @@ Group related operations in domain files inside the session, splitting only wher
 One typed operation catalogue owns leaf grammar, flags, effect, supported deployment/version/release, method/route bindings, query mapping, response decoder, compact fields, permission/licence notes and fixture/source references.
 Generate help and coverage from those declarations.
 Use ordinary code for nontrivial transformations rather than an expanding configuration language.
-Coverage distinguishes named support, reviewed raw support, planned, blocked, unavailable and deprecated operations.
+Coverage dispositions are defined in [inventory.md](inventory.md#dispositions-and-exclusions).
 
 ## Profiles and authentication
 

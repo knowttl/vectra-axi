@@ -47,6 +47,7 @@ The inventory records evidence; the [strict executable catalogue](../src/catalog
 | `unreviewed` | Family discovered, but exact operations and security semantics still need review. |
 | `blocked` | Deliberately refused, including credential exports even when they use GET. |
 | `named` | Implemented and tested named operation. |
+| `implemented` | Implemented and tested internal auth exchange with a `null` command; does not enable a command leaf or raw access. |
 | `reviewed-raw` | Future explicitly approved raw-read operation through the same policy. |
 | `unavailable` | Evidence establishes that a requested capability is absent for this binding. |
 | `deprecated` | Previously supported contract deliberately retired with documented guidance. |

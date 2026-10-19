@@ -3,16 +3,18 @@
 # vectra-axi coverage
 
 This is the supported QUX and RUX SOC read surface with gated QUX single and bulk tag-write, note-append and assignment-write families and the gated QUX/RUX note edit/delete family, not full Vectra API coverage.
-Only `named` operations have an implemented, tested command leaf; every other
-operation remains planned, blocked or unreviewed until its own slice ships.
+Only `named` operations have an implemented, tested command leaf.
+The `implemented` disposition records tested internal OAuth exchanges with no command leaf;
+other operations remain planned, blocked or unreviewed until their own slices ship.
 The reviewed `api get` raw-read leaf serves the allowlisted GET operations marked `raw` below;
 there is no unrestricted passthrough.
 
 ## Counts
 
 - named: 98
+- implemented: 2
 - reviewed-raw: 0
-- planned: 4
+- planned: 2
 - blocked: 2
 - unavailable: 0
 - deprecated: 0
@@ -120,8 +122,8 @@ there is no unrestricted passthrough.
 | `rux.health.edr.show` | health show | RUX-06 | rux 3.4 | none | named | raw |
 | `rux.health.edr.details.show` | health show | RUX-06 | rux 3.4 | none | named | raw |
 | `rux.health.network-brain.ping.show` | health show | RUX-06 | rux 3.4 | none | named | raw |
-| `qux.oauth.exchange` | - | AUTH-02 | qux 2.5 | none | planned | planned |
-| `rux.oauth.exchange` | - | RUX-01 | rux 3.4 | none | planned | planned |
+| `qux.oauth.exchange` | - | AUTH-02 | qux 2.5 | none | implemented | implemented |
+| `rux.oauth.exchange` | - | RUX-01 | rux 3.4 | none | implemented | implemented |
 | `qux.sensor-token.export` | - | excluded | qux 2.5 | none | blocked | blocked |
 | `qux.aws-credentials.export` | - | excluded | qux 2.5 | none | blocked | blocked |
 | `rux.entity.note.list` | entity note list | RUX-04 | rux 3.4 | none | planned | planned |

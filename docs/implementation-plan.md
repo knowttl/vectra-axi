@@ -67,7 +67,7 @@ Do not make every phase one umbrella task or commission the entire catalogue as 
 | 2: useful QUX release | READ-02 through READ-08, PACK-01 | A complete synthetic on-prem investigation can inspect entities, notes/tags, assignment, rules/groups, audit, health and lockdown status. |
 | 3: cloud adoption | RUX-01 through RUX-06 | Explicit cloud profile passes the shared contracts; QUX output stays stable and generation-specific semantics remain visible. |
 | 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-03/WRITE-05/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
-| 5: deliberate expansion | Selected API-01 and separately selected long-tail families | The capability map records exact named/raw/blocked/planned dispositions; there is no unrestricted passthrough. |
+| 5: deliberate expansion | Selected API-01 and separately selected long-tail families | The capability map records exact dispositions per [inventory.md](inventory.md#dispositions-and-exclusions); there is no unrestricted passthrough. |
 
 Phase 1 is sequential because each step establishes a contract used by the next.
 After READ-02 and CORE-02 merge, phases within the remaining QUX read tranche may be commissioned independently if their files and public contracts do not conflict.

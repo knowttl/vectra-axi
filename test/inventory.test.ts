@@ -9,11 +9,31 @@ describe("capability inventory", () => {
     expect(() => inventorySchema.parse(inventory)).not.toThrow();
   });
 
-  it("makes no runtime support claim before CLI and endpoint slices ship", () => {
-    expect(inventorySchema.parse(inventory).operations.every((operation) =>
-      operation.disposition === "planned" || operation.disposition === "blocked"
-      || operation.disposition === "named",
-    )).toBe(true);
+  it("marks only the shipped internal OAuth exchanges as implemented", () => {
+    const implemented = inventorySchema.parse(inventory).operations
+      .filter((operation) => operation.disposition === "implemented");
+    expect(implemented.map(({ id, command, effect }) => ({ id, command, effect }))).toEqual([
+      { id: "qux.oauth.exchange", command: null, effect: "auth-exchange" },
+      { id: "rux.oauth.exchange", command: null, effect: "auth-exchange" },
+    ]);
+  });
+
+  it("keeps only the entity note and tag routes planned", () => {
+    expect(inventorySchema.parse(inventory).operations
+      .filter((operation) => operation.disposition === "planned")
+      .map((operation) => operation.id)).toEqual([
+      "rux.entity.note.list", "rux.entity.tag.list",
+    ]);
+  });
+
+  it.each([
+    ["resource read", { effect: "read", method: "GET", path: "/api/v2.5/detections" }],
+    ["command leaf", { command: "doctor" }],
+  ])("rejects implemented disposition for a %s", (_name, patch) => {
+    const candidate = structuredClone(inventory);
+    const exchange = candidate.operations.find((operation: { id: string }) => operation.id === "qux.oauth.exchange");
+    Object.assign(exchange, { disposition: "implemented" }, patch);
+    expect(inventorySchema.safeParse(candidate).success).toBe(false);
   });
 
   it("marks only the shipped read operations as named", () => {

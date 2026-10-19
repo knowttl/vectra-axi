@@ -23,7 +23,7 @@ export function skillCommandTable(): string {
   ].join("\n");
 }
 
-const DISPOSITIONS = ["named", "reviewed-raw", "planned", "blocked", "unavailable", "deprecated", "unreviewed"] as const;
+const DISPOSITIONS = ["named", "implemented", "reviewed-raw", "planned", "blocked", "unavailable", "deprecated", "unreviewed"] as const;
 
 export function coverageDocument(): string {
   const operations = inventory.operations;
@@ -43,8 +43,9 @@ export function coverageDocument(): string {
     "# vectra-axi coverage",
     "",
     "This is the supported QUX and RUX SOC read surface with gated QUX single and bulk tag-write, note-append and assignment-write families and the gated QUX/RUX note edit/delete family, not full Vectra API coverage.",
-    "Only `named` operations have an implemented, tested command leaf; every other",
-    "operation remains planned, blocked or unreviewed until its own slice ships.",
+    "Only `named` operations have an implemented, tested command leaf.",
+    "The `implemented` disposition records tested internal OAuth exchanges with no command leaf;",
+    "other operations remain planned, blocked or unreviewed until their own slices ship.",
     "The reviewed `api get` raw-read leaf serves the allowlisted GET operations marked `raw` below;",
     "there is no unrestricted passthrough.",
     "",
