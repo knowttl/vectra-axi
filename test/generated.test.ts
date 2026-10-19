@@ -9,8 +9,8 @@ const coverage = readFileSync(new URL("../docs/coverage.md", import.meta.url), "
 
 describe("generated release records", () => {
   it("keeps the published command reference and README summary current", () => {
-    const commands = readFileSync(new URL("../docs/commands.md", import.meta.url), "utf8");
-    const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+    const commands = readFileSync(new URL("../docs/commands.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+    const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
     expect(commands).toBe(commandDocument());
     expect(readme.split("<!-- command-registry:start -->\n")[1]?.split("\n<!-- command-registry:end -->")[0])
       .toBe(commandSummary());
