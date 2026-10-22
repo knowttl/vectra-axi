@@ -729,14 +729,15 @@ Remove tags from QUX or RUX detections in bulk with per-target diffs through the
 
 ## detection note add
 
-Append one QUX detection note through the gated write pipeline
+Append one QUX or RUX detection note through the gated write pipeline
 
 - `qux.detection.note.add`: QUX API 2.5
+- `rux.detection.note.add`: RUX API 3.4
 
 ```json
 {
   "command": "vectra-axi detection note add",
-  "description": "Append one QUX detection note through the gated write pipeline",
+  "description": "Append one QUX or RUX detection note through the gated write pipeline",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -1008,14 +1009,15 @@ Remove tags from QUX or RUX hosts in bulk with per-target diffs through the gate
 
 ## host note add
 
-Append one QUX host note through the gated write pipeline
+Append one QUX or RUX host note through the gated write pipeline
 
 - `qux.host.note.add`: QUX API 2.5
+- `rux.host.note.add`: RUX API 3.4
 
 ```json
 {
   "command": "vectra-axi host note add",
-  "description": "Append one QUX host note through the gated write pipeline",
+  "description": "Append one QUX or RUX host note through the gated write pipeline",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -1287,14 +1289,15 @@ Remove tags from QUX or RUX accounts in bulk with per-target diffs through the g
 
 ## account note add
 
-Append one QUX account note through the gated write pipeline
+Append one QUX or RUX account note through the gated write pipeline
 
 - `qux.account.note.add`: QUX API 2.5
+- `rux.account.note.add`: RUX API 3.4
 
 ```json
 {
   "command": "vectra-axi account note add",
-  "description": "Append one QUX account note through the gated write pipeline",
+  "description": "Append one QUX or RUX account note through the gated write pipeline",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",

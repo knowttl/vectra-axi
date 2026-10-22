@@ -285,7 +285,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | --- | --- |
 | `<generation>.<kind>.tag.set` | Replace tags on QUX or RUX |
 | `<generation>.<kind>.tag.bulk-set`, `<generation>.<kind>.tag.bulk-delete` | Bulk tag changes on QUX or RUX |
-| `qux.<kind>.note.add` | Append notes |
+| `<generation>.<kind>.note.add` | Append notes on QUX or RUX |
 | `<generation>.<kind>.note.edit`, `<generation>.<kind>.note.delete` | Edit/delete notes on QUX or RUX |
 | `qux.<kind>.assignment.create`, `.reassign`, `.unassign` | Assignments for hosts/accounts |
 
