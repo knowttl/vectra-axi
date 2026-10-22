@@ -21,10 +21,14 @@ export async function runEntityClose(
   }
   const { profile } = session;
   if (profile.kind === "qux" && profile.applianceRelease !== undefined) {
-    const [major, minor] = profile.applianceRelease.split(".").map(Number);
-    if (major! < 9 || major === 9 && minor! < 3) {
-      throw new AxiError(`${kind} close requires appliance release 9.3 or later (profile reports ${profile.applianceRelease})`,
-        "VALIDATION_ERROR", ["Upgrade the appliance before closing entities"]);
+    const parts = profile.applianceRelease.split(".");
+    if (parts.every((part) => /^\d+$/.test(part))) {
+      const major = Number(parts[0]);
+      const minor = parts.length > 1 ? Number(parts[1]) : 0;
+      if (major < 9 || major === 9 && minor < 3) {
+        throw new AxiError(`${kind} close requires appliance release 9.3 or later (profile reports ${profile.applianceRelease})`,
+          "VALIDATION_ERROR", ["Upgrade the appliance before closing entities"]);
+      }
     }
   }
   const target = `${kind} ${id}`;
