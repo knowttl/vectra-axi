@@ -39,6 +39,49 @@ const flags = (argv: string[]): Map<string, string | boolean> =>
 const detection = (id: number, extra: Record<string, unknown> = {}) => ({
   id, detection_type: "synthetic-type", state: "active", threat: 70 + id, certainty: 80, ...extra,
 });
+const timeline = {
+  first_timestamp: "2026-10-01T12:00:00Z", last_timestamp: "2026-10-01T12:05:00Z",
+  src_ip: "10.0.0.1", src_host: { id: 7, name: "example.test", ip: "10.0.0.1" },
+  summary: { dst_ips: ["10.0.0.2"], num_sessions: 2 },
+  grouped_details: [{ dst_ips: ["10.0.0.2"], target_domains: ["example.test:443"] }],
+};
+
+it.each(["qux", "rux"])("preserves %s timeline and target details with --full", async (kind) => {
+  const transport: RawTransport = async () => ({ status: 200,
+    bodyText: JSON.stringify(detection(42, timeline)) });
+  const owned = kind === "rux" ? cloudSession(cloudFixture(() => ({ status: 200,
+    bodyText: JSON.stringify(detection(42, timeline)) }))) : session(transport);
+  const shown = await runDetectionShow(owned, flags(["detection", "show", "--id", "42", "--full"]));
+  expect(shown.output).toMatchObject({ id: 42, ...timeline });
+});
+
+it("projects timeline list fields while keeping the default five columns", async () => {
+  const transport: RawTransport = async () => listPage([detection(42, timeline)]);
+  const owned = session(transport);
+  const defaults = await runDetectionList(owned, flags(["detection", "list"]));
+  expect(defaults.output.detections).toEqual([detection(42)]);
+  const projected = await runDetectionList(owned,
+    flags(["detection", "list", "--fields", "id,first_timestamp,src_ip"]));
+  expect(projected.output.detections).toEqual([
+    { id: 42, first_timestamp: timeline.first_timestamp, src_ip: timeline.src_ip },
+  ]);
+});
+
+it("projects show fields and rejects unknown fields before HTTP", async () => {
+  let calls = 0;
+  const transport: RawTransport = async () => {
+    calls += 1;
+    return { status: 200, bodyText: JSON.stringify(detection(42, timeline)) };
+  };
+  const owned = session(transport);
+  const shown = await runDetectionShow(owned,
+    flags(["detection", "show", "--id", "42", "--fields", "id,summary"]));
+  expect(shown.output).toEqual({ profile: "lab", id: 42, summary: timeline.summary });
+  await expect(runDetectionShow(owned,
+    flags(["detection", "show", "--id", "42", "--fields", "bogus"])))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  expect(calls).toBe(1);
+});
 const listPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
   status: 200, bodyText: JSON.stringify({ results: rows, ...extra }),
 });
