@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.8](https://github.com/knowttl/vectra-axi/compare/v0.1.7...v0.1.8) (2026-10-22)
+
+
+### Features
+
+* **cli:** accept the resource id as a positional argument ([#61](https://github.com/knowttl/vectra-axi/issues/61)) ([505809f](https://github.com/knowttl/vectra-axi/commit/505809f0430058a864ef17da6a2c75d14ede3d82))
+* complete bounded traversal for collection lists ([#55](https://github.com/knowttl/vectra-axi/issues/55)) ([97a8563](https://github.com/knowttl/vectra-axi/commit/97a85631c8fb8cf0c1b1a2f19dd18e9922b19acf))
+* **detections:** decode detection timing, source, summary and target fields ([#60](https://github.com/knowttl/vectra-axi/issues/60)) ([a4faa2d](https://github.com/knowttl/vectra-axi/commit/a4faa2d9b88ed6122a7f262fd53878196b312301))
+* **entities:** filter host list by name ([#62](https://github.com/knowttl/vectra-axi/issues/62)) ([cde9099](https://github.com/knowttl/vectra-axi/commit/cde9099918e82cb6b4b0fae2b15240f7d521e8bc))
+
+
+### Bug Fixes
+
+* **cli:** refresh Vectra README and generated command reference ([#59](https://github.com/knowttl/vectra-axi/issues/59)) ([25057e4](https://github.com/knowttl/vectra-axi/commit/25057e4c43b31c021be86e9353655deb8eb9e8df))
+* **cli:** scope command help and repair installed skill guidance ([#58](https://github.com/knowttl/vectra-axi/issues/58)) ([ca01eff](https://github.com/knowttl/vectra-axi/commit/ca01effe2a1723ea0ebf7eb9336788cc39ea88ca))
+
 ## [0.1.7](https://github.com/knowttl/vectra-axi/compare/v0.1.6...v0.1.7) (2026-10-18)
 
 
