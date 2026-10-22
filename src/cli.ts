@@ -19,7 +19,7 @@ import { GROUP_LIST_FIELDS, groupQuery, runGroupList, runGroupMemberList, runGro
 import { catalogue, DESCRIPTION, help, inventory, parseInvocation } from "./catalogue.js";
 import { detectionEventFlags, runDetectionEventList, type LeafResult as DetectionEventLeafResult } from "./detection-events.js";
 import { entityScoringFlags, runEntityScoringList, type LeafResult as EntityScoringLeafResult } from "./entity-scoring.js";
-import { listFields, listLimit, listQuery, runDetectionList, runDetectionShow, showId, type LeafResult } from "./detections.js";
+import { listFields, listLimit, listQuery, runDetectionList, runDetectionShow, showFields, showId, type LeafResult } from "./detections.js";
 import { doctorTargets, runDoctor } from "./doctor.js";
 import { stableHookTarget } from "./hook-target.js";
 import { lockdownKind, runLockdownList, type LeafResult as LockdownLeafResult } from "./lockdown.js";
@@ -323,6 +323,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
       listFields(flags);
     } else {
       showId(flags);
+      showFields(flags);
     }
     const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
     const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);

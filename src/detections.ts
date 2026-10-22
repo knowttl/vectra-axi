@@ -42,7 +42,10 @@ const FILTER_FLAGS = {
   "max-id": "max_id",
 } as const;
 
-export const DETECTION_LIST_FIELDS = ["id", "detection_type", "state", "threat", "certainty"] as const;
+const DEFAULT_LIST_FIELDS = ["id", "detection_type", "state", "threat", "certainty"] as const;
+export const DETECTION_LIST_FIELDS = [...DEFAULT_LIST_FIELDS,
+  "first_timestamp", "last_timestamp", "src_ip", "src_host", "summary", "grouped_details"] as const;
+const DETECTION_SHOW_FIELDS = [...DETECTION_LIST_FIELDS, "description"] as const;
 
 type ListQuery = Record<string, string | number | boolean>;
 
@@ -92,16 +95,23 @@ export const listLimit = collectionLimit;
 
 // Client-side projection over the inventory's field subset. Unknown fields
 // fail explicitly instead of silently returning short rows.
-export function listFields(flags: ReadonlyMap<string, string | boolean>): readonly string[] {
+export function listFields(
+  flags: ReadonlyMap<string, string | boolean>, allowed: readonly string[] = DETECTION_LIST_FIELDS,
+  defaults: readonly string[] = DEFAULT_LIST_FIELDS,
+): readonly string[] {
   const raw = flags.get("fields");
-  if (raw === undefined) return DETECTION_LIST_FIELDS;
+  if (raw === undefined) return defaults;
   const fields = String(raw).split(",").map((field) => field.trim()).filter(Boolean);
-  const unknown = fields.filter((field) => !(DETECTION_LIST_FIELDS as readonly string[]).includes(field));
+  const unknown = fields.filter((field) => !allowed.includes(field));
   if (fields.length === 0 || unknown.length > 0) {
     invalid(`Unknown --fields value: ${unknown.join(", ") || "(empty)"}`,
-      `Supported fields: ${DETECTION_LIST_FIELDS.join(", ")}`);
+      `Supported fields: ${allowed.join(", ")}`);
   }
   return [...new Set(fields)];
+}
+
+export function showFields(flags: ReadonlyMap<string, string | boolean>): readonly string[] {
+  return listFields(flags, DETECTION_SHOW_FIELDS, DETECTION_SHOW_FIELDS);
 }
 
 const detectionSchema = z.object({
@@ -110,6 +120,13 @@ const detectionSchema = z.object({
   state: z.string().nullable().optional(),
   threat: z.number().nullable().optional(),
   certainty: z.number().nullable().optional(),
+  first_timestamp: z.string().nullable().optional(),
+  last_timestamp: z.string().nullable().optional(),
+  src_ip: z.string().nullable().optional(),
+  src_host: z.record(z.string(), z.unknown()).nullable().optional(),
+  summary: z.record(z.string(), z.unknown()).nullable().optional(),
+  // Detection-specific keys include destination IPs and target domains.
+  grouped_details: z.array(z.record(z.string(), z.unknown())).nullable().optional(),
 });
 const detailSchema = detectionSchema.extend({ description: z.string().nullable().optional() });
 
@@ -232,11 +249,14 @@ export async function runDetectionShow(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
   const id = showId(flags);
+  const fields = showFields(flags);
   const full = flags.has("full");
   const rux = session.profile.kind === "rux";
   const { body } = await session.request(
     rux ? RUX_DETECTION_SHOW_OPERATION : DETECTION_SHOW_OPERATION, { pathParams: { id } });
-  const detail = decodeDetection(body, detailSchema);
+  const decoded = decodeDetection(body, detailSchema);
+  const detail = Object.fromEntries(fields.filter((field) => Object.hasOwn(decoded, field))
+    .map((field) => [field, decoded[field as keyof typeof decoded]]));
   const description = detail.description;
   const truncated = !full && typeof description === "string" && description.length > DETECTION_TRUNCATE_AT;
   const summary = embeddedNoteSummary(body);

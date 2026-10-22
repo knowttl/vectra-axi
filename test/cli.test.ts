@@ -127,6 +127,26 @@ it("investigates a detection through the packaged list, show, full and resume co
   ]);
 }, 15_000);
 
+it.each(["qux", "rux"])("renders %s detection timing and targets through the packaged CLI", (kind) => {
+  const config = join(scratch, `timeline-${kind}.json`);
+  writeFileSync(config, JSON.stringify({ profiles: { lab: kind === "qux"
+    ? { kind, origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" }
+    : { kind, origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth",
+      clientId: "synthetic-client", secretEnv: "CLOUD_SECRET" } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", CLOUD_SECRET: "synthetic-secret",
+    DETECTION_TRACE: join(scratch, `timeline-${kind}.jsonl`),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const shown = invoke(["detection", "show", "--config", config, "--profile", "lab", "--id", "42", "--full"], fixtureEnv);
+  expect(shown.status).toBe(0);
+  expect(decode(shown.stdout)).toMatchObject({ id: 42, first_timestamp: "2026-10-01T12:00:00Z",
+    last_timestamp: "2026-10-01T12:05:00Z", src_ip: "10.0.0.1",
+    src_host: { name: "example.test" }, summary: { dst_ips: ["10.0.0.2"] },
+    grouped_details: [{ dst_ips: ["10.0.0.2"], target_domains: ["example.test:443"] }] });
+  const rejected = invoke(["api", "get", "--operation", `${kind}.detection.show`, "--path", "id=42", "--fields", "bogus"]);
+  expect(rejected.status).toBe(2);
+  expect(rejected.stdout).toContain("first_timestamp, last_timestamp, src_ip, src_host, summary, grouped_details");
+});
+
 it("reads allowlisted operations through the packaged api get command", () => {
   const config = join(scratch, "api-get.json");
   const trace = join(scratch, "api-get-requests.jsonl");

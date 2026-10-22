@@ -8,6 +8,11 @@ import { PassThrough } from "node:stream";
 
 const first = { id: 1, detection_type: "synthetic-type", state: "active", threat: null, certainty: 80 };
 const second = { ...first, id: 2, threat: 72 };
+const timeline42 = { ...first, id: 42, first_timestamp: "2026-10-01T12:00:00Z",
+  last_timestamp: "2026-10-01T12:05:00Z", src_ip: "10.0.0.1",
+  src_host: { id: 7, name: "example.test", ip: "10.0.0.1" },
+  summary: { dst_ips: ["10.0.0.2"] },
+  grouped_details: [{ dst_ips: ["10.0.0.2"], target_domains: ["example.test:443"] }] };
 const host7 = { id: 7, name: "synthetic-host-7", state: "active", threat: 90, certainty: 80 };
 const account7 = { id: 7, name: "synthetic-account-7", state: "active", threat: 10, certainty: 20 };
 const openAssignment = { id: 11, host_id: 7, account_id: null, date_resolved: null };
@@ -39,6 +44,8 @@ const responses = new Map<string, { status: number; body: unknown }>([
   [next, { status: 200, body: { results: [second], count: 2, next: null } }],
   ["https://fixture.invalid/api/v2.5/detections/1",
     { status: 200, body: { ...first, description: "synthetic detail ".repeat(100) } }],
+  ["https://fixture.invalid/api/v2.5/detections/42", { status: 200, body: timeline42 }],
+  ["https://fixture.invalid/api/v3.4/detections/42/", { status: 200, body: timeline42 }],
   ["https://fixture.invalid/api/v2.5/detections?state=empty",
     { status: 200, body: { results: [], count: 0 } }],
   ["https://fixture.invalid/api/v2.5/detections?state=denied", { status: 403, body: {} }],

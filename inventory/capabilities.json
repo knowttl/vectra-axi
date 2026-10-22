@@ -82,7 +82,13 @@
         "detection_type",
         "state",
         "threat",
-        "certainty"
+        "certainty",
+        "first_timestamp",
+        "last_timestamp",
+        "src_ip",
+        "src_host",
+        "summary",
+        "grouped_details"
       ],
       "paging": "collection",
       "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
@@ -90,7 +96,7 @@
       "evidence": [
         {
           "source": "qux-guide",
-          "locator": "pp18-23; fields p19 and query table p22"
+          "locator": "pp18-23; timing/source p19, src_host/summary/grouped_details p20; target_domains/dst_ips in Appendix A pp83-86; query table p22"
         }
       ],
       "disposition": "named",
@@ -122,7 +128,13 @@
         "state",
         "description",
         "threat",
-        "certainty"
+        "certainty",
+        "first_timestamp",
+        "last_timestamp",
+        "src_ip",
+        "src_host",
+        "summary",
+        "grouped_details"
       ],
       "paging": "none",
       "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
@@ -130,7 +142,7 @@
       "evidence": [
         {
           "source": "qux-guide",
-          "locator": "pp18-23; Appendix A Detections"
+          "locator": "pp18-23; timing/source p19, src_host/summary/grouped_details p20; target_domains/dst_ips in Appendix A Detections pp83-86"
         }
       ],
       "disposition": "named",
@@ -2087,7 +2099,13 @@
         "detection_type",
         "state",
         "threat",
-        "certainty"
+        "certainty",
+        "first_timestamp",
+        "last_timestamp",
+        "src_ip",
+        "src_host",
+        "summary",
+        "grouped_details"
       ],
       "paging": "collection",
       "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
@@ -2095,7 +2113,7 @@
       "evidence": [
         {
           "source": "rux-spec",
-          "locator": "GET /api/v3.4/detections/; DetectionSerializerV3_4"
+          "locator": "GET /api/v3.4/detections/; DetectionSerializerV3_4 first_timestamp, last_timestamp, src_ip, src_host (HostDetection), summary (SummaryDetection), grouped_details (detection-specific objects); no top-level targets field"
         }
       ],
       "disposition": "named",
@@ -2127,7 +2145,13 @@
         "state",
         "description",
         "threat",
-        "certainty"
+        "certainty",
+        "first_timestamp",
+        "last_timestamp",
+        "src_ip",
+        "src_host",
+        "summary",
+        "grouped_details"
       ],
       "paging": "none",
       "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
@@ -2135,7 +2159,7 @@
       "evidence": [
         {
           "source": "rux-spec",
-          "locator": "GET /api/v3.4/detections/{id}/"
+          "locator": "GET /api/v3.4/detections/{id}/; DetectionSerializerV3_4 first_timestamp, last_timestamp, src_ip, src_host (HostDetection), summary (SummaryDetection), grouped_details (detection-specific objects); no top-level targets field"
         }
       ],
       "disposition": "named",
