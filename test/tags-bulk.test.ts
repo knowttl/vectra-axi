@@ -79,8 +79,11 @@ function bulkTransport(state: Map<number, string[]>, seen: Seen[], overrides?: {
 }): RawTransport {
   const reads = new Map<string, number>();
   return async (request) => {
+    if (request.url === "https://fixture.invalid/oauth2/token") {
+      return { status: 200, bodyText: JSON.stringify({ access_token: "synthetic-access", token_type: "Bearer", expires_in: 3600 }) };
+    }
     seen.push({ method: request.method, url: request.url, ...(request.body ? { body: request.body } : {}) });
-    const id = Number(request.url.split("/").pop());
+    const id = Number(request.url.split("/").filter(Boolean).pop());
     if (request.method === "GET") {
       const count = (reads.get(request.url) ?? 0) + 1;
       reads.set(request.url, count);
@@ -393,17 +396,64 @@ it("refuses bulk operations outside the configured scope", async () => {
   expect(seen.some((call) => call.method === "PATCH")).toBe(false);
 });
 
-it("refuses bulk tags on a RUX profile before any HTTP call", async () => {
+it.each([
+  ["host", "bulk-set", ["existing"], ["existing", "reviewed"]],
+  ["host", "bulk-delete", ["reviewed", "existing"], ["existing"]],
+  ["account", "bulk-set", ["existing"], ["existing", "reviewed"]],
+  ["account", "bulk-delete", ["reviewed", "existing"], ["existing"]],
+  ["detection", "bulk-set", ["existing"], ["existing", "reviewed"]],
+  ["detection", "bulk-delete", ["reviewed", "existing"], ["existing"]],
+] as const)("fans out RUX %s %s through per-target PATCH", async (kind, action, current, desired) => {
   const seen: Seen[] = [];
   const profile = selected({ kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4",
     auth: "oauth", clientId: "synthetic-client", secretEnv: "SENTINEL_TOKEN",
-    writes: { allowWrites: true, operations: ["qux.host.tag.bulk-set"] } });
-  const { run } = harness({ profile, transport: bulkTransport(new Map([[7, ["a"]]]), seen) });
-  await expect(run(["host", "tag", "bulk-set", "--ids", "7", "--tags", "b",
-    "--execute", "--confirm", "1 target: host 7"], "host", "bulk-set"))
-    .rejects.toMatchObject({ code: "OPERATION_BLOCKED",
-      message: expect.stringContaining("no evidenced tag write route") });
-  expect(seen).toEqual([]);
+    writes: { allowWrites: true, operations: [`rux.${kind}.tag.${action}`] } });
+  const state = new Map([[7, [...current]], [8, [...current]]]);
+  const { run } = harness({ profile, transport: bulkTransport(state, seen) });
+  const argv = [kind, "tag", action, "--ids", "7,8", "--tags", "reviewed"];
+  expect((await run(argv, kind, action)).failed).toBe(false);
+  expect(seen.every((call) => call.method === "GET")).toBe(true);
+  expect((await run([...argv, "--execute", "--confirm", `2 targets: ${kind} 7, ${kind} 8`], kind, action)).failed).toBe(false);
+  expect(seen.filter((call) => call.method === "PATCH")).toEqual([
+    { method: "PATCH", url: `https://fixture.invalid/api/v3.4/tagging/${kind}/7/`, body: JSON.stringify({ tags: desired }) },
+    { method: "PATCH", url: `https://fixture.invalid/api/v3.4/tagging/${kind}/8/`, body: JSON.stringify({ tags: desired }) },
+  ]);
+  seen.length = 0;
+  expect((await run([...argv, "--execute", "--confirm", `2 targets: ${kind} 7, ${kind} 8`], kind, action)).failed).toBe(false);
+  expect(seen.every((call) => call.method === "GET")).toBe(true);
+});
+
+const ruxProfile = { kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4",
+  auth: "oauth", clientId: "synthetic-client", secretEnv: "SENTINEL_TOKEN",
+  writes: { allowWrites: true, operations: ["rux.host.tag.bulk-set"] } };
+
+it.each([
+  ["without opt-in", { ...ruxProfile, writes: undefined }, undefined, [], "WRITES_DISABLED"],
+  ["forced read-only", ruxProfile, "1", [], "WRITES_DISABLED"],
+  ["outside the allowlist", { ...ruxProfile, writes: { allowWrites: true, operations: ["rux.host.tag.set"] } }, undefined, [], "OPERATION_NOT_WRITABLE"],
+  ["without confirmation", ruxProfile, undefined, [], "CONFIRM_REQUIRED"],
+  ["with a different confirmation", ruxProfile, undefined, ["--confirm", "1 target: host 8"], "CONFIRM_MISMATCH"],
+] as const)("refuses RUX bulk tags %s", async (_name, profile, readOnly, confirm, code) => {
+  vi.stubEnv("VECTRA_AXI_READ_ONLY", readOnly);
+  const seen: Seen[] = [];
+  const { run } = harness({ profile: selected(profile), transport: bulkTransport(new Map(), seen) });
+  await expect(run(["host", "tag", "bulk-set", "--ids", "7", "--tags", "reviewed", "--execute", ...confirm], "host", "bulk-set"))
+    .rejects.toMatchObject({ code });
+  expect(seen.some((call) => call.method === "PATCH")).toBe(false);
+});
+
+it.each([
+  ["server rejection", { patchStatus: new Map([[7, 403]]) }, "FAILED"],
+  ["timeout", { patchThrows: new Map([[7, new Error("socket timed out")]]) }, "OUTCOME_UNKNOWN"],
+])("journals RUX bulk %s without replay", async (_name, overrides, outcome) => {
+  const seen: Seen[] = [];
+  const { run } = harness({ profile: selected(ruxProfile), transport: bulkTransport(new Map(), seen, overrides) });
+  expect((await run(["host", "tag", "bulk-set", "--ids", "7", "--tags", "reviewed",
+    "--execute", "--confirm", "1 target: host 7"], "host", "bulk-set")).failed).toBe(true);
+  expect(seen.filter((call) => call.method === "PATCH")).toHaveLength(1);
+  expect(auditLines().map((line) => line.kind)).toEqual(["intent", "outcome"]);
+  expect(auditLines().at(-1)).toMatchObject({ outcome });
+  expect(readFileSync(auditPath, "utf8")).not.toContain("reviewed");
 });
 
 it.each([
