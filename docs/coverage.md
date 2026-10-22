@@ -11,7 +11,7 @@ there is no unrestricted passthrough.
 
 ## Counts
 
-- named: 126
+- named: 130
 - implemented: 2
 - reviewed-raw: 0
 - planned: 2
@@ -156,6 +156,10 @@ there is no unrestricted passthrough.
 | `qux.aws-credentials.export` | - | excluded | qux 2.5 | none | blocked | blocked |
 | `rux.entity.note.list` | entity note list | RUX-04 | rux 3.4 | none | planned | planned |
 | `rux.entity.tag.list` | entity tag list | RUX-04 | rux 3.4 | none | planned | planned |
+| `qux.host.close` | host close | WRITE-ENTITY-CLOSE | qux 2.5 | none | named | named |
+| `qux.account.close` | account close | WRITE-ENTITY-CLOSE | qux 2.5 | none | named | named |
+| `rux.host.close` | host close | WRITE-ENTITY-CLOSE | rux 3.4 | none | named | named |
+| `rux.account.close` | account close | WRITE-ENTITY-CLOSE | rux 3.4 | none | named | named |
 
 ## Deferred families
 
@@ -183,11 +187,9 @@ there is no unrestricted passthrough.
 - `qux.later.outcome-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `qux.later.group-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `qux.later.triage-rule-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
-- `qux.later.entity-close` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `rux.later.note-writes` (rux 3.4, planned): Per-object note append is a named WRITE-02 operation (rux.{detection,host,account}.note.add); per-note edit and delete are named WRITE-N (2a) operations (rux.{detection,host,account}.note.{edit,delete}). Bulk note creation stays planned with no authorized route.
 - `rux.later.tag-writes` (rux 3.4, planned): Per-object tag replace and bulk set/delete are named operations for detections, hosts and accounts, sequencing per-target PATCH replaces. Native bulk routes and the entity facade remain outside the named surface. No additional route is authorized by this family entry.
 - `rux.later.assignment-writes` (rux 3.4, planned): Assignment create/reassign/unassign ship through the WRITE-00 coordinator under assignment set. Assignment resolve remains planned; no additional route is authorized by this family entry.
 - `rux.later.outcome-writes` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `rux.later.group-writes` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `rux.later.triage-rule-writes` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
-- `rux.later.entity-close` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.

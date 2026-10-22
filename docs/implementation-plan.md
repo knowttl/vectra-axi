@@ -271,7 +271,10 @@ Detection state is re-read before sending; this client-side comparison is not at
 Host key-asset ships as WRITE-08 on QUX v2.5 and RUX v3.4 through the unchanged WRITE-00 coordinator.
 Its [offline acceptance suite](../test/host-key-asset.test.ts) covers explicit host targets, desired-state payloads, no-ops, changed current state, exact target confirmation, policy refusal, server rejection and ambiguous outcomes without replay.
 Host `key_asset` is re-read before sending; this client-side comparison is not atomic.
-Closing/reopening detections, resolving assignments and changing triage rules remain distinct operations.
+Host/account close ships as a disruptive action through WRITE-00, with exact entity confirmation and a bounded active detection preview.
+It refuses a changed active detection set on the pre-send re-read; no atomic upstream concurrency contract or single inverse is evidenced.
+The operation remains off unless the profile explicitly allowlists its close operation.
+Closing/reopening detections, resolving assignments and changing triage rules must remain distinct operations.
 If safe concurrency is unavailable for a high-impact operation, document the limitation and keep that operation disabled until its policy is deliberately resolved.
 Do not promise rollback for actions without a reliable inverse.
 

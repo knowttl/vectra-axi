@@ -173,6 +173,11 @@ Bulk confirmation names the complete normalized target set, for example `--execu
   Close requires `--reason remediated|benign`; reopening restores scoring.
   Single-target confirmation is `detection <id>`; bulk confirmation names the complete normalized set.
   Both support QUX release 9.3 or later and RUX v3.4, re-read detection state before sending, and skip an already desired state.
+- `host close` and `account close` require `--id` and `--reason remediated|benign`, with confirmation such as `--confirm 'host 7'`.
+  These disruptive operations close every active detection on the entity and have no single inverse.
+  The preview counts active detections by reading at most 100 entries from the entity's `detection_set`; larger sets are refused.
+  A changed active detection set on the pre-send re-read is refused; this check is not atomic with the mutation.
+  QUX requires release 9.3 or later when `applianceRelease` is declared; undeclared releases are left to the server.
 
 - `host key-asset set` requires `--id` and `--value true|false`, with confirmation `host <id>`.
   QUX and RUX re-read `key_asset` before sending and skip an already desired state.
@@ -346,8 +351,8 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `profile` | `profile list` | Local |
 | `config` | `config path` | Local |
 | `detection` | `detection list`, `detection show`, `detection event list`, `detection close`, `detection open`, `detection note list`, `detection tag list`, `detection tag set`, `detection tag bulk-set`, `detection tag bulk-delete`, `detection note add`, `detection note edit`, `detection note delete` | QUX, RUX |
-| `host` | `host list`, `host show`, `host key-asset set`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
-| `account` | `account list`, `account show`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
+| `host` | `host list`, `host show`, `host key-asset set`, `host close`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
+| `account` | `account list`, `account show`, `account close`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
 | `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |
 | `assignment` | `assignment list`, `assignment set`, `assignment outcome list`, `assignment outcome show` | QUX, RUX |
 | `user` | `user list`, `user show` | QUX, RUX |

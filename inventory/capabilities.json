@@ -5122,6 +5122,154 @@
         "type-required",
         "access-denied"
       ]
+    },
+    {
+      "id": "qux.host.close",
+      "command": "host close",
+      "slice": "WRITE-ENTITY-CLOSE",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": "9.3",
+      "constraints": "Closes all active detections on the entity with no single inverse. Preview reads at most 100 detection_set entries through detection show; larger or malformed sets are refused. Active detection changes on the pre-send re-read are refused. No atomic server-side version check is evidenced.",
+      "method": "PATCH",
+      "path": "/api/v2.5/hosts/{id}/close",
+      "effect": "disruptive",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Entity close permission and local per-profile write operation opt-in required.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Close host: pp7,33,98; release 9.3 p2; detection_set in entity detail"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Host/account close through the unchanged WRITE-00 coordinator with exact entity confirmation and bounded active detection preview.",
+      "fixtureCases": [
+        "success",
+        "preview",
+        "access-denied",
+        "malformed-response",
+        "release-gate",
+        "confirmation",
+        "write-scope",
+        "server-reject",
+        "timeout",
+        "concurrent-change"
+      ]
+    },
+    {
+      "id": "qux.account.close",
+      "command": "account close",
+      "slice": "WRITE-ENTITY-CLOSE",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": "9.3",
+      "constraints": "Closes all active detections on the entity with no single inverse. Preview reads at most 100 detection_set entries through detection show; larger or malformed sets are refused. Active detection changes on the pre-send re-read are refused. No atomic server-side version check is evidenced.",
+      "method": "PATCH",
+      "path": "/api/v2.5/accounts/{id}/close",
+      "effect": "disruptive",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Entity close permission and local per-profile write operation opt-in required.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Close account: pp7,27,94; release 9.3 p2; detection_set in entity detail"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Host/account close through the unchanged WRITE-00 coordinator with exact entity confirmation and bounded active detection preview.",
+      "fixtureCases": [
+        "success",
+        "preview",
+        "access-denied",
+        "malformed-response",
+        "release-gate",
+        "confirmation",
+        "write-scope",
+        "server-reject",
+        "timeout",
+        "concurrent-change"
+      ]
+    },
+    {
+      "id": "rux.host.close",
+      "command": "host close",
+      "slice": "WRITE-ENTITY-CLOSE",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Closes all active detections on the entity with no single inverse. Preview reads at most 100 detection_set entries through detection show; larger or malformed sets are refused. Active detection changes on the pre-send re-read are refused. No atomic server-side version check is evidenced.",
+      "method": "PATCH",
+      "path": "/api/v3.4/hosts/{id}/close/",
+      "effect": "disruptive",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Entity close permission and local per-profile write operation opt-in required.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "PATCH /api/v3.4/hosts/{id}/close/; HostSerializerV3_4 detection_set"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Host/account close through the unchanged WRITE-00 coordinator with exact entity confirmation and bounded active detection preview.",
+      "fixtureCases": [
+        "success",
+        "preview",
+        "access-denied",
+        "malformed-response",
+        "release-gate",
+        "confirmation",
+        "write-scope",
+        "server-reject",
+        "timeout",
+        "concurrent-change"
+      ]
+    },
+    {
+      "id": "rux.account.close",
+      "command": "account close",
+      "slice": "WRITE-ENTITY-CLOSE",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Closes all active detections on the entity with no single inverse. Preview reads at most 100 detection_set entries through detection show; larger or malformed sets are refused. Active detection changes on the pre-send re-read are refused. No atomic server-side version check is evidenced.",
+      "method": "PATCH",
+      "path": "/api/v3.4/accounts/{id}/close",
+      "effect": "disruptive",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Entity close permission and local per-profile write operation opt-in required.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "PATCH /api/v3.4/accounts/{id}/close; AccountSerializerV3_4 detection_set"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Host/account close through the unchanged WRITE-00 coordinator with exact entity confirmation and bounded active detection preview.",
+      "fixtureCases": [
+        "success",
+        "preview",
+        "access-denied",
+        "malformed-response",
+        "release-gate",
+        "confirmation",
+        "write-scope",
+        "server-reject",
+        "timeout",
+        "concurrent-change"
+      ]
     }
   ],
   "deferredFamilies": [
@@ -5438,19 +5586,6 @@
       ]
     },
     {
-      "id": "qux.later.entity-close",
-      "deployment": "qux",
-      "apiVersion": "2.5",
-      "disposition": "planned",
-      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
-      "evidence": [
-        {
-          "source": "qux-guide",
-          "locator": "Endpoint overview pp7-8; notes in resource sections"
-        }
-      ]
-    },
-    {
       "id": "rux.later.note-writes",
       "deployment": "rux",
       "apiVersion": "3.4",
@@ -5517,19 +5652,6 @@
     },
     {
       "id": "rux.later.triage-rule-writes",
-      "deployment": "rux",
-      "apiVersion": "3.4",
-      "disposition": "planned",
-      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
-      "evidence": [
-        {
-          "source": "rux-spec",
-          "locator": "v3.4 mutation methods in corresponding domain paths"
-        }
-      ]
-    },
-    {
-      "id": "rux.later.entity-close",
       "deployment": "rux",
       "apiVersion": "3.4",
       "disposition": "planned",
