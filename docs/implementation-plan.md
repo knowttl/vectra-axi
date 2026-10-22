@@ -37,7 +37,7 @@ Recheck cited upstream contracts when implementing; record deployment/API/applia
 | WRITE-00 | Mutation coordinator, fixture-only enablement | PACK-01 | Forced read-only, hand opt-in, original configured scope, preview/execute/confirm, durable intent/outcome, no ambiguous replay. |
 | WRITE-01 | Detection/host/account desired-state tag replace | WRITE-00, READ-03 | Exact desired set, file/stdin inputs, dry-run diff, no-op, pre-send state comparison, exact target confirmation, permission and audit tests. |
 | WRITE-02 | Detection/host/account action-shaped note append | WRITE-00, READ-03 | Exact appended note, file/stdin inputs, action preview, exact target confirmation, unknown-outcome no-replay, permission and audit tests. |
-| WRITE-03 | QUX host/account desired-state assignment | WRITE-00, READ-04 | Assign/reassign/unassign previews, exact user validation, no-op, pre-send state comparison, malformed-row refusal, exact target confirmation, policy and audit tests. |
+| WRITE-03 | QUX/RUX host/account desired-state assignment | WRITE-00, READ-04, RUX-04 | Assign/reassign/unassign previews, exact user validation, no-op, pre-send state comparison, malformed-row refusal, exact target confirmation, policy and audit tests. |
 | WRITE-05 | Detection/host/account bulk tag set/delete | WRITE-00, READ-03 | Explicit bounded target list, per-target dry-run diffs, no-op detection, pre-send re-read per target, count-and-set confirmation, per-target audit, partial-failure reporting, unknown-outcome no-replay, permission and audit tests. |
 | WRITE-N | Remaining separately approved mutation families | WRITE-00, corresponding reads | One reviewed family per change; concurrency evidence, unknown outcome, audit failure and disruptive-confirmation cases. |
 
@@ -249,7 +249,7 @@ All acceptance uses synthetic fixtures; no live instance, real credentials or cu
 See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 Triage rules and group membership writes are not approved.
 
-WRITE-03 selects desired-state QUX host and account assignment, built on READ-04 and WRITE-00.
+WRITE-03 selects desired-state QUX/RUX host and account assignment, built on READ-04/RUX-04 assignment reads and WRITE-00.
 Detection assignment is outside this approved slice; see [README.md](../README.md) for the upstream limitation.
 Its [offline acceptance suite](../test/assignment-set.test.ts) covers assign/reassign/unassign, exact user validation, no-ops, changed current state, duplicate open assignments across pages, omitted assignee or entity identity on both entity paths, confirmation, policy refusal, audit records, server rejection and unknown outcomes without replay.
 The [packaged CLI journey](../test/cli.test.ts) exercises preview, confirmation and execution through synthetic profiles and transport fixtures.
