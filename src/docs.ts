@@ -106,7 +106,7 @@ export function coverageDocument(): string {
     "",
     "# vectra-axi coverage",
     "",
-    "This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, assignment-write and note edit/delete families, not full Vectra API coverage.",
+    "This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, assignment-write and note edit/delete families plus QUX-only note-append, not full Vectra API coverage.",
     "Only `named` operations have an implemented, tested command leaf.",
     "The `implemented` disposition records tested internal OAuth exchanges with no command leaf;",
     "other operations remain planned, blocked or unreviewed until their own slices ship.",
