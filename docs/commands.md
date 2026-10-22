@@ -257,13 +257,16 @@ Show one QUX v2.5 or RUX v3.4 detection's scores, timing, source, description, s
     "--fields <list>": "Comma-separated projection over id,detection_type,state,threat,certainty,description,first_timestamp,last_timestamp,src_ip,src_host,summary,grouped_details",
     "--full": "Show the complete description; default previews long text"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi detection show --profile <name> --id 42",
-    "vectra-axi detection show --profile <name> --id 42 --full"
+    "vectra-axi detection show --profile <name> 42",
+    "vectra-axi detection show --profile <name> 42 --full"
   ]
 }
 ```
@@ -360,12 +363,15 @@ Show one host's ID, name, state, threat and certainty on QUX v2.5 or RUX v3.4
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
     "--id <id>": "Host ID to show (positive integer, required)"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi host show --profile <name> --id 19"
+    "vectra-axi host show --profile <name> 19"
   ]
 }
 ```
@@ -427,12 +433,15 @@ Show one account on QUX v2.5 or RUX v3.4 in full detail
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
     "--id <id>": "Account ID to show (positive integer, required)"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi account show --profile <name> --id 19"
+    "vectra-axi account show --profile <name> 19"
   ]
 }
 ```
@@ -495,12 +504,15 @@ Show one entity of one kind on QUX v2.5 or RUX v3.4 in full detail
     "--type <kind>": "Entity kind to show: host or account (required)",
     "--id <id>": "Entity ID to show (positive integer, required)"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi entity show --profile <name> --type host --id 19"
+    "vectra-axi entity show --profile <name> --type host 19"
   ]
 }
 ```
@@ -562,13 +574,16 @@ QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all
     "--id <id>": "Detection ID whose notes to list (positive integer, required)",
     "--full": "Show complete returned note text; default previews long notes"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi detection note list --profile <name> --id 42",
-    "vectra-axi detection note list --profile <name> --id 42 --full"
+    "vectra-axi detection note list --profile <name> 42",
+    "vectra-axi detection note list --profile <name> 42 --full"
   ]
 }
 ```
@@ -593,12 +608,15 @@ QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
     "--id <id>": "Detection ID whose tags to list (positive integer, required)"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi detection tag list --profile <name> --id 42"
+    "vectra-axi detection tag list --profile <name> 42"
   ]
 }
 ```
@@ -624,13 +642,16 @@ Replace QUX detection tags with the exact desired set through the gated write pi
     "--execute": "Send the replace after the preview; default shows the dry run",
     "--dry-run": "Show the preview without sending; cannot be combined with --execute"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi detection tag set --profile <name> --id 42 --tags a,b",
-    "vectra-axi detection tag set --profile <name> --id 42 --tags a,b --execute --confirm 'detection 42'"
+    "vectra-axi detection tag set --profile <name> 42 --tags a,b",
+    "vectra-axi detection tag set --profile <name> 42 --tags a,b --execute --confirm 'detection 42'"
   ]
 }
 ```
@@ -722,13 +743,16 @@ Append one QUX detection note through the gated write pipeline
     "--execute": "Send the append after the preview; default shows the dry run",
     "--dry-run": "Show the preview without sending; cannot be combined with --execute"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi detection note add --profile <name> --id 42 --note <text>",
-    "vectra-axi detection note add --profile <name> --id 42 --note <text> --execute --confirm 'detection 42'"
+    "vectra-axi detection note add --profile <name> 42 --note <text>",
+    "vectra-axi detection note add --profile <name> 42 --note <text> --execute --confirm 'detection 42'"
   ]
 }
 ```
@@ -756,13 +780,16 @@ Replace one detection note's text through the gated write pipeline
     "--execute": "Send the edit after the preview; default shows the dry run",
     "--dry-run": "Show the preview without sending; cannot be combined with --execute"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi detection note edit --profile <name> --id 42 --note-id 7 --note <text>",
-    "vectra-axi detection note edit --profile <name> --id 42 --note-id 7 --note <text> --execute --confirm 'detection 42 note 7'"
+    "vectra-axi detection note edit --profile <name> 42 --note-id 7 --note <text>",
+    "vectra-axi detection note edit --profile <name> 42 --note-id 7 --note <text> --execute --confirm 'detection 42 note 7'"
   ]
 }
 ```
@@ -788,13 +815,16 @@ Delete one detection note through the gated write pipeline
     "--execute": "Send the delete after the preview; default shows the dry run",
     "--dry-run": "Show the preview without sending; cannot be combined with --execute"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi detection note delete --profile <name> --id 42 --note-id 7",
-    "vectra-axi detection note delete --profile <name> --id 42 --note-id 7 --execute --confirm 'detection 42 note 7'"
+    "vectra-axi detection note delete --profile <name> 42 --note-id 7",
+    "vectra-axi detection note delete --profile <name> 42 --note-id 7 --execute --confirm 'detection 42 note 7'"
   ]
 }
 ```
@@ -820,13 +850,16 @@ QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all
     "--id <id>": "Host ID whose notes to list (positive integer, required)",
     "--full": "Show complete returned note text; default previews long notes"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi host note list --profile <name> --id 19",
-    "vectra-axi host note list --profile <name> --id 19 --full"
+    "vectra-axi host note list --profile <name> 19",
+    "vectra-axi host note list --profile <name> 19 --full"
   ]
 }
 ```
@@ -851,12 +884,15 @@ QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
     "--id <id>": "Host ID whose tags to list (positive integer, required)"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi host tag list --profile <name> --id 19"
+    "vectra-axi host tag list --profile <name> 19"
   ]
 }
 ```
@@ -882,13 +918,16 @@ Replace QUX host tags with the exact desired set through the gated write pipelin
     "--execute": "Send the replace after the preview; default shows the dry run",
     "--dry-run": "Show the preview without sending; cannot be combined with --execute"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi host tag set --profile <name> --id 19 --tags a,b",
-    "vectra-axi host tag set --profile <name> --id 19 --tags a,b --execute --confirm 'host 19'"
+    "vectra-axi host tag set --profile <name> 19 --tags a,b",
+    "vectra-axi host tag set --profile <name> 19 --tags a,b --execute --confirm 'host 19'"
   ]
 }
 ```
@@ -980,13 +1019,16 @@ Append one QUX host note through the gated write pipeline
     "--execute": "Send the append after the preview; default shows the dry run",
     "--dry-run": "Show the preview without sending; cannot be combined with --execute"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi host note add --profile <name> --id 19 --note <text>",
-    "vectra-axi host note add --profile <name> --id 19 --note <text> --execute --confirm 'host 19'"
+    "vectra-axi host note add --profile <name> 19 --note <text>",
+    "vectra-axi host note add --profile <name> 19 --note <text> --execute --confirm 'host 19'"
   ]
 }
 ```
@@ -1014,13 +1056,16 @@ Replace one host note's text through the gated write pipeline
     "--execute": "Send the edit after the preview; default shows the dry run",
     "--dry-run": "Show the preview without sending; cannot be combined with --execute"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi host note edit --profile <name> --id 19 --note-id 7 --note <text>",
-    "vectra-axi host note edit --profile <name> --id 19 --note-id 7 --note <text> --execute --confirm 'host 19 note 7'"
+    "vectra-axi host note edit --profile <name> 19 --note-id 7 --note <text>",
+    "vectra-axi host note edit --profile <name> 19 --note-id 7 --note <text> --execute --confirm 'host 19 note 7'"
   ]
 }
 ```
@@ -1046,13 +1091,16 @@ Delete one host note through the gated write pipeline
     "--execute": "Send the delete after the preview; default shows the dry run",
     "--dry-run": "Show the preview without sending; cannot be combined with --execute"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi host note delete --profile <name> --id 19 --note-id 7",
-    "vectra-axi host note delete --profile <name> --id 19 --note-id 7 --execute --confirm 'host 19 note 7'"
+    "vectra-axi host note delete --profile <name> 19 --note-id 7",
+    "vectra-axi host note delete --profile <name> 19 --note-id 7 --execute --confirm 'host 19 note 7'"
   ]
 }
 ```
@@ -1078,13 +1126,16 @@ QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all
     "--id <id>": "Account ID whose notes to list (positive integer, required)",
     "--full": "Show complete returned note text; default previews long notes"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi account note list --profile <name> --id 19",
-    "vectra-axi account note list --profile <name> --id 19 --full"
+    "vectra-axi account note list --profile <name> 19",
+    "vectra-axi account note list --profile <name> 19 --full"
   ]
 }
 ```
@@ -1109,12 +1160,15 @@ QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
     "--id <id>": "Account ID whose tags to list (positive integer, required)"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi account tag list --profile <name> --id 19"
+    "vectra-axi account tag list --profile <name> 19"
   ]
 }
 ```
@@ -1140,13 +1194,16 @@ Replace QUX account tags with the exact desired set through the gated write pipe
     "--execute": "Send the replace after the preview; default shows the dry run",
     "--dry-run": "Show the preview without sending; cannot be combined with --execute"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi account tag set --profile <name> --id 19 --tags a,b",
-    "vectra-axi account tag set --profile <name> --id 19 --tags a,b --execute --confirm 'account 19'"
+    "vectra-axi account tag set --profile <name> 19 --tags a,b",
+    "vectra-axi account tag set --profile <name> 19 --tags a,b --execute --confirm 'account 19'"
   ]
 }
 ```
@@ -1238,13 +1295,16 @@ Append one QUX account note through the gated write pipeline
     "--execute": "Send the append after the preview; default shows the dry run",
     "--dry-run": "Show the preview without sending; cannot be combined with --execute"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi account note add --profile <name> --id 19 --note <text>",
-    "vectra-axi account note add --profile <name> --id 19 --note <text> --execute --confirm 'account 19'"
+    "vectra-axi account note add --profile <name> 19 --note <text>",
+    "vectra-axi account note add --profile <name> 19 --note <text> --execute --confirm 'account 19'"
   ]
 }
 ```
@@ -1272,13 +1332,16 @@ Replace one account note's text through the gated write pipeline
     "--execute": "Send the edit after the preview; default shows the dry run",
     "--dry-run": "Show the preview without sending; cannot be combined with --execute"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi account note edit --profile <name> --id 19 --note-id 7 --note <text>",
-    "vectra-axi account note edit --profile <name> --id 19 --note-id 7 --note <text> --execute --confirm 'account 19 note 7'"
+    "vectra-axi account note edit --profile <name> 19 --note-id 7 --note <text>",
+    "vectra-axi account note edit --profile <name> 19 --note-id 7 --note <text> --execute --confirm 'account 19 note 7'"
   ]
 }
 ```
@@ -1304,13 +1367,16 @@ Delete one account note through the gated write pipeline
     "--execute": "Send the delete after the preview; default shows the dry run",
     "--dry-run": "Show the preview without sending; cannot be combined with --execute"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi account note delete --profile <name> --id 19 --note-id 7",
-    "vectra-axi account note delete --profile <name> --id 19 --note-id 7 --execute --confirm 'account 19 note 7'"
+    "vectra-axi account note delete --profile <name> 19 --note-id 7",
+    "vectra-axi account note delete --profile <name> 19 --note-id 7 --execute --confirm 'account 19 note 7'"
   ]
 }
 ```
@@ -1446,12 +1512,15 @@ Show one QUX or RUX assignment outcome in full detail
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
     "--id <id>": "Outcome ID to show (positive integer, required)"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi assignment outcome show --profile <name> --id 1"
+    "vectra-axi assignment outcome show --profile <name> 1"
   ]
 }
 ```
@@ -1509,12 +1578,15 @@ Show one QUX or RUX user in full detail
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
     "--id <id>": "User ID to show (positive integer, required)"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi user show --profile <name> --id 3"
+    "vectra-axi user show --profile <name> 3"
   ]
 }
 ```
@@ -1611,12 +1683,15 @@ Show one group on QUX v2.5 or RUX v3.4 in full detail
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
     "--id <id>": "Group ID to show (positive integer, required)"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi group show --profile <name> --id 8"
+    "vectra-axi group show --profile <name> 8"
   ]
 }
 ```
@@ -1648,13 +1723,16 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
     "--fields <list>": "Comma-separated projection over id,name on QUX or id,name,uid,ip,domain on RUX",
     "--cursor <cursor>": "Resume a capped list with its original filters"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi group member list --profile <name> --id 8",
-    "vectra-axi group member list --profile <name> --id 8 --cursor <cursor>"
+    "vectra-axi group member list --profile <name> 8",
+    "vectra-axi group member list --profile <name> 8 --cursor <cursor>"
   ]
 }
 ```
@@ -1712,12 +1790,15 @@ Show one triage rule on QUX v2.5 or RUX v3.4 in full detail
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
     "--id <id>": "Rule ID to show (positive integer, required)"
   },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
   "combinations": [
     "--help cannot be combined with --profile",
     "--all cannot be combined with --limit"
   ],
   "examples": [
-    "vectra-axi triage rule show --profile <name> --id 7"
+    "vectra-axi triage rule show --profile <name> 7"
   ]
 }
 ```

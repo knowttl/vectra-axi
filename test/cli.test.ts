@@ -1422,6 +1422,38 @@ it("reports a missing profile for detection reads as a runtime error on stdout",
   expect(result.stderr).toBe("");
 });
 
+it("accepts a positional host id through the packaged CLI", () => {
+  const config = join(scratch, "positional-host.json");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } }, defaultProfile: "lab" }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: join(scratch, "positional-host.jsonl"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const positional = invoke(["host", "show", "7", "--config", config], fixtureEnv);
+  const flagged = invoke(["host", "show", "--id", "7", "--config", config], fixtureEnv);
+  expect(positional.status).toBe(0);
+  expect(positional.stdout).toBe(flagged.stdout);
+  expect(positional.stderr).toBe("");
+});
+
+it("documents positional ids alongside the id flag", () => {
+  const result = invoke(["host", "show", "--help"]);
+  expect(result.status).toBe(0);
+  expect(decode(result.stdout)).toMatchObject({
+    arguments: { "<id>": expect.stringContaining("never both") },
+    flags: { "--id <id>": expect.any(String) },
+    examples: ["vectra-axi host show --profile <name> 19"],
+  });
+});
+
+it.each(Object.entries(catalogue).filter(([, entry]) => entry.flags.id).map(([leaf]) => leaf))
+("accepts one positional id for %s", (leaf) => {
+  const positional = invoke([...leaf.split(" "), "19"]);
+  const flagged = invoke([...leaf.split(" "), "--id", "19"]);
+  expect(positional.status).toBe(flagged.status);
+  expect(positional.stdout).toBe(flagged.stdout);
+  expect(positional.stderr).toBe("");
+});
+
 it.each([
   { args: ["host", "show"], message: "host show requires --id" },
   { args: ["account", "show", "--id", "0"], message: "--id must be a positive integer" },
@@ -1514,6 +1546,9 @@ it.each([
   ["duplicate selector", ["home", "--profile=lab", "--profile=other"], "Repeated flag"],
   ["boolean value", ["setup", "--help=false"], "does not accept a value"],
   ["positional input", ["setup", "extra"], "Unexpected argument"],
+  ["extra positional id", ["host", "show", "19", "20"], "Unexpected argument: 20"],
+  ["positional id before flag id", ["host", "show", "19", "--id", "20"], "Positional id cannot be combined with --id"],
+  ["flag id before positional id", ["host", "show", "--id=20", "19"], "Positional id cannot be combined with --id"],
   ["literal help", ["setup", "--", "--help"], "Unknown flag: --"],
   ["planned endpoint", ["lockdown", "show"], "Unknown command: lockdown show"],
   ["prototype command", ["constructor"], "Unknown command: constructor"],

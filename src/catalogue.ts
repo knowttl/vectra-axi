@@ -977,8 +977,9 @@ export function help(leaf?: string): Record<string, unknown> {
       version: "-v, -V, --version: Bare flag only; print version",
     }),
     flags: Object.fromEntries(Object.entries(entry?.flags ?? globals).map(([name, flag]) => [flagSyntax(name, flag), flag.description])),
+    ...(entry?.flags.id ? { arguments: { "<id>": "Resource ID; use either a positional ID or --id, never both" } } : {}),
     combinations: exclusiveFlags.map(([left, right]) => `--${left} cannot be combined with --${right}`),
-    examples: entry?.examples ?? (group
+    examples: entry?.examples.map((example) => entry.flags.id ? example.replace(/ --id (\S+)/, " $1") : example) ?? (group
       ? Object.keys(children).slice(0, 3).map((child) => `vectra-axi ${child} --help`)
       : ["vectra-axi", "vectra-axi setup --help"]),
   };
@@ -1014,8 +1015,13 @@ export function parseInvocation(argv: readonly string[]): {
   if (!entry && (!group || (triple ?? pair ?? leaf) !== leaf)) usage(`Unknown command: ${attempted}`);
   const flags = new Map<string, string | boolean>();
   const args = home ? argv : argv.slice(leaf.split(" ").length);
+  let positionalId: string | undefined;
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]!;
+    if (!arg.startsWith("-") && entry?.flags.id && positionalId === undefined) {
+      positionalId = arg;
+      continue;
+    }
     if (!arg.startsWith("--")) usage(`Unexpected argument: ${arg}`);
     const [name, ...inline] = arg.slice(2).split("=");
     const flag = Object.hasOwn(allowedFlags, name!) ? allowedFlags[name!] : undefined;
@@ -1030,6 +1036,10 @@ export function parseInvocation(argv: readonly string[]): {
       value = next!;
     }
     flags.set(name!, value);
+  }
+  if (positionalId !== undefined) {
+    if (flags.has("id")) usage("Positional id cannot be combined with --id");
+    flags.set("id", positionalId);
   }
   for (const [left, right] of exclusiveFlags) {
     if (flags.has(left) && flags.has(right)) usage(`--${left} cannot be combined with --${right}`);
