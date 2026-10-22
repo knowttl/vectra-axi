@@ -283,8 +283,8 @@ Add a `writes` object inside the selected profile to opt into specific implement
 
 | Operation pattern | Supported scope |
 | --- | --- |
-| `qux.<kind>.tag.set` | Replace tags |
-| `qux.<kind>.tag.bulk-set`, `qux.<kind>.tag.bulk-delete` | Bulk tag changes |
+| `<generation>.<kind>.tag.set` | Replace tags on QUX or RUX |
+| `<generation>.<kind>.tag.bulk-set`, `<generation>.<kind>.tag.bulk-delete` | Bulk tag changes on QUX or RUX |
 | `qux.<kind>.note.add` | Append notes |
 | `<generation>.<kind>.note.edit`, `<generation>.<kind>.note.delete` | Edit/delete notes on QUX or RUX |
 | `qux.<kind>.assignment.create`, `.reassign`, `.unassign` | Assignments for hosts/accounts |
@@ -348,7 +348,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 <!-- command-registry:end -->
 
 Deployment columns summarize each domain; individual commands have narrower support.
-Detection events and entity scoring are RUX-only; note append, tag writes and assignment set are QUX-only.
+Detection events and entity scoring are RUX-only; note append and assignment set are QUX-only.
 Note edit/delete supports both deployments, as do detection/host/account note and tag reads.
 `health event list` supports both; connector/EDR checks and traffic lockdown status are RUX-only.
 QUX group membership requires appliance 9.2 or later.

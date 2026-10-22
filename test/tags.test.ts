@@ -63,6 +63,9 @@ function taggingTransport(current: () => string[], seen: { method: string; url: 
   overrides?: { getStatus?: number; patchStatus?: number; patchThrows?: unknown },
 ): RawTransport {
   return async (request) => {
+    if (request.url === "https://fixture.invalid/oauth2/token") {
+      return { status: 200, bodyText: JSON.stringify({ access_token: "synthetic-access", token_type: "Bearer", expires_in: 3600 }) };
+    }
     seen.push({ method: request.method, url: request.url, ...(request.body ? { body: request.body } : {}) });
     if (request.method === "GET") {
       return { status: overrides?.getStatus ?? 200, bodyText: JSON.stringify({ tags: current() }) };
@@ -74,6 +77,61 @@ function taggingTransport(current: () => string[], seen: { method: string; url: 
 
 const auditLines = (): Record<string, unknown>[] =>
   readFileSync(auditPath, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+
+const ruxProfile = { kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4",
+  auth: "oauth", clientId: "synthetic-client", secretEnv: "SENTINEL_TOKEN",
+  writes: { allowWrites: true, operations: TAG_OPERATIONS.map((op) => op.replace("qux.", "rux.")) } };
+
+it.each(["host", "account", "detection"] as const)("previews then replaces RUX %s tags", async (kind) => {
+  const seen: { method: string; url: string; body?: string }[] = [];
+  const { run } = harness({ profile: selected(ruxProfile), transport: taggingTransport(() => ["old"], seen) });
+  const argv = [kind, "tag", "set", "--id", "7", "--tags", "reviewed"];
+  const preview = await run(argv, kind);
+  expect(preview.output).toMatchObject({ operation: `rux.${kind}.tag.set`, added: ["reviewed"], removed: ["old"] });
+  expect(seen).toEqual([{ method: "GET", url: `https://fixture.invalid/api/v3.4/tagging/${kind}/7/` }]);
+  expect((await run([...argv, "--execute", "--confirm", `${kind} 7`], kind)).failed).toBe(false);
+  expect(seen.filter((call) => call.method === "PATCH")).toEqual([
+    { method: "PATCH", url: `https://fixture.invalid/api/v3.4/tagging/${kind}/7/`, body: '{"tags":["reviewed"]}' },
+  ]);
+  expect(auditLines().map((line) => line.kind)).toEqual(["intent", "outcome"]);
+  expect(readFileSync(auditPath, "utf8")).not.toContain("reviewed");
+});
+
+it("does not send an already matching RUX tag set", async () => {
+  const seen: { method: string; url: string; body?: string }[] = [];
+  const { run } = harness({ profile: selected(ruxProfile), transport: taggingTransport(() => ["reviewed"], seen) });
+  expect((await run(["host", "tag", "set", "--id", "7", "--tags", "reviewed",
+    "--execute", "--confirm", "host 7"], "host")).failed).toBe(false);
+  expect(seen.every((call) => call.method === "GET")).toBe(true);
+});
+
+it.each([
+  ["without opt-in", { ...ruxProfile, writes: undefined }, undefined, [], "WRITES_DISABLED"],
+  ["forced read-only", ruxProfile, "1", [], "WRITES_DISABLED"],
+  ["outside the allowlist", { ...ruxProfile, writes: { allowWrites: true, operations: ["rux.account.tag.set"] } }, undefined, [], "OPERATION_NOT_WRITABLE"],
+  ["without confirmation", ruxProfile, undefined, [], "CONFIRM_REQUIRED"],
+  ["with a different confirmation", ruxProfile, undefined, ["--confirm", "host 8"], "CONFIRM_MISMATCH"],
+] as const)("refuses RUX tags %s", async (_name, profile, readOnly, confirm, code) => {
+  vi.stubEnv("VECTRA_AXI_READ_ONLY", readOnly);
+  const seen: { method: string; url: string; body?: string }[] = [];
+  const { run } = harness({ profile: selected(profile), transport: taggingTransport(() => [], seen) });
+  await expect(run(["host", "tag", "set", "--id", "7", "--tags", "reviewed", "--execute", ...confirm], "host"))
+    .rejects.toMatchObject({ code });
+  expect(seen.some((call) => call.method === "PATCH")).toBe(false);
+});
+
+it.each([
+  ["server rejection", { patchStatus: 403 }, "FAILED"],
+  ["timeout", { patchThrows: new Error("socket timed out") }, "OUTCOME_UNKNOWN"],
+])("journals RUX %s without replay", async (_name, overrides, outcome) => {
+  const seen: { method: string; url: string; body?: string }[] = [];
+  const { run } = harness({ profile: selected(ruxProfile), transport: taggingTransport(() => [], seen, overrides) });
+  expect((await run(["host", "tag", "set", "--id", "7", "--tags", "reviewed",
+    "--execute", "--confirm", "host 7"], "host")).failed).toBe(true);
+  expect(seen.filter((call) => call.method === "PATCH")).toHaveLength(1);
+  expect(auditLines().at(-1)).toMatchObject({ outcome });
+  expect(readFileSync(auditPath, "utf8")).not.toContain("reviewed");
+});
 
 it.each([
   ["detection", [], "CONFIRM_REQUIRED"],

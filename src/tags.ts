@@ -101,7 +101,7 @@ export function tagDiff(current: readonly string[], desired: readonly string[]):
 }
 
 async function readTags(session: Session, kind: NoteKind, id: number): Promise<string[]> {
-  const { body } = await session.request(`qux.${kind}.tag.list`, { pathParams: { id } });
+  const { body } = await session.request(`${session.profile.kind}.${kind}.tag.list`, { pathParams: { id } });
   return decodeTags(body);
 }
 
@@ -123,7 +123,7 @@ export async function runTagSet(
   const definition: MutationDefinition = {
     operation: `${session.profile.kind}.${kind}.tag.set`,
     method: "PATCH",
-    path: `/api/v${session.profile.apiVersion}/tagging/${kind}/${id}`,
+    path: `/api/v${session.profile.apiVersion}/tagging/${kind}/${id}${session.profile.kind === "rux" ? "/" : ""}`,
     effect: "write",
     requiresConfirmation: true,
     target: owner,

@@ -292,7 +292,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "detection tag set": {
-    description: "Replace QUX detection tags with the exact desired set through the gated write pipeline",
+    description: "Replace QUX or RUX detection tags with the exact desired set through the gated write pipeline",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Detection ID whose tags to replace (positive integer, required)" },
@@ -308,7 +308,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "detection tag bulk-set": {
-    description: "Add tags to QUX detections in bulk with per-target diffs through the gated write pipeline",
+    description: "Add tags to QUX or RUX detections in bulk with per-target diffs through the gated write pipeline",
     flags: {
       ...globals,
       ids: { kind: "value", valueName: "ids", description: "Comma-separated target detection IDs to change (positive integers, at most 100; required with no --ids-file)" },
@@ -325,7 +325,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "detection tag bulk-delete": {
-    description: "Remove tags from QUX detections in bulk with per-target diffs through the gated write pipeline",
+    description: "Remove tags from QUX or RUX detections in bulk with per-target diffs through the gated write pipeline",
     flags: {
       ...globals,
       ids: { kind: "value", valueName: "ids", description: "Comma-separated target detection IDs to change (positive integers, at most 100; required with no --ids-file)" },
@@ -412,7 +412,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "host tag set": {
-    description: "Replace QUX host tags with the exact desired set through the gated write pipeline",
+    description: "Replace QUX or RUX host tags with the exact desired set through the gated write pipeline",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Host ID whose tags to replace (positive integer, required)" },
@@ -428,7 +428,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "host tag bulk-set": {
-    description: "Add tags to QUX hosts in bulk with per-target diffs through the gated write pipeline",
+    description: "Add tags to QUX or RUX hosts in bulk with per-target diffs through the gated write pipeline",
     flags: {
       ...globals,
       ids: { kind: "value", valueName: "ids", description: "Comma-separated target host IDs to change (positive integers, at most 100; required with no --ids-file)" },
@@ -445,7 +445,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "host tag bulk-delete": {
-    description: "Remove tags from QUX hosts in bulk with per-target diffs through the gated write pipeline",
+    description: "Remove tags from QUX or RUX hosts in bulk with per-target diffs through the gated write pipeline",
     flags: {
       ...globals,
       ids: { kind: "value", valueName: "ids", description: "Comma-separated target host IDs to change (positive integers, at most 100; required with no --ids-file)" },
@@ -532,7 +532,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "account tag set": {
-    description: "Replace QUX account tags with the exact desired set through the gated write pipeline",
+    description: "Replace QUX or RUX account tags with the exact desired set through the gated write pipeline",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Account ID whose tags to replace (positive integer, required)" },
@@ -548,7 +548,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "account tag bulk-set": {
-    description: "Add tags to QUX accounts in bulk with per-target diffs through the gated write pipeline",
+    description: "Add tags to QUX or RUX accounts in bulk with per-target diffs through the gated write pipeline",
     flags: {
       ...globals,
       ids: { kind: "value", valueName: "ids", description: "Comma-separated target account IDs to change (positive integers, at most 100; required with no --ids-file)" },
@@ -565,7 +565,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "account tag bulk-delete": {
-    description: "Remove tags from QUX accounts in bulk with per-target diffs through the gated write pipeline",
+    description: "Remove tags from QUX or RUX accounts in bulk with per-target diffs through the gated write pipeline",
     flags: {
       ...globals,
       ids: { kind: "value", valueName: "ids", description: "Comma-separated target account IDs to change (positive integers, at most 100; required with no --ids-file)" },

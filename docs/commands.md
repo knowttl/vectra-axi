@@ -625,14 +625,15 @@ QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all
 
 ## detection tag set
 
-Replace QUX detection tags with the exact desired set through the gated write pipeline
+Replace QUX or RUX detection tags with the exact desired set through the gated write pipeline
 
 - `qux.detection.tag.set`: QUX API 2.5
+- `rux.detection.tag.set`: RUX API 3.4
 
 ```json
 {
   "command": "vectra-axi detection tag set",
-  "description": "Replace QUX detection tags with the exact desired set through the gated write pipeline",
+  "description": "Replace QUX or RUX detection tags with the exact desired set through the gated write pipeline",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -660,14 +661,15 @@ Replace QUX detection tags with the exact desired set through the gated write pi
 
 ## detection tag bulk-set
 
-Add tags to QUX detections in bulk with per-target diffs through the gated write pipeline
+Add tags to QUX or RUX detections in bulk with per-target diffs through the gated write pipeline
 
 - `qux.detection.tag.bulk-set`: QUX API 2.5
+- `rux.detection.tag.bulk-set`: RUX API 3.4
 
 ```json
 {
   "command": "vectra-axi detection tag bulk-set",
-  "description": "Add tags to QUX detections in bulk with per-target diffs through the gated write pipeline",
+  "description": "Add tags to QUX or RUX detections in bulk with per-target diffs through the gated write pipeline",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -693,14 +695,15 @@ Add tags to QUX detections in bulk with per-target diffs through the gated write
 
 ## detection tag bulk-delete
 
-Remove tags from QUX detections in bulk with per-target diffs through the gated write pipeline
+Remove tags from QUX or RUX detections in bulk with per-target diffs through the gated write pipeline
 
 - `qux.detection.tag.bulk-delete`: QUX API 2.5
+- `rux.detection.tag.bulk-delete`: RUX API 3.4
 
 ```json
 {
   "command": "vectra-axi detection tag bulk-delete",
-  "description": "Remove tags from QUX detections in bulk with per-target diffs through the gated write pipeline",
+  "description": "Remove tags from QUX or RUX detections in bulk with per-target diffs through the gated write pipeline",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -901,14 +904,15 @@ QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all
 
 ## host tag set
 
-Replace QUX host tags with the exact desired set through the gated write pipeline
+Replace QUX or RUX host tags with the exact desired set through the gated write pipeline
 
 - `qux.host.tag.set`: QUX API 2.5
+- `rux.host.tag.set`: RUX API 3.4
 
 ```json
 {
   "command": "vectra-axi host tag set",
-  "description": "Replace QUX host tags with the exact desired set through the gated write pipeline",
+  "description": "Replace QUX or RUX host tags with the exact desired set through the gated write pipeline",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -936,14 +940,15 @@ Replace QUX host tags with the exact desired set through the gated write pipelin
 
 ## host tag bulk-set
 
-Add tags to QUX hosts in bulk with per-target diffs through the gated write pipeline
+Add tags to QUX or RUX hosts in bulk with per-target diffs through the gated write pipeline
 
 - `qux.host.tag.bulk-set`: QUX API 2.5
+- `rux.host.tag.bulk-set`: RUX API 3.4
 
 ```json
 {
   "command": "vectra-axi host tag bulk-set",
-  "description": "Add tags to QUX hosts in bulk with per-target diffs through the gated write pipeline",
+  "description": "Add tags to QUX or RUX hosts in bulk with per-target diffs through the gated write pipeline",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -969,14 +974,15 @@ Add tags to QUX hosts in bulk with per-target diffs through the gated write pipe
 
 ## host tag bulk-delete
 
-Remove tags from QUX hosts in bulk with per-target diffs through the gated write pipeline
+Remove tags from QUX or RUX hosts in bulk with per-target diffs through the gated write pipeline
 
 - `qux.host.tag.bulk-delete`: QUX API 2.5
+- `rux.host.tag.bulk-delete`: RUX API 3.4
 
 ```json
 {
   "command": "vectra-axi host tag bulk-delete",
-  "description": "Remove tags from QUX hosts in bulk with per-target diffs through the gated write pipeline",
+  "description": "Remove tags from QUX or RUX hosts in bulk with per-target diffs through the gated write pipeline",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -1177,14 +1183,15 @@ QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all
 
 ## account tag set
 
-Replace QUX account tags with the exact desired set through the gated write pipeline
+Replace QUX or RUX account tags with the exact desired set through the gated write pipeline
 
 - `qux.account.tag.set`: QUX API 2.5
+- `rux.account.tag.set`: RUX API 3.4
 
 ```json
 {
   "command": "vectra-axi account tag set",
-  "description": "Replace QUX account tags with the exact desired set through the gated write pipeline",
+  "description": "Replace QUX or RUX account tags with the exact desired set through the gated write pipeline",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -1212,14 +1219,15 @@ Replace QUX account tags with the exact desired set through the gated write pipe
 
 ## account tag bulk-set
 
-Add tags to QUX accounts in bulk with per-target diffs through the gated write pipeline
+Add tags to QUX or RUX accounts in bulk with per-target diffs through the gated write pipeline
 
 - `qux.account.tag.bulk-set`: QUX API 2.5
+- `rux.account.tag.bulk-set`: RUX API 3.4
 
 ```json
 {
   "command": "vectra-axi account tag bulk-set",
-  "description": "Add tags to QUX accounts in bulk with per-target diffs through the gated write pipeline",
+  "description": "Add tags to QUX or RUX accounts in bulk with per-target diffs through the gated write pipeline",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -1245,14 +1253,15 @@ Add tags to QUX accounts in bulk with per-target diffs through the gated write p
 
 ## account tag bulk-delete
 
-Remove tags from QUX accounts in bulk with per-target diffs through the gated write pipeline
+Remove tags from QUX or RUX accounts in bulk with per-target diffs through the gated write pipeline
 
 - `qux.account.tag.bulk-delete`: QUX API 2.5
+- `rux.account.tag.bulk-delete`: RUX API 3.4
 
 ```json
 {
   "command": "vectra-axi account tag bulk-delete",
-  "description": "Remove tags from QUX accounts in bulk with per-target diffs through the gated write pipeline",
+  "description": "Remove tags from QUX or RUX accounts in bulk with per-target diffs through the gated write pipeline",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",

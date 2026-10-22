@@ -38,7 +38,7 @@ Recheck cited upstream contracts when implementing; record deployment/API/applia
 | WRITE-01 | Detection/host/account desired-state tag replace | WRITE-00, READ-03 | Exact desired set, file/stdin inputs, dry-run diff, no-op, pre-send state comparison, exact target confirmation, permission and audit tests. |
 | WRITE-02 | Detection/host/account action-shaped note append | WRITE-00, READ-03 | Exact appended note, file/stdin inputs, action preview, exact target confirmation, unknown-outcome no-replay, permission and audit tests. |
 | WRITE-03 | QUX host/account desired-state assignment | WRITE-00, READ-04 | Assign/reassign/unassign previews, exact user validation, no-op, pre-send state comparison, malformed-row refusal, exact target confirmation, policy and audit tests. |
-| WRITE-05 | QUX detection/host/account bulk tag set/delete | WRITE-00, READ-03 | Explicit bounded target list, per-target dry-run diffs, no-op detection, pre-send re-read per target, count-and-set confirmation, per-target audit, partial-failure reporting, unknown-outcome no-replay, permission and audit tests. |
+| WRITE-05 | Detection/host/account bulk tag set/delete | WRITE-00, READ-03 | Explicit bounded target list, per-target dry-run diffs, no-op detection, pre-send re-read per target, count-and-set confirmation, per-target audit, partial-failure reporting, unknown-outcome no-replay, permission and audit tests. |
 | WRITE-N | Remaining separately approved mutation families | WRITE-00, corresponding reads | One reviewed family per change; concurrency evidence, unknown outcome, audit failure and disruptive-confirmation cases. |
 
 PACK-01 is a useful SOC read release, not full Vectra API coverage.
@@ -255,7 +255,7 @@ Its [offline acceptance suite](../test/assignment-set.test.ts) covers assign/rea
 The [packaged CLI journey](../test/cli.test.ts) exercises preview, confirmation and execution through synthetic profiles and transport fixtures.
 See [README.md](../README.md) for shipped usage and concurrency limits, and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 
-WRITE-05 selects QUX detection, host and account bulk tag set/delete, built on READ-03 and WRITE-00.
+WRITE-05 selects detection, host and account bulk tag set/delete, built on READ-03 and WRITE-00.
 Its [offline acceptance suite](../test/tags-bulk.test.ts) covers explicit target parsing, per-target dry-run diffs, no-ops, union/subtract sends with per-target audits, changed current state, exact count-and-set confirmation, policy refusal, denied reads, server rejection, partial failures and unknown outcomes without replay.
 The [packaged CLI journey](../test/cli.test.ts) exercises preview, confirmation and execution through synthetic profiles and transport fixtures.
 All acceptance uses synthetic fixtures; no live instance, real credentials or customer data is used.

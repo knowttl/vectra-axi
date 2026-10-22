@@ -11,15 +11,12 @@ import { tagDiff } from "./tags.js";
 // (single-entity desired-state tag replace), with READ-03 tag reads as the
 // pre-send state source.
 //
-// No catalogue version documents a vendor bulk tagging route, so each bulk
-// leaf sequences one per-target full-replace PATCH through the coordinator:
+// Each bulk leaf sequences one per-target full-replace PATCH through the coordinator:
 // bulk-set unions the named tags onto each target's current set and
 // bulk-delete subtracts them, and the per-target desired set travels as the
 // same {"tags"} payload WRITE-01 sends. Both actions require at least one
 // named tag; deleting all existing named tags leaves a target empty.
 // Deleting tags a target does not hold is a per-target no-op.
-// RUX profiles are refused outright: no RUX
-// tag write route is evidenced.
 
 export const BULK_TAG_ACTIONS = ["bulk-set", "bulk-delete"] as const;
 export type BulkTagAction = (typeof BULK_TAG_ACTIONS)[number];
@@ -28,8 +25,8 @@ export type BulkTagAction = (typeof BULK_TAG_ACTIONS)[number];
 // split larger sets into multiple confirmed runs with their own audits.
 export const MAX_BULK_TAG_TARGETS = 100;
 
-export function bulkTagOperation(kind: NoteKind, action: BulkTagAction): string {
-  return `qux.${kind}.tag.${action}`;
+function bulkTagOperation(session: Session, kind: NoteKind, action: BulkTagAction): string {
+  return `${session.profile.kind}.${kind}.tag.${action}`;
 }
 
 function leaf(kind: NoteKind, action: BulkTagAction): string {
@@ -195,7 +192,7 @@ function desiredFor(current: readonly string[], tags: readonly string[], action:
 }
 
 async function readTags(session: Session, kind: NoteKind, id: number): Promise<string[]> {
-  const { body } = await session.request(`qux.${kind}.tag.list`, { pathParams: { id } });
+  const { body } = await session.request(`${session.profile.kind}.${kind}.tag.list`, { pathParams: { id } });
   return decodeTags(body);
 }
 
@@ -203,9 +200,9 @@ function definitionFor(
   session: Session, kind: NoteKind, action: BulkTagAction, id: number, desired: readonly string[],
 ): MutationDefinition {
   return {
-    operation: bulkTagOperation(kind, action),
+    operation: bulkTagOperation(session, kind, action),
     method: "PATCH",
-    path: `/api/v${session.profile.apiVersion}/tagging/${kind}/${id}`,
+    path: `/api/v${session.profile.apiVersion}/tagging/${kind}/${id}${session.profile.kind === "rux" ? "/" : ""}`,
     effect: "write",
     // The bulk run enforces its own single confirmation naming the exact
     // target count and set before the loop; per-target coordinator
@@ -243,19 +240,8 @@ export async function runTagBulk(
   }
   const ids = bulkTagTargets(flags, kind, action, readStdin);
   const tags = bulkTags(flags, kind, action, readStdin);
-  // No vendor bulk tagging route is evidenced on any version, so bulk runs
-  // sequence per-target PATCH replaces through the QUX tagging route and
-  // refuse any other generation outright, before any read or send.
-  if (session.profile.kind !== "qux") {
-    throw new AxiError(
-      `blocked: ${command} is not supported on ${session.profile.kind === "rux" ? "RUX v3.4" : session.profile.kind} (profile '${session.profile.name}'): no evidenced tag write route on this version`,
-      "OPERATION_BLOCKED",
-      ["Use a QUX v2.5 profile for bulk tag changes",
-        "RUX tag writes have no evidenced route; see the capability inventory"],
-    );
-  }
   const profile = session.profile.name;
-  const operation = bulkTagOperation(kind, action);
+  const operation = bulkTagOperation(session, kind, action);
   const targets = bulkTargetLabel(kind, ids);
   // The preview pass reads every target through the READ-03 route and
   // passes each per-target definition through the coordinator gates, so
