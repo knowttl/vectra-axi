@@ -262,7 +262,11 @@ All acceptance uses synthetic fixtures; no live instance, real credentials or cu
 See [README.md](../README.md) for shipped usage and concurrency limits, and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 
 Further writes require exact upstream concurrency evidence, effect classification and the same coordinator.
-Closing/reopening detections, resolving assignments and changing triage rules must remain distinct operations.
+Detection close/open ships as WRITE-06 on QUX release 9.3+ and RUX v3.4 through the unchanged WRITE-00 coordinator.
+Its [offline acceptance suite](../test/detection-state.test.ts) covers explicit single/bulk targets, native routes, close reasons, no-ops, release gating, confirmation, profile policy, metadata-only auditing, rejection and ambiguous outcomes without replay.
+The packaged CLI journey covers preview, confirmation refusal and execution against synthetic transport.
+Detection state is re-read before sending; this client-side comparison is not atomic.
+Closing/reopening detections, resolving assignments and changing triage rules remain distinct operations.
 If safe concurrency is unavailable for a high-impact operation, document the limitation and keep that operation disabled until its policy is deliberately resolved.
 Do not promise rollback for actions without a reliable inverse.
 

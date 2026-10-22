@@ -161,6 +161,270 @@
       ]
     },
     {
+      "id": "qux.detection.close",
+      "command": "detection close",
+      "slice": "WRITE-06",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": "9.3",
+      "constraints": "Explicit IDs only, at most 100 targets. Exact confirmation required. Detection show is re-read before sending; already desired state is a no-op. Client-side re-read is not atomic.",
+      "method": "PATCH",
+      "path": "/api/v2.5/detections/{id}/close",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Detection mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Release 9.3 change log p2; detection close/open pp88-90"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Detection close/open implemented through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "noop",
+        "release-gate",
+        "write-policy",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "qux.detection.close-bulk",
+      "command": "detection close",
+      "slice": "WRITE-06",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": "9.3",
+      "constraints": "Explicit IDs only, at most 100 targets. Exact confirmation required. Detection show is re-read before sending; already desired state is a no-op. Client-side re-read is not atomic.",
+      "method": "PATCH",
+      "path": "/api/v2.5/detections/close",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Detection mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Release 9.3 change log p2; detection close/open pp88-90"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Detection close/open implemented through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "noop",
+        "release-gate",
+        "write-policy",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "qux.detection.open",
+      "command": "detection open",
+      "slice": "WRITE-06",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": "9.3",
+      "constraints": "Explicit IDs only, at most 100 targets. Exact confirmation required. Detection show is re-read before sending; already desired state is a no-op. Client-side re-read is not atomic.",
+      "method": "PATCH",
+      "path": "/api/v2.5/detections/{id}/open",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Detection mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Release 9.3 change log p2; detection close/open pp88-90"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Detection close/open implemented through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "noop",
+        "release-gate",
+        "write-policy",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "qux.detection.open-bulk",
+      "command": "detection open",
+      "slice": "WRITE-06",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": "9.3",
+      "constraints": "Explicit IDs only, at most 100 targets. Exact confirmation required. Detection show is re-read before sending; already desired state is a no-op. Client-side re-read is not atomic.",
+      "method": "PATCH",
+      "path": "/api/v2.5/detections/open",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Detection mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Release 9.3 change log p2; detection close/open pp88-90"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Detection close/open implemented through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "noop",
+        "release-gate",
+        "write-policy",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.detection.close",
+      "command": "detection close",
+      "slice": "WRITE-06",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Explicit IDs only, at most 100 targets. Exact confirmation required. Detection show is re-read before sending; already desired state is a no-op. Client-side re-read is not atomic.",
+      "method": "PATCH",
+      "path": "/api/v3.4/detections/{id}/close/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Detection mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "PATCH /api/v3.4/detections/{id}/close/"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Detection close/open implemented through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "noop",
+        "release-gate",
+        "write-policy",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.detection.close-bulk",
+      "command": "detection close",
+      "slice": "WRITE-06",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Explicit IDs only, at most 100 targets. Exact confirmation required. Detection show is re-read before sending; already desired state is a no-op. Client-side re-read is not atomic.",
+      "method": "PATCH",
+      "path": "/api/v3.4/detections/close/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Detection mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "PATCH /api/v3.4/detections/close/"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Detection close/open implemented through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "noop",
+        "release-gate",
+        "write-policy",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.detection.open",
+      "command": "detection open",
+      "slice": "WRITE-06",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Explicit IDs only, at most 100 targets. Exact confirmation required. Detection show is re-read before sending; already desired state is a no-op. Client-side re-read is not atomic.",
+      "method": "PATCH",
+      "path": "/api/v3.4/detections/{id}/open/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Detection mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "PATCH /api/v3.4/detections/{id}/open/"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Detection close/open implemented through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "noop",
+        "release-gate",
+        "write-policy",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.detection.open-bulk",
+      "command": "detection open",
+      "slice": "WRITE-06",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Explicit IDs only, at most 100 targets. Exact confirmation required. Detection show is re-read before sending; already desired state is a no-op. Client-side re-read is not atomic.",
+      "method": "PATCH",
+      "path": "/api/v3.4/detections/open/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Detection mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "PATCH /api/v3.4/detections/open/"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Detection close/open implemented through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "noop",
+        "release-gate",
+        "write-policy",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
       "id": "qux.host.list",
       "command": "host list",
       "slice": "READ-02",
@@ -5110,19 +5374,6 @@
       ]
     },
     {
-      "id": "qux.later.detection-close-open",
-      "deployment": "qux",
-      "apiVersion": "2.5",
-      "disposition": "planned",
-      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
-      "evidence": [
-        {
-          "source": "qux-guide",
-          "locator": "Endpoint overview pp7-8; notes in resource sections"
-        }
-      ]
-    },
-    {
       "id": "qux.later.entity-close",
       "deployment": "qux",
       "apiVersion": "2.5",
@@ -5202,19 +5453,6 @@
     },
     {
       "id": "rux.later.triage-rule-writes",
-      "deployment": "rux",
-      "apiVersion": "3.4",
-      "disposition": "planned",
-      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
-      "evidence": [
-        {
-          "source": "rux-spec",
-          "locator": "v3.4 mutation methods in corresponding domain paths"
-        }
-      ]
-    },
-    {
-      "id": "rux.later.detection-close-open",
       "deployment": "rux",
       "apiVersion": "3.4",
       "disposition": "planned",
