@@ -51,6 +51,8 @@ See [operation coverage](https://github.com/knowttl/vectra-axi/blob/main/docs/co
 | `npx -y @knowttl/vectra-axi detection note add` | native | write | - |
 | `npx -y @knowttl/vectra-axi detection note edit` | native | write | - |
 | `npx -y @knowttl/vectra-axi detection note delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi host close` | native | disruptive | - |
+| `npx -y @knowttl/vectra-axi account close` | native | disruptive | - |
 | `npx -y @knowttl/vectra-axi host note list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
 | `npx -y @knowttl/vectra-axi host tag list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
 | `npx -y @knowttl/vectra-axi host tag set` | native | write | - |

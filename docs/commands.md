@@ -835,6 +835,76 @@ Delete one detection note through the gated write pipeline
 }
 ```
 
+## host close
+
+Close a host and all its active detections through the gated disruptive write pipeline (QUX 9.3+, RUX)
+
+- `qux.host.close`: QUX API 2.5
+- `rux.host.close`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi host close",
+  "description": "Close a host and all its active detections through the gated disruptive write pipeline (QUX 9.3+, RUX)",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Host ID (positive integer, required)",
+    "--reason <reason>": "remediated or benign (required)",
+    "--dry-run": "Preview the active detection count without sending (default)",
+    "--execute": "Execute the reviewed close",
+    "--confirm <target>": "Exact target host <id> (required with --execute)"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi host close --profile <name> 7 --reason remediated",
+    "vectra-axi host close --profile <name> 7 --reason remediated --execute --confirm 'host 7'"
+  ]
+}
+```
+
+## account close
+
+Close an account and all its active detections through the gated disruptive write pipeline (QUX 9.3+, RUX)
+
+- `qux.account.close`: QUX API 2.5
+- `rux.account.close`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi account close",
+  "description": "Close an account and all its active detections through the gated disruptive write pipeline (QUX 9.3+, RUX)",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Account ID (positive integer, required)",
+    "--reason <reason>": "remediated or benign (required)",
+    "--dry-run": "Preview the active detection count without sending (default)",
+    "--execute": "Execute the reviewed close",
+    "--confirm <target>": "Exact target account <id> (required with --execute)"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi account close --profile <name> 7 --reason benign",
+    "vectra-axi account close --profile <name> 7 --reason benign --execute --confirm 'account 7'"
+  ]
+}
+```
+
 ## host note list
 
 List full host notes on QUX v2.5 or RUX v3.4 through the dedicated notes route
