@@ -197,6 +197,18 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
+  async function runWrite(
+    flags: ReadonlyMap<string, string | boolean>,
+    runner: (session: ReturnType<typeof createSession>, coordinator: ReturnType<typeof createMutationCoordinator>) => Promise<LeafResult>,
+  ): Promise<Record<string, unknown>> {
+    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
+    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
+    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+    const coordinator = createMutationCoordinator({ profile: selected, configPath: loaded.path, redactor, transport });
+    const result = await runner(session, coordinator);
+    if (result.failed) process.exitCode = 1;
+    return result.output;
+  }
   // One dispatch for every tag replace leaf: validate the owner ID, select
   // the profile, build the session and a WRITE-00 coordinator on the
   // injected transport, and run the desired-state replace through the full
@@ -209,13 +221,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
       throw new Error(`Unknown tag set leaf: ${leaf}`);
     }
     noteOwnerId(flags, leaf, kind);
-    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
-    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
-    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
-    const coordinator = createMutationCoordinator({ profile: selected, configPath: loaded.path, redactor, transport });
-    const result: LeafResult = await runTagSet(session, coordinator, flags, kind);
-    if (result.failed) process.exitCode = 1;
-    return result.output;
+    return runWrite(flags, (session, coordinator) => runTagSet(session, coordinator, flags, kind));
   }
   // One dispatch for every bulk tag leaf: select the profile, build the
   // session and a WRITE-00 coordinator on the injected transport, and run
@@ -231,13 +237,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (!(NOTE_KINDS as readonly string[]).includes(kind)) {
       throw new Error(`Unknown bulk tag leaf: ${leaf}`);
     }
-    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
-    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
-    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
-    const coordinator = createMutationCoordinator({ profile: selected, configPath: loaded.path, redactor, transport });
-    const result: LeafResult = await runTagBulk(session, coordinator, flags, kind, action);
-    if (result.failed) process.exitCode = 1;
-    return result.output;
+    return runWrite(flags, (session, coordinator) => runTagBulk(session, coordinator, flags, kind, action));
   }
   // One dispatch for every note append leaf: validate the owner ID, select
   // the profile, build the session and a WRITE-00 coordinator on the
@@ -251,13 +251,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
       throw new Error(`Unknown note add leaf: ${leaf}`);
     }
     noteOwnerId(flags, leaf, kind);
-    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
-    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
-    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
-    const coordinator = createMutationCoordinator({ profile: selected, configPath: loaded.path, redactor, transport });
-    const result: LeafResult = await runNoteAdd(session, coordinator, flags, kind);
-    if (result.failed) process.exitCode = 1;
-    return result.output;
+    return runWrite(flags, (session, coordinator) => runNoteAdd(session, coordinator, flags, kind));
   }
   // One dispatch for every note edit/delete leaf: validate the owner and
   // note IDs, select the profile, build the session and a WRITE-00
@@ -274,15 +268,9 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     }
     noteOwnerId(flags, leaf, kind);
     noteEntryId(flags, leaf);
-    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
-    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
-    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
-    const coordinator = createMutationCoordinator({ profile: selected, configPath: loaded.path, redactor, transport });
-    const result: LeafResult = leaf.endsWith("note edit")
-      ? await runNoteEdit(session, coordinator, flags, kind)
-      : await runNoteDelete(session, coordinator, flags, kind);
-    if (result.failed) process.exitCode = 1;
-    return result.output;
+    return runWrite(flags, (session, coordinator) => leaf.endsWith("note edit")
+      ? runNoteEdit(session, coordinator, flags, kind)
+      : runNoteDelete(session, coordinator, flags, kind));
   }
   // One dispatch for every host/account/entity leaf: validate the kind and
   // flags, select the profile, build the session on the injected transport,
@@ -400,13 +388,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
   // only with a coordinator authorization after the gates pass. Resolving
   // stays a separate operation with no leaf here.
   async function runAssignmentSets(flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
-    const loaded = loadConfig(flags.get("config") as string | undefined, redactor);
-    const selected = selectProfile(loaded.config, flags.get("profile") as string | undefined);
-    const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
-    const coordinator = createMutationCoordinator({ profile: selected, configPath: loaded.path, redactor, transport });
-    const result: AssignmentLeafResult = await runAssignmentSet(session, coordinator, flags);
-    if (result.failed) process.exitCode = 1;
-    return result.output;
+    return runWrite(flags, (session, coordinator) => runAssignmentSet(session, coordinator, flags));
   }
   // One dispatch for every health leaf: validate the flags, select the
   // profile, build the session on the injected transport, and return the
