@@ -32,6 +32,13 @@
       "reviewedOn": "2026-10-03"
     },
     {
+      "id": "rux-host-name-spec",
+      "url": "https://apidocs.vectra.ai/vectraai-rest-api.yaml",
+      "revision": "v3.4 hosts name parameter reverified; v3.5 excluded",
+      "sha256": "fb18a719169f2141cc76e415f2669d186ed2ae6332a23dbe6a5bc4b8e7db22bc",
+      "reviewedOn": "2026-10-22"
+    },
+    {
       "id": "vat-qux",
       "url": "https://github.com/vectranetworks/vectra_api_tools/blob/c76fd0c5d42e74b199e47dc42923582c2b1dbee7/modules/vectra.py",
       "revision": "c76fd0c5d42e74b199e47dc42923582c2b1dbee7",
@@ -165,6 +172,7 @@
       "path": "/api/v2.5/hosts",
       "effect": "read",
       "query": [
+        "name",
         "t_score_gte",
         "c_score_gte",
         "tags",
@@ -184,7 +192,7 @@
       "evidence": [
         {
           "source": "qux-guide",
-          "locator": "pp30-33"
+          "locator": "pp30-33; p32 name query: filter by name; exact/partial and case matching are unspecified"
         }
       ],
       "disposition": "named",
@@ -2182,6 +2190,7 @@
       "path": "/api/v3.4/hosts/",
       "effect": "read",
       "query": [
+        "name",
         "page",
         "page_size",
         "ordering",
@@ -2206,6 +2215,10 @@
         {
           "source": "rux-spec",
           "locator": "GET /api/v3.4/hosts/"
+        },
+        {
+          "source": "rux-host-name-spec",
+          "locator": "GET /api/v3.4/hosts/ -> components/parameters/HostsListParamsV3_3/name: Filter on host name; exact/partial and case matching are unspecified"
         }
       ],
       "disposition": "named",

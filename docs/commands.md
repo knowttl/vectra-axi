@@ -214,7 +214,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
     "--state <state>": "Filter by server-side detection state",
     "--detection-type <type>": "Filter by server-side detection type",
     "--detection-category <category>": "Filter by server-side detection category",
-    "--host-id <id>": "Filter by server-side host ID (non-negative integer)",
+    "--host-id <id>": "Filter by server-side host ID (non-negative integer); find it with host list --name <text>, then detection list --host-id <id>",
     "--tags <tags>": "Filter by server-side tags",
     "--certainty-gte <score>": "Filter by server-side minimum certainty",
     "--threat-gte <score>": "Filter by server-side minimum threat",
@@ -321,6 +321,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--name <text>": "Filter by server-side host name; exact/partial and case matching are unspecified by the API guides",
     "--threat-gte <score>": "Filter by server-side minimum threat score",
     "--certainty-gte <score>": "Filter by server-side minimum certainty score",
     "--tags <tags>": "Filter by server-side tags",
@@ -336,6 +337,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
     "--all cannot be combined with --limit"
   ],
   "examples": [
+    "vectra-axi host list --profile <name> --name web-01",
     "vectra-axi host list --profile <name> --threat-gte 70",
     "vectra-axi host list --profile <name> --fields id,name,threat",
     "vectra-axi host list --profile <name> --cursor <cursor>"

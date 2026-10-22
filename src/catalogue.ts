@@ -90,7 +90,7 @@ export const catalogue: Readonly<Record<string, {
       state: { kind: "value", valueName: "state", description: "Filter by server-side detection state" },
       "detection-type": { kind: "value", valueName: "type", description: "Filter by server-side detection type" },
       "detection-category": { kind: "value", valueName: "category", description: "Filter by server-side detection category" },
-      "host-id": { kind: "value", valueName: "id", description: "Filter by server-side host ID (non-negative integer)" },
+      "host-id": { kind: "value", valueName: "id", description: "Filter by server-side host ID (non-negative integer); find it with host list --name <text>, then detection list --host-id <id>" },
       tags: { kind: "value", valueName: "tags", description: "Filter by server-side tags" },
       "certainty-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum certainty" },
       "threat-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum threat" },
@@ -150,6 +150,7 @@ export const catalogue: Readonly<Record<string, {
     description: "List hosts on QUX v2.5 or RUX v3.4 with server-side filters and a bounded window",
     flags: {
       ...globals,
+      name: { kind: "value", valueName: "text", description: "Filter by server-side host name; exact/partial and case matching are unspecified by the API guides" },
       "threat-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum threat score" },
       "certainty-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum certainty score" },
       tags: { kind: "value", valueName: "tags", description: "Filter by server-side tags" },
@@ -161,6 +162,7 @@ export const catalogue: Readonly<Record<string, {
       cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
     },
     examples: [
+      "vectra-axi host list --profile <name> --name web-01",
       "vectra-axi host list --profile <name> --threat-gte 70",
       "vectra-axi host list --profile <name> --fields id,name,threat",
       "vectra-axi host list --profile <name> --cursor <cursor>",
