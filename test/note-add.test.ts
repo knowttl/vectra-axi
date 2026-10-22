@@ -23,9 +23,13 @@ const NOW = 1_700_000_000_000;
 const NOTE_OPERATIONS = ["qux.detection.note.add", "qux.host.note.add", "qux.account.note.add"];
 const enabledProfile = { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token",
   tokenEnv: "SENTINEL_TOKEN", writes: { allowWrites: true, operations: NOTE_OPERATIONS } };
+const ruxProfile = { kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth",
+  clientId: "synthetic-client", secretEnv: "CLOUD_SECRET",
+  writes: { allowWrites: true, operations: ["rux.detection.note.add", "rux.host.note.add", "rux.account.note.add"] } };
 
 beforeEach(() => {
   vi.stubEnv("SENTINEL_TOKEN", token);
+  vi.stubEnv("CLOUD_SECRET", "synthetic-secret");
   vi.stubEnv("VECTRA_AXI_READ_ONLY", undefined);
 });
 afterEach(() => {
@@ -63,6 +67,9 @@ function notesTransport(current: () => unknown[], seen: { method: string; url: s
   overrides?: { getStatus?: number; getBody?: string; postStatus?: number; postThrows?: unknown },
 ): RawTransport {
   return async (request) => {
+    if (request.url === "https://fixture.invalid/oauth2/token") {
+      return { status: 200, bodyText: JSON.stringify({ access_token: token, token_type: "Bearer", expires_in: 3600 }) };
+    }
     seen.push({ method: request.method, url: request.url, ...(request.body ? { body: request.body } : {}) });
     if (request.method === "GET") {
       return { status: overrides?.getStatus ?? 200,
@@ -75,6 +82,60 @@ function notesTransport(current: () => unknown[], seen: { method: string; url: s
 
 const auditLines = (): Record<string, unknown>[] =>
   readFileSync(auditPath, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+
+it.each(["detection", "host", "account"] as const)("previews then appends a RUX %s note through its slash route", async (kind) => {
+  const seen: { method: string; url: string; body?: string }[] = [];
+  const { run } = harness({ profile: selected(ruxProfile), transport: notesTransport(() => [], seen) });
+  const argv = [kind, "note", "add", "--id", "42", "--note", "synthetic note\nexact text"];
+  const preview = await run(argv, kind);
+  expect(preview.output).toMatchObject({ operation: `rux.${kind}.note.add`, note: "synthetic note\nexact text" });
+  const url = `https://fixture.invalid/api/v3.4/${kind}s/42/notes/`;
+  expect(seen).toEqual([{ method: "GET", url }]);
+  expect(() => readFileSync(auditPath, "utf8")).toThrow();
+  const result = await run([...argv, "--execute", "--confirm", `${kind} 42`], kind);
+  expect(result.failed).toBe(false);
+  expect(seen).toEqual([
+    { method: "GET", url }, { method: "GET", url }, { method: "GET", url },
+    { method: "POST", url, body: JSON.stringify({ note: "synthetic note\nexact text" }) },
+  ]);
+  expect(auditLines()).toEqual([
+    expect.objectContaining({ kind: "intent", operation: `rux.${kind}.note.add`, url }),
+    expect.objectContaining({ kind: "outcome", outcome: "SUCCESS" }),
+  ]);
+  expect(readFileSync(auditPath, "utf8")).not.toContain("synthetic note");
+});
+
+it.each([
+  ["without opt-in", { ...ruxProfile, writes: undefined }, undefined, ["--confirm", "detection 42"], "WRITES_DISABLED"],
+  ["forced read-only", ruxProfile, "1", ["--confirm", "detection 42"], "WRITES_DISABLED"],
+  ["outside scope", { ...ruxProfile, writes: { allowWrites: true, operations: ["rux.host.note.add"] } }, undefined, ["--confirm", "detection 42"], "OPERATION_NOT_WRITABLE"],
+  ["without confirmation", ruxProfile, undefined, [], "CONFIRM_REQUIRED"],
+  ["wrong confirmation", ruxProfile, undefined, ["--confirm", "host 42"], "CONFIRM_MISMATCH"],
+] as const)("refuses RUX note append %s", async (_name, profile, readOnly, confirmation, code) => {
+  vi.stubEnv("VECTRA_AXI_READ_ONLY", readOnly);
+  const seen: { method: string; url: string; body?: string }[] = [];
+  const { run } = harness({ profile: selected(profile), transport: notesTransport(() => [], seen) });
+  await expect(run(["detection", "note", "add", "--id", "42", "--note", "synthetic note",
+    "--execute", ...confirmation], "detection")).rejects.toMatchObject({ code });
+  expect(seen.filter((call) => call.method === "POST")).toEqual([]);
+  expect(() => readFileSync(auditPath, "utf8")).toThrow();
+});
+
+it.each([
+  ["server rejection", { postStatus: 500 }, "FAILED"],
+  ["timeout", { postThrows: new Error("socket timed out") }, "OUTCOME_UNKNOWN"],
+] as const)("records RUX %s without replay or payload in the journal", async (_name, overrides, outcome) => {
+  const seen: { method: string; url: string; body?: string }[] = [];
+  const { run } = harness({ profile: selected(ruxProfile), transport: notesTransport(() => [], seen, overrides) });
+  const result = await run(["detection", "note", "add", "--id", "42", "--note", "synthetic note",
+    "--execute", "--confirm", "detection 42"], "detection");
+  expect(result.failed).toBe(true);
+  expect(seen.filter((call) => call.method === "POST")).toHaveLength(1);
+  expect(auditLines()).toEqual([
+    expect.objectContaining({ kind: "intent" }), expect.objectContaining({ kind: "outcome", outcome }),
+  ]);
+  expect(readFileSync(auditPath, "utf8")).not.toContain("synthetic note");
+});
 
 it.each([
   ["detection", [], "CONFIRM_REQUIRED"],

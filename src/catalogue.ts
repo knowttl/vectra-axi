@@ -342,7 +342,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "detection note add": {
-    description: "Append one QUX detection note through the gated write pipeline",
+    description: "Append one QUX or RUX detection note through the gated write pipeline",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Detection ID to append the note to (positive integer, required)" },
@@ -462,7 +462,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "host note add": {
-    description: "Append one QUX host note through the gated write pipeline",
+    description: "Append one QUX or RUX host note through the gated write pipeline",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Host ID to append the note to (positive integer, required)" },
@@ -582,7 +582,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "account note add": {
-    description: "Append one QUX account note through the gated write pipeline",
+    description: "Append one QUX or RUX account note through the gated write pipeline",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Account ID to append the note to (positive integer, required)" },

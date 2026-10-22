@@ -11,7 +11,7 @@ there is no unrestricted passthrough.
 
 ## Counts
 
-- named: 98
+- named: 101
 - implemented: 2
 - reviewed-raw: 0
 - planned: 2
@@ -79,16 +79,19 @@ there is no unrestricted passthrough.
 | `rux.host.list` | host list | RUX-02 | rux 3.4 | collection | named | raw |
 | `rux.host.show` | host show | RUX-02 | rux 3.4 | none | named | raw |
 | `rux.host.note.list` | host note list | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.host.note.add` | host note add | WRITE-02 | rux 3.4 | none | named | named |
 | `rux.host.note.edit` | host note edit | WRITE-N | rux 3.4 | none | named | named |
 | `rux.host.note.delete` | host note delete | WRITE-N | rux 3.4 | none | named | named |
 | `rux.host.tag.list` | host tag list | RUX-04 | rux 3.4 | none | named | raw |
 | `rux.account.list` | account list | RUX-02 | rux 3.4 | collection | named | raw |
 | `rux.account.show` | account show | RUX-02 | rux 3.4 | none | named | raw |
 | `rux.account.note.list` | account note list | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.account.note.add` | account note add | WRITE-02 | rux 3.4 | none | named | named |
 | `rux.account.note.edit` | account note edit | WRITE-N | rux 3.4 | none | named | named |
 | `rux.account.note.delete` | account note delete | WRITE-N | rux 3.4 | none | named | named |
 | `rux.account.tag.list` | account tag list | RUX-04 | rux 3.4 | none | named | raw |
 | `rux.detection.note.list` | detection note list | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.detection.note.add` | detection note add | WRITE-02 | rux 3.4 | none | named | named |
 | `rux.detection.note.edit` | detection note edit | WRITE-N | rux 3.4 | none | named | named |
 | `rux.detection.note.delete` | detection note delete | WRITE-N | rux 3.4 | none | named | named |
 | `rux.detection.tag.list` | detection tag list | RUX-04 | rux 3.4 | none | named | raw |
@@ -157,7 +160,7 @@ there is no unrestricted passthrough.
 - `qux.later.triage-rule-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `qux.later.detection-close-open` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `qux.later.entity-close` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
-- `rux.later.note-writes` (rux 3.4, planned): Per-note edit and delete are named WRITE-N (2a) operations (rux.{detection,host,account}.note.{edit,delete}). Note appends and bulk creation stay planned with no authorized route.
+- `rux.later.note-writes` (rux 3.4, planned): Per-object note append is a named WRITE-02 operation (rux.{detection,host,account}.note.add); per-note edit and delete are named WRITE-N (2a) operations (rux.{detection,host,account}.note.{edit,delete}). Bulk note creation stays planned with no authorized route.
 - `rux.later.tag-writes` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `rux.later.assignment-writes` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `rux.later.outcome-writes` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.

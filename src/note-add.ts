@@ -6,7 +6,8 @@ import type { MutationCoordinator, MutationDefinition } from "./writes.js";
 
 // WRITE-02: action-shaped note append for one detection, host or account.
 // The upstream contract (VAT set_*_note on the pinned commit) is POST
-// /{plural-kind}/{id}/notes with a {"note"} payload, so "append this exact
+// /{plural-kind}/{id}/notes with a {"note"} payload (RUX v3.4 uses the
+// same collection with a trailing slash), so "append this exact
 // note" maps directly: read the current notes through the READ-03 route to
 // confirm the target exists and is permitted, preview the exact note text as
 // the dry run, and send exactly once. Every execution appends one note;
@@ -90,7 +91,7 @@ export async function runNoteAdd(
   const definition: MutationDefinition = {
     operation: `${session.profile.kind}.${kind}.note.add`,
     method: "POST",
-    path: `/api/v${session.profile.apiVersion}/${kind}s/${id}/notes`,
+    path: `/api/v${session.profile.apiVersion}/${kind}s/${id}/notes${session.profile.kind === "rux" ? "/" : ""}`,
     effect: "write",
     requiresConfirmation: true,
     target: owner,
@@ -101,10 +102,10 @@ export async function runNoteAdd(
   // its entries are never compared, so a concurrent append never blocks
   // this one and a repeated note is never dropped as already-desired.
   const readState = async (): Promise<unknown> => {
-    const { body } = await session.request(`qux.${kind}.note.list`, { pathParams: { id } });
+    const { body } = await session.request(`${session.profile.kind}.${kind}.note.list`, { pathParams: { id } });
     if (!Array.isArray(body)) {
       throw new AxiError("Vectra notes response is malformed: expected a list of notes",
-        "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
+        "RESPONSE_INVALID", ["Check the selected profile's API contract for this operation"]);
     }
     return body;
   };

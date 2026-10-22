@@ -2304,6 +2304,41 @@
       ]
     },
     {
+      "id": "rux.host.note.add",
+      "command": "host note add",
+      "slice": "WRITE-02",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit RUX v3.4 profile with hand-enabled note-add scope; POST appends one note with a {\"note\"} payload and never edits or deletes.",
+      "method": "POST",
+      "path": "/api/v3.4/hosts/{id}/notes/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the API client's assigned role; resource write permission required.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "POST /api/v3.4/{tvui_types}/{type_id}/notes/ (Create Entity Note); NotesBodyV3 requires note"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-02; `host note add` drives the coordinator action-shaped note append with its kind retained.",
+      "fixtureCases": [
+        "dry-run-preview",
+        "exact-appended-body",
+        "confirmation-required",
+        "unknown-outcome",
+        "refused-without-opt-in",
+        "server-rejection"
+      ]
+    },
+    {
       "id": "rux.host.note.edit",
       "command": "host note edit",
       "slice": "WRITE-N",
@@ -2539,6 +2574,41 @@
       ]
     },
     {
+      "id": "rux.account.note.add",
+      "command": "account note add",
+      "slice": "WRITE-02",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit RUX v3.4 profile with hand-enabled note-add scope; POST appends one note with a {\"note\"} payload and never edits or deletes.",
+      "method": "POST",
+      "path": "/api/v3.4/accounts/{id}/notes/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the API client's assigned role; resource write permission required.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "POST /api/v3.4/{tvui_types}/{type_id}/notes/ (Create Entity Note); NotesBodyV3 requires note"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-02; `account note add` drives the coordinator action-shaped note append with its kind retained.",
+      "fixtureCases": [
+        "dry-run-preview",
+        "exact-appended-body",
+        "confirmation-required",
+        "unknown-outcome",
+        "refused-without-opt-in",
+        "server-rejection"
+      ]
+    },
+    {
       "id": "rux.account.note.edit",
       "command": "account note edit",
       "slice": "WRITE-N",
@@ -2685,6 +2755,41 @@
         "empty",
         "access-denied",
         "embedded-summary-truncated"
+      ]
+    },
+    {
+      "id": "rux.detection.note.add",
+      "command": "detection note add",
+      "slice": "WRITE-02",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires an explicit RUX v3.4 profile with hand-enabled note-add scope; POST appends one note with a {\"note\"} payload and never edits or deletes.",
+      "method": "POST",
+      "path": "/api/v3.4/detections/{id}/notes/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "note"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the API client's assigned role; resource write permission required.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "POST /api/v3.4/{tvui_types}/{type_id}/notes/ (Create Entity Note); NotesBodyV3 requires note"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented and tested in WRITE-02; `detection note add` drives the coordinator action-shaped note append with its kind retained.",
+      "fixtureCases": [
+        "dry-run-preview",
+        "exact-appended-body",
+        "confirmation-required",
+        "unknown-outcome",
+        "refused-without-opt-in",
+        "server-rejection"
       ]
     },
     {
@@ -4520,7 +4625,7 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "disposition": "planned",
-      "rationale": "Per-note edit and delete are named WRITE-N (2a) operations (rux.{detection,host,account}.note.{edit,delete}). Note appends and bulk creation stay planned with no authorized route.",
+      "rationale": "Per-object note append is a named WRITE-02 operation (rux.{detection,host,account}.note.add); per-note edit and delete are named WRITE-N (2a) operations (rux.{detection,host,account}.note.{edit,delete}). Bulk note creation stays planned with no authorized route.",
       "evidence": [
         {
           "source": "rux-spec",
