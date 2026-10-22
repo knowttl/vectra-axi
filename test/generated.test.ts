@@ -105,9 +105,19 @@ describe("generated release records", () => {
     expect(skill).toContain("README.md#development--testing");
   });
 
-  it("calls the release the supported QUX and RUX SOC read surface with gated QUX single and bulk tag-write, note-append and assignment-write families and the gated QUX/RUX note edit/delete family, not full coverage", () => {
-    expect(coverage).toContain("the supported QUX and RUX SOC read surface with gated QUX single and bulk tag-write, note-append and assignment-write families and the gated QUX/RUX note edit/delete family, not full Vectra API coverage");
+  it("describes shipped QUX and RUX writes without claiming full API coverage", () => {
     expect(coverage).not.toMatch(/\d+\s*% (complete|coverage)/);
+  });
+
+  it("ships QUX/RUX note-append, tag, assignment and note edit/delete writes", () => {
+    const named = inventory.operations.filter((operation) => operation.disposition === "named");
+    const deploymentsFor = (suffix: string): string[] =>
+      [...new Set(named.filter((operation) => operation.id.endsWith(suffix)).map((operation) => operation.deployment))].sort();
+    for (const suffix of [".note.add", ".tag.set", ".tag.bulk-set", ".tag.bulk-delete", ".note.edit", ".note.delete",
+      ".assignment.create", ".assignment.reassign", ".assignment.unassign"]) {
+      expect(deploymentsFor(suffix)).toEqual(["qux", "rux"]);
+    }
+    expect(inventory.deferredFamilies.find((family) => family.id === "rux.later.note-writes")?.disposition).toBe("planned");
   });
 
   it("marks only shipped read leaves and the gated tag replaces, note appends and note edits/deletes as named operations", () => {

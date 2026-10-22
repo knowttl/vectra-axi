@@ -3223,6 +3223,206 @@
       ]
     },
     {
+      "id": "rux.host.assignment.create",
+      "command": "assignment set",
+      "slice": "WRITE-03",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Creates a host assignment only when no open assignment exists; the desired-state leaf routes to reassign or unassign instead when one does. Detections have no assignment route and resolving stays a separate operation.",
+      "method": "POST",
+      "path": "/api/v3.4/assignments/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "assign_host_id",
+        "assign_to_user_id"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource write permission; authorization denial is an error.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "POST /api/v3.4/assignments/; Assignment and AssignmentPostBodyV3_3 schemas"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Enabled by WRITE-03; `assignment set --host <id> --user <id>` drives the coordinator desired-state assign with its kind retained.",
+      "fixtureCases": [
+        "dry-run-assign",
+        "assign-success",
+        "invalid-user-refused",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
+      "id": "rux.host.assignment.reassign",
+      "command": "assignment set",
+      "slice": "WRITE-03",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Reassigns the open host assignment to another user; only the analyst moves, never the entity. A moved assignment between preview and send refuses with a client-side re-read check (no evidenced ETag).",
+      "method": "PUT",
+      "path": "/api/v3.4/assignments/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "assign_to_user_id"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource write permission; authorization denial is an error.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "PUT /api/v3.4/assignments/{id}/; AssignmentPutBodyV3_3 modifies the assigned user"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Enabled by WRITE-03; `assignment set --host <id> --user <id>` drives the coordinator desired-state reassign with its kind retained.",
+      "fixtureCases": [
+        "dry-run-reassign",
+        "reassign-success",
+        "no-op",
+        "version-conflict",
+        "server-rejection"
+      ]
+    },
+    {
+      "id": "rux.host.assignment.unassign",
+      "command": "assignment set",
+      "slice": "WRITE-03",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Deletes the open host assignment; an already-unassigned host is an exit-0 no-op that sends nothing. Resolving (with outcome) stays a separate operation.",
+      "method": "DELETE",
+      "path": "/api/v3.4/assignments/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "OAuth API client with resource write permission; authorization denial is an error.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "DELETE /api/v3.4/assignments/{id}/"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Enabled by WRITE-03; `assignment set --host <id> --unassign` drives the coordinator desired-state unassign with its kind retained.",
+      "fixtureCases": [
+        "dry-run-unassign",
+        "unassign-success",
+        "no-op"
+      ]
+    },
+    {
+      "id": "rux.account.assignment.create",
+      "command": "assignment set",
+      "slice": "WRITE-03",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Creates an account assignment only when no open assignment exists; the desired-state leaf routes to reassign or unassign instead when one does. Detections have no assignment route and resolving stays a separate operation.",
+      "method": "POST",
+      "path": "/api/v3.4/assignments/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "assign_account_id",
+        "assign_to_user_id"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource write permission; authorization denial is an error.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "POST /api/v3.4/assignments/; Assignment and AssignmentPostBodyV3_3 schemas"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Enabled by WRITE-03; `assignment set --account <id> --user <id>` drives the coordinator desired-state assign with its kind retained.",
+      "fixtureCases": [
+        "dry-run-assign",
+        "assign-success",
+        "invalid-user-refused",
+        "access-denied",
+        "unknown-outcome",
+        "refused-without-opt-in"
+      ]
+    },
+    {
+      "id": "rux.account.assignment.reassign",
+      "command": "assignment set",
+      "slice": "WRITE-03",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Reassigns the open account assignment to another user; only the analyst moves, never the entity. A moved assignment between preview and send refuses with a client-side re-read check (no evidenced ETag).",
+      "method": "PUT",
+      "path": "/api/v3.4/assignments/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "assign_to_user_id"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource write permission; authorization denial is an error.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "PUT /api/v3.4/assignments/{id}/; AssignmentPutBodyV3_3 modifies the assigned user"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Enabled by WRITE-03; `assignment set --account <id> --user <id>` drives the coordinator desired-state reassign with its kind retained.",
+      "fixtureCases": [
+        "dry-run-reassign",
+        "reassign-success",
+        "no-op",
+        "version-conflict",
+        "server-rejection"
+      ]
+    },
+    {
+      "id": "rux.account.assignment.unassign",
+      "command": "assignment set",
+      "slice": "WRITE-03",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Deletes the open account assignment; an already-unassigned account is an exit-0 no-op that sends nothing. Resolving (with outcome) stays a separate operation.",
+      "method": "DELETE",
+      "path": "/api/v3.4/assignments/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "OAuth API client with resource write permission; authorization denial is an error.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "DELETE /api/v3.4/assignments/{id}/"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Enabled by WRITE-03; `assignment set --account <id> --unassign` drives the coordinator desired-state unassign with its kind retained.",
+      "fixtureCases": [
+        "dry-run-unassign",
+        "unassign-success",
+        "no-op"
+      ]
+    },
+    {
       "id": "rux.assignment.list",
       "command": "assignment list",
       "slice": "RUX-04",
@@ -4966,7 +5166,7 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "disposition": "planned",
-      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "rationale": "Assignment create/reassign/unassign ship through the WRITE-00 coordinator under assignment set. Assignment resolve remains planned; no additional route is authorized by this family entry.",
       "evidence": [
         {
           "source": "rux-spec",

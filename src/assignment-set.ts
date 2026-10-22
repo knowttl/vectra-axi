@@ -93,6 +93,9 @@ export function assignmentDesired(
   return { user: Number(user) };
 }
 
+// QUX and the RUX v3.4 Assignment schema share these fields, including
+// assigned_to.id. The read-only RUX-04b projection omits the assignee;
+// mutations require it to distinguish an unassigned entity from bad data.
 const assignmentRowSchema = z.object({
   id: z.number().int().positive(),
   host_id: z.number().int().positive().nullable().optional(),
@@ -133,7 +136,7 @@ function decodeRow(kind: AssignmentSetKind, id: number, row: unknown): {
     || (kind === "host" ? result.data.host_id : result.data.account_id) === undefined
     || (result.data.host_id == null && result.data.account_id == null)) {
     throw new AxiError("Vectra assignment response is malformed: expected valid assignment fields",
-      "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
+      "RESPONSE_INVALID", ["Check the assignment API contract for the selected deployment"]);
   }
   const decoded = result.data;
   // Only unresolved rows for our own entity count: resolved rows are closed
@@ -155,7 +158,7 @@ async function readCurrent(
   // never select a PUT/DELETE target.
   const query: Record<string, string | number | boolean> =
     kind === "host" ? { hosts: id, resolved: "false" } : { accounts: id, resolved: "false" };
-  const collected = await collect(session, "qux.assignment.list", { query });
+  const collected = await collect(session, `${session.profile.kind}.assignment.list`, { query });
   // A denied or partial window cannot establish the current state: refuse
   // instead of routing a mutation off incomplete reads.
   if (collected.error) throw collected.error;
@@ -177,11 +180,11 @@ async function readCurrent(
 // Existence is the whole check: the returned username is informational and
 // the preview names users by exact ID.
 async function readUser(session: Session, user: number): Promise<void> {
-  const { body } = await session.request("qux.user.show", { pathParams: { id: user } });
+  const { body } = await session.request(`${session.profile.kind}.user.show`, { pathParams: { id: user } });
   const result = userSchema.safeParse(body);
   if (!result.success || result.data.id !== user) {
     throw new AxiError(`Vectra user ${user} response is malformed: expected the requested user`,
-      "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
+      "RESPONSE_INVALID", ["Check the user API contract for the selected deployment"]);
   }
 }
 
@@ -231,12 +234,13 @@ function definitionFor(
   session: Session, kind: AssignmentSetKind, id: number, current: CurrentState, desired: AssignmentDesired,
 ): MutationDefinition {
   const target = owner(kind, id);
+  const suffix = session.profile.kind === "rux" ? "/" : "";
   if ("user" in desired) {
     if (current.assignmentId === null) {
       return {
-        operation: `qux.${kind}.assignment.create`,
+        operation: `${session.profile.kind}.${kind}.assignment.create`,
         method: "POST",
-        path: `/api/v${session.profile.apiVersion}/assignments`,
+        path: `/api/v${session.profile.apiVersion}/assignments${suffix}`,
         effect: "write",
         requiresConfirmation: true,
         target,
@@ -244,9 +248,9 @@ function definitionFor(
       };
     }
     return {
-      operation: `qux.${kind}.assignment.reassign`,
+      operation: `${session.profile.kind}.${kind}.assignment.reassign`,
       method: "PUT",
-      path: `/api/v${session.profile.apiVersion}/assignments/${current.assignmentId}`,
+      path: `/api/v${session.profile.apiVersion}/assignments/${current.assignmentId}${suffix}`,
       effect: "write",
       requiresConfirmation: true,
       target,
@@ -256,13 +260,13 @@ function definitionFor(
     };
   }
   return {
-    operation: `qux.${kind}.assignment.unassign`,
+    operation: `${session.profile.kind}.${kind}.assignment.unassign`,
     method: "DELETE",
     // The open assignment selects the DELETE target; with nothing open the
     // coordinator reports a no-op before this definition could ever send.
     path: current.assignmentId === null
-      ? `/api/v${session.profile.apiVersion}/assignments`
-      : `/api/v${session.profile.apiVersion}/assignments/${current.assignmentId}`,
+      ? `/api/v${session.profile.apiVersion}/assignments${suffix}`
+      : `/api/v${session.profile.apiVersion}/assignments/${current.assignmentId}${suffix}`,
     effect: "write",
     requiresConfirmation: true,
     target,
