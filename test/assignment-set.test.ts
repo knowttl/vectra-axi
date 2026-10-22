@@ -1,6 +1,6 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseInvocation } from "../src/catalogue.js";
 import { runAssignmentSet } from "../src/assignment-set.js";
 import { createSession, type RawTransport, type Session } from "../src/session.js";
@@ -24,9 +24,13 @@ const ASSIGNMENT_OPERATIONS = [
 ];
 const enabledProfile = { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token",
   tokenEnv: "SENTINEL_TOKEN", writes: { allowWrites: true, operations: ASSIGNMENT_OPERATIONS } };
+const cloudProfile = { kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth",
+  clientId: "synthetic-client", secretEnv: "CLOUD_SECRET",
+  writes: { allowWrites: true, operations: ASSIGNMENT_OPERATIONS.map((id) => id.replace("qux.", "rux.")) } };
 
 beforeEach(() => {
   vi.stubEnv("SENTINEL_TOKEN", token);
+  vi.stubEnv("CLOUD_SECRET", "fake-cloud-secret");
   vi.stubEnv("VECTRA_AXI_READ_ONLY", undefined);
 });
 afterEach(() => {
@@ -72,13 +76,16 @@ function assignmentTransport(args: {
   sendThrows?: unknown;
 }): RawTransport {
   return async (request) => {
+    if (request.url === "https://fixture.invalid/oauth2/token") {
+      return { status: 200, bodyText: JSON.stringify({ access_token: token, token_type: "Bearer", expires_in: 3600 }) };
+    }
     args.seen.push({ method: request.method, url: request.url, ...(request.body ? { body: request.body } : {}) });
     if (request.method === "GET" && request.url.includes("/assignments")) {
       return { status: args.listStatus ?? 200,
         bodyText: JSON.stringify({ results: args.assignments(), count: args.assignments().length }) };
     }
     if (request.method === "GET" && request.url.includes("/users/")) {
-      const id = Number(request.url.split("/users/")[1]!.split("?")[0]);
+      const id = Number(request.url.split("/users/")[1]!.split(/[/?]/)[0]);
       if ((args.userStatus ?? 200) !== 200) return { status: args.userStatus!, bodyText: "{}" };
       return { status: 200, bodyText: JSON.stringify(args.user?.(id) ?? { id, username: `analyst-${id}` }) };
     }
@@ -99,6 +106,115 @@ const auditLines = (): Record<string, unknown>[] =>
 
 const sends = (seen: SeenCall[]): SeenCall[] =>
   seen.filter((call) => ["POST", "PUT", "DELETE"].includes(call.method));
+
+describe.each(["host", "account"] as const)("RUX %s assignment set", (kind) => {
+  // RUX-04b uses host_id/account_id and date_resolved. The v3.4 Assignment
+  // schema also exposes assigned_to.id, which writes need to establish state.
+  const row = { id: 11, host_id: null, account_id: null, [`${kind}_id`]: 7,
+    date_resolved: null, assigned_to: { id: 5 } };
+  const argv = ["assignment", "set", `--${kind}`, "7"];
+  const execute = ["--execute", "--confirm", `${kind} 7`];
+
+  it.each([
+    ["create", [], ["--user", "3"], "POST", "", { [`assign_${kind}_id`]: 7, assign_to_user_id: 3 }],
+    ["reassign", [row], ["--user", "3"], "PUT", "11/", { assign_to_user_id: 3 }],
+    ["unassign", [row], ["--unassign"], "DELETE", "11/", undefined],
+  ] as const)("previews then executes %s with the documented body", async (action, rows, desired, method, suffix, body) => {
+    const seen: SeenCall[] = [];
+    const { run } = harness({ profile: selected(cloudProfile),
+      transport: assignmentTransport({ assignments: () => [...rows], seen,
+        user: (id) => ({ id, name: "synthetic-analyst" }) }) });
+    const preview = await run([...argv, ...desired]);
+    expect(preview.output).toMatchObject({ operation: `rux.${kind}.assignment.${action}` });
+    expect(sends(seen)).toEqual([]);
+    const result = await run([...argv, ...desired, ...execute]);
+    expect(result.failed).toBe(false);
+    expect(sends(seen)).toEqual([{ method, url: `https://fixture.invalid/api/v3.4/assignments/${suffix}`,
+      ...(body ? { body: JSON.stringify(body) } : {}) }]);
+    expect(seen).toContainEqual({ method: "GET",
+      url: `https://fixture.invalid/api/v3.4/assignments/?${kind}s=7&resolved=false&page_size=100` });
+    const lines = auditLines();
+    expect(lines.map((line) => [line.kind, line.outcome ?? null])).toEqual([
+      ["intent", null], ["outcome", "SUCCESS"],
+    ]);
+    expect(readFileSync(auditPath, "utf8")).not.toContain(token);
+    expect(lines[0]).not.toHaveProperty("payload");
+    expect(lines[0]).not.toHaveProperty("body");
+  });
+
+  it.each([
+    ["assigned", [row], ["--user", "5"]],
+    ["unassigned", [], ["--unassign"]],
+  ] as const)("sends nothing for already %s state", async (_state, rows, desired) => {
+    const seen: SeenCall[] = [];
+    const { run } = harness({ profile: selected(cloudProfile),
+      transport: assignmentTransport({ assignments: () => [...rows], seen }) });
+    const result = await run([...argv, ...desired, ...execute]);
+    expect(result.failed).toBe(false);
+    expect(result.output.assignment).toContain("(no-op)");
+    expect(sends(seen)).toEqual([]);
+  });
+
+  it("refuses a missing assignee rather than treating it as unassigned", async () => {
+    const seen: SeenCall[] = [];
+    const { run } = harness({ profile: selected(cloudProfile), transport: assignmentTransport({
+      assignments: () => [{ id: 11, host_id: null, account_id: null, [`${kind}_id`]: 7, date_resolved: null }], seen,
+    }) });
+    await expect(run([...argv, "--unassign", ...execute])).rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+    expect(sends(seen)).toEqual([]);
+  });
+
+  it("refuses a concurrent reassignment before sending", async () => {
+    let reads = 0;
+    const seen: SeenCall[] = [];
+    const { run } = harness({ profile: selected(cloudProfile), transport: assignmentTransport({
+      assignments: () => [{ ...row, assigned_to: { id: reads++ < 2 ? 5 : 9 } }], seen,
+    }) });
+    await expect(run([...argv, "--user", "3", ...execute])).rejects.toMatchObject({ code: "VERSION_CONFLICT" });
+    expect(sends(seen)).toEqual([]);
+  });
+
+  it("refuses duplicate open assignments", async () => {
+    const seen: SeenCall[] = [];
+    const { run } = harness({ profile: selected(cloudProfile),
+      transport: assignmentTransport({ assignments: () => [row, { ...row, id: 14 }], seen }) });
+    await expect(run([...argv, "--user", "3", ...execute])).rejects.toMatchObject({
+      code: "VALIDATION_ERROR", message: expect.stringContaining("2 open assignments"),
+    });
+    expect(sends(seen)).toEqual([]);
+  });
+
+  it.each([
+    ["without opt-in", { ...cloudProfile, writes: undefined }, undefined, execute, "WRITES_DISABLED"],
+    ["read-only override", cloudProfile, "1", execute, "WRITES_DISABLED"],
+    ["outside allowlist", { ...cloudProfile, writes: { allowWrites: true, operations: [`rux.${kind}.assignment.unassign`] } }, undefined, execute, "OPERATION_NOT_WRITABLE"],
+    ["missing confirmation", cloudProfile, undefined, ["--execute"], "CONFIRM_REQUIRED"],
+    ["wrong confirmation", cloudProfile, undefined, ["--execute", "--confirm", `${kind} 8`], "CONFIRM_MISMATCH"],
+  ] as const)("refuses %s before journaling or sending", async (_name, profile, readOnly, flags, code) => {
+    vi.stubEnv("VECTRA_AXI_READ_ONLY", readOnly);
+    const seen: SeenCall[] = [];
+    const { run } = harness({ profile: selected(profile),
+      transport: assignmentTransport({ assignments: () => [], seen }) });
+    await expect(run([...argv, "--user", "3", ...flags])).rejects.toMatchObject({ code });
+    expect(sends(seen)).toEqual([]);
+    expect(() => readFileSync(auditPath, "utf8")).toThrow();
+  });
+
+  it.each([
+    ["server reject", { sendStatus: 403 }, "FAILED"],
+    ["timeout", { sendThrows: new Error("socket timed out") }, "OUTCOME_UNKNOWN"],
+  ] as const)("journals %s without replay", async (_name, failure, outcome) => {
+    const seen: SeenCall[] = [];
+    const { run } = harness({ profile: selected(cloudProfile),
+      transport: assignmentTransport({ assignments: () => [], seen, ...failure }) });
+    const result = await run([...argv, "--user", "3", ...execute]);
+    expect(result.failed).toBe(true);
+    expect(auditLines().map((line) => [line.kind, line.outcome ?? null])).toEqual([
+      ["intent", null], ["outcome", outcome],
+    ]);
+    expect(sends(seen)).toHaveLength(1);
+  });
+});
 
 it("reads current state through the entity-filtered unresolved list route", async () => {
   const seen: SeenCall[] = [];

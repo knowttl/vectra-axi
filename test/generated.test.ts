@@ -105,8 +105,8 @@ describe("generated release records", () => {
     expect(skill).toContain("README.md#development--testing");
   });
 
-  it("calls the release the supported QUX and RUX SOC read surface with gated QUX single and bulk tag-write, note-append and assignment-write families and the gated QUX/RUX note edit/delete family, not full coverage", () => {
-    expect(coverage).toContain("the supported QUX and RUX SOC read surface with gated QUX single and bulk tag-write, note-append and assignment-write families and the gated QUX/RUX note edit/delete family, not full Vectra API coverage");
+  it("describes shipped QUX and RUX writes without claiming full API coverage", () => {
+    expect(coverage).toContain("the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, assignment-write and note edit/delete families, not full Vectra API coverage");
     expect(coverage).not.toMatch(/\d+\s*% (complete|coverage)/);
   });
 

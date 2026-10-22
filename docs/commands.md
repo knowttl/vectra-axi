@@ -1435,7 +1435,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
 
 ## assignment set
 
-Set a QUX host or account assignment to an exact user through the gated write pipeline
+Set a QUX or RUX host or account assignment to an exact user through the gated write pipeline
 
 - `qux.host.assignment.create`: QUX API 2.5
 - `qux.host.assignment.reassign`: QUX API 2.5
@@ -1443,11 +1443,17 @@ Set a QUX host or account assignment to an exact user through the gated write pi
 - `qux.account.assignment.create`: QUX API 2.5
 - `qux.account.assignment.reassign`: QUX API 2.5
 - `qux.account.assignment.unassign`: QUX API 2.5
+- `rux.host.assignment.create`: RUX API 3.4
+- `rux.host.assignment.reassign`: RUX API 3.4
+- `rux.host.assignment.unassign`: RUX API 3.4
+- `rux.account.assignment.create`: RUX API 3.4
+- `rux.account.assignment.reassign`: RUX API 3.4
+- `rux.account.assignment.unassign`: RUX API 3.4
 
 ```json
 {
   "command": "vectra-axi assignment set",
-  "description": "Set a QUX host or account assignment to an exact user through the gated write pipeline",
+  "description": "Set a QUX or RUX host or account assignment to an exact user through the gated write pipeline",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",

@@ -661,7 +661,7 @@ export const catalogue: Readonly<Record<string, {
     // (--host xor --account) and exactly one desired state (--user xor
     // --unassign); detections have no assignment route and resolving stays
     // a separate operation with no leaf.
-    description: "Set a QUX host or account assignment to an exact user through the gated write pipeline",
+    description: "Set a QUX or RUX host or account assignment to an exact user through the gated write pipeline",
     flags: {
       ...globals,
       host: { kind: "value", valueName: "id", description: "Host ID whose assignment to set (positive integer, required with no --account)" },
