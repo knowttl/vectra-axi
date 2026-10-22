@@ -48,6 +48,18 @@ const listPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
 });
 const hostNext = "https://fixture.invalid/api/v2.5/hosts?min_id=2";
 
+it.each([false, true])("finds a host by name in one page without --all (RUX: %s)", async (rux) => {
+  const urls: string[] = [];
+  const respond = (url: string) => {
+    urls.push(url);
+    return listPage([host(1, { name: "web-01" })], { count: 1 });
+  };
+  const owned = rux ? cloudSession(cloudFixture(respond)) : session(async (request) => respond(request.url));
+  const result = await runHostList(owned, flags(["host", "list", "--name", "web-01"]));
+  expect(urls).toEqual([`https://fixture.invalid/api/v${rux ? "3.4/hosts/?name=web-01&page_size=100" : "2.5/hosts?name=web-01"}`]);
+  expect(result).toMatchObject({ failed: false, output: { complete: true, total: 1, hosts: [host(1, { name: "web-01" })] } });
+});
+
 it.each([
   { noun: "host", run: runHostList, route: "hosts", key: "hosts", extra: [] },
   { noun: "account", run: runAccountList, route: "accounts", key: "accounts", extra: [] },

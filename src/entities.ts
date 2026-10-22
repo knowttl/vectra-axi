@@ -112,6 +112,8 @@ function showOperation(kind: EntityKind, facade: boolean, rux: boolean): string 
 // must be repeated; resume() rejects a changed query context explicitly.
 export function listQuery(flags: ReadonlyMap<string, string | boolean>, facade = false, rux = false): ListQuery {
   const query: ListQuery = {};
+  const name = flags.get("name");
+  if (name !== undefined) query.name = name;
   if (facade && rux) {
     for (const flag of ["threat-gte", "certainty-gte"] as const) {
       if (flags.has(flag)) {
