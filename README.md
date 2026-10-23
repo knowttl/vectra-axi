@@ -322,6 +322,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
 | `<generation>.host.key-asset.set` | Set host key-asset state on QUX or RUX |
 | `<generation>.detection.triage.set`, `.clear` | Set/clear per-detection triage suppression on QUX or RUX |
+| `<generation>.triage-rule.create`, `.edit`, `.delete` | Create/replace/delete org-wide triage rules on QUX or RUX |
 | `<generation>.host.close`, `<generation>.account.close` | Close hosts/accounts with all active detections on QUX (release 9.3+) or RUX |
 
 Replace `<kind>` with `detection`, `host`, or `account`, except assignments, which support only `host` and `account`, and detection close/open, which supports only `detection`.
