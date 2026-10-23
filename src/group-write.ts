@@ -72,11 +72,12 @@ export async function runGroupMemberWrite(
     if (!["host", "account", "ip", "domain"].includes(type)) invalid(`Unsupported group type: ${type}`);
     const member = (value: unknown): Member => {
       const row = value !== null && typeof value === "object" ? value as Record<string, unknown> : undefined;
-      const identity = row ? row[type === "host" ? "id" : type === "account" ? "uid" : type] : value;
+      const raw = row ? row[type === "host" ? "id" : type === "account" ? "uid" : type] : value;
+      const identity = typeof raw === "string" ? raw.trim() : raw;
       if (type === "host") {
         const number = typeof identity === "string" && /^\d+$/.test(identity) ? Number(identity) : identity;
         if (typeof number === "number" && Number.isSafeInteger(number) && number > 0) return number;
-      } else if (typeof identity === "string" && identity.trim()) return identity;
+      } else if (typeof identity === "string" && identity) return identity;
       throw new AxiError(`Invalid ${type} group member identity`, "MALFORMED_RESPONSE", ["Use host IDs, account UIDs, IPs or domains matching the group type"]);
     };
     const window = await collect(session, `${generation}.group.member.list`, {
