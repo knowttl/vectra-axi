@@ -216,6 +216,14 @@ Bulk confirmation names the complete normalized target set, for example `--execu
 
 Tag replacement, note edit/delete, and assignment changes re-read before sending and refuse conflicting state with `VERSION_CONFLICT`.
 These comparisons are not atomic server-side version checks; concurrent changes after the re-read can still be overwritten or removed.
+- `proxy list` and `proxy show --id <id>` read proxy settings on QUX and RUX.
+  `proxy create --address 192.0.2.10 --consider true` confirms `new proxy 192.0.2.10`.
+  `proxy edit --id <id>` accepts `--address` and/or `--consider true|false`; `proxy delete --id <id>` is RUX only.
+  Edit and delete confirm `proxy <id>` and require a user-defined proxy.
+  Proxy settings affect detection attribution.
+  Creates read the full list; edits and deletes re-read the proxy before sending and refuse concurrent changes.
+  This check is not atomic; PATCH may change the proxy ID, so read the list after an ambiguous outcome.
+
 Mutation intent and outcome are recorded durably as redacted metadata, without note text.
 If a timeout leaves the outcome unknown, use the audit ID and read-back guidance before taking another action; never replay an ambiguous mutation.
 
@@ -338,6 +346,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.<kind>.assignment.create`, `.reassign`, `.unassign` | Assignments for hosts/accounts on QUX or RUX |
 | `<generation>.<kind>.assignment.resolve` | Resolve open assignments for hosts/accounts on QUX or RUX |
 | `<generation>.assignment-outcome.create`, `.edit`, `.delete` | Custom assignment outcomes on QUX or RUX |
+| `<generation>.proxy.create`, `.edit`; `rux.proxy.delete` | User-defined proxies; settings affect detection attribution |
 | `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
 | `<generation>.detection.fixed.set` | Mark/unmark legacy fixed state on QUX or RUX |
 | `<generation>.host.key-asset.set` | Set host key-asset state on QUX or RUX |
@@ -394,6 +403,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `account` | `account list`, `account show`, `account close`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note bulk-add`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
 | `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |
 | `assignment` | `assignment list`, `assignment set`, `assignment resolve`, `assignment outcome list`, `assignment outcome create`, `assignment outcome edit`, `assignment outcome delete`, `assignment outcome show` | QUX, RUX |
+| `proxy` | `proxy list`, `proxy show`, `proxy create`, `proxy edit`, `proxy delete` | QUX, RUX |
 | `user` | `user list`, `user show` | QUX, RUX |
 | `audit` | `audit list` | QUX, RUX |
 | `group` | `group list`, `group show`, `group create`, `group edit`, `group delete`, `group member add`, `group member remove`, `group member set`, `group member list` | QUX, RUX |
