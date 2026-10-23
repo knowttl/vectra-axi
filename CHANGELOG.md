@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.1.9](https://github.com/knowttl/vectra-axi/compare/v0.1.8...v0.1.9) (2026-10-23)
+
+
+### Features
+
+* add gated assignment outcome create, edit, and delete ([#73](https://github.com/knowttl/vectra-axi/issues/73)) ([dcc6c54](https://github.com/knowttl/vectra-axi/commit/dcc6c5477c37de823d7d41b7493ba2cf24c585a2))
+* add gated host key-asset set command ([#72](https://github.com/knowttl/vectra-axi/issues/72)) ([281c399](https://github.com/knowttl/vectra-axi/commit/281c399062d68ca4765e9ab2d1e7f4a60ee0a644))
+* add gated RUX bulk note appends for detections, hosts, and accounts ([#82](https://github.com/knowttl/vectra-axi/issues/82)) ([76c0e28](https://github.com/knowttl/vectra-axi/commit/76c0e28c1e0f45c96fa4ae07b8345a697a31d5ac))
+* add gated triage rule create, edit, and delete ([#77](https://github.com/knowttl/vectra-axi/issues/77)) ([574221b](https://github.com/knowttl/vectra-axi/commit/574221ba9aefc60f67480df7e9921b5e8494e655))
+* **assignments:** add gated assignment resolve for hosts and accounts ([#76](https://github.com/knowttl/vectra-axi/issues/76)) ([dfbc817](https://github.com/knowttl/vectra-axi/commit/dfbc81732134600d3d3c1e4ecde487956ddeccb2))
+* **detections:** add gated detection close and reopen commands ([#70](https://github.com/knowttl/vectra-axi/issues/70)) ([98104c2](https://github.com/knowttl/vectra-axi/commit/98104c2f64771b4d4e9b9bd3617e97322c0a1e15))
+* **detections:** add gated detection fixed set command ([#79](https://github.com/knowttl/vectra-axi/issues/79)) ([09283ae](https://github.com/knowttl/vectra-axi/commit/09283ae7cd9f58955bdb95c1876bac5a3657d2b9))
+* **detections:** add gated detection triage set and clear ([#75](https://github.com/knowttl/vectra-axi/issues/75)) ([38e714c](https://github.com/knowttl/vectra-axi/commit/38e714cd4f8dd8add64cb44fbd58ae7e8dab2648))
+* enable RUX detection, host, and account tag writes ([#63](https://github.com/knowttl/vectra-axi/issues/63)) ([063f598](https://github.com/knowttl/vectra-axi/commit/063f5987957792574739ea3dd287f698b79a21c6))
+* **entities:** add gated host and account close commands ([#71](https://github.com/knowttl/vectra-axi/issues/71)) ([8bbfc5d](https://github.com/knowttl/vectra-axi/commit/8bbfc5d0d5d6dc3e37f0525a2aca6675e478564c))
+* **groups:** add gated group create, edit, and delete ([#81](https://github.com/knowttl/vectra-axi/issues/81)) ([d72b85a](https://github.com/knowttl/vectra-axi/commit/d72b85a04b51a1f65a3e8ffda0aa6ea89964d67b))
+* **groups:** add gated group member add, remove, and set commands ([#78](https://github.com/knowttl/vectra-axi/issues/78)) ([c1074c6](https://github.com/knowttl/vectra-axi/commit/c1074c6ef1886ac909476e9e2c720d8ce3afdfec))
+* **match:** add Match reads and gated enablement, ruleset, and assignment writes ([#89](https://github.com/knowttl/vectra-axi/issues/89)) ([409a06f](https://github.com/knowttl/vectra-axi/commit/409a06f0d32ea00769162c7750dcec4fac04f986))
+* **notifications:** add gated RUX notification destination management ([#90](https://github.com/knowttl/vectra-axi/issues/90)) ([c2c0da4](https://github.com/knowttl/vectra-axi/commit/c2c0da47fbec9abc2b712dc6bce773ee4091caef))
+* **proxies:** add proxy reads and gated proxy writes ([#84](https://github.com/knowttl/vectra-axi/issues/84)) ([1f7d509](https://github.com/knowttl/vectra-axi/commit/1f7d509501b2c2e6590e676ddeeffa7847ed7f00))
+* **settings:** add gated QUX internal-network show and set ([#86](https://github.com/knowttl/vectra-axi/issues/86)) ([d05d310](https://github.com/knowttl/vectra-axi/commit/d05d310ce0307a273ba995ab70c91a67c8ac5be0))
+* **settings:** add gated QUX syslog and Kafka export set ([#87](https://github.com/knowttl/vectra-axi/issues/87)) ([680b35c](https://github.com/knowttl/vectra-axi/commit/680b35cfed3b530c062586808a9e92d7daa2c9c8))
+* support RUX assignment sets through the gated write pipeline ([#69](https://github.com/knowttl/vectra-axi/issues/69)) ([9b53a3b](https://github.com/knowttl/vectra-axi/commit/9b53a3bddc0084a07e94ec933195537fa9c12212))
+* support RUX note appends through the gated write pipeline ([#66](https://github.com/knowttl/vectra-axi/issues/66)) ([e40b348](https://github.com/knowttl/vectra-axi/commit/e40b3488d8b47134c4b95eef8e95ee86afd3eeea))
+* **threat-feeds:** add threat-feed reads and gated writes ([#85](https://github.com/knowttl/vectra-axi/issues/85)) ([02f8412](https://github.com/knowttl/vectra-axi/commit/02f84124a1d336a5e37789f8022670fb15a97c5f))
+
 ## [0.1.8](https://github.com/knowttl/vectra-axi/compare/v0.1.7...v0.1.8) (2026-10-22)
 
 
