@@ -2138,6 +2138,114 @@ Show one group on QUX v2.5 or RUX v3.4 in full detail
 }
 ```
 
+## group create
+
+Create a group on QUX or RUX under the explicit write policy
+
+- `qux.group.create`: QUX API 2.5
+- `rux.group.create`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi group create",
+  "description": "Create a group on QUX or RUX under the explicit write policy",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--name <name>": "Group name, required",
+    "--description <text>": "Group description, required",
+    "--importance <value>": "high, medium, low or never_prioritize; required",
+    "--type <host|account|ip|domain>": "Group kind, required",
+    "--members <list>": "Comma-separated host IDs, account UIDs, IPs or domains; exactly one of members, regex or AD DN required",
+    "--regex <pattern>": "Host/account membership regex; QUX requires release 9.0+",
+    "--ad-group-dn <dn>": "Host/account AD group distinguished name; QUX requires release 9.6+",
+    "--execute": "Send the confirmed mutation; default previews only",
+    "--dry-run": "Preview only; cannot be combined with --execute",
+    "--confirm <target>": "Exact group target from preview, required to execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi group create --profile <name> --type host --name Example --description Example --importance medium --members 7,9",
+    "vectra-axi group create --profile <name> --type domain --name Example --description Example --importance medium --members example.invalid --execute --confirm 'new group'"
+  ]
+}
+```
+
+## group edit
+
+Edit a group on QUX or RUX under the explicit write policy
+
+- `qux.group.edit`: QUX API 2.5
+- `rux.group.edit`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi group edit",
+  "description": "Edit a group on QUX or RUX under the explicit write policy",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Group ID (positive integer, required)",
+    "--name <name>": "Group name",
+    "--description <text>": "Group description",
+    "--importance <value>": "high, medium, low or never_prioritize",
+    "--execute": "Send the confirmed mutation; default previews only",
+    "--dry-run": "Preview only; cannot be combined with --execute",
+    "--confirm <target>": "Exact group target from preview, required to execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi group edit --profile <name> 8 --importance high",
+    "vectra-axi group edit --profile <name> 8 --name Example --execute --confirm 'group 8'"
+  ]
+}
+```
+
+## group delete
+
+Delete a group on QUX or RUX; deletion orphans triage rule references
+
+- `qux.group.delete`: QUX API 2.5
+- `rux.group.delete`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi group delete",
+  "description": "Delete a group on QUX or RUX; deletion orphans triage rule references",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Group ID (positive integer, required)",
+    "--execute": "Send the confirmed mutation; default previews only",
+    "--dry-run": "Preview only; cannot be combined with --execute",
+    "--confirm <target>": "Exact group target from preview, required to execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi group delete --profile <name> 8",
+    "vectra-axi group delete --profile <name> 8 --execute --confirm 'group 8'"
+  ]
+}
+```
+
 ## group member add
 
 Add to static group membership on QUX or RUX; groups drive triage rules and importance

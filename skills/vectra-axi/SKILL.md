@@ -87,6 +87,9 @@ See [operation coverage](https://github.com/knowttl/vectra-axi/blob/main/docs/co
 | `npx -y @knowttl/vectra-axi audit list` | native | read | QUX: date window; narrow dates to bound the response, no --all; RUX: checkpoint batch; --cursor/--from continuation, no --all |
 | `npx -y @knowttl/vectra-axi group list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
 | `npx -y @knowttl/vectra-axi group show` | native | read | - |
+| `npx -y @knowttl/vectra-axi group create` | native | write | - |
+| `npx -y @knowttl/vectra-axi group edit` | native | write | - |
+| `npx -y @knowttl/vectra-axi group delete` | native | disruptive | - |
 | `npx -y @knowttl/vectra-axi group member add` | native | write | - |
 | `npx -y @knowttl/vectra-axi group member remove` | native | write | - |
 | `npx -y @knowttl/vectra-axi group member set` | native | write | - |

@@ -41,7 +41,7 @@ import { runTagSet } from "./tags.js";
 import { runDetectionState } from "./detection-state.js";
 import { runDetectionTriage } from "./detection-triage.js";
 import { runHostKeyAsset } from "./host-key-asset.js";
-import { runGroupMemberWrite } from "./group-write.js";
+import { runGroupMemberWrite, runGroupWrite } from "./group-write.js";
 import { runAssignmentOutcomeWrite } from "./assignment-outcome-write.js";
 import { runTriageRuleWrite } from "./triage-rule-write.js";
 import { createMutationCoordinator, readOnlyForced } from "./writes.js";
@@ -165,6 +165,10 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
           || invocation.leaf === "assignment outcome delete") {
           const action = invocation.leaf === "assignment outcome create" ? "create" : invocation.leaf === "assignment outcome edit" ? "edit" : "delete";
           return runWrite(invocation.flags, (session, coordinator) => runAssignmentOutcomeWrite(session, coordinator, invocation.flags, action));
+        }
+        if (invocation.leaf === "group create" || invocation.leaf === "group edit" || invocation.leaf === "group delete") {
+          const action = invocation.leaf.split(" ")[1] as "create" | "edit" | "delete";
+          return runWrite(invocation.flags, (session, coordinator) => runGroupWrite(session, coordinator, invocation.flags, action));
         }
         if (invocation.leaf === "group member add" || invocation.leaf === "group member remove" || invocation.leaf === "group member set") {
           const action = invocation.leaf.split(" ")[2] as "add" | "remove" | "set";

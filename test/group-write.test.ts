@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
 import { parseInvocation } from "../src/catalogue.js";
-import { runGroupMemberWrite } from "../src/group-write.js";
+import { runGroupMemberWrite, runGroupWrite } from "../src/group-write.js";
 import { loadConfig, selectProfile } from "../src/profiles.js";
 import { SecretRedactor } from "../src/redact.js";
 import { createSession, type RawTransport } from "../src/session.js";
@@ -24,13 +24,16 @@ afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 function harness(options: {
   kind?: "qux" | "rux"; state?: () => unknown[]; group?: Record<string, unknown>; incomplete?: boolean;
   writes?: { allowWrites: boolean; operations: string[] }; status?: number; timeout?: boolean;
+  release?: string; lifecycle?: boolean; metadata?: () => Record<string, unknown>;
 } = {}) {
   const kind = options.kind ?? "qux";
   writeFileSync(configPath, JSON.stringify({ profiles: { lab: {
     kind, origin: "https://fixture.invalid", apiVersion: kind === "qux" ? "2.5" : "3.4",
+    ...(options.release ? { applianceRelease: options.release } : {}),
     ...(kind === "qux" ? { auth: "token", tokenEnv: "SYNTHETIC_TOKEN" }
       : { auth: "oauth", clientId: "synthetic-client", secretEnv: "SYNTHETIC_TOKEN" }),
-    writes: options.writes ?? { allowWrites: true, operations: [`${kind}.group.member.set`] },
+    writes: options.writes ?? { allowWrites: true, operations: options.lifecycle
+      ? ["create", "edit", "delete"].map((action) => `${kind}.group.${action}`) : [`${kind}.group.member.set`] },
   } } }));
   const redactor = new SecretRedactor();
   const loaded = loadConfig(configPath, redactor);
@@ -43,7 +46,7 @@ function harness(options: {
     seen.push({ method: request.method, url: request.url, ...(request.body ? { body: request.body } : {}) });
     if (request.method === "GET") {
       if (!request.url.includes("/members")) return {
-        status: 200, bodyText: JSON.stringify({ id: 8, type: "host", ...options.group }),
+        status: 200, bodyText: JSON.stringify({ id: 8, type: "host", name: "Example", description: "Example group", importance: "medium", ...options.group, ...options.metadata?.() }),
       };
       const rows = options.state ? options.state() : [{ id: 7 }];
       const second = new URL(request.url).searchParams.has("page");
@@ -60,6 +63,8 @@ function harness(options: {
   const coordinator = createMutationCoordinator({ profile, configPath, redactor, transport, auditPath });
   return {
     seen,
+    lifecycle: async (action: "create" | "edit" | "delete", args: string[]) => runGroupWrite(session, coordinator,
+      new Map(parseInvocation(["group", action, ...args]).flags), action),
     run: async (args: string[] = [], action: "add" | "remove" | "set" = "add", stdin?: () => string) => runGroupMemberWrite(session, coordinator,
       new Map(parseInvocation(["group", "member", action, ...args]).flags), action, stdin),
   };
@@ -67,6 +72,118 @@ function harness(options: {
 const input = ["--id", "8", "--members", "9"];
 const execute = ["--execute", "--confirm", "group 8"];
 const journal = () => readFileSync(auditPath, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+
+const createInput = ["--type", "host", "--name", "Example", "--description", "Example group", "--importance", "medium"];
+const createExecute = ["--execute", "--confirm", "new group"];
+
+it.each(["qux", "rux"] as const)("previews and creates a %s group with the required payload", async (kind) => {
+  const { lifecycle, seen } = harness({ kind, lifecycle: true });
+  const args = [...createInput, "--members", "7,9"];
+  expect((await lifecycle("create", args)).output).toMatchObject({ proposed: {
+    type: "host", name: "Example", description: "Example group", importance: "medium", members: [7, 9],
+  } });
+  expect(seen).toEqual([]);
+  await lifecycle("create", [...args, ...createExecute]);
+  expect(seen).toEqual([{
+    method: "POST", url: `https://fixture.invalid/api/v${kind === "qux" ? "2.5" : "3.4"}/groups${kind === "rux" ? "/" : ""}`,
+    body: JSON.stringify({ name: "Example", description: "Example group", importance: "medium", type: "host", members: [7, 9] }),
+  }]);
+  expect(journal().map((line) => [line.kind, line.outcome])).toEqual([["intent", undefined], ["outcome", "SUCCESS"]]);
+  expect(readFileSync(auditPath, "utf8")).not.toMatch(/Example|payload|members|synthetic-secret|synthetic-access/);
+});
+
+it.each(["qux", "rux"] as const)("edits only supplied %s group metadata and skips an equal edit", async (kind) => {
+  const { lifecycle, seen } = harness({ kind, lifecycle: true });
+  await lifecycle("edit", ["--id", "8", "--importance", "medium", ...execute]);
+  expect(seen.filter((call) => call.method !== "GET")).toEqual([]);
+  await lifecycle("edit", ["--id", "8", "--description", "Updated description", ...execute]);
+  expect(seen.filter((call) => call.method === "PATCH")).toEqual([{
+    method: "PATCH", url: `https://fixture.invalid/api/v${kind === "qux" ? "2.5" : "3.4"}/groups/8${kind === "rux" ? "/" : ""}`,
+    body: JSON.stringify({ description: "Updated description" }),
+  }]);
+});
+
+it("deletes a RUX group only with the exact confirmation and journals disruptive intent", async () => {
+  const { lifecycle, seen } = harness({ kind: "rux", lifecycle: true });
+  expect((await lifecycle("delete", ["--id", "8"])).output).toMatchObject({ warning: expect.stringContaining("orphans") });
+  await expect(lifecycle("delete", ["--id", "8", "--execute"])).rejects.toMatchObject({ code: "CONFIRM_REQUIRED" });
+  await expect(lifecycle("delete", ["--id", "8", "--execute", "--confirm", "group 9"])).rejects.toMatchObject({ code: "CONFIRM_MISMATCH" });
+  expect(seen.filter((call) => call.method === "DELETE")).toEqual([]);
+  await lifecycle("delete", ["--id", "8", ...execute]);
+  expect(seen.filter((call) => call.method === "DELETE")).toEqual([{ method: "DELETE", url: "https://fixture.invalid/api/v3.4/groups/8/" }]);
+  expect(journal()[0]).toMatchObject({ effect: "disruptive" });
+});
+
+it.each([
+  [], ["--members", "7", "--regex", ".*"], ["--members", "7", "--ad-group-dn", "CN=Example"],
+  ["--regex", ".*", "--ad-group-dn", "CN=Example"], ["--members", "0"], ["--members", "7,"],
+].map((args) => ({ args })))("refuses invalid create membership $args before any request", async ({ args }) => {
+  const { lifecycle, seen } = harness({ lifecycle: true });
+  await expect(lifecycle("create", [...createInput, ...args, ...createExecute])).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  expect(seen).toEqual([]);
+});
+
+it.each([
+  ["8.9", "--regex", ".*"], ["9.5", "--ad-group-dn", "CN=Example"],
+] as const)("refuses unsupported release %s %s before any request", async (release, flag, value) => {
+  const { lifecycle, seen } = harness({ lifecycle: true, release });
+  await expect(lifecycle("create", [...createInput, flag, value])).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  expect(seen).toEqual([]);
+});
+
+it.each([
+  ["create", ["--type", "host", "--members", "7"]],
+  ["create", [...createInput, "--members", "7", "--id", "8"]],
+  ["create", ["--type", "domain", "--name", "Example", "--description", "Example", "--importance", "medium", "--regex", ".*"]],
+  ["create", ["--type", "ip", "--name", "Example", "--description", "Example", "--importance", "medium", "--ad-group-dn", "CN=Example"]],
+  ["edit", ["--id", "8"]], ["edit", ["--id", "8", "--importance", "unknown"]],
+  ["delete", ["--id", "0"]], ["delete", ["--id", "9007199254740992"]],
+] as const)("rejects invalid lifecycle input %s %j without requests", async (action, args) => {
+  const { lifecycle, seen } = harness({ lifecycle: true });
+  await expect(lifecycle(action, [...args])).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  expect(seen).toEqual([]);
+});
+
+it.each([
+  ["9.0", "--regex", ".*", "regex"], ["9.6", "--ad-group-dn", "CN=Example", "ad_group_dn"],
+] as const)("creates automatic groups on supported release %s", async (release, flag, value, key) => {
+  const { lifecycle, seen } = harness({ lifecycle: true, release });
+  await lifecycle("create", [...createInput, flag, value, ...createExecute]);
+  expect(JSON.parse(seen.find((call) => call.method === "POST")!.body!)).toMatchObject({ [key]: value });
+});
+
+it.each(["edit", "delete"] as const)("refuses changed metadata before %s", async (action) => {
+  let reads = 0;
+  const { lifecycle, seen } = harness({ lifecycle: true, metadata: () => ({ name: ++reads === 1 ? "Example" : "Changed" }) });
+  await expect(lifecycle(action, ["--id", "8", ...(action === "edit" ? ["--importance", "high"] : []), ...execute]))
+    .rejects.toMatchObject({ code: "VERSION_CONFLICT" });
+  expect(seen.every((call) => call.method === "GET")).toBe(true);
+  expect(journal().at(-1)).toMatchObject({ outcome: "NOT_SENT" });
+});
+
+it.each([
+  [{ allowWrites: false, operations: ["qux.group.create"] }, "WRITES_DISABLED"],
+  [{ allowWrites: true, operations: ["qux.group.member.set"] }, "OPERATION_NOT_WRITABLE"],
+] as const)("refuses lifecycle writes without matching scope %j", async (writes, code) => {
+  const { lifecycle, seen } = harness({ lifecycle: true, writes: { ...writes, operations: [...writes.operations] } });
+  await expect(lifecycle("create", [...createInput, "--members", "7", ...createExecute])).rejects.toMatchObject({ code });
+  expect(seen).toEqual([]);
+});
+
+it("forced read-only overrides lifecycle opt-in", async () => {
+  vi.stubEnv("VECTRA_AXI_READ_ONLY", "1");
+  const { lifecycle, seen } = harness({ lifecycle: true });
+  await expect(lifecycle("create", [...createInput, "--members", "7", ...createExecute])).rejects.toMatchObject({ code: "WRITES_DISABLED" });
+  expect(seen).toEqual([]);
+});
+
+it.each([[403, false, "FAILED"], [200, true, "OUTCOME_UNKNOWN"]] as const)(
+  "records lifecycle failures without replay %s %s", async (status, timeout, outcome) => {
+    const { lifecycle, seen } = harness({ lifecycle: true, status, timeout });
+    expect((await lifecycle("create", [...createInput, "--members", "7", ...createExecute])).failed).toBe(true);
+    expect(seen).toHaveLength(1);
+    expect(journal().at(-1)).toMatchObject({ outcome });
+  });
 
 it.each(["qux", "rux"] as const)("previews paged membership then sends one full %s replacement", async (kind) => {
   const { run, seen } = harness({ kind, state: () => [{ id: 7 }, { id: 10 }] });
