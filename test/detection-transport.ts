@@ -37,6 +37,9 @@ const ruxHealthEvent2 = { id: 102, health_check_name: "disk", status: "WARNING",
   event_timestamp: "2026-10-01T12:05:00Z" };
 const next = "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2";
 const responses = new Map<string, { status: number; body: unknown }>([
+  ["https://fixture.invalid/api/v2.5/threatFeeds", { status: 200, body: { threatFeeds: [] } }],
+  ["https://fixture.invalid/api/v2.5/threatFeeds/3", { status: 200, body: { _id: "3", name: "neutral-feed", _rev: "1-neutral",
+    defaults: { category: "cnc", certainty: "High", indicatorType: "Watchlist", duration: 7 }, uploadResults: null } }],
   ["https://fixture.invalid/api/v2.5/proxies", { status: 200, body: { meta: { count: 0 }, proxies: [] } }],
   ["https://fixture.invalid/api/v2.5/proxies/proxy-1", { status: 200,
     body: { meta: { count: 1 }, proxies: [{ id: "proxy-1", address: "192.0.2.10", considerProxy: true, source: "user" }] } }],
@@ -254,6 +257,8 @@ const responses = new Map<string, { status: number; body: unknown }>([
 // delete sends one DELETE to the addressed note route after their preview
 // and re-reads; both answer 200 with an empty body in the fixture.
 const mutations = new Map<string, { status: number; body: unknown }>([
+  ["https://fixture.invalid/api/v2.5/threatFeeds", { status: 201, body: {} }],
+  ["https://fixture.invalid/api/v2.5/threatFeeds/3", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/rules", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/rules/7", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/proxies", { status: 201, body: {} }],
@@ -290,10 +295,10 @@ https.request = ((options: RequestOptions, callback: (response: IncomingMessage)
     throw new Error(`Unexpected synthetic request: ${options.method} ${url}`);
   }
   const response = Object.assign(new PassThrough(), { statusCode: fixture.status, headers: {} });
-  let sent = "";
+  const sent: Buffer[] = [];
   const pending = Object.assign(new EventEmitter(), {
-    write: (chunk: string): boolean => {
-      sent += chunk;
+    write: (chunk: string, encoding: BufferEncoding = "utf8"): boolean => {
+      sent.push(Buffer.from(chunk, encoding));
       return true;
     },
     end: () => {
@@ -301,7 +306,9 @@ https.request = ((options: RequestOptions, callback: (response: IncomingMessage)
       // lines keep the established shape so existing trace assertions
       // still match.
       appendFileSync(process.env.DETECTION_TRACE!, JSON.stringify({ method: options.method, url,
-        ...(mutation ? { body: sent ? JSON.parse(sent) as unknown : {} } : {}) }) + "\n");
+        ...(mutation ? headers["Content-Type"]?.startsWith("multipart/form-data;")
+          ? { multipart: Buffer.concat(sent).toString("base64"), contentType: headers["Content-Type"] }
+          : { body: sent.length ? JSON.parse(Buffer.concat(sent).toString("utf8")) as unknown : {} } : {}) }) + "\n");
       queueMicrotask(() => {
         callback(response as unknown as IncomingMessage);
         response.end(JSON.stringify(fixture.body));

@@ -80,6 +80,13 @@ See [operation coverage](https://github.com/knowttl/vectra-axi/blob/main/docs/co
 | `npx -y @knowttl/vectra-axi assignment list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
 | `npx -y @knowttl/vectra-axi assignment set` | native | write | - |
 | `npx -y @knowttl/vectra-axi assignment resolve` | native | disruptive | - |
+| `npx -y @knowttl/vectra-axi threat-feed list` | native | read | QUX: nonpaged single response; no --all; RUX: collection pages; bounded --all supported |
+| `npx -y @knowttl/vectra-axi threat-feed show` | native | read | - |
+| `npx -y @knowttl/vectra-axi threat-feed create` | native | write | - |
+| `npx -y @knowttl/vectra-axi threat-feed edit` | native | write | - |
+| `npx -y @knowttl/vectra-axi threat-feed delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi threat-feed file set` | native | write | - |
+| `npx -y @knowttl/vectra-axi threat-feed file delete` | native | write | - |
 | `npx -y @knowttl/vectra-axi proxy list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
 | `npx -y @knowttl/vectra-axi proxy show` | native | read | - |
 | `npx -y @knowttl/vectra-axi proxy create` | native | write | - |

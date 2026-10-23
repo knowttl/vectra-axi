@@ -46,6 +46,7 @@ import { runGroupMemberWrite, runGroupWrite } from "./group-write.js";
 import { runAssignmentOutcomeWrite } from "./assignment-outcome-write.js";
 import { runTriageRuleWrite } from "./triage-rule-write.js";
 import { proxyId, runProxyRead, runProxyWrite } from "./proxies.js";
+import { threatFeedId, runThreatFeedRead, runThreatFeedWrite } from "./threat-feeds.js";
 import { createMutationCoordinator, readOnlyForced } from "./writes.js";
 
 const ASSIGNMENT_FIELDS = {
@@ -167,6 +168,19 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         if (invocation.leaf === "triage rule create" || invocation.leaf === "triage rule edit" || invocation.leaf === "triage rule delete") {
           const action = invocation.leaf === "triage rule create" ? "create" : invocation.leaf === "triage rule edit" ? "edit" : "delete";
           return runWrite(invocation.flags, (session, coordinator) => runTriageRuleWrite(session, coordinator, invocation.flags, action));
+        }
+        if (invocation.leaf === "threat-feed list" || invocation.leaf === "threat-feed show") {
+          if (invocation.leaf === "threat-feed show") threatFeedId(invocation.flags);
+          const loaded = loadConfig(invocation.flags.get("config") as string | undefined, redactor);
+          const selected = selectProfile(loaded.config, invocation.flags.get("profile") as string | undefined);
+          const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+          const result = await runThreatFeedRead(session, invocation.flags, invocation.leaf === "threat-feed list" ? "list" : "show");
+          if (result.failed) process.exitCode = 1;
+          return result.output;
+        }
+        if (["threat-feed create", "threat-feed edit", "threat-feed delete", "threat-feed file set", "threat-feed file delete"].includes(invocation.leaf)) {
+          const action = invocation.leaf.slice("threat-feed ".length).replace(" ", ".") as "create" | "edit" | "delete" | "file.set" | "file.delete";
+          return runWrite(invocation.flags, (session, coordinator) => runThreatFeedWrite(session, coordinator, invocation.flags, action));
         }
         if (invocation.leaf === "proxy list" || invocation.leaf === "proxy show") {
           if (invocation.leaf === "proxy show") proxyId(invocation.flags);

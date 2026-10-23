@@ -2,7 +2,7 @@
 
 # vectra-axi coverage
 
-This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, RUX bulk note-append, assignment-write/resolve, note edit/delete, detection close/open, detection fixed set, detection triage set/clear, group create/edit/delete, group member add/remove/set, host key-asset, assignment outcome create/edit/delete, triage rule create/edit/delete, proxy create/edit/(RUX) delete and host/account close families, not full Vectra API coverage.
+This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, RUX bulk note-append, assignment-write/resolve, note edit/delete, detection close/open, detection fixed set, detection triage set/clear, group create/edit/delete, group member add/remove/set, host key-asset, assignment outcome create/edit/delete, triage rule create/edit/delete, proxy create/edit/(RUX) delete, threat-feed create/edit/delete and file set/delete and host/account close families, not full Vectra API coverage.
 Only `named` operations have an implemented, tested command leaf.
 The `implemented` disposition records tested internal OAuth exchanges with no command leaf;
 other operations remain planned, blocked or unreviewed until their own slices ship.
@@ -11,7 +11,7 @@ there is no unrestricted passthrough.
 
 ## Counts
 
-- named: 172
+- named: 186
 - implemented: 2
 - reviewed-raw: 0
 - planned: 2
@@ -202,6 +202,20 @@ there is no unrestricted passthrough.
 | `rux.proxy.create` | proxy create | WRITE-15 | rux 3.4 | none | named | named |
 | `rux.proxy.edit` | proxy edit | WRITE-15 | rux 3.4 | none | named | named |
 | `rux.proxy.delete` | proxy delete | WRITE-15 | rux 3.4 | none | named | named |
+| `qux.threat-feed.list` | threat-feed list | WRITE-16 | qux 2.5 | none | named | raw |
+| `qux.threat-feed.show` | threat-feed show | WRITE-16 | qux 2.5 | none | named | raw |
+| `qux.threat-feed.create` | threat-feed create | WRITE-16 | qux 2.5 | none | named | named |
+| `qux.threat-feed.edit` | threat-feed edit | WRITE-16 | qux 2.5 | none | named | named |
+| `qux.threat-feed.file.set` | threat-feed file set | WRITE-16 | qux 2.5 | none | named | named |
+| `qux.threat-feed.file.delete` | threat-feed file delete | WRITE-16 | qux 2.5 | none | named | named |
+| `qux.threat-feed.delete` | threat-feed delete | WRITE-16 | qux 2.5 | none | named | named |
+| `rux.threat-feed.list` | threat-feed list | WRITE-16 | rux 3.4 | collection | named | raw |
+| `rux.threat-feed.show` | threat-feed show | WRITE-16 | rux 3.4 | none | named | raw |
+| `rux.threat-feed.create` | threat-feed create | WRITE-16 | rux 3.4 | none | named | named |
+| `rux.threat-feed.edit` | threat-feed edit | WRITE-16 | rux 3.4 | none | named | named |
+| `rux.threat-feed.file.set` | threat-feed file set | WRITE-16 | rux 3.4 | none | named | named |
+| `rux.threat-feed.file.delete` | threat-feed file delete | WRITE-16 | rux 3.4 | none | named | named |
+| `rux.threat-feed.delete` | threat-feed delete | WRITE-16 | rux 3.4 | none | named | named |
 
 ## Deferred families
 
@@ -209,7 +223,6 @@ there is no unrestricted passthrough.
 - `qux.long-tail.campaigns` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.network-stats` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.match` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
-- `qux.long-tail.feeds` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.settings` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.vsensor` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.ad-group-directory` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
@@ -217,7 +230,6 @@ there is no unrestricted passthrough.
 - `rux.long-tail.connectors` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.notifications` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.match` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
-- `rux.long-tail.feeds` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.saml` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.unique-host-usage` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.ad-group-directory` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.

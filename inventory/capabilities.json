@@ -6834,6 +6834,513 @@
         "server-reject",
         "outcome-unknown"
       ]
+    },
+    {
+      "id": "qux.threat-feed.list",
+      "command": "threat-feed list",
+      "slice": "WRITE-16",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Threat feeds affect intelligence matching and scoring. Uploads accept a regular file path only, capped at 5000000 bytes, verified by SHA-256 before send; no stdin. Preview and durable journal include only file name, size and digest. Client-side pre-send re-read is not atomic. QUX uses threatFeeds envelope and _id; RUX uses paged results and id. Create checks for an existing name. File operations never infer a no-op from metadata.",
+      "method": "GET",
+      "path": "/api/v2.5/threatFeeds",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "name",
+        "defaults",
+        "_rev",
+        "lastUpdated",
+        "uploadResults"
+      ],
+      "paging": "none",
+      "permissions": "Requires threat-feed read permission.",
+      "licence": "Threat intelligence matching availability depends on subscription.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "ThreatFeeds pp38-39, 100-102; endpoint overview pp7-8"
+        },
+        {
+          "source": "vat-qux",
+          "locator": "get_feeds, get_feed_by_name, create_feed, delete_feed, post_stix_file"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed threat-feed read and mutation support through the existing session and unchanged WRITE-00 gates.",
+      "fixtureCases": [
+        "synthetic-threat-feed-reads",
+        "write-policy",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.threat-feed.show",
+      "command": "threat-feed show",
+      "slice": "WRITE-16",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Threat feeds affect intelligence matching and scoring. Uploads accept a regular file path only, capped at 5000000 bytes, verified by SHA-256 before send; no stdin. Preview and durable journal include only file name, size and digest. Client-side pre-send re-read is not atomic. QUX uses threatFeeds envelope and _id; RUX uses paged results and id. Create checks for an existing name. File operations never infer a no-op from metadata.",
+      "method": "GET",
+      "path": "/api/v2.5/threatFeeds/{id}",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "name",
+        "defaults",
+        "_rev",
+        "lastUpdated",
+        "uploadResults"
+      ],
+      "paging": "none",
+      "permissions": "Requires threat-feed read permission.",
+      "licence": "Threat intelligence matching availability depends on subscription.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "ThreatFeeds pp38-39, 100-102; endpoint overview pp7-8"
+        },
+        {
+          "source": "vat-qux",
+          "locator": "get_feeds, get_feed_by_name, create_feed, delete_feed, post_stix_file"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed threat-feed read and mutation support through the existing session and unchanged WRITE-00 gates.",
+      "fixtureCases": [
+        "synthetic-threat-feed-reads",
+        "write-policy",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.threat-feed.create",
+      "command": "threat-feed create",
+      "slice": "WRITE-16",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Threat feeds affect intelligence matching and scoring. Uploads accept a regular file path only, capped at 5000000 bytes, verified by SHA-256 before send; no stdin. Preview and durable journal include only file name, size and digest. Client-side pre-send re-read is not atomic. QUX uses threatFeeds envelope and _id; RUX uses paged results and id. Create checks for an existing name. File operations never infer a no-op from metadata.",
+      "method": "POST",
+      "path": "/api/v2.5/threatFeeds",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires threat-feed mutation permission plus hand-edited profile opt-in and exact operation allowlist.",
+      "licence": "Threat intelligence matching availability depends on subscription.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "ThreatFeeds pp38-39, 100-102; endpoint overview pp7-8"
+        },
+        {
+          "source": "vat-qux",
+          "locator": "get_feeds, get_feed_by_name, create_feed, delete_feed, post_stix_file"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed threat-feed read and mutation support through the existing session and unchanged WRITE-00 gates.",
+      "fixtureCases": [
+        "synthetic-threat-feed-reads",
+        "write-policy",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.threat-feed.edit",
+      "command": "threat-feed edit",
+      "slice": "WRITE-16",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Threat feeds affect intelligence matching and scoring. Uploads accept a regular file path only, capped at 5000000 bytes, verified by SHA-256 before send; no stdin. Preview and durable journal include only file name, size and digest. Client-side pre-send re-read is not atomic. QUX uses threatFeeds envelope and _id; RUX uses paged results and id. Create checks for an existing name. File operations never infer a no-op from metadata.",
+      "method": "PATCH",
+      "path": "/api/v2.5/threatFeeds/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires threat-feed mutation permission plus hand-edited profile opt-in and exact operation allowlist.",
+      "licence": "Threat intelligence matching availability depends on subscription.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "ThreatFeeds pp38-39, 100-102; endpoint overview pp7-8"
+        },
+        {
+          "source": "vat-qux",
+          "locator": "get_feeds, get_feed_by_name, create_feed, delete_feed, post_stix_file"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed threat-feed read and mutation support through the existing session and unchanged WRITE-00 gates.",
+      "fixtureCases": [
+        "synthetic-threat-feed-reads",
+        "write-policy",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.threat-feed.file.set",
+      "command": "threat-feed file set",
+      "slice": "WRITE-16",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Threat feeds affect intelligence matching and scoring. Uploads accept a regular file path only, capped at 5000000 bytes, verified by SHA-256 before send; no stdin. Preview and durable journal include only file name, size and digest. Client-side pre-send re-read is not atomic. QUX uses threatFeeds envelope and _id; RUX uses paged results and id. Create checks for an existing name. File operations never infer a no-op from metadata.",
+      "method": "POST",
+      "path": "/api/v2.5/threatFeeds/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires threat-feed mutation permission plus hand-edited profile opt-in and exact operation allowlist.",
+      "licence": "Threat intelligence matching availability depends on subscription.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "ThreatFeeds pp38-39, 100-102; endpoint overview pp7-8"
+        },
+        {
+          "source": "vat-qux",
+          "locator": "get_feeds, get_feed_by_name, create_feed, delete_feed, post_stix_file"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed threat-feed read and mutation support through the existing session and unchanged WRITE-00 gates.",
+      "fixtureCases": [
+        "synthetic-threat-feed-reads",
+        "write-policy",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.threat-feed.file.delete",
+      "command": "threat-feed file delete",
+      "slice": "WRITE-16",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Threat feeds affect intelligence matching and scoring. Uploads accept a regular file path only, capped at 5000000 bytes, verified by SHA-256 before send; no stdin. Preview and durable journal include only file name, size and digest. Client-side pre-send re-read is not atomic. QUX uses threatFeeds envelope and _id; RUX uses paged results and id. Create checks for an existing name. File operations never infer a no-op from metadata.",
+      "method": "DELETE",
+      "path": "/api/v2.5/threatFeeds/{id}/file",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires threat-feed mutation permission plus hand-edited profile opt-in and exact operation allowlist.",
+      "licence": "Threat intelligence matching availability depends on subscription.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "ThreatFeeds pp38-39, 100-102; endpoint overview pp7-8"
+        },
+        {
+          "source": "vat-qux",
+          "locator": "get_feeds, get_feed_by_name, create_feed, delete_feed, post_stix_file"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed threat-feed read and mutation support through the existing session and unchanged WRITE-00 gates.",
+      "fixtureCases": [
+        "synthetic-threat-feed-reads",
+        "write-policy",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.threat-feed.delete",
+      "command": "threat-feed delete",
+      "slice": "WRITE-16",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Threat feeds affect intelligence matching and scoring. Uploads accept a regular file path only, capped at 5000000 bytes, verified by SHA-256 before send; no stdin. Preview and durable journal include only file name, size and digest. Client-side pre-send re-read is not atomic. QUX uses threatFeeds envelope and _id; RUX uses paged results and id. Create checks for an existing name. File operations never infer a no-op from metadata.",
+      "method": "DELETE",
+      "path": "/api/v2.5/threatFeeds/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires threat-feed mutation permission plus hand-edited profile opt-in and exact operation allowlist.",
+      "licence": "Threat intelligence matching availability depends on subscription.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "ThreatFeeds pp38-39, 100-102; endpoint overview pp7-8"
+        },
+        {
+          "source": "vat-qux",
+          "locator": "get_feeds, get_feed_by_name, create_feed, delete_feed, post_stix_file"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed threat-feed read and mutation support through the existing session and unchanged WRITE-00 gates.",
+      "fixtureCases": [
+        "synthetic-threat-feed-reads",
+        "write-policy",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.threat-feed.list",
+      "command": "threat-feed list",
+      "slice": "WRITE-16",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Threat feeds affect intelligence matching and scoring. Uploads accept a regular file path only, capped at 5000000 bytes, verified by SHA-256 before send; no stdin. Preview and durable journal include only file name, size and digest. Client-side pre-send re-read is not atomic. QUX uses threatFeeds envelope and _id; RUX uses paged results and id. Create checks for an existing name. File operations never infer a no-op from metadata.",
+      "method": "GET",
+      "path": "/api/v3.4/threatFeeds/",
+      "effect": "read",
+      "query": [
+        "page",
+        "page_size"
+      ],
+      "fields": [
+        "id",
+        "name",
+        "defaults",
+        "_rev",
+        "lastUpdated",
+        "uploadResults"
+      ],
+      "paging": "collection",
+      "permissions": "Requires threat-feed read permission.",
+      "licence": "Threat intelligence matching availability depends on subscription.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /threatFeeds/, /threatFeeds/{feed_id}/ and /threatFeeds/{feed_id}/file/; ThreatFeedSerializerV3_3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed threat-feed read and mutation support through the existing session and unchanged WRITE-00 gates.",
+      "fixtureCases": [
+        "synthetic-threat-feed-reads",
+        "write-policy",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.threat-feed.show",
+      "command": "threat-feed show",
+      "slice": "WRITE-16",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Threat feeds affect intelligence matching and scoring. Uploads accept a regular file path only, capped at 5000000 bytes, verified by SHA-256 before send; no stdin. Preview and durable journal include only file name, size and digest. Client-side pre-send re-read is not atomic. QUX uses threatFeeds envelope and _id; RUX uses paged results and id. Create checks for an existing name. File operations never infer a no-op from metadata.",
+      "method": "GET",
+      "path": "/api/v3.4/threatFeeds/{id}/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "name",
+        "defaults",
+        "_rev",
+        "lastUpdated",
+        "uploadResults"
+      ],
+      "paging": "none",
+      "permissions": "Requires threat-feed read permission.",
+      "licence": "Threat intelligence matching availability depends on subscription.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /threatFeeds/, /threatFeeds/{feed_id}/ and /threatFeeds/{feed_id}/file/; ThreatFeedSerializerV3_3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed threat-feed read and mutation support through the existing session and unchanged WRITE-00 gates.",
+      "fixtureCases": [
+        "synthetic-threat-feed-reads",
+        "write-policy",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.threat-feed.create",
+      "command": "threat-feed create",
+      "slice": "WRITE-16",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Threat feeds affect intelligence matching and scoring. Uploads accept a regular file path only, capped at 5000000 bytes, verified by SHA-256 before send; no stdin. Preview and durable journal include only file name, size and digest. Client-side pre-send re-read is not atomic. QUX uses threatFeeds envelope and _id; RUX uses paged results and id. Create checks for an existing name. File operations never infer a no-op from metadata.",
+      "method": "POST",
+      "path": "/api/v3.4/threatFeeds/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires threat-feed mutation permission plus hand-edited profile opt-in and exact operation allowlist.",
+      "licence": "Threat intelligence matching availability depends on subscription.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /threatFeeds/, /threatFeeds/{feed_id}/ and /threatFeeds/{feed_id}/file/; ThreatFeedSerializerV3_3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed threat-feed read and mutation support through the existing session and unchanged WRITE-00 gates.",
+      "fixtureCases": [
+        "synthetic-threat-feed-reads",
+        "write-policy",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.threat-feed.edit",
+      "command": "threat-feed edit",
+      "slice": "WRITE-16",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Threat feeds affect intelligence matching and scoring. Uploads accept a regular file path only, capped at 5000000 bytes, verified by SHA-256 before send; no stdin. Preview and durable journal include only file name, size and digest. Client-side pre-send re-read is not atomic. QUX uses threatFeeds envelope and _id; RUX uses paged results and id. Create checks for an existing name. File operations never infer a no-op from metadata.",
+      "method": "PATCH",
+      "path": "/api/v3.4/threatFeeds/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires threat-feed mutation permission plus hand-edited profile opt-in and exact operation allowlist.",
+      "licence": "Threat intelligence matching availability depends on subscription.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /threatFeeds/, /threatFeeds/{feed_id}/ and /threatFeeds/{feed_id}/file/; ThreatFeedSerializerV3_3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed threat-feed read and mutation support through the existing session and unchanged WRITE-00 gates.",
+      "fixtureCases": [
+        "synthetic-threat-feed-reads",
+        "write-policy",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.threat-feed.file.set",
+      "command": "threat-feed file set",
+      "slice": "WRITE-16",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Threat feeds affect intelligence matching and scoring. Uploads accept a regular file path only, capped at 5000000 bytes, verified by SHA-256 before send; no stdin. Preview and durable journal include only file name, size and digest. Client-side pre-send re-read is not atomic. QUX uses threatFeeds envelope and _id; RUX uses paged results and id. Create checks for an existing name. File operations never infer a no-op from metadata.",
+      "method": "POST",
+      "path": "/api/v3.4/threatFeeds/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires threat-feed mutation permission plus hand-edited profile opt-in and exact operation allowlist.",
+      "licence": "Threat intelligence matching availability depends on subscription.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /threatFeeds/, /threatFeeds/{feed_id}/ and /threatFeeds/{feed_id}/file/; ThreatFeedSerializerV3_3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed threat-feed read and mutation support through the existing session and unchanged WRITE-00 gates.",
+      "fixtureCases": [
+        "synthetic-threat-feed-reads",
+        "write-policy",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.threat-feed.file.delete",
+      "command": "threat-feed file delete",
+      "slice": "WRITE-16",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Threat feeds affect intelligence matching and scoring. Uploads accept a regular file path only, capped at 5000000 bytes, verified by SHA-256 before send; no stdin. Preview and durable journal include only file name, size and digest. Client-side pre-send re-read is not atomic. QUX uses threatFeeds envelope and _id; RUX uses paged results and id. Create checks for an existing name. File operations never infer a no-op from metadata.",
+      "method": "DELETE",
+      "path": "/api/v3.4/threatFeeds/{id}/file/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires threat-feed mutation permission plus hand-edited profile opt-in and exact operation allowlist.",
+      "licence": "Threat intelligence matching availability depends on subscription.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /threatFeeds/, /threatFeeds/{feed_id}/ and /threatFeeds/{feed_id}/file/; ThreatFeedSerializerV3_3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed threat-feed read and mutation support through the existing session and unchanged WRITE-00 gates.",
+      "fixtureCases": [
+        "synthetic-threat-feed-reads",
+        "write-policy",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.threat-feed.delete",
+      "command": "threat-feed delete",
+      "slice": "WRITE-16",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Threat feeds affect intelligence matching and scoring. Uploads accept a regular file path only, capped at 5000000 bytes, verified by SHA-256 before send; no stdin. Preview and durable journal include only file name, size and digest. Client-side pre-send re-read is not atomic. QUX uses threatFeeds envelope and _id; RUX uses paged results and id. Create checks for an existing name. File operations never infer a no-op from metadata.",
+      "method": "DELETE",
+      "path": "/api/v3.4/threatFeeds/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires threat-feed mutation permission plus hand-edited profile opt-in and exact operation allowlist.",
+      "licence": "Threat intelligence matching availability depends on subscription.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /threatFeeds/, /threatFeeds/{feed_id}/ and /threatFeeds/{feed_id}/file/; ThreatFeedSerializerV3_3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed threat-feed read and mutation support through the existing session and unchanged WRITE-00 gates.",
+      "fixtureCases": [
+        "synthetic-threat-feed-reads",
+        "write-policy",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
     }
   ],
   "deferredFamilies": [
@@ -6878,19 +7385,6 @@
     },
     {
       "id": "qux.long-tail.match",
-      "deployment": "qux",
-      "apiVersion": "2.5",
-      "disposition": "unreviewed",
-      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
-      "evidence": [
-        {
-          "source": "qux-guide",
-          "locator": "Endpoint overview pp7-8 (settings details pp64-67; AD directory pp45-46)"
-        }
-      ]
-    },
-    {
-      "id": "qux.long-tail.feeds",
       "deployment": "qux",
       "apiVersion": "2.5",
       "disposition": "unreviewed",
@@ -6982,19 +7476,6 @@
     },
     {
       "id": "rux.long-tail.match",
-      "deployment": "rux",
-      "apiVersion": "3.4",
-      "disposition": "unreviewed",
-      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
-      "evidence": [
-        {
-          "source": "rux-spec",
-          "locator": "v3.4 paths; excluded from initial named read tranche"
-        }
-      ]
-    },
-    {
-      "id": "rux.long-tail.feeds",
       "deployment": "rux",
       "apiVersion": "3.4",
       "disposition": "unreviewed",
