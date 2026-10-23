@@ -375,7 +375,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
   // One dispatch for every assignment/outcome/user leaf: validate the
   // flags, select the profile, build the session on the injected transport,
   // and report partial reads with their rows and a nonzero exit status.
-  // Assignment leaves are read-only; no resolve or reassign leaf exists.
+  // The leaves handled here are read-only; assignment set/resolve use separate write dispatch.
   type AssignmentLeaf = "assignment list" | "assignment outcome list" | "assignment outcome show"
     | "user list" | "user show";
   async function runAssignment(leaf: AssignmentLeaf, flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
