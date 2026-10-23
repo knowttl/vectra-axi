@@ -5270,6 +5270,204 @@
         "timeout",
         "concurrent-change"
       ]
+    },
+    {
+      "id": "qux.assignment-outcome.create",
+      "command": "assignment outcome create",
+      "slice": "WRITE-10",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Exact target confirmation required. Categories: benign_true_positive, malicious_true_positive, false_positive, internal. Builtin outcomes cannot be edited or deleted. Equal edit is a no-op. Edit/delete re-read before sending and refuse changed state; client-side re-read is not atomic.",
+      "method": "POST",
+      "path": "/api/v2.5/assignment_outcomes",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Assignment outcome mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Assignment outcomes pp132-133"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Custom assignment outcome mutation through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "write-policy",
+        "builtin-refusal",
+        "noop",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "qux.assignment-outcome.edit",
+      "command": "assignment outcome edit",
+      "slice": "WRITE-10",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Exact target confirmation required. Categories: benign_true_positive, malicious_true_positive, false_positive, internal. Builtin outcomes cannot be edited or deleted. Equal edit is a no-op. Edit/delete re-read before sending and refuse changed state; client-side re-read is not atomic.",
+      "method": "PUT",
+      "path": "/api/v2.5/assignment_outcomes/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Assignment outcome mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Assignment outcomes pp132-133"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Custom assignment outcome mutation through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "write-policy",
+        "builtin-refusal",
+        "noop",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "qux.assignment-outcome.delete",
+      "command": "assignment outcome delete",
+      "slice": "WRITE-10",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Exact target confirmation required. Categories: benign_true_positive, malicious_true_positive, false_positive, internal. Builtin outcomes cannot be edited or deleted. Equal edit is a no-op. Edit/delete re-read before sending and refuse changed state; client-side re-read is not atomic.",
+      "method": "DELETE",
+      "path": "/api/v2.5/assignment_outcomes/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Assignment outcome mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Assignment outcomes pp132-133"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Custom assignment outcome mutation through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "write-policy",
+        "builtin-refusal",
+        "noop",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.assignment-outcome.create",
+      "command": "assignment outcome create",
+      "slice": "WRITE-10",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Exact target confirmation required. Categories: benign_true_positive, malicious_true_positive, false_positive, internal. Builtin outcomes cannot be edited or deleted. Equal edit is a no-op. Edit/delete re-read before sending and refuse changed state; client-side re-read is not atomic.",
+      "method": "POST",
+      "path": "/api/v3.4/assignment_outcomes/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Assignment outcome mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "POST /api/v3.4/assignment_outcomes/; AssignmentOutcomePostBodyV3 / AssignmentOutcomePatchBodyV3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Custom assignment outcome mutation through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "write-policy",
+        "builtin-refusal",
+        "noop",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.assignment-outcome.edit",
+      "command": "assignment outcome edit",
+      "slice": "WRITE-10",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Exact target confirmation required. Categories: benign_true_positive, malicious_true_positive, false_positive, internal. Builtin outcomes cannot be edited or deleted. Equal edit is a no-op. Edit/delete re-read before sending and refuse changed state; client-side re-read is not atomic.",
+      "method": "PUT",
+      "path": "/api/v3.4/assignment_outcomes/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Assignment outcome mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "PUT /api/v3.4/assignment_outcomes/{id}/; AssignmentOutcomePostBodyV3 / AssignmentOutcomePatchBodyV3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Custom assignment outcome mutation through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "write-policy",
+        "builtin-refusal",
+        "noop",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.assignment-outcome.delete",
+      "command": "assignment outcome delete",
+      "slice": "WRITE-10",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Exact target confirmation required. Categories: benign_true_positive, malicious_true_positive, false_positive, internal. Builtin outcomes cannot be edited or deleted. Equal edit is a no-op. Edit/delete re-read before sending and refuse changed state; client-side re-read is not atomic.",
+      "method": "DELETE",
+      "path": "/api/v3.4/assignment_outcomes/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Assignment outcome mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "DELETE /api/v3.4/assignment_outcomes/{id}/; AssignmentOutcomePostBodyV3 / AssignmentOutcomePatchBodyV3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Custom assignment outcome mutation through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "write-policy",
+        "builtin-refusal",
+        "noop",
+        "server-reject",
+        "outcome-unknown"
+      ]
     }
   ],
   "deferredFamilies": [
@@ -5547,19 +5745,6 @@
       ]
     },
     {
-      "id": "qux.later.outcome-writes",
-      "deployment": "qux",
-      "apiVersion": "2.5",
-      "disposition": "planned",
-      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
-      "evidence": [
-        {
-          "source": "qux-guide",
-          "locator": "Endpoint overview pp7-8; notes in resource sections"
-        }
-      ]
-    },
-    {
       "id": "qux.later.group-writes",
       "deployment": "qux",
       "apiVersion": "2.5",
@@ -5617,19 +5802,6 @@
       "apiVersion": "3.4",
       "disposition": "planned",
       "rationale": "Assignment create/reassign/unassign ship through the WRITE-00 coordinator under assignment set. Assignment resolve remains planned; no additional route is authorized by this family entry.",
-      "evidence": [
-        {
-          "source": "rux-spec",
-          "locator": "v3.4 mutation methods in corresponding domain paths"
-        }
-      ]
-    },
-    {
-      "id": "rux.later.outcome-writes",
-      "deployment": "rux",
-      "apiVersion": "3.4",
-      "disposition": "planned",
-      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
       "evidence": [
         {
           "source": "rux-spec",

@@ -1695,6 +1695,108 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
 }
 ```
 
+## assignment outcome create
+
+Create a custom QUX or RUX assignment outcome through the gated write pipeline
+
+- `qux.assignment-outcome.create`: QUX API 2.5
+- `rux.assignment-outcome.create`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi assignment outcome create",
+  "description": "Create a custom QUX or RUX assignment outcome through the gated write pipeline",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--title <text>": "Outcome title (required)",
+    "--category <category>": "benign_true_positive, malicious_true_positive, false_positive or internal (required)",
+    "--execute": "Send the confirmed change; default previews only",
+    "--dry-run": "Preview only; cannot combine with --execute",
+    "--confirm <target>": "Exact target from the preview, required to execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi assignment outcome create --profile <name> --title \"Example outcome\" --category internal",
+    "vectra-axi assignment outcome create --profile <name> --title \"Example outcome\" --category internal --execute --confirm 'new assignment outcome'"
+  ]
+}
+```
+
+## assignment outcome edit
+
+Edit a custom QUX or RUX assignment outcome through the gated write pipeline
+
+- `qux.assignment-outcome.edit`: QUX API 2.5
+- `rux.assignment-outcome.edit`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi assignment outcome edit",
+  "description": "Edit a custom QUX or RUX assignment outcome through the gated write pipeline",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Custom outcome ID (positive integer, required)",
+    "--title <text>": "Outcome title",
+    "--category <category>": "benign_true_positive, malicious_true_positive, false_positive or internal",
+    "--execute": "Send the confirmed change; default previews only",
+    "--dry-run": "Preview only; cannot combine with --execute",
+    "--confirm <target>": "Exact target from the preview, required to execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi assignment outcome edit --profile <name> 5 --title \"Updated outcome\"",
+    "vectra-axi assignment outcome edit --profile <name> 5 --title \"Updated outcome\" --execute --confirm 'assignment outcome 5'"
+  ]
+}
+```
+
+## assignment outcome delete
+
+Delete a custom QUX or RUX assignment outcome through the gated write pipeline
+
+- `qux.assignment-outcome.delete`: QUX API 2.5
+- `rux.assignment-outcome.delete`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi assignment outcome delete",
+  "description": "Delete a custom QUX or RUX assignment outcome through the gated write pipeline",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Custom outcome ID (positive integer, required)",
+    "--execute": "Send the confirmed change; default previews only",
+    "--dry-run": "Preview only; cannot combine with --execute",
+    "--confirm <target>": "Exact target from the preview, required to execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi assignment outcome delete --profile <name> 5",
+    "vectra-axi assignment outcome delete --profile <name> 5 --execute --confirm 'assignment outcome 5'"
+  ]
+}
+```
+
 ## assignment outcome show
 
 Show one QUX or RUX assignment outcome in full detail
