@@ -40,6 +40,7 @@ Recheck cited upstream contracts when implementing; record deployment/API/applia
 | WRITE-03 | QUX/RUX host/account desired-state assignment | WRITE-00, READ-04, RUX-04 | Assign/reassign/unassign previews, exact user validation, no-op, pre-send state comparison, malformed-row refusal, exact target confirmation, policy and audit tests. |
 | WRITE-05 | Detection/host/account bulk tag set/delete | WRITE-00, READ-03 | Explicit bounded target list, per-target dry-run diffs, no-op detection, pre-send re-read per target, count-and-set confirmation, per-target audit, partial-failure reporting, unknown-outcome no-replay, permission and audit tests. |
 | WRITE-06 | QUX/RUX detection close/open | WRITE-00, READ-01 | Explicit single/bulk targets, native close/open routes, close reasons, no-op, release gating, exact target confirmation, policy and audit tests. |
+| WRITE-13 | QUX/RUX legacy detection fixed set | WRITE-00, READ-01 | Explicit single/bulk targets, mark_as_fixed payloads, no release gate, no-op, exact target confirmation, policy and audit tests. |
 | WRITE-07 | QUX/RUX host/account disruptive assignment resolve | WRITE-00, READ-04, RUX-04 | Explicit host/account target, existing outcome, optional note and detection actions, no unresolve, pre-send open-assignment re-read, exact target confirmation, policy and audit tests. |
 | WRITE-08 | QUX/RUX host desired-state key-asset | WRITE-00, READ-02 | Explicit host target, desired key-asset flag, no-op, pre-send state comparison, exact target confirmation, policy and audit tests. |
 | WRITE-09 | QUX/RUX per-detection triage set/clear | WRITE-00, READ-01 | Explicit bounded detection targets, nonempty category validation, pre-send triage-state comparison without no-op inference, exact target confirmation, policy and audit tests. |
@@ -72,7 +73,7 @@ Do not make every phase one umbrella task or commission the entire catalogue as 
 | 1: first investigation | AUTH-01, AUTH-02, CORE-01, CORE-02, READ-01 | Packaged CLI lists a synthetic detection, shows it, resumes safely and refuses all business writes. |
 | 2: useful QUX release | READ-02 through READ-08, PACK-01 | A complete synthetic on-prem investigation can inspect entities, notes/tags, assignment, rules/groups, audit, health and lockdown status. |
 | 3: cloud adoption | RUX-01 through RUX-06 | Explicit cloud profile passes the shared contracts; QUX output stays stable and generation-specific semantics remain visible. |
-| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-03/WRITE-05/WRITE-06/WRITE-07/WRITE-08/WRITE-09/WRITE-10/WRITE-ENTITY-CLOSE/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
+| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-03/WRITE-05/WRITE-06/WRITE-07/WRITE-08/WRITE-09/WRITE-10/WRITE-13/WRITE-ENTITY-CLOSE/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
 | 5: deliberate expansion | Selected API-01 and separately selected long-tail families | The capability map records exact dispositions per [inventory.md](inventory.md#dispositions-and-exclusions); there is no unrestricted passthrough. |
 
 Phase 1 is sequential because each step establishes a contract used by the next.
@@ -277,6 +278,10 @@ Detection close/open ships as WRITE-06 on QUX release 9.3+ and RUX v3.4 through 
 Its [offline acceptance suite](../test/detection-state.test.ts) covers explicit single/bulk targets, native routes, close reasons, no-ops, release gating, confirmation, profile policy, metadata-only auditing, rejection and ambiguous outcomes without replay.
 The packaged CLI journey covers preview, confirmation refusal and execution against synthetic transport.
 Detection state is re-read before sending; this client-side comparison is not atomic.
+Legacy detection fixed set ships as WRITE-13 on QUX v2.5 and RUX v3.4 through the unchanged WRITE-00 coordinator.
+Its cases in the same [offline acceptance suite](../test/detection-state.test.ts) cover explicit single/bulk targets, QUX bulk and RUX single/bulk routes, mark/unmark payloads, already-fixed no-ops, confirmation, profile policy, metadata-only auditing, rejection and ambiguous outcomes without replay.
+Fixed state is re-read before sending; this client-side comparison is not atomic.
+Marking fixed zeroes scores; detection close supersedes it on release 9.3+.
 Host key-asset ships as WRITE-08 on QUX v2.5 and RUX v3.4 through the unchanged WRITE-00 coordinator.
 Its [offline acceptance suite](../test/host-key-asset.test.ts) covers explicit host targets, desired-state payloads, no-ops, changed current state, exact target confirmation, policy refusal, server rejection and ambiguous outcomes without replay.
 Host `key_asset` is re-read before sending; this client-side comparison is not atomic.

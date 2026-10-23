@@ -8,7 +8,7 @@ export async function runDetectionState(
   session: Session,
   coordinator: MutationCoordinator,
   flags: ReadonlyMap<string, string | boolean>,
-  action: "close" | "open",
+  action: "close" | "open" | "fixed set",
 ): Promise<LeafResult> {
   const invalid = (message: string): never => {
     throw new AxiError(message, "VALIDATION_ERROR", [`Run \`vectra-axi detection ${action} --help\``]);
@@ -26,23 +26,31 @@ export async function runDetectionState(
   const ids = [...new Set(entries.map(Number))].sort((a, b) => a - b);
   if (ids.length > MAX_BULK_TAG_TARGETS) invalid(`Accepts at most ${MAX_BULK_TAG_TARGETS} detection targets per run`);
   const reason = flags.get("reason");
+  const fixed = action === "fixed set";
+  const value = flags.get("value");
+  if (fixed && value !== "true" && value !== "false") invalid("--value must be true or false");
   if (action === "close" && reason !== "remediated" && reason !== "benign") {
     invalid("--reason must be remediated or benign");
   }
   const release = session.profile.kind === "qux" ? session.profile.applianceRelease : undefined;
-  if (release !== undefined && /^\d+(?:\.\d+)*$/.test(release)) {
+  if (!fixed && release !== undefined && /^\d+(?:\.\d+)*$/.test(release)) {
     const [major, minor = 0] = release.split(".").map(Number);
     if (major! < 9 || major === 9 && minor < 3) invalid(`detection ${action} requires appliance release 9.3 or later (profile reports ${release})`);
   }
   const target = single !== undefined ? `detection ${ids[0]}` : bulkTargetLabel("detection", ids);
   const definition: MutationDefinition = {
-    operation: `${session.profile.kind}.detection.${action}${single === undefined ? "-bulk" : ""}`,
+    operation: `${session.profile.kind}.detection.${fixed ? "fixed.set" : `${action}${single === undefined ? "-bulk" : ""}`}`,
     method: "PATCH",
-    path: `/api/v${session.profile.apiVersion}/detections/${single !== undefined ? `${ids[0]}/` : ""}${action}${session.profile.kind === "rux" ? "/" : ""}`,
+    path: fixed
+      ? `/api/v${session.profile.apiVersion}/detections${session.profile.kind === "rux" ? `/${single !== undefined ? `${ids[0]}/` : ""}` : ""}`
+      : `/api/v${session.profile.apiVersion}/detections/${single !== undefined ? `${ids[0]}/` : ""}${action}${session.profile.kind === "rux" ? "/" : ""}`,
     effect: "write",
     requiresConfirmation: true,
     target,
-    ...(action === "close" || single === undefined ? { payload: {
+    ...(fixed ? { payload: {
+      ...(session.profile.kind === "qux" || single === undefined ? { detectionIdList: ids } : {}),
+      mark_as_fixed: value === "true",
+    } } : action === "close" || single === undefined ? { payload: {
       ...(single === undefined ? { detectionIdList: ids } : {}),
       ...(action === "close" ? { reason } : {}),
     } } : {}),
@@ -50,7 +58,7 @@ export async function runDetectionState(
   // Refuse disabled operations before reading any target.
   coordinator.preview(definition);
   let baseline: { id: number; state: string }[] | undefined;
-  const desired = (state: string): boolean => action === "close" ? state === "closed" : state !== "closed";
+  const desired = (state: string): boolean => fixed ? (state === "fixed") === (value === "true") : action === "close" ? state === "closed" : state !== "closed";
   const readState = async (): Promise<{ id: number; state: string }[]> => {
     const current = [];
     for (const id of ids) {
@@ -80,13 +88,14 @@ export async function runDetectionState(
   });
   const common = { profile: session.profile.name, operation: definition.operation, target };
   if (result.kind === "dry-run") return { failed: false, output: {
-    ...common, current: baseline, desired: action === "close" ? "closed" : "open",
+    ...common, current: baseline, desired: fixed ? value === "true" : action === "close" ? "closed" : "open",
+    ...(fixed ? { warning: value === "true" ? "Marking fixed zeroes detection scores. Detection close supersedes mark-fixed on release 9.3 and later." : "Unmarking fixed restores detection scoring. Detection close supersedes mark-fixed on release 9.3 and later." } : {}),
     ...(definition.payload ? { proposed: definition.payload } : {}),
     ...(result.preview.noop ? { state: "already in desired state (no-op)" }
       : { help: [`Re-run with --execute --confirm '${target}' to ${action} ${target}`] }),
   } };
   if (result.kind === "noop") return { failed: false, output: { ...common, state: "already in desired state (no-op)" } };
-  if (result.kind === "success") return { failed: false, output: { ...common, state: action === "close" ? "closed" : "opened", audit: result.auditId } };
+  if (result.kind === "success") return { failed: false, output: { ...common, ...(fixed ? { mark_as_fixed: value === "true" } : { state: action === "close" ? "closed" : "opened" }), audit: result.auditId } };
   return { failed: true, output: {
     ...common, audit: result.auditId,
     error: result.kind === "failed" ? `Detection ${action} rejected with status ${result.status}` : result.guidance,

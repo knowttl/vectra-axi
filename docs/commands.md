@@ -618,6 +618,42 @@ Clear QUX or RUX per-detection triage suppression through the gated write pipeli
 }
 ```
 
+## detection fixed set
+
+Set legacy QUX or RUX detection fixed state; marking fixed zeroes scores and close supersedes it on 9.3+
+
+- `qux.detection.fixed.set`: QUX API 2.5
+- `rux.detection.fixed.set`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi detection fixed set",
+  "description": "Set legacy QUX or RUX detection fixed state; marking fixed zeroes scores and close supersedes it on 9.3+",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Single detection ID; exactly one of --id or --ids is required",
+    "--ids <ids>": "Comma-separated detection IDs, normalized and capped at 100",
+    "--value <bool>": "Desired fixed state: true or false (required)",
+    "--execute": "Send the confirmed change; default previews only",
+    "--dry-run": "Preview only; cannot be combined with --execute",
+    "--confirm <target>": "Exact target from the preview, required to execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi detection fixed set --profile <name> --ids 41,42 --value true",
+    "vectra-axi detection fixed set --profile <name> 42 --value false"
+  ]
+}
+```
+
 ## detection close
 
 Close QUX (9.3+) or RUX detections as remediated or benign through the gated write pipeline

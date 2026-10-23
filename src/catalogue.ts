@@ -295,6 +295,22 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi detection triage clear --profile <name> --ids 41,42",
     ],
   },
+  "detection fixed set": {
+    description: "Set legacy QUX or RUX detection fixed state; marking fixed zeroes scores and close supersedes it on 9.3+",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Single detection ID; exactly one of --id or --ids is required" },
+      ids: { kind: "value", valueName: "ids", description: "Comma-separated detection IDs, normalized and capped at 100" },
+      value: { kind: "value", valueName: "bool", description: "Desired fixed state: true or false (required)" },
+      execute: { kind: "boolean", description: "Send the confirmed change; default previews only" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot be combined with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target from the preview, required to execute" },
+    },
+    examples: [
+      "vectra-axi detection fixed set --profile <name> --ids 41,42 --value true",
+      "vectra-axi detection fixed set --profile <name> --id 42 --value false",
+    ],
+  },
   "detection close": {
     description: "Close QUX (9.3+) or RUX detections as remediated or benign through the gated write pipeline",
     flags: {

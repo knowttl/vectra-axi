@@ -595,6 +595,38 @@
       ]
     },
     {
+      "id": "qux.detection.fixed.set",
+      "command": "detection fixed set",
+      "slice": "WRITE-13",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Explicit IDs only, at most 100 targets. QUX always uses the bulk route. Marking fixed zeroes scores; detection close supersedes it on 9.3+. Re-read is not atomic. Exact confirmation required.",
+      "method": "PATCH",
+      "path": "/api/v2.5/detections",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Detection mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Mark/unmark detections as fixed; Appendix A p86"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Legacy mark/unmark implemented through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "noop",
+        "write-policy",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
       "id": "qux.detection.close",
       "command": "detection close",
       "slice": "WRITE-06",
@@ -721,6 +753,38 @@
         "success",
         "noop",
         "release-gate",
+        "write-policy",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.detection.fixed.set",
+      "command": "detection fixed set",
+      "slice": "WRITE-13",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Explicit IDs only, at most 100 targets. RUX also supports /api/v3.4/detections/{id}/ for single targets. Marking fixed zeroes scores; detection close supersedes it on 9.3+. Re-read is not atomic. Exact confirmation required.",
+      "method": "PATCH",
+      "path": "/api/v3.4/detections/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Detection mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /detections/ PATCH and /detections/{id}/ PATCH mark_as_fixed"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Legacy mark/unmark implemented through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "noop",
         "write-policy",
         "server-reject",
         "outcome-unknown"

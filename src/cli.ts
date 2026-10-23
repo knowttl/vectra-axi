@@ -153,8 +153,8 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
           const action = invocation.leaf === "detection triage set" ? "set" : "clear";
           return runWrite(invocation.flags, (session, coordinator) => runDetectionTriage(session, coordinator, invocation.flags, action));
         }
-        if (invocation.leaf === "detection close" || invocation.leaf === "detection open") {
-          const action = invocation.leaf === "detection close" ? "close" : "open";
+        if (invocation.leaf === "detection close" || invocation.leaf === "detection open" || invocation.leaf === "detection fixed set") {
+          const action = invocation.leaf === "detection fixed set" ? "fixed set" : invocation.leaf === "detection close" ? "close" : "open";
           return runWrite(invocation.flags, (session, coordinator) => runDetectionState(session, coordinator, invocation.flags, action));
         }
         if (invocation.leaf === "triage rule create" || invocation.leaf === "triage rule edit" || invocation.leaf === "triage rule delete") {

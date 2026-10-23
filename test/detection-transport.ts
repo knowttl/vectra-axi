@@ -256,6 +256,7 @@ const mutations = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/assignment_outcomes", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/assignment_outcomes/5", { status: 204, body: {} }],
   ["https://fixture.invalid/api/v2.5/detections/42/close", { status: 200, body: {} }],
+  ["https://fixture.invalid/api/v2.5/detections", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/tagging/host/7", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/tagging/host/8", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/detections/42/notes", { status: 200, body: {} }],
