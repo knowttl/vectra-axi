@@ -322,6 +322,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
 | `<generation>.host.key-asset.set` | Set host key-asset state on QUX or RUX |
 | `<generation>.detection.triage.set`, `.clear` | Set/clear per-detection triage suppression on QUX or RUX |
+| `<generation>.triage-rule.create`, `.edit`, `.delete` | Create/replace/delete org-wide triage rules on QUX or RUX |
 | `<generation>.host.close`, `<generation>.account.close` | Close hosts/accounts with all active detections on QUX (release 9.3+) or RUX |
 
 Replace `<kind>` with `detection`, `host`, or `account`, except assignments, which support only `host` and `account`, and detection close/open, which supports only `detection`.
@@ -376,7 +377,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `user` | `user list`, `user show` | QUX, RUX |
 | `audit` | `audit list` | QUX, RUX |
 | `group` | `group list`, `group show`, `group member list` | QUX, RUX |
-| `triage` | `triage rule list`, `triage rule show` | QUX, RUX |
+| `triage` | `triage rule list`, `triage rule create`, `triage rule edit`, `triage rule delete`, `triage rule show` | QUX, RUX |
 | `health` | `health list`, `health show`, `health event list` | QUX, RUX |
 | `api` | `api get` | QUX, RUX |
 | `lockdown` | `lockdown list` | QUX, RUX |
@@ -391,7 +392,16 @@ QUX group membership requires appliance 9.2 or later.
 The generated [full command reference](docs/commands.md) lists every executable leaf, its deployment support and paging contract from the CLI registry and inventory.
 The [coverage record](docs/coverage.md) lists operation dispositions and limits.
 Unlisted operations are not implied by this table.
-There is no lockdown execution, group mutation, or triage-rule administration command.
+Triage-rule create, full replacement and delete use the gated write policy on QUX and RUX.
+These high-risk rules affect org-wide automation and can suppress future detections.
+Use `triage rule create --rule-file rule.json`, `triage rule edit --id 7 --rule-file rule.json` or `triage rule delete --id 7` to preview.
+`--rule-file -` reads JSON from stdin.
+The complete document requires `description`, `detection_category`, `triage_category`, `detection`, `is_whitelist`, `source_conditions` and `additional_conditions`.
+Conditions are null or `{"OR":[{"AND":[{"ANY_OF":{"field":"host","label":"Host","values":[{"value":7,"label":"Example host"}],"groups":[]}}]}]}`; `NONE_OF` is also supported.
+Edit previews full before/after documents; delete previews the full rule.
+Execution needs an allowlisted `{qux,rux}.triage-rule.{create,edit,delete}` operation and exact `--execute --confirm 'new triage rule'` or `--confirm 'triage rule 7'`.
+Edit and delete refuse changed rules before sending; the client-side re-read is not atomic.
+There is no lockdown execution or group mutation command.
 QUX lockdown status requires the corresponding Microsoft Defender ATP or AD Lockdown integration.
 RUX health and lockdown responses vary with subscriptions; empty or denied results do not establish that a deployment is healthy.
 Triage rules describe automation and do not establish that a detection is benign.

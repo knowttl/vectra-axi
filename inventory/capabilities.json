@@ -62,6 +62,248 @@
   ],
   "operations": [
     {
+      "id": "qux.triage-rule.create",
+      "command": "triage rule create",
+      "slice": "WRITE-10",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "High risk: org-wide triage automation. JSON-only full replacement; OR root with one AND child and ANY_OF/NONE_OF leaves. Edit/delete compare the full pre-send read; no atomic concurrency contract evidenced.",
+      "method": "POST",
+      "path": "/api/v2.5/rules",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "description",
+        "detection_category",
+        "triage_category",
+        "detection",
+        "is_whitelist",
+        "source_conditions",
+        "additional_conditions"
+      ],
+      "paging": "none",
+      "permissions": "Requires upstream rule-write permission plus hand-edited allowWrites and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Triage rules pp14-17 and pp79-83; POST/PUT/DELETE rules"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented through the unchanged WRITE-00 coordinator in src/triage-rule-write.ts.",
+      "fixtureCases": [
+        "success",
+        "invalid-tree",
+        "version-conflict",
+        "policy-refusal",
+        "confirmation",
+        "audit-redaction",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "qux.triage-rule.edit",
+      "command": "triage rule edit",
+      "slice": "WRITE-10",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "High risk: org-wide triage automation. JSON-only full replacement; OR root with one AND child and ANY_OF/NONE_OF leaves. Edit/delete compare the full pre-send read; no atomic concurrency contract evidenced.",
+      "method": "PUT",
+      "path": "/api/v2.5/rules/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "description",
+        "detection_category",
+        "triage_category",
+        "detection",
+        "is_whitelist",
+        "source_conditions",
+        "additional_conditions"
+      ],
+      "paging": "none",
+      "permissions": "Requires upstream rule-write permission plus hand-edited allowWrites and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Triage rules pp14-17 and pp79-83; POST/PUT/DELETE rules"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented through the unchanged WRITE-00 coordinator in src/triage-rule-write.ts.",
+      "fixtureCases": [
+        "success",
+        "invalid-tree",
+        "version-conflict",
+        "policy-refusal",
+        "confirmation",
+        "audit-redaction",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "qux.triage-rule.delete",
+      "command": "triage rule delete",
+      "slice": "WRITE-10",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "High risk: org-wide triage automation. JSON-only full replacement; OR root with one AND child and ANY_OF/NONE_OF leaves. Edit/delete compare the full pre-send read; no atomic concurrency contract evidenced.",
+      "method": "DELETE",
+      "path": "/api/v2.5/rules/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires upstream rule-write permission plus hand-edited allowWrites and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Triage rules pp14-17 and pp79-83; POST/PUT/DELETE rules"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented through the unchanged WRITE-00 coordinator in src/triage-rule-write.ts.",
+      "fixtureCases": [
+        "success",
+        "invalid-tree",
+        "version-conflict",
+        "policy-refusal",
+        "confirmation",
+        "audit-redaction",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.triage-rule.create",
+      "command": "triage rule create",
+      "slice": "WRITE-10",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "High risk: org-wide triage automation. JSON-only full replacement; OR root with one AND child and ANY_OF/NONE_OF leaves. Edit/delete compare the full pre-send read; no atomic concurrency contract evidenced.",
+      "method": "POST",
+      "path": "/api/v3.4/rules/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "description",
+        "detection_category",
+        "triage_category",
+        "detection",
+        "is_whitelist",
+        "source_conditions",
+        "additional_conditions"
+      ],
+      "paging": "none",
+      "permissions": "Requires upstream rule-write permission plus hand-edited allowWrites and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4_rules_create Task A; /api/v3.4/rules/{rule_id}/ PUT/DELETE; RuleRequestBodyV3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented through the unchanged WRITE-00 coordinator in src/triage-rule-write.ts.",
+      "fixtureCases": [
+        "success",
+        "invalid-tree",
+        "version-conflict",
+        "policy-refusal",
+        "confirmation",
+        "audit-redaction",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.triage-rule.edit",
+      "command": "triage rule edit",
+      "slice": "WRITE-10",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "High risk: org-wide triage automation. JSON-only full replacement; OR root with one AND child and ANY_OF/NONE_OF leaves. Edit/delete compare the full pre-send read; no atomic concurrency contract evidenced.",
+      "method": "PUT",
+      "path": "/api/v3.4/rules/{rule_id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "description",
+        "detection_category",
+        "triage_category",
+        "detection",
+        "is_whitelist",
+        "source_conditions",
+        "additional_conditions"
+      ],
+      "paging": "none",
+      "permissions": "Requires upstream rule-write permission plus hand-edited allowWrites and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4_rules_create Task A; /api/v3.4/rules/{rule_id}/ PUT/DELETE; RuleRequestBodyV3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented through the unchanged WRITE-00 coordinator in src/triage-rule-write.ts.",
+      "fixtureCases": [
+        "success",
+        "invalid-tree",
+        "version-conflict",
+        "policy-refusal",
+        "confirmation",
+        "audit-redaction",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.triage-rule.delete",
+      "command": "triage rule delete",
+      "slice": "WRITE-10",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "High risk: org-wide triage automation. JSON-only full replacement; OR root with one AND child and ANY_OF/NONE_OF leaves. Edit/delete compare the full pre-send read; no atomic concurrency contract evidenced.",
+      "method": "DELETE",
+      "path": "/api/v3.4/rules/{rule_id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires upstream rule-write permission plus hand-edited allowWrites and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4_rules_create Task A; /api/v3.4/rules/{rule_id}/ PUT/DELETE; RuleRequestBodyV3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented through the unchanged WRITE-00 coordinator in src/triage-rule-write.ts.",
+      "fixtureCases": [
+        "success",
+        "invalid-tree",
+        "version-conflict",
+        "policy-refusal",
+        "confirmation",
+        "audit-redaction",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
       "id": "qux.detection.triage.set",
       "command": "detection triage set",
       "slice": "WRITE-09",
@@ -6054,7 +6296,7 @@
       "deployment": "qux",
       "apiVersion": "2.5",
       "disposition": "planned",
-      "rationale": "Per-detection triage set/clear are named WRITE-09 operations. Rule create/edit/delete remain planned and require a separately reviewed mutation family. No additional route is authorized by this family entry.",
+      "rationale": "Per-detection triage set/clear are named WRITE-09 operations; rule create/edit/delete are named WRITE-10 operations. No additional route is authorized by this family entry.",
       "evidence": [
         {
           "source": "qux-guide",
@@ -6119,7 +6361,7 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "disposition": "planned",
-      "rationale": "Per-detection triage set/clear are named WRITE-09 operations. Rule create/edit/delete remain planned and require a separately reviewed mutation family. No additional route is authorized by this family entry.",
+      "rationale": "Per-detection triage set/clear are named WRITE-09 operations; rule create/edit/delete are named WRITE-10 operations. No additional route is authorized by this family entry.",
       "evidence": [
         {
           "source": "rux-spec",

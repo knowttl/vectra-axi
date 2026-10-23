@@ -253,7 +253,12 @@ WRITE-N (2a) selects per-object detection, host and account note edit and note d
 Its [offline acceptance suite](../test/note-edit.test.ts) covers desired-state before/after previews, exact replacement bodies, file/stdin inputs, already-matching and already-deleted no-ops, missing notes, changed current state, exact target-plus-note confirmation, policy refusal, denied reads, server rejection and unknown outcomes without replay.
 All acceptance uses synthetic fixtures; no live instance, real credentials or customer data is used.
 See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
-Triage-rule administration and group membership writes are not approved.
+Triage-rule create, full replacement and delete ship as WRITE-10 through the unchanged WRITE-00 coordinator.
+JSON rule files require null conditions or an OR root with exactly one AND child and ANY_OF/NONE_OF leaves.
+Previews show the complete before/after documents and warn about org-wide suppression of future detections.
+Edit and delete re-read the full rule and refuse any change with VERSION_CONFLICT; this comparison is not atomic.
+The [offline acceptance suite](../test/triage-rule-write.test.ts) covers exact routes and bodies, malformed input before HTTP, file/stdin inputs, confirmation, policy, metadata-only auditing, rejection and unknown outcomes without replay.
+Group membership writes remain planned.
 
 WRITE-03 selects desired-state QUX/RUX host and account assignment, built on READ-04/RUX-04 assignment reads and WRITE-00.
 Detection assignment is outside this approved slice; see [README.md](../README.md) for the upstream limitation.
