@@ -126,7 +126,7 @@ The CLI does not grant API permissions; configure the deployment's API role for 
 | QUX token reads | Personal API token with read access to the requested resource |
 | QUX OAuth reads | API client credentials on appliance 9.1+ with the requested resource access |
 | RUX reads | OAuth API client with read access to the requested resource; subscriptions may further restrict routes |
-| Named writes | Corresponding tag, note, assignment or detection-state mutation permission, plus the local operation scope below |
+| Named writes | Corresponding tag, note, assignment, detection-state or entity-close mutation permission, plus the local operation scope below |
 
 Permission names vary by deployment; the CLI does not prescribe a universal OAuth scope string.
 Resource requests and OAuth exchanges send credentials and requested operation data only to the configured HTTPS origin.
