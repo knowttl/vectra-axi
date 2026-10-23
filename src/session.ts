@@ -1,4 +1,7 @@
 import { request as nodeRequest } from "node:https";
+import { closeSync, constants, fstatSync, openSync, readSync } from "node:fs";
+import { createHash, randomUUID } from "node:crypto";
+import { basename } from "node:path";
 import { AxiError } from "axi-sdk-js";
 import { authFailure, resolveToken, tlsOptions } from "./auth.js";
 import { inventory } from "./catalogue.js";
@@ -44,6 +47,44 @@ export type Session = {
 const MAX_REDIRECTS = 3;
 const REQUEST_TIMEOUT_MS = 30_000;
 export const RESPONSE_BODY_LIMIT_BYTES = 8 * 1024 * 1024;
+export const MULTIPART_FILE_LIMIT_BYTES = 5_000_000;
+export type MultipartFile = { filePath: string; name: string; size: number; sha256: string };
+
+function readUpload(filePath: string): Buffer {
+  if (!filePath || filePath === "-") throw new AxiError("Upload requires a file path, never stdin", "VALIDATION_ERROR");
+  let fd: number | undefined;
+  try {
+    fd = openSync(filePath, constants.O_RDONLY | constants.O_NONBLOCK);
+    const stat = fstatSync(fd);
+    if (!stat.isFile() || stat.size > MULTIPART_FILE_LIMIT_BYTES) {
+      throw new AxiError("Upload must be a regular file of at most 5000000 bytes", "VALIDATION_ERROR");
+    }
+    // Read at most cap + 1 even if a file grows after stat.
+    const buffer = Buffer.alloc(MULTIPART_FILE_LIMIT_BYTES + 1);
+    let size = 0;
+    while (size < buffer.length) {
+      const read = readSync(fd, buffer, size, buffer.length - size, null);
+      if (read === 0) break;
+      size += read;
+    }
+    if (size > MULTIPART_FILE_LIMIT_BYTES) throw new AxiError("Upload exceeds 5000000 bytes", "VALIDATION_ERROR");
+    return buffer.subarray(0, size);
+  } catch (error) {
+    if (error instanceof AxiError) throw error;
+    throw new AxiError("Cannot read upload file", "VALIDATION_ERROR", ["Provide a readable regular file path"]);
+  } finally {
+    if (fd !== undefined) closeSync(fd);
+  }
+}
+
+export function describeMultipartFile(filePath: string): MultipartFile {
+  const data = readUpload(filePath);
+  const name = basename(filePath);
+  if (/[\x00-\x1f\x7f"\\]/.test(name)) throw new AxiError("Invalid upload filename", "VALIDATION_ERROR");
+  return { filePath, name, size: data.length, sha256: createHash("sha256").update(data).digest("hex") };
+}
+
+type MutationSendOptions = { body?: string; multipart?: MultipartFile; ifMatch?: string; signal?: AbortSignal };
 export const HEALTH_CHECKS = ["cpu", "disk", "network", "memory", "power", "sensors",
   "system", "hostid", "connectivity", "trafficdrop"] as const;
 
@@ -475,7 +516,7 @@ export function createMutationSender(args: {
   redactor: SecretRedactor;
   transport: RawTransport;
 }): {
-  send(authorization: MutationAuthorization, options?: { body?: string; ifMatch?: string; signal?: AbortSignal }): Promise<MutationResponse>;
+  send(authorization: MutationAuthorization, options?: MutationSendOptions): Promise<MutationResponse>;
 } {
   const { profile, configPath, redactor, transport } = args;
   // The sender enforces the same immutable origin the coordinator
@@ -486,7 +527,7 @@ export function createMutationSender(args: {
 
   async function send(
     authorization: MutationAuthorization,
-    options?: { body?: string; ifMatch?: string; signal?: AbortSignal },
+    options?: MutationSendOptions,
   ): Promise<MutationResponse> {
     let handedOff = false;
     try {
@@ -502,6 +543,21 @@ export function createMutationSender(args: {
       }
       // Re-check the bound destination after authorization, before credentials.
       assertMutationDestination(bound, authorization.url);
+      let body = options?.body;
+      let contentType = body === undefined ? undefined : "application/json";
+      if (options?.multipart !== undefined) {
+        if (body !== undefined) throw new AxiError("Choose JSON or multipart, never both", "VALIDATION_ERROR");
+        const file = options.multipart;
+        const data = readUpload(file.filePath);
+        if (data.length !== file.size || createHash("sha256").update(data).digest("hex") !== file.sha256
+          || basename(file.filePath) !== file.name || /[\x00-\x1f\x7f"\\]/.test(file.name)) {
+          throw new AxiError("Upload file changed after preview", "VERSION_CONFLICT", ["Preview the file again before retrying"]);
+        }
+        const boundary = `vectra-axi-${randomUUID()}`;
+        body = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${file.name}"\r\nContent-Type: application/octet-stream\r\n\r\n`
+          + data.toString("latin1") + `\r\n--${boundary}--\r\n`;
+        contentType = `multipart/form-data; boundary=${boundary}`;
+      }
       if (options?.ifMatch !== undefined && (!options.ifMatch.trim() || /[\x00-\x1f\x7f]/.test(options.ifMatch))) {
         throw new AxiError("Invalid If-Match value", "VALIDATION_ERROR", [
           "Provide the exact entity tag returned by the previewed read",
@@ -524,9 +580,9 @@ export function createMutationSender(args: {
         method: authorization.method,
         url: authorization.url,
         headers: { Authorization: authorizationHeader, Accept: "application/json",
-          ...(options?.body !== undefined ? { "Content-Type": "application/json" } : {}),
+          ...(contentType !== undefined ? { "Content-Type": contentType } : {}),
           ...(options?.ifMatch !== undefined ? { "If-Match": options.ifMatch } : {}) },
-        ...(options?.body !== undefined ? { body: options.body } : {}),
+        ...(body !== undefined ? { body } : {}),
         ...(options?.signal ? { signal: options.signal } : {}),
       });
       ensureActive(options?.signal);
@@ -603,7 +659,8 @@ export function nodeTransport(): RawTransport {
           onAbort();
           return;
         }
-        if (request.body !== undefined) pending.write(request.body);
+        if (request.body !== undefined) pending.write(request.body,
+          request.headers["Content-Type"]?.startsWith("multipart/form-data;") ? "latin1" : "utf8");
         pending.end();
       });
     } finally {

@@ -1897,6 +1897,246 @@ Permanently resolve an open QUX or RUX host or account assignment through the ga
 }
 ```
 
+## threat-feed list
+
+Read QUX or RUX threat-feed list
+
+- `qux.threat-feed.list`: QUX API 2.5
+- `rux.threat-feed.list`: RUX API 3.4
+
+QUX: nonpaged single response; no --all; RUX: collection pages; bounded --all supported
+
+```json
+{
+  "command": "vectra-axi threat-feed list",
+  "description": "Read QUX or RUX threat-feed list",
+  "pagination": "QUX: nonpaged single response; no --all; RUX: collection pages; bounded --all supported",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--all": "RUX only: traverse collection pages within 10 requests, 8 MiB, 60 seconds and 10000 rows",
+    "--limit <rows>": "Output row window; default 100; cannot combine with --all"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi threat-feed list --help",
+    "vectra-axi threat-feed list --profile <name>"
+  ]
+}
+```
+
+## threat-feed show
+
+Read QUX or RUX threat-feed show
+
+- `qux.threat-feed.show`: QUX API 2.5
+- `rux.threat-feed.show`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi threat-feed show",
+  "description": "Read QUX or RUX threat-feed show",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Threat-feed string ID (required)"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi threat-feed show --help",
+    "vectra-axi threat-feed show --profile <name> <id>"
+  ]
+}
+```
+
+## threat-feed create
+
+Preview or execute gated QUX or RUX threat-feed create
+
+- `qux.threat-feed.create`: QUX API 2.5
+- `rux.threat-feed.create`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi threat-feed create",
+  "description": "Preview or execute gated QUX or RUX threat-feed create",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--name <name>": "Feed name (required for create)",
+    "--category <cnc|exfil|lateral>": "Detection category (required for create)",
+    "--certainty <Low|Medium|High>": "Detection certainty (required for create)",
+    "--indicator-type <type>": "Anonymization, C2, Exfiltration, Malware Artifacts or Watchlist (required for create)",
+    "--duration <days>": "Positive integer lifetime in days (required for create)",
+    "--execute": "Send the mutation; default preview only",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact preview target required with --execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi threat-feed create --help",
+    "vectra-axi threat-feed create --profile <name> --name neutral-feed --category cnc --certainty High --indicator-type Watchlist --duration 7"
+  ]
+}
+```
+
+## threat-feed edit
+
+Preview or execute gated QUX or RUX threat-feed edit
+
+- `qux.threat-feed.edit`: QUX API 2.5
+- `rux.threat-feed.edit`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi threat-feed edit",
+  "description": "Preview or execute gated QUX or RUX threat-feed edit",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Threat-feed string ID (required)",
+    "--name <name>": "Feed name (required for create)",
+    "--category <cnc|exfil|lateral>": "Detection category (required for create)",
+    "--certainty <Low|Medium|High>": "Detection certainty (required for create)",
+    "--indicator-type <type>": "Anonymization, C2, Exfiltration, Malware Artifacts or Watchlist (required for create)",
+    "--duration <days>": "Positive integer lifetime in days (required for create)",
+    "--execute": "Send the mutation; default preview only",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact preview target required with --execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi threat-feed edit --help",
+    "vectra-axi threat-feed edit --profile <name> <id> --duration 14"
+  ]
+}
+```
+
+## threat-feed delete
+
+Preview or execute gated QUX or RUX threat-feed delete
+
+- `qux.threat-feed.delete`: QUX API 2.5
+- `rux.threat-feed.delete`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi threat-feed delete",
+  "description": "Preview or execute gated QUX or RUX threat-feed delete",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Threat-feed string ID (required)",
+    "--execute": "Send the mutation; default preview only",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact preview target required with --execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi threat-feed delete --help",
+    "vectra-axi threat-feed delete --profile <name> <id>"
+  ]
+}
+```
+
+## threat-feed file set
+
+Preview or execute gated QUX or RUX threat-feed file set
+
+- `qux.threat-feed.file.set`: QUX API 2.5
+- `rux.threat-feed.file.set`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi threat-feed file set",
+  "description": "Preview or execute gated QUX or RUX threat-feed file set",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Threat-feed string ID (required)",
+    "--file <path>": "STIX file path, at most 5000000 bytes; stdin is refused",
+    "--execute": "Send the mutation; default preview only",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact preview target required with --execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi threat-feed file set --help",
+    "vectra-axi threat-feed file set --profile <name> <id> --file <stix>"
+  ]
+}
+```
+
+## threat-feed file delete
+
+Preview or execute gated QUX or RUX threat-feed file delete
+
+- `qux.threat-feed.file.delete`: QUX API 2.5
+- `rux.threat-feed.file.delete`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi threat-feed file delete",
+  "description": "Preview or execute gated QUX or RUX threat-feed file delete",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Threat-feed string ID (required)",
+    "--execute": "Send the mutation; default preview only",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact preview target required with --execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi threat-feed file delete --help",
+    "vectra-axi threat-feed file delete --profile <name> <id>"
+  ]
+}
+```
+
 ## proxy list
 
 List QUX or RUX proxies

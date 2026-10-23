@@ -7,7 +7,7 @@ import type { LoadedConfig, SelectedProfile } from "./profiles.js";
 import type { SecretRedactor } from "./redact.js";
 import { configMoved, privateFiles, toolDirectory } from "./private-file.js";
 import { createMutationSender, mutationNotSent, mutationAccepted, mutationHttpStatus,
-  type MutationAuthorization, type MutationMethod, type MutationResponse, type RawTransport } from "./session.js";
+  type MultipartFile, type MutationAuthorization, type MutationMethod, type MutationResponse, type RawTransport } from "./session.js";
 
 // WRITE-00 mutation coordinator shared by named mutation families. The gate
 // order follows az-axi's write gates as the reference: read-only default,
@@ -48,6 +48,7 @@ export type MutationDefinition = {
   target: string;
   requiresConfirmation?: boolean;
   payload?: unknown;
+  multipart?: MultipartFile;
 };
 
 export type MutationPreview = {
@@ -112,6 +113,7 @@ type AuditRecord = {
   ifMatch?: string;
   httpStatus?: number;
   outcome?: string;
+  file?: { name: string; size: number; sha256: string };
 };
 
 const authorizations = new WeakMap<MutationAuthorization, object>();
@@ -164,7 +166,7 @@ export function createMutationCoordinator(args: {
         "WRITES_DISABLED",
         [
           "Writes are disabled for this profile",
-          "Gated `tag set` replaces, bulk `tag bulk-set`/`tag bulk-delete` changes, `note add`/RUX `note bulk-add` appends, `note edit`/`note delete` changes, `assignment set`/`assignment resolve` changes, `assignment outcome create`/`edit`/`delete` changes, `detection close`/`detection open`/`detection fixed set` changes, `detection triage set`/`detection triage clear` changes, `group create`/`edit`/`delete` changes, `group member add`/`remove`/`set` changes, `triage rule create`/`triage rule edit`/`triage rule delete` changes, `proxy create`/`edit`/(RUX) `delete` changes, `host key-asset set` changes and `host close`/`account close` need a hand-edited writes scope on this profile",
+          "Gated `tag set` replaces, bulk `tag bulk-set`/`tag bulk-delete` changes, `note add`/RUX `note bulk-add` appends, `note edit`/`note delete` changes, `assignment set`/`assignment resolve` changes, `assignment outcome create`/`edit`/`delete` changes, `detection close`/`detection open`/`detection fixed set` changes, `detection triage set`/`detection triage clear` changes, `group create`/`edit`/`delete` changes, `group member add`/`remove`/`set` changes, `triage rule create`/`triage rule edit`/`triage rule delete` changes, `proxy create`/`edit`/(RUX) `delete` changes, `threat-feed create`/`edit`/`delete` and `threat-feed file set`/`delete` changes, `host key-asset set` changes and `host close`/`account close` need a hand-edited writes scope on this profile",
         ],
       );
     }
@@ -175,7 +177,7 @@ export function createMutationCoordinator(args: {
         "OPERATION_NOT_WRITABLE",
         [
           "Writes are limited to this profile's configured operations",
-          "Only implemented operations can run: `tag set` replaces, bulk `tag bulk-set`/`tag bulk-delete` changes, `note add`/RUX `note bulk-add` appends, `note edit`/`note delete` changes, `assignment set`/`assignment resolve` changes, `assignment outcome create`/`edit`/`delete` changes, `detection close`/`detection open`/`detection fixed set` changes, `detection triage set`/`detection triage clear` changes, `group create`/`edit`/`delete` changes, `group member add`/`remove`/`set` changes, `triage rule create`/`triage rule edit`/`triage rule delete` changes, `proxy create`/`edit`/(RUX) `delete` changes, `host key-asset set` changes and `host close`/`account close`",
+          "Only implemented operations can run: `tag set` replaces, bulk `tag bulk-set`/`tag bulk-delete` changes, `note add`/RUX `note bulk-add` appends, `note edit`/`note delete` changes, `assignment set`/`assignment resolve` changes, `assignment outcome create`/`edit`/`delete` changes, `detection close`/`detection open`/`detection fixed set` changes, `detection triage set`/`detection triage clear` changes, `group create`/`edit`/`delete` changes, `group member add`/`remove`/`set` changes, `triage rule create`/`triage rule edit`/`triage rule delete` changes, `proxy create`/`edit`/(RUX) `delete` changes, `threat-feed create`/`edit`/`delete` and `threat-feed file set`/`delete` changes, `host key-asset set` changes and `host close`/`account close`",
         ],
       );
     }
@@ -221,7 +223,9 @@ export function createMutationCoordinator(args: {
       target: definition.target,
       noop: current === undefined || isNoop === undefined ? false : isNoop(current),
       currentState: current === undefined ? null : redactor.text(serialize(current)!),
-      proposedChange: definition.payload === undefined ? null : redactor.text(serialize(definition.payload)!),
+      proposedChange: definition.multipart !== undefined
+        ? redactor.text(serialize({ name: definition.multipart.name, size: definition.multipart.size, sha256: definition.multipart.sha256 })!)
+        : definition.payload === undefined ? null : redactor.text(serialize(definition.payload)!),
     });
   }
 
@@ -283,13 +287,19 @@ export function createMutationCoordinator(args: {
       url: seen.url,
       target: definition.target,
       effect: definition.effect,
+      ...(definition.multipart === undefined ? {} : { file: { name: definition.multipart.name,
+        size: definition.multipart.size, sha256: definition.multipart.sha256 } }),
       ...(ifMatch !== undefined ? { ifMatch } : {}),
     };
   }
 
   async function execute(definition: MutationDefinition, options: MutationExecuteOptions): Promise<MutationResult> {
+    if (definition.multipart !== undefined && definition.payload !== undefined) {
+      throw new AxiError("Choose JSON or multipart, never both", "VALIDATION_ERROR");
+    }
     const body = serialize(definition.payload);
-    definition = { ...definition, ...(body === undefined ? {} : { payload: JSON.parse(body) as unknown }) };
+    definition = { ...definition, ...(body === undefined ? {} : { payload: JSON.parse(body) as unknown }),
+      ...(definition.multipart === undefined ? {} : { multipart: { ...definition.multipart } }) };
     options = { ...options };
     if (options.execute === true && options.dryRun === true) {
       throw new AxiError("--dry-run cannot be combined with --execute", "VALIDATION_ERROR", [
@@ -346,6 +356,7 @@ export function createMutationCoordinator(args: {
     try {
       sent = await sender.send(authorization, {
         ...(body !== undefined ? { body } : {}),
+        ...(definition.multipart !== undefined ? { multipart: definition.multipart } : {}),
         ...(options.ifMatch !== undefined ? { ifMatch: options.ifMatch } : {}),
       });
     } catch (error) {

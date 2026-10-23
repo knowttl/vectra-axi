@@ -71,6 +71,37 @@ it.each(groups.filter((group) => !Object.hasOwn(catalogue, group)))
   expect(result.stdout.length).toBeLessThan(600);
 });
 
+it("uploads a threat feed through the packaged CLI and real multipart sender", () => {
+  const config = join(scratch, "threat-feed.json");
+  const trace = join(scratch, "threat-feed-requests.jsonl");
+  const file = join(scratch, "neutral-stix.xml");
+  const stix = '<stix:STIX_Package xmlns:stix="http://stix.mitre.org/stix-1" version="1.2"><stix:STIX_Header><stix:Title>Neutral café</stix:Title></stix:STIX_Header></stix:STIX_Package>';
+  writeFileSync(file, stix);
+  writeFileSync(config, JSON.stringify({ profiles: { lab: {
+    kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: ["qux.threat-feed.file.set"] },
+  } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    VECTRA_AXI_WRITE_LOG: join(scratch, "threat-feed.log"),
+    NODE_OPTIONS: `--import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const args = ["threat-feed", "file", "set", "--config", config, "--profile", "lab", "--id", "3", "--file", file];
+  const preview = invoke(args, fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(decode(preview.stdout)).toMatchObject({ operation: "qux.threat-feed.file.set", target: "threat feed 3" });
+  expect(preview.stdout).not.toContain("STIX_Package");
+  const applied = invoke([...args, "--execute", "--confirm", "threat feed 3"], fixtureEnv);
+  expect(applied.status).toBe(0);
+  expect(decode(applied.stdout)).toMatchObject({ state: "success", operation: "qux.threat-feed.file.set" });
+  const requests = readFileSync(trace, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+  expect(requests.map((request) => request.method)).toEqual(["GET", "GET", "GET", "POST"]);
+  const upload = requests.at(-1);
+  const boundary = upload.contentType.split("boundary=")[1];
+  expect(Buffer.from(upload.multipart, "base64")).toEqual(Buffer.concat([
+    Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="neutral-stix.xml"\r\nContent-Type: application/octet-stream\r\n\r\n`),
+    Buffer.from(stix), Buffer.from(`\r\n--${boundary}--\r\n`),
+  ]));
+});
+
 it("investigates a detection through the packaged list, show, full and resume commands", () => {
   const config = join(scratch, "investigation.json");
   const trace = join(scratch, "investigation-requests.jsonl");
@@ -1742,7 +1773,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, doctor, auth, profile, config, detection, host, account, entity, assignment, proxy, user, audit, group, triage, health, api, lockdown");
+  expect(result.stdout).toContain("Available commands: home, setup, doctor, auth, profile, config, detection, host, account, entity, assignment, threat-feed, proxy, user, audit, group, triage, health, api, lockdown");
   expect(result.stdout).not.toContain("detection list");
   expect(result.stdout.length).toBeLessThan(600);
   expect(result.stderr).toBe("");

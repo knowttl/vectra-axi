@@ -347,6 +347,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.<kind>.assignment.resolve` | Resolve open assignments for hosts/accounts on QUX or RUX |
 | `<generation>.assignment-outcome.create`, `.edit`, `.delete` | Custom assignment outcomes on QUX or RUX |
 | `<generation>.proxy.create`, `.edit`; `rux.proxy.delete` | User-defined proxies; settings affect detection attribution |
+| `<generation>.threat-feed.create`, `.edit`, `.delete`, `.file.set`, `.file.delete` | Threat intelligence feeds; affect matching and detection scoring |
 | `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
 | `<generation>.detection.fixed.set` | Mark/unmark legacy fixed state on QUX or RUX |
 | `<generation>.host.key-asset.set` | Set host key-asset state on QUX or RUX |
@@ -403,6 +404,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `account` | `account list`, `account show`, `account close`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note bulk-add`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
 | `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |
 | `assignment` | `assignment list`, `assignment set`, `assignment resolve`, `assignment outcome list`, `assignment outcome create`, `assignment outcome edit`, `assignment outcome delete`, `assignment outcome show` | QUX, RUX |
+| `threat-feed` | `threat-feed list`, `threat-feed show`, `threat-feed create`, `threat-feed edit`, `threat-feed delete`, `threat-feed file set`, `threat-feed file delete` | QUX, RUX |
 | `proxy` | `proxy list`, `proxy show`, `proxy create`, `proxy edit`, `proxy delete` | QUX, RUX |
 | `user` | `user list`, `user show` | QUX, RUX |
 | `audit` | `audit list` | QUX, RUX |
@@ -424,6 +426,17 @@ The [coverage record](docs/coverage.md) lists operation dispositions and limits.
 Unlisted operations are not implied by this table.
 Triage-rule create, full replacement and delete use the gated write policy on QUX and RUX.
 These high-risk rules affect org-wide automation and can suppress future detections.
+Use `threat-feed list` or `threat-feed show --id <id>` to review feed metadata without printing STIX contents.
+Create previews with `threat-feed create --name neutral-feed --category cnc --certainty High --indicator-type Watchlist --duration 7` and confirms `new threat feed neutral-feed`.
+Edit accepts `--id` plus any of the create fields; existing default fields are preserved.
+`threat-feed file set --id <id> --file <stix>` uploads or replaces a file; `threat-feed file delete --id <id>` removes the file; `threat-feed delete --id <id>` removes the feed.
+All existing-feed writes confirm `threat feed <id>` and re-read metadata before sending; this check is not atomic.
+Writes remain off until a hand-edited profile allowlists the exact operation, default to preview, and require `--execute --confirm` to send.
+`VECTRA_AXI_READ_ONLY=1` overrides that opt-in.
+Uploads accept regular file paths only, never stdin, and refuse files over 5,000,000 bytes before any request.
+The sender verifies the file digest again before sending; preview and journal record only the name, size and SHA-256 digest, never file bytes or paths.
+Read back after an unknown outcome; never replay it.
+
 Use `triage rule create --rule-file rule.json`, `triage rule edit --id 7 --rule-file rule.json` or `triage rule delete --id 7` to preview.
 `--rule-file -` reads JSON from stdin.
 The complete document requires `description`, `detection_category`, `triage_category`, `detection`, `is_whitelist`, `source_conditions` and `additional_conditions`.
