@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from "node:util";
 import { AxiError } from "axi-sdk-js";
 import { z } from "zod";
 import type { LeafResult } from "./notes.js";
-import type { SecretRedactor } from "./redact.js";
+import { containsRedactedPlaceholder, type SecretRedactor } from "./redact.js";
 import type { Session } from "./session.js";
 import type { MutationCoordinator, MutationDefinition } from "./writes.js";
 
@@ -82,6 +82,10 @@ export async function runNotificationWrite(
     const parsed = documentSchema.safeParse(value);
     if (!parsed.success) throw new AxiError("Invalid destination document", "VALIDATION_ERROR", [
       "Supply destination_type, title and config.destination_params.url (HTTP or HTTPS); enabled is optional",
+    ]);
+    if (containsRedactedPlaceholder(value)) throw new AxiError("--config-file must not contain ***redacted*** placeholders", "VALIDATION_ERROR", [
+      "Restore real secrets from your vault instead of copying preview output",
+      "Start from the complete preview structure, never the projected api-get subset",
     ]);
     payload = parsed.data;
   }
