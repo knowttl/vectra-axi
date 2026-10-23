@@ -2106,8 +2106,7 @@ Show one group on QUX v2.5 or RUX v3.4 in full detail
 
 Add to static group membership on QUX or RUX; groups drive triage rules and importance
 
-- `qux.group.member.set`: QUX API 2.5
-- `rux.group.member.set`: RUX API 3.4
+Local command; no Vectra API request.
 
 ```json
 {
@@ -2142,8 +2141,7 @@ Add to static group membership on QUX or RUX; groups drive triage rules and impo
 
 Remove from static group membership on QUX or RUX; groups drive triage rules and importance
 
-- `qux.group.member.set`: QUX API 2.5
-- `rux.group.member.set`: RUX API 3.4
+Local command; no Vectra API request.
 
 ```json
 {
