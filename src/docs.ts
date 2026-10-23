@@ -74,8 +74,8 @@ export function commandDocument(): string {
 // One row per executable leaf in catalogue order, matching the home-view
 // help. Every leaf is implemented by a vectra-axi handler (native).
 // Local views stay offline; QUX and RUX reads use the read-only session, tag
-// replaces, bulk tag changes, note appends, note edits/deletes and
-// assignment sets use the gated WRITE-00 coordinator.
+// replaces, bulk tag changes, note appends, note edits/deletes, assignment
+// sets and assignment resolves use the gated WRITE-00 coordinator.
 export function skillCommandTable(): string {
   return [
     "| Command | Capability | Vectra effect | List pagination |",

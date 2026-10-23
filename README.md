@@ -374,7 +374,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 <!-- command-registry:end -->
 
 Deployment columns summarize each domain; individual commands have narrower support.
-Detection events and entity scoring are RUX-only; note append and assignment set support QUX and RUX.
+Detection events and entity scoring are RUX-only; note append, assignment set and assignment resolve support QUX and RUX.
 Note edit/delete and tag writes support both deployments, as do detection/host/account note and tag reads.
 `health event list` supports both; connector/EDR checks and traffic lockdown status are RUX-only.
 QUX group membership requires appliance 9.2 or later.
@@ -382,7 +382,7 @@ QUX group membership requires appliance 9.2 or later.
 The generated [full command reference](docs/commands.md) lists every executable leaf, its deployment support and paging contract from the CLI registry and inventory.
 The [coverage record](docs/coverage.md) lists operation dispositions and limits.
 Unlisted operations are not implied by this table.
-There is no lockdown execution, assignment resolution, group mutation, or triage-rule mutation command.
+There is no lockdown execution, group mutation, or triage-rule mutation command.
 QUX lockdown status requires the corresponding Microsoft Defender ATP or AD Lockdown integration.
 RUX health and lockdown responses vary with subscriptions; empty or denied results do not establish that a deployment is healthy.
 Triage rules describe automation and do not establish that a detection is benign.
