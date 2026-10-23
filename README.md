@@ -406,7 +406,7 @@ Conditions are null or `{"OR":[{"AND":[{"ANY_OF":{"field":"host","label":"Host",
 Edit previews full before/after documents; delete previews the full rule.
 Execution needs an allowlisted `{qux,rux}.triage-rule.{create,edit,delete}` operation and exact `--execute --confirm 'new triage rule'` or `--confirm 'triage rule 7'`.
 Edit and delete refuse changed rules before sending; the client-side re-read is not atomic.
-There is no lockdown execution or group mutation command.
+There is no lockdown execution or group create/edit/delete command.
 QUX lockdown status requires the corresponding Microsoft Defender ATP or AD Lockdown integration.
 RUX health and lockdown responses vary with subscriptions; empty or denied results do not establish that a deployment is healthy.
 Triage rules describe automation and do not establish that a detection is benign.
