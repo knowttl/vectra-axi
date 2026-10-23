@@ -46,6 +46,7 @@ import { runGroupMemberWrite, runGroupWrite } from "./group-write.js";
 import { runAssignmentOutcomeWrite } from "./assignment-outcome-write.js";
 import { runTriageRuleWrite } from "./triage-rule-write.js";
 import { proxyId, runProxyRead, runProxyWrite } from "./proxies.js";
+import { runInternalNetworkRead, runInternalNetworkSet } from "./settings.js";
 import { threatFeedId, runThreatFeedRead, runThreatFeedWrite } from "./threat-feeds.js";
 import { createMutationCoordinator, readOnlyForced } from "./writes.js";
 
@@ -181,6 +182,15 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         if (["threat-feed create", "threat-feed edit", "threat-feed delete", "threat-feed file set", "threat-feed file delete"].includes(invocation.leaf)) {
           const action = invocation.leaf.slice("threat-feed ".length).replace(" ", ".") as "create" | "edit" | "delete" | "file.set" | "file.delete";
           return runWrite(invocation.flags, (session, coordinator) => runThreatFeedWrite(session, coordinator, invocation.flags, action));
+        }
+        if (invocation.leaf === "setting internal-network show") {
+          const loaded = loadConfig(invocation.flags.get("config") as string | undefined, redactor);
+          const selected = selectProfile(loaded.config, invocation.flags.get("profile") as string | undefined);
+          const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+          return (await runInternalNetworkRead(session)).output;
+        }
+        if (invocation.leaf === "setting internal-network set") {
+          return runWrite(invocation.flags, (session, coordinator) => runInternalNetworkSet(session, coordinator, invocation.flags));
         }
         if (invocation.leaf === "proxy list" || invocation.leaf === "proxy show") {
           if (invocation.leaf === "proxy show") proxyId(invocation.flags);

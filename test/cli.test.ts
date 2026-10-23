@@ -639,6 +639,33 @@ it("previews and executes full triage-rule writes through the packaged binary", 
   ]);
 });
 
+it("reads, previews and replaces internal-network settings through the packaged binary", () => {
+  const config = join(scratch, "settings-write.json");
+  const trace = join(scratch, "settings-write-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: ["qux.setting.internal-network.set"] } } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    VECTRA_AXI_WRITE_LOG: join(scratch, "settings-write.log"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const shown = invoke(["setting", "internal-network", "show", ...context], fixtureEnv);
+  expect(shown.status).toBe(0);
+  expect(decode(shown.stdout)).toMatchObject({ include: [], exclude: [], drop: [] });
+  const args = ["setting", "internal-network", "set", ...context, "--include", "198.51.100.0/24", "--exclude", "none", "--drop", "none"];
+  const preview = invoke(args, fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(decode(preview.stdout)).toMatchObject({ before: { include: [], exclude: [], drop: [] },
+    after: { include: ["198.51.100.0/24"], exclude: [], drop: [] }, warning: expect.stringContaining("High risk") });
+  const applied = invoke([...args, "--execute", "--confirm", "internal network"], fixtureEnv);
+  expect(applied.status).toBe(0);
+  expect(decode(applied.stdout)).toMatchObject({ audit: expect.any(String), operation: "qux.setting.internal-network.set" });
+  const calls = readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line));
+  expect(calls.map((call) => call.method)).toEqual(["GET", "GET", "GET", "GET", "POST"]);
+  expect(calls.at(-1)).toEqual({ method: "POST", url: "https://fixture.invalid/api/v2.5/settings/internal_network",
+    body: { include: ["198.51.100.0/24"], exclude: [], drop: [] } });
+});
+
 it("reads, previews and creates proxies through the packaged binary", () => {
   const config = join(scratch, "proxy-write.json");
   const trace = join(scratch, "proxy-write-requests.jsonl");
@@ -1773,7 +1800,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, doctor, auth, profile, config, detection, host, account, entity, assignment, threat-feed, proxy, user, audit, group, triage, health, api, lockdown");
+  expect(result.stdout).toContain("Available commands: home, setup, doctor, auth, profile, config, detection, host, account, entity, assignment, threat-feed, setting, proxy, user, audit, group, triage, health, api, lockdown");
   expect(result.stdout).not.toContain("detection list");
   expect(result.stdout.length).toBeLessThan(600);
   expect(result.stderr).toBe("");

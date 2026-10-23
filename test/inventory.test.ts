@@ -117,6 +117,8 @@ describe("capability inventory", () => {
       "qux.proxy.edit",
       "qux.proxy.list",
       "qux.proxy.show",
+      "qux.setting.internal-network.set",
+      "qux.setting.internal-network.show",
       "qux.threat-feed.create",
       "qux.threat-feed.delete",
       "qux.threat-feed.edit",

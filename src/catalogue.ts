@@ -951,6 +951,24 @@ export const catalogue: Readonly<Record<string, {
     },
     examples: ["vectra-axi threat-feed file delete --help", "vectra-axi threat-feed file delete --profile <name> --id <id>"],
   },
+  "setting internal-network show": {
+    description: "Show QUX internal-network monitoring and drop lists",
+    flags: globals,
+    examples: ["vectra-axi setting internal-network show --profile <name>", "vectra-axi setting internal-network show --help"],
+  },
+  "setting internal-network set": {
+    description: "Replace QUX internal-network lists; high risk: changes what is monitored or dropped",
+    flags: {
+      ...globals,
+      include: { kind: "value", valueName: "cidrs|none", description: "Full comma-separated network CIDRs to include; 'none' clears (required)" },
+      exclude: { kind: "value", valueName: "cidrs|none", description: "Full comma-separated network CIDRs to exclude; 'none' clears (required)" },
+      drop: { kind: "value", valueName: "cidrs|none", description: "Full comma-separated network CIDRs to drop; 'none' clears (required)" },
+      execute: { kind: "boolean", description: "Send the mutation; default before/after preview only" },
+      "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target 'internal network' required with --execute" },
+    },
+    examples: ["vectra-axi setting internal-network set --profile <name> --include 198.51.100.0/24 --exclude none --drop none", "vectra-axi setting internal-network set --help"],
+  },
   "proxy list": {
     description: "List QUX or RUX proxies",
     flags: globals,

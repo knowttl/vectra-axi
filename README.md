@@ -347,6 +347,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.<kind>.assignment.resolve` | Resolve open assignments for hosts/accounts on QUX or RUX |
 | `<generation>.assignment-outcome.create`, `.edit`, `.delete` | Custom assignment outcomes on QUX or RUX |
 | `<generation>.proxy.create`, `.edit`; `rux.proxy.delete` | User-defined proxies; settings affect detection attribution |
+| `qux.setting.internal-network.set` | High risk: replaces all monitoring and drop lists; changes what is monitored or dropped |
 | `<generation>.threat-feed.create`, `.edit`, `.delete`, `.file.set`, `.file.delete` | Threat intelligence feeds; affect matching and detection scoring |
 | `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
 | `<generation>.detection.fixed.set` | Mark/unmark legacy fixed state on QUX or RUX |
@@ -405,6 +406,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |
 | `assignment` | `assignment list`, `assignment set`, `assignment resolve`, `assignment outcome list`, `assignment outcome create`, `assignment outcome edit`, `assignment outcome delete`, `assignment outcome show` | QUX, RUX |
 | `threat-feed` | `threat-feed list`, `threat-feed show`, `threat-feed create`, `threat-feed edit`, `threat-feed delete`, `threat-feed file set`, `threat-feed file delete` | QUX, RUX |
+| `setting` | `setting internal-network show`, `setting internal-network set` | QUX |
 | `proxy` | `proxy list`, `proxy show`, `proxy create`, `proxy edit`, `proxy delete` | QUX, RUX |
 | `user` | `user list`, `user show` | QUX, RUX |
 | `audit` | `audit list` | QUX, RUX |

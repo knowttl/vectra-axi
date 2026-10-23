@@ -37,6 +37,8 @@ const ruxHealthEvent2 = { id: 102, health_check_name: "disk", status: "WARNING",
   event_timestamp: "2026-10-01T12:05:00Z" };
 const next = "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2";
 const responses = new Map<string, { status: number; body: unknown }>([
+  ["https://fixture.invalid/api/v2.5/settings/internal_network", { status: 200,
+    body: { included_subnets: [], excluded_subnets: [], dropped_subnets: [] } }],
   ["https://fixture.invalid/api/v2.5/threatFeeds", { status: 200, body: { threatFeeds: [] } }],
   ["https://fixture.invalid/api/v2.5/threatFeeds/3", { status: 200, body: { _id: "3", name: "neutral-feed", _rev: "1-neutral",
     defaults: { category: "cnc", certainty: "High", indicatorType: "Watchlist", duration: 7 }, uploadResults: null } }],
@@ -262,6 +264,7 @@ const mutations = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/rules", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/rules/7", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/proxies", { status: 201, body: {} }],
+  ["https://fixture.invalid/api/v2.5/settings/internal_network", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/assignment_outcomes", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/assignment_outcomes/5", { status: 204, body: {} }],
   ["https://fixture.invalid/api/v2.5/detections/42/close", { status: 200, body: {} }],
