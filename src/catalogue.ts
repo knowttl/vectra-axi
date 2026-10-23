@@ -1072,6 +1072,50 @@ export const catalogue: Readonly<Record<string, {
     },
     examples: ["vectra-axi setting kafka set --profile <name> --config-file <path>", "vectra-axi setting kafka set --help"],
   },
+  "notification destination list": {
+    description: "List RUX notification destinations; webhook URLs and tokens are redacted",
+    flags: globals,
+    examples: ["vectra-axi notification destination list --profile <name>", "vectra-axi notification destination list --help"],
+  },
+  "notification destination show": {
+    description: "Show a RUX notification destination with webhook URLs and tokens redacted",
+    flags: { ...globals, id: { kind: "value", valueName: "id", description: "Destination string ID (required)" } },
+    examples: ["vectra-axi notification destination show --profile <name> --id <id>", "vectra-axi notification destination show --help"],
+  },
+  "notification destination create": {
+    description: "Create a RUX notification destination; high risk: external event data egress",
+    flags: {
+      ...globals,
+      "config-file": { kind: "value", valueName: "path|-", description: "JSON destination_type, title, optional enabled and config with destination_params.url and optional event_rules (required); URLs and tokens are redacted" },
+      execute: { kind: "boolean", description: "Send the mutation; default preview only" },
+      "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target 'new notification destination' required with --execute" },
+    },
+    examples: ["vectra-axi notification destination create --profile <name> --config-file <path>", "vectra-axi notification destination create --help"],
+  },
+  "notification destination edit": {
+    description: "Fully replace a RUX notification destination; high risk: external event data egress",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Destination string ID (required)" },
+      "config-file": { kind: "value", valueName: "path|-", description: "Full JSON destination document, including the original URL and tokens (required); redacted read output cannot be replayed" },
+      execute: { kind: "boolean", description: "Send the mutation; default preview only" },
+      "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
+      confirm: { kind: "value", valueName: "target", description: "Exact preview target required with --execute" },
+    },
+    examples: ["vectra-axi notification destination edit --profile <name> --id <id> --config-file <path>", "vectra-axi notification destination edit --help"],
+  },
+  "notification destination delete": {
+    description: "Delete a RUX notification destination; high risk: stops external event delivery",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Destination string ID (required)" },
+      execute: { kind: "boolean", description: "Send the mutation; default preview only" },
+      "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
+      confirm: { kind: "value", valueName: "target", description: "Exact preview target required with --execute" },
+    },
+    examples: ["vectra-axi notification destination delete --profile <name> --id <id>", "vectra-axi notification destination delete --help"],
+  },
   "proxy list": {
     description: "List QUX or RUX proxies",
     flags: globals,

@@ -2,7 +2,7 @@
 
 # vectra-axi coverage
 
-This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, RUX bulk note-append, assignment-write/resolve, note edit/delete, detection close/open, detection fixed set, detection triage set/clear, group create/edit/delete, group member add/remove/set, host key-asset, assignment outcome create/edit/delete, triage rule create/edit/delete, proxy create/edit/(RUX) delete, threat-feed create/edit/delete and file set/delete, internal-network set, syslog/kafka export set and host/account close families, not full Vectra API coverage.
+This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, RUX bulk note-append, assignment-write/resolve, note edit/delete, detection close/open, detection fixed set, detection triage set/clear, group create/edit/delete, group member add/remove/set, host key-asset, assignment outcome create/edit/delete, triage rule create/edit/delete, proxy create/edit/(RUX) delete, threat-feed create/edit/delete and file set/delete, internal-network set, syslog/kafka export set, RUX notification destination create/edit/delete, Match enablement set, ruleset upload/delete and assignment set/delete, and host/account close families, not full Vectra API coverage.
 Only `named` operations have an implemented, tested command leaf.
 The `implemented` disposition records tested internal OAuth exchanges with no command leaf;
 other operations remain planned, blocked or unreviewed until their own slices ship.
@@ -11,7 +11,7 @@ there is no unrestricted passthrough.
 
 ## Counts
 
-- named: 208
+- named: 213
 - implemented: 2
 - reviewed-raw: 0
 - planned: 2
@@ -40,6 +40,11 @@ there is no unrestricted passthrough.
 | `rux.match.ruleset.delete` | match ruleset delete | WRITE-20 | rux 3.4 | none | named | named |
 | `rux.match.assignment.set` | match assignment set | WRITE-20 | rux 3.4 | none | named | named |
 | `rux.match.assignment.delete` | match assignment delete | WRITE-20 | rux 3.4 | none | named | named |
+| `rux.notification-destination.list` | notification destination list | READ-19 | rux 3.4 | none | named | raw |
+| `rux.notification-destination.show` | notification destination show | READ-19 | rux 3.4 | none | named | raw |
+| `rux.notification-destination.create` | notification destination create | WRITE-19 | rux 3.4 | none | named | named |
+| `rux.notification-destination.edit` | notification destination edit | WRITE-19 | rux 3.4 | none | named | named |
+| `rux.notification-destination.delete` | notification destination delete | WRITE-19 | rux 3.4 | none | named | named |
 | `qux.setting.syslog.show` | setting syslog set | READ-18 | qux 2.5 | none | named | raw |
 | `qux.setting.syslog.set` | setting syslog set | WRITE-18 | qux 2.5 | none | named | named |
 | `qux.setting.kafka.show` | setting kafka set | READ-18 | qux 2.5 | none | named | raw |
@@ -250,7 +255,7 @@ there is no unrestricted passthrough.
 - `qux.long-tail.ad-group-directory` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.investigations` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.connectors` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
-- `rux.long-tail.notifications` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
+- `rux.long-tail.notifications` (rux 3.4, unreviewed): Destination list/show and create/edit/delete are named in READ-19/WRITE-19. Remaining notification operations require separate review; no additional raw access or support implied.
 - `rux.long-tail.match` (rux 3.4, unreviewed): Remaining Match reads exclude the reviewed enablement, ruleset detail and assignment reads. Enablement, multipart ruleset upload/delete and assignment set/delete writes are named separately under unchanged write policy. Deprecated multipart rules upload is supported; staged /rules/upload/ is the documented successor and a follow-up candidate. Other routes remain unreviewed.
 - `rux.long-tail.saml` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.unique-host-usage` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.

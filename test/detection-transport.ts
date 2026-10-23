@@ -40,6 +40,7 @@ const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/vectra-match/enablement?device_serial=SYNTH0001", { status: 200, body: { is_enabled: false } }],
   ["https://fixture.invalid/api/v2.5/settings/syslog_config", { status: 200, body: { syslog_servers: [] } }],
   ["https://fixture.invalid/api/v2.5/settings/kafka_config", { status: 200, body: { kafka_servers: [] } }],
+  ["https://fixture.invalid/api/v3.4/notifications/destinations/", { status: 200, body: { destinations: [] } }],
   ["https://fixture.invalid/api/v2.5/settings/internal_network", { status: 200,
     body: { included_subnets: [], excluded_subnets: [], dropped_subnets: [] } }],
   ["https://fixture.invalid/api/v2.5/threatFeeds", { status: 200, body: { threatFeeds: [] } }],
@@ -265,6 +266,7 @@ const mutations = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/vectra-match/enablement", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/settings/syslog_config", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/settings/kafka_config", { status: 200, body: {} }],
+  ["https://fixture.invalid/api/v3.4/notifications/destinations/", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/threatFeeds", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/threatFeeds/3", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/rules", { status: 201, body: {} }],
@@ -298,7 +300,7 @@ https.request = ((options: RequestOptions, callback: (response: IncomingMessage)
   const allowedMethod = options.method === "GET" || options.method === "PATCH" || options.method === "POST"
     || options.method === "PUT" || options.method === "DELETE";
   // RUX-02: cloud resource reads carry the exchanged Bearer token.
-  const ruxResource = options.method === "GET" && headers.Authorization === "Bearer packaged-rux-token";
+  const ruxResource = (options.method === "GET" || mutation !== undefined) && headers.Authorization === "Bearer packaged-rux-token";
   if (!fixture || !(allowedMethod && headers.Authorization === "Token packaged-detection-token"
     || ruxExchange || ruxResource)) {
     throw new Error(`Unexpected synthetic request: ${options.method} ${url}`);
