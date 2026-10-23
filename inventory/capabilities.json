@@ -6396,6 +6396,336 @@
         "server-rejection",
         "unknown-outcome-no-replay"
       ]
+    },
+    {
+      "id": "qux.proxy.list",
+      "command": "proxy list",
+      "slice": "READ-15",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Proxy settings affect detection attribution. String IDs are profile-scoped. User-defined proxies only for edit/delete. QUX delete is unsupported. No pagination evidenced; meta.count must match the complete proxies array. Create reads the list; edit/delete re-read the proxy before sending. Client-side re-read is not atomic. PATCH may change the proxy ID; read the list after an ambiguous outcome.",
+      "method": "GET",
+      "path": "/api/v2.5/proxies",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "address",
+        "considerProxy",
+        "source",
+        "createdAt",
+        "lastUpdatedAt"
+      ],
+      "paging": "none",
+      "permissions": "Requires proxy read permission.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "get_proxies, get_proxy_by_id, add_proxy, update_proxy (pinned QUX client); QUX endpoint overview pp7-8"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed proxy read and mutation support in src/proxies.ts through the existing session and unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "empty",
+        "malformed-response",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "qux.proxy.show",
+      "command": "proxy show",
+      "slice": "READ-15",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Proxy settings affect detection attribution. String IDs are profile-scoped. User-defined proxies only for edit/delete. QUX delete is unsupported. No pagination evidenced; meta.count must match the complete proxies array. Create reads the list; edit/delete re-read the proxy before sending. Client-side re-read is not atomic. PATCH may change the proxy ID; read the list after an ambiguous outcome.",
+      "method": "GET",
+      "path": "/api/v2.5/proxies/{id}",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "address",
+        "considerProxy",
+        "source",
+        "createdAt",
+        "lastUpdatedAt"
+      ],
+      "paging": "none",
+      "permissions": "Requires proxy read permission.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "get_proxies, get_proxy_by_id, add_proxy, update_proxy (pinned QUX client); QUX endpoint overview pp7-8"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed proxy read and mutation support in src/proxies.ts through the existing session and unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "empty",
+        "malformed-response",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "qux.proxy.create",
+      "command": "proxy create",
+      "slice": "WRITE-15",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Proxy settings affect detection attribution. String IDs are profile-scoped. User-defined proxies only for edit/delete. QUX delete is unsupported. No pagination evidenced; meta.count must match the complete proxies array. Create reads the list; edit/delete re-read the proxy before sending. Client-side re-read is not atomic. PATCH may change the proxy ID; read the list after an ambiguous outcome.",
+      "method": "POST",
+      "path": "/api/v2.5/proxies",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "proxy"
+      ],
+      "paging": "none",
+      "permissions": "Requires proxy mutation permission plus hand-edited profile write opt-in and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "get_proxies, get_proxy_by_id, add_proxy, update_proxy (pinned QUX client); QUX endpoint overview pp7-8"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed proxy read and mutation support in src/proxies.ts through the existing session and unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "policy-refusal",
+        "confirmation",
+        "audit-redaction",
+        "version-conflict",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "qux.proxy.edit",
+      "command": "proxy edit",
+      "slice": "WRITE-15",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Proxy settings affect detection attribution. String IDs are profile-scoped. User-defined proxies only for edit/delete. QUX delete is unsupported. No pagination evidenced; meta.count must match the complete proxies array. Create reads the list; edit/delete re-read the proxy before sending. Client-side re-read is not atomic. PATCH may change the proxy ID; read the list after an ambiguous outcome.",
+      "method": "PATCH",
+      "path": "/api/v2.5/proxies/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "proxy"
+      ],
+      "paging": "none",
+      "permissions": "Requires proxy mutation permission plus hand-edited profile write opt-in and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "get_proxies, get_proxy_by_id, add_proxy, update_proxy (pinned QUX client); QUX endpoint overview pp7-8"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed proxy read and mutation support in src/proxies.ts through the existing session and unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "policy-refusal",
+        "confirmation",
+        "audit-redaction",
+        "version-conflict",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.proxy.list",
+      "command": "proxy list",
+      "slice": "READ-15",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Proxy settings affect detection attribution. String IDs are profile-scoped. User-defined proxies only for edit/delete. QUX delete is unsupported. No pagination evidenced; meta.count must match the complete proxies array. Create reads the list; edit/delete re-read the proxy before sending. Client-side re-read is not atomic. PATCH may change the proxy ID; read the list after an ambiguous outcome.",
+      "method": "GET",
+      "path": "/api/v3.4/proxies/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "address",
+        "considerProxy",
+        "source",
+        "createdAt",
+        "lastUpdatedAt"
+      ],
+      "paging": "none",
+      "permissions": "Requires proxy read permission.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /proxies/ and /proxies/{proxy_id}/; ProxySerializerV3, SingleProxySerializerV3, ProxyListSerializerV3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed proxy read and mutation support in src/proxies.ts through the existing session and unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "empty",
+        "malformed-response",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "rux.proxy.show",
+      "command": "proxy show",
+      "slice": "READ-15",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Proxy settings affect detection attribution. String IDs are profile-scoped. User-defined proxies only for edit/delete. QUX delete is unsupported. No pagination evidenced; meta.count must match the complete proxies array. Create reads the list; edit/delete re-read the proxy before sending. Client-side re-read is not atomic. PATCH may change the proxy ID; read the list after an ambiguous outcome.",
+      "method": "GET",
+      "path": "/api/v3.4/proxies/{id}/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "address",
+        "considerProxy",
+        "source",
+        "createdAt",
+        "lastUpdatedAt"
+      ],
+      "paging": "none",
+      "permissions": "Requires proxy read permission.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /proxies/ and /proxies/{proxy_id}/; ProxySerializerV3, SingleProxySerializerV3, ProxyListSerializerV3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed proxy read and mutation support in src/proxies.ts through the existing session and unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "empty",
+        "malformed-response",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "rux.proxy.create",
+      "command": "proxy create",
+      "slice": "WRITE-15",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Proxy settings affect detection attribution. String IDs are profile-scoped. User-defined proxies only for edit/delete. QUX delete is unsupported. No pagination evidenced; meta.count must match the complete proxies array. Create reads the list; edit/delete re-read the proxy before sending. Client-side re-read is not atomic. PATCH may change the proxy ID; read the list after an ambiguous outcome.",
+      "method": "POST",
+      "path": "/api/v3.4/proxies/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "proxy"
+      ],
+      "paging": "none",
+      "permissions": "Requires proxy mutation permission plus hand-edited profile write opt-in and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /proxies/ and /proxies/{proxy_id}/; ProxySerializerV3, SingleProxySerializerV3, ProxyListSerializerV3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed proxy read and mutation support in src/proxies.ts through the existing session and unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "policy-refusal",
+        "confirmation",
+        "audit-redaction",
+        "version-conflict",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.proxy.edit",
+      "command": "proxy edit",
+      "slice": "WRITE-15",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Proxy settings affect detection attribution. String IDs are profile-scoped. User-defined proxies only for edit/delete. QUX delete is unsupported. No pagination evidenced; meta.count must match the complete proxies array. Create reads the list; edit/delete re-read the proxy before sending. Client-side re-read is not atomic. PATCH may change the proxy ID; read the list after an ambiguous outcome.",
+      "method": "PATCH",
+      "path": "/api/v3.4/proxies/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "proxy"
+      ],
+      "paging": "none",
+      "permissions": "Requires proxy mutation permission plus hand-edited profile write opt-in and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /proxies/ and /proxies/{proxy_id}/; ProxySerializerV3, SingleProxySerializerV3, ProxyListSerializerV3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed proxy read and mutation support in src/proxies.ts through the existing session and unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "policy-refusal",
+        "confirmation",
+        "audit-redaction",
+        "version-conflict",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.proxy.delete",
+      "command": "proxy delete",
+      "slice": "WRITE-15",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Proxy settings affect detection attribution. String IDs are profile-scoped. User-defined proxies only for edit/delete. QUX delete is unsupported. No pagination evidenced; meta.count must match the complete proxies array. Create reads the list; edit/delete re-read the proxy before sending. Client-side re-read is not atomic. PATCH may change the proxy ID; read the list after an ambiguous outcome.",
+      "method": "DELETE",
+      "path": "/api/v3.4/proxies/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires proxy mutation permission plus hand-edited profile write opt-in and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /proxies/ and /proxies/{proxy_id}/; ProxySerializerV3, SingleProxySerializerV3, ProxyListSerializerV3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed proxy read and mutation support in src/proxies.ts through the existing session and unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "policy-refusal",
+        "confirmation",
+        "audit-redaction",
+        "version-conflict",
+        "server-reject",
+        "outcome-unknown"
+      ]
     }
   ],
   "deferredFamilies": [
@@ -6427,19 +6757,6 @@
     },
     {
       "id": "qux.long-tail.network-stats",
-      "deployment": "qux",
-      "apiVersion": "2.5",
-      "disposition": "unreviewed",
-      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
-      "evidence": [
-        {
-          "source": "qux-guide",
-          "locator": "Endpoint overview pp7-8 (settings details pp64-67; AD directory pp45-46)"
-        }
-      ]
-    },
-    {
-      "id": "qux.long-tail.proxies",
       "deployment": "qux",
       "apiVersion": "2.5",
       "disposition": "unreviewed",
@@ -6583,19 +6900,6 @@
     },
     {
       "id": "rux.long-tail.saml",
-      "deployment": "rux",
-      "apiVersion": "3.4",
-      "disposition": "unreviewed",
-      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
-      "evidence": [
-        {
-          "source": "rux-spec",
-          "locator": "v3.4 paths; excluded from initial named read tranche"
-        }
-      ]
-    },
-    {
-      "id": "rux.long-tail.proxies",
       "deployment": "rux",
       "apiVersion": "3.4",
       "disposition": "unreviewed",

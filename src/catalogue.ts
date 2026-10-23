@@ -821,6 +821,55 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi assignment resolve --profile <name> --host 7 --outcome 1 --detections 41,42 --mark-fixed",
     ],
   },
+  "proxy list": {
+    description: "List QUX or RUX proxies",
+    flags: globals,
+    examples: ["vectra-axi proxy list --profile <name>", "vectra-axi proxy list --help"],
+  },
+  "proxy show": {
+    description: "Show one QUX or RUX proxy",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Proxy string ID (required)" },
+    },
+    examples: ["vectra-axi proxy show --profile <name> --id <id>", "vectra-axi proxy show --help"],
+  },
+  "proxy create": {
+    description: "Create a user-defined QUX or RUX proxy through the gated write pipeline",
+    flags: {
+      ...globals,
+      address: { kind: "value", valueName: "ip", description: "Proxy IP address (required)" },
+      consider: { kind: "value", valueName: "true|false", description: "Whether to consider the address as a proxy (required)" },
+      execute: { kind: "boolean", description: "Send the mutation; default preview only" },
+      "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
+      confirm: { kind: "value", valueName: "target", description: "Exact preview target required with --execute" },
+    },
+    examples: ["vectra-axi proxy create --profile <name> --address 192.0.2.10 --consider true", "vectra-axi proxy create --help"],
+  },
+  "proxy edit": {
+    description: "Edit a user-defined QUX or RUX proxy through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Proxy string ID (required)" },
+      address: { kind: "value", valueName: "ip", description: "Proxy IP address" },
+      consider: { kind: "value", valueName: "true|false", description: "Whether to consider the address as a proxy" },
+      execute: { kind: "boolean", description: "Send the mutation; default preview only" },
+      "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
+      confirm: { kind: "value", valueName: "target", description: "Exact preview target required with --execute" },
+    },
+    examples: ["vectra-axi proxy edit --profile <name> --id <id> --consider false", "vectra-axi proxy edit --help"],
+  },
+  "proxy delete": {
+    description: "Delete a user-defined RUX proxy through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Proxy string ID (required)" },
+      execute: { kind: "boolean", description: "Send the mutation; default preview only" },
+      "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
+      confirm: { kind: "value", valueName: "target", description: "Exact preview target required with --execute" },
+    },
+    examples: ["vectra-axi proxy delete --profile <name> --id <id>", "vectra-axi proxy delete --help"],
+  },
   "assignment outcome list": {
     description: "List QUX or RUX assignment outcomes with a bounded window",
     flags: {

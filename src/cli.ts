@@ -44,6 +44,7 @@ import { runHostKeyAsset } from "./host-key-asset.js";
 import { runGroupMemberWrite, runGroupWrite } from "./group-write.js";
 import { runAssignmentOutcomeWrite } from "./assignment-outcome-write.js";
 import { runTriageRuleWrite } from "./triage-rule-write.js";
+import { proxyId, runProxyRead, runProxyWrite } from "./proxies.js";
 import { createMutationCoordinator, readOnlyForced } from "./writes.js";
 
 const ASSIGNMENT_FIELDS = {
@@ -160,6 +161,19 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         if (invocation.leaf === "triage rule create" || invocation.leaf === "triage rule edit" || invocation.leaf === "triage rule delete") {
           const action = invocation.leaf === "triage rule create" ? "create" : invocation.leaf === "triage rule edit" ? "edit" : "delete";
           return runWrite(invocation.flags, (session, coordinator) => runTriageRuleWrite(session, coordinator, invocation.flags, action));
+        }
+        if (invocation.leaf === "proxy list" || invocation.leaf === "proxy show") {
+          if (invocation.leaf === "proxy show") proxyId(invocation.flags);
+          const loaded = loadConfig(invocation.flags.get("config") as string | undefined, redactor);
+          const selected = selectProfile(loaded.config, invocation.flags.get("profile") as string | undefined);
+          const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+          const result = await runProxyRead(session, invocation.flags, invocation.leaf === "proxy list" ? "list" : "show");
+          if (result.failed) process.exitCode = 1;
+          return result.output;
+        }
+        if (invocation.leaf === "proxy create" || invocation.leaf === "proxy edit" || invocation.leaf === "proxy delete") {
+          const action = invocation.leaf === "proxy create" ? "create" : invocation.leaf === "proxy edit" ? "edit" : "delete";
+          return runWrite(invocation.flags, (session, coordinator) => runProxyWrite(session, coordinator, invocation.flags, action));
         }
         if (invocation.leaf === "assignment outcome create" || invocation.leaf === "assignment outcome edit"
           || invocation.leaf === "assignment outcome delete") {

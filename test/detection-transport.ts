@@ -37,6 +37,9 @@ const ruxHealthEvent2 = { id: 102, health_check_name: "disk", status: "WARNING",
   event_timestamp: "2026-10-01T12:05:00Z" };
 const next = "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2";
 const responses = new Map<string, { status: number; body: unknown }>([
+  ["https://fixture.invalid/api/v2.5/proxies", { status: 200, body: { meta: { count: 0 }, proxies: [] } }],
+  ["https://fixture.invalid/api/v2.5/proxies/proxy-1", { status: 200,
+    body: { meta: { count: 1 }, proxies: [{ id: "proxy-1", address: "192.0.2.10", considerProxy: true, source: "user" }] } }],
   ["https://fixture.invalid/api/v2.5/detections?ordering=-id",
     { status: 200, body: { results: [second, first], count: 2 } }],
   ["https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70",
@@ -253,6 +256,7 @@ const responses = new Map<string, { status: number; body: unknown }>([
 const mutations = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/rules", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/rules/7", { status: 200, body: {} }],
+  ["https://fixture.invalid/api/v2.5/proxies", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/assignment_outcomes", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/assignment_outcomes/5", { status: 204, body: {} }],
   ["https://fixture.invalid/api/v2.5/detections/42/close", { status: 200, body: {} }],

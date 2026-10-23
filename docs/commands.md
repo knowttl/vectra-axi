@@ -1801,6 +1801,168 @@ Permanently resolve an open QUX or RUX host or account assignment through the ga
 }
 ```
 
+## proxy list
+
+List QUX or RUX proxies
+
+- `qux.proxy.list`: QUX API 2.5
+- `rux.proxy.list`: RUX API 3.4
+
+QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all
+
+```json
+{
+  "command": "vectra-axi proxy list",
+  "description": "List QUX or RUX proxies",
+  "pagination": "QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi proxy list --profile <name>",
+    "vectra-axi proxy list --help"
+  ]
+}
+```
+
+## proxy show
+
+Show one QUX or RUX proxy
+
+- `qux.proxy.show`: QUX API 2.5
+- `rux.proxy.show`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi proxy show",
+  "description": "Show one QUX or RUX proxy",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Proxy string ID (required)"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi proxy show --profile <name> <id>",
+    "vectra-axi proxy show --help"
+  ]
+}
+```
+
+## proxy create
+
+Create a user-defined QUX or RUX proxy through the gated write pipeline
+
+- `qux.proxy.create`: QUX API 2.5
+- `rux.proxy.create`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi proxy create",
+  "description": "Create a user-defined QUX or RUX proxy through the gated write pipeline",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--address <ip>": "Proxy IP address (required)",
+    "--consider <true|false>": "Whether to consider the address as a proxy (required)",
+    "--execute": "Send the mutation; default preview only",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact preview target required with --execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi proxy create --profile <name> --address 192.0.2.10 --consider true",
+    "vectra-axi proxy create --help"
+  ]
+}
+```
+
+## proxy edit
+
+Edit a user-defined QUX or RUX proxy through the gated write pipeline
+
+- `qux.proxy.edit`: QUX API 2.5
+- `rux.proxy.edit`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi proxy edit",
+  "description": "Edit a user-defined QUX or RUX proxy through the gated write pipeline",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Proxy string ID (required)",
+    "--address <ip>": "Proxy IP address",
+    "--consider <true|false>": "Whether to consider the address as a proxy",
+    "--execute": "Send the mutation; default preview only",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact preview target required with --execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi proxy edit --profile <name> <id> --consider false",
+    "vectra-axi proxy edit --help"
+  ]
+}
+```
+
+## proxy delete
+
+Delete a user-defined RUX proxy through the gated write pipeline
+
+- `rux.proxy.delete`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi proxy delete",
+  "description": "Delete a user-defined RUX proxy through the gated write pipeline",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Proxy string ID (required)",
+    "--execute": "Send the mutation; default preview only",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact preview target required with --execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi proxy delete --profile <name> <id>",
+    "vectra-axi proxy delete --help"
+  ]
+}
+```
+
 ## assignment outcome list
 
 List QUX or RUX assignment outcomes with a bounded window
