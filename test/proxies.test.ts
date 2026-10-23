@@ -188,6 +188,14 @@ it("refuses a concurrent create for the address with different settings", async 
   expect(seen.every((call) => call.method === "GET")).toBe(true);
 });
 
+it("refuses a create matching a system-owned proxy", async () => {
+  const { run, seen } = harness({ state: () => envelope([{ ...proxy, source: "Cognito" }]) });
+  await expect(run("create", [...input, "--execute", "--confirm", "new proxy 192.0.2.10"]))
+    .rejects.toMatchObject({ code: "VERSION_CONFLICT" });
+  expect(seen.length).toBeGreaterThan(0);
+  expect(seen.every((call) => call.method === "GET")).toBe(true);
+});
+
 it.each([
   {}, { meta: { count: 2 }, proxies: [proxy] }, envelope([{ ...proxy, id: 7 }]), envelope([proxy, proxy]),
 ])("refuses malformed proxy read envelopes %j", async (state) => {
