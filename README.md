@@ -172,6 +172,8 @@ Bulk confirmation names the complete normalized target set, for example `--execu
 - `note edit` replaces text and `note delete` removes a note.
   Their previews truncate long text; inspect `note list --full` before confirming.
 - `assignment set` requires one of `--host` or `--account`, plus one of `--user` or `--unassign`.
+- `assignment resolve` requires one of `--host` or `--account` and an existing `--outcome` ID.
+  Preview warns that there is no unresolve; optional `--detections` requires exactly one of `--mark-fixed` or `--triage-as`.
 - `detection close` and `detection open` accept exactly one of `--id` or `--ids`, capped at 100 explicit detections.
   Close requires `--reason remediated|benign`; reopening restores scoring.
   Single-target confirmation is `detection <id>`; bulk confirmation names the complete normalized set.
@@ -315,6 +317,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.<kind>.note.add` | Append notes on QUX or RUX |
 | `<generation>.<kind>.note.edit`, `<generation>.<kind>.note.delete` | Edit/delete notes on QUX or RUX |
 | `<generation>.<kind>.assignment.create`, `.reassign`, `.unassign` | Assignments for hosts/accounts on QUX or RUX |
+| `<generation>.<kind>.assignment.resolve` | Resolve open assignments for hosts/accounts on QUX or RUX |
 | `<generation>.assignment-outcome.create`, `.edit`, `.delete` | Custom assignment outcomes on QUX or RUX |
 | `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
 | `<generation>.host.key-asset.set` | Set host key-asset state on QUX or RUX |
@@ -369,7 +372,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `host` | `host list`, `host show`, `host key-asset set`, `host close`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
 | `account` | `account list`, `account show`, `account close`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
 | `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |
-| `assignment` | `assignment list`, `assignment set`, `assignment outcome list`, `assignment outcome create`, `assignment outcome edit`, `assignment outcome delete`, `assignment outcome show` | QUX, RUX |
+| `assignment` | `assignment list`, `assignment set`, `assignment resolve`, `assignment outcome list`, `assignment outcome create`, `assignment outcome edit`, `assignment outcome delete`, `assignment outcome show` | QUX, RUX |
 | `user` | `user list`, `user show` | QUX, RUX |
 | `audit` | `audit list` | QUX, RUX |
 | `group` | `group list`, `group show`, `group member list` | QUX, RUX |
@@ -380,7 +383,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 <!-- command-registry:end -->
 
 Deployment columns summarize each domain; individual commands have narrower support.
-Detection events and entity scoring are RUX-only; note append and assignment set support QUX and RUX.
+Detection events and entity scoring are RUX-only; note append, assignment set and assignment resolve support QUX and RUX.
 Note edit/delete and tag writes support both deployments, as do detection/host/account note and tag reads.
 `health event list` supports both; connector/EDR checks and traffic lockdown status are RUX-only.
 QUX group membership requires appliance 9.2 or later.
@@ -388,7 +391,7 @@ QUX group membership requires appliance 9.2 or later.
 The generated [full command reference](docs/commands.md) lists every executable leaf, its deployment support and paging contract from the CLI registry and inventory.
 The [coverage record](docs/coverage.md) lists operation dispositions and limits.
 Unlisted operations are not implied by this table.
-There is no lockdown execution, assignment resolution, group mutation, or triage-rule administration command.
+There is no lockdown execution, group mutation, or triage-rule administration command.
 QUX lockdown status requires the corresponding Microsoft Defender ATP or AD Lockdown integration.
 RUX health and lockdown responses vary with subscriptions; empty or denied results do not establish that a deployment is healthy.
 Triage rules describe automation and do not establish that a detection is benign.

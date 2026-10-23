@@ -765,7 +765,7 @@ export const catalogue: Readonly<Record<string, {
     // pipeline (src/assignment-set.ts). Exactly one entity selector
     // (--host xor --account) and exactly one desired state (--user xor
     // --unassign); detections have no assignment route and resolving stays
-    // a separate operation with no leaf.
+    // a separate operation.
     description: "Set a QUX or RUX host or account assignment to an exact user through the gated write pipeline",
     flags: {
       ...globals,
@@ -781,6 +781,28 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi assignment set --profile <name> --host 7 --user 3",
       "vectra-axi assignment set --profile <name> --host 7 --user 3 --execute --confirm 'host 7'",
       "vectra-axi assignment set --profile <name> --account 7 --unassign --execute --confirm 'account 7'",
+    ],
+  },
+  "assignment resolve": {
+    description: "Permanently resolve an open QUX or RUX host or account assignment through the gated write pipeline; there is no unresolve",
+    flags: {
+      ...globals,
+      host: { kind: "value", valueName: "id", description: "Host ID; exactly one of --host or --account is required" },
+      account: { kind: "value", valueName: "id", description: "Account ID; exactly one of --host or --account is required" },
+      outcome: { kind: "value", valueName: "id", description: "Existing assignment outcome ID (required)" },
+      note: { kind: "value", valueName: "text", description: "Optional resolution note; cannot combine with --note-file" },
+      "note-file": { kind: "value", valueName: "path", description: "Read the optional note from a file or - for stdin" },
+      detections: { kind: "value", valueName: "ids", description: "Comma-separated detection IDs (up to 100); requires --mark-fixed or --triage-as" },
+      "mark-fixed": { kind: "boolean", description: "Mark selected detections fixed; requires --detections and excludes --triage-as" },
+      "triage-as": { kind: "value", valueName: "label", description: "Triage selected detections under this label; requires --detections and excludes --mark-fixed" },
+      confirm: { kind: "value", valueName: "target", description: "Confirm the exact host|account <id> target when executing" },
+      execute: { kind: "boolean", description: "Send the resolution; default previews without sending" },
+      "dry-run": { kind: "boolean", description: "Preview without sending; cannot combine with --execute" },
+    },
+    examples: [
+      "vectra-axi assignment resolve --profile <name> --host 7 --outcome 1 --note 'Investigation complete'",
+      "vectra-axi assignment resolve --profile <name> --account 7 --outcome 1 --execute --confirm 'account 7'",
+      "vectra-axi assignment resolve --profile <name> --host 7 --outcome 1 --detections 41,42 --mark-fixed",
     ],
   },
   "assignment outcome list": {

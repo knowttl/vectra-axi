@@ -51,8 +51,9 @@ export function desiredNote(
   flags: ReadonlyMap<string, string | boolean>,
   kind: NoteKind,
   readStdin: () => string = () => readFileSync(0, "utf8"),
+  commandOverride?: string,
 ): string {
-  const command = leaf(kind);
+  const command = commandOverride ?? leaf(kind);
   const inline = flags.get("note");
   const file = flags.get("note-file");
   if (inline !== undefined && file !== undefined) {
@@ -71,7 +72,9 @@ export function desiredNote(
   }
   if (!note!.trim()) {
     invalid(`${command} requires a non-empty note`,
-      `To replace the text of an existing note, run \`vectra-axi ${kind} note edit\`; to remove one, run \`vectra-axi ${kind} note delete\``,
+      ...(commandOverride === undefined
+        ? [`To replace the text of an existing note, run \`vectra-axi ${kind} note edit\`; to remove one, run \`vectra-axi ${kind} note delete\``]
+        : []),
       `Run \`vectra-axi ${command} --help\``);
   }
   return note!;

@@ -8,6 +8,7 @@ import { auditFlagShapes, runAuditList, type LeafResult as AuditLeafResult } fro
 import { healthEventFlags, healthEventRelease, healthShowFlags, runHealthEventList, runHealthList,
   runHealthShow, type LeafResult as HealthLeafResult } from "./health.js";
 import { runAssignmentSet } from "./assignment-set.js";
+import { runAssignmentResolve } from "./assignment-resolve.js";
 import { ASSIGNMENT_LIST_FIELDS, assignmentQuery, listFields as assignmentListFields, listLimit as assignmentListLimit,
   outcomeId, OUTCOME_LIST_FIELDS, runAssignmentList, runOutcomeList, runOutcomeShow, runUserList, runUserShow,
   RUX_USER_LIST_FIELDS, userId, USER_LIST_FIELDS, userQuery,
@@ -168,6 +169,9 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         }
         if (invocation.leaf === "assignment set") {
           return runAssignmentSets(invocation.flags);
+        }
+        if (invocation.leaf === "assignment resolve") {
+          return runWrite(invocation.flags, (session, coordinator) => runAssignmentResolve(session, coordinator, invocation.flags));
         }
         if (invocation.leaf === "audit list") {
           return runAudit(invocation.flags);
@@ -376,7 +380,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
   // One dispatch for every assignment/outcome/user leaf: validate the
   // flags, select the profile, build the session on the injected transport,
   // and report partial reads with their rows and a nonzero exit status.
-  // Assignment leaves are read-only; no resolve or reassign leaf exists.
+  // The leaves handled here are read-only; assignment set/resolve use separate write dispatch.
   type AssignmentLeaf = "assignment list" | "assignment outcome list" | "assignment outcome show"
     | "user list" | "user show";
   async function runAssignment(leaf: AssignmentLeaf, flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {

@@ -74,8 +74,8 @@ export function commandDocument(): string {
 // One row per executable leaf in catalogue order, matching the home-view
 // help. Every leaf is implemented by a vectra-axi handler (native).
 // Local views stay offline; QUX and RUX reads use the read-only session, tag
-// replaces, bulk tag changes, note appends, note edits/deletes and
-// assignment sets use the gated WRITE-00 coordinator.
+// replaces, bulk tag changes, note appends, note edits/deletes, assignment
+// sets and assignment resolves use the gated WRITE-00 coordinator.
 export function skillCommandTable(): string {
   return [
     "| Command | Capability | Vectra effect | List pagination |",
@@ -106,7 +106,7 @@ export function coverageDocument(): string {
     "",
     "# vectra-axi coverage",
     "",
-    "This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, assignment-write, note edit/delete, detection close/open, detection triage set/clear, host key-asset, assignment outcome create/edit/delete and host/account close families, not full Vectra API coverage.",
+    "This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, assignment-write/resolve, note edit/delete, detection close/open, detection triage set/clear, host key-asset, assignment outcome create/edit/delete and host/account close families, not full Vectra API coverage.",
     "Only `named` operations have an implemented, tested command leaf.",
     "The `implemented` disposition records tested internal OAuth exchanges with no command leaf;",
     "other operations remain planned, blocked or unreviewed until their own slices ship.",

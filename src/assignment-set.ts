@@ -15,7 +15,7 @@ import type { MutationCoordinator, MutationDefinition } from "./writes.js";
 // DELETE /assignments/{id} unassigns. Individual detections have no
 // assignment route (they inherit their entity's assignment), so this family
 // covers hosts and accounts only. Resolving stays the separate resolve
-// operation with its own outcome/note/triage contract and no leaf here.
+// operation with its own outcome/note/triage contract in assignment-resolve.ts.
 //
 // One `assignment set` leaf expresses the whole family: --host xor --account
 // selects the entity, --user xor --unassign selects the desired state. The
@@ -44,8 +44,8 @@ function shellQuote(value: string): string {
 // positive integer entity IDs. Reads stay kind-scoped like READ-04.
 export function assignmentTarget(
   flags: ReadonlyMap<string, string | boolean>,
+  command = "assignment set",
 ): { kind: AssignmentSetKind; id: number } {
-  const command = "assignment set";
   const host = flags.get("host");
   const account = flags.get("account");
   if (host !== undefined && account !== undefined) {
@@ -150,7 +150,7 @@ function decodeRow(kind: AssignmentSetKind, id: number, row: unknown): {
 // Reads the current open assignment through the READ-04 list route with the
 // entity filter. More than one open row for one entity is ambiguous (no
 // single PUT/DELETE target), so it is refused rather than guessed.
-async function readCurrent(
+export async function readOpenAssignment(
   session: Session, kind: AssignmentSetKind, id: number, previewCommand: string,
 ): Promise<CurrentState> {
   // The entity filter plus resolved=false keeps the window on this
@@ -291,7 +291,7 @@ export async function runAssignmentSet(
   // or DELETE definition and validates the target user ahead of the
   // preview. The coordinator's preview read reuses it, and the pre-send
   // re-read repeats both reads for the conflict and existence checks.
-  const routed = await readCurrent(session, kind, id, previewCommand);
+  const routed = await readOpenAssignment(session, kind, id, previewCommand);
   if ("user" in desired) await readUser(session, desired.user);
   const definition = definitionFor(session, kind, id, routed, desired);
   let baseline: CurrentState | undefined;
@@ -300,7 +300,7 @@ export async function runAssignmentSet(
       baseline = routed;
       return routed;
     }
-    const fresh = await readCurrent(session, kind, id, previewCommand);
+    const fresh = await readOpenAssignment(session, kind, id, previewCommand);
     if ("user" in desired) await readUser(session, desired.user);
     if (!sameState(baseline, fresh) && !isDesired(fresh, desired)) {
       throw new AxiError(
