@@ -13,7 +13,7 @@ export function containsRedactedPlaceholder(value: unknown): boolean {
 export function redactExportSettings(value: unknown, redactor = new SecretRedactor()): unknown {
   if (Array.isArray(value)) return value.map((child) => redactExportSettings(child, redactor));
   if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, child]) => [redactor.text(key),
-    /password|passwd|secret|token|credential|key|cert|auth|url|connection.?string/i.test(key)
+    /password|passwd|pass.?phrase|secret|token|credential|key|cert|auth|url|jaas|connection.?string/i.test(key)
       ? REDACTED : redactExportSettings(child, redactor)]));
   return redactor.payload(value);
 }

@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseInvocation } from "../src/catalogue.js";
@@ -235,6 +235,32 @@ describe.each(["syslog", "kafka"] as const)("%s export settings", (exportKind) =
     await expect(run(send)).rejects.toMatchObject({ code: "VERSION_CONFLICT" });
     expect(seen.filter((call) => call.method === "POST")).toEqual([]);
     expect(journal().at(-1)).toMatchObject({ outcome: "NOT_SENT" });
+  });
+
+  it.each([
+    ["placeholder in value", { ...payload, sasl: { ...payload.sasl, password: "***redacted***" } }],
+    ["placeholder in key", { ...payload, "***redacted***-key": "value" }],
+  ])("refuses %s without HTTP", async (_, doc) => {
+    writeFileSync(filePath, JSON.stringify(doc));
+    const { run, seen } = harness({ exportKind, state: () => payload });
+    await expect(run(send)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    expect(seen).toEqual([]);
+    expect(existsSync(auditPath)).toBe(false);
+  });
+
+  it("redacts passphrase and JAAS secrets in previews while preserving the POST document", async () => {
+    const secretPayload = { ...payload,
+      tls: { ...payload.tls, passphrase: "synthetic-passphrase" },
+      sasl: { ...payload.sasl, "sasl.jaas.config": 'org.apache.kafka.common.security.plain.PlainLoginModule required password="synthetic-jaas-password";' } };
+    writeFileSync(filePath, JSON.stringify(secretPayload));
+    const previewHarness = harness({ exportKind, state: () => ({ ...secretPayload, enabled: false }) });
+    const preview = await previewHarness.run(args);
+    expect(JSON.stringify(preview)).not.toMatch(/synthetic-passphrase|synthetic-jaas-password/);
+    const sendHarness = harness({ exportKind, state: () => ({ ...secretPayload, enabled: false }) });
+    expect((await sendHarness.run(send)).failed).toBe(false);
+    const posts = sendHarness.seen.filter((call) => call.method === "POST");
+    expect(posts).toHaveLength(1);
+    expect(JSON.parse(posts[0]!.body!)).toEqual(secretPayload);
   });
 
   it.each(["null", "[]", "bad JSON", '"text"'])("refuses malformed input %s without HTTP", async (body) => {
