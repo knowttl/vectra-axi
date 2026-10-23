@@ -172,6 +172,8 @@ Bulk confirmation names the complete normalized target set, for example `--execu
 - `note edit` replaces text and `note delete` removes a note.
   Their previews truncate long text; inspect `note list --full` before confirming.
 - `assignment set` requires one of `--host` or `--account`, plus one of `--user` or `--unassign`.
+- `assignment resolve` requires one of `--host` or `--account` and an existing `--outcome` ID.
+  Preview warns that there is no unresolve; optional `--detections` requires exactly one of `--mark-fixed` or `--triage-as`.
 - `detection close` and `detection open` accept exactly one of `--id` or `--ids`, capped at 100 explicit detections.
   Close requires `--reason remediated|benign`; reopening restores scoring.
   Single-target confirmation is `detection <id>`; bulk confirmation names the complete normalized set.
@@ -369,7 +371,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `host` | `host list`, `host show`, `host key-asset set`, `host close`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
 | `account` | `account list`, `account show`, `account close`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
 | `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |
-| `assignment` | `assignment list`, `assignment set`, `assignment outcome list`, `assignment outcome create`, `assignment outcome edit`, `assignment outcome delete`, `assignment outcome show` | QUX, RUX |
+| `assignment` | `assignment list`, `assignment set`, `assignment resolve`, `assignment outcome list`, `assignment outcome create`, `assignment outcome edit`, `assignment outcome delete`, `assignment outcome show` | QUX, RUX |
 | `user` | `user list`, `user show` | QUX, RUX |
 | `audit` | `audit list` | QUX, RUX |
 | `group` | `group list`, `group show`, `group member list` | QUX, RUX |
