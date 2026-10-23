@@ -46,7 +46,7 @@ import { runGroupMemberWrite, runGroupWrite } from "./group-write.js";
 import { runAssignmentOutcomeWrite } from "./assignment-outcome-write.js";
 import { runTriageRuleWrite } from "./triage-rule-write.js";
 import { proxyId, runProxyRead, runProxyWrite } from "./proxies.js";
-import { runInternalNetworkRead, runInternalNetworkSet } from "./settings.js";
+import { runExportSettingSet, runInternalNetworkRead, runInternalNetworkSet } from "./settings.js";
 import { threatFeedId, runThreatFeedRead, runThreatFeedWrite } from "./threat-feeds.js";
 import { createMutationCoordinator, readOnlyForced } from "./writes.js";
 
@@ -191,6 +191,10 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         }
         if (invocation.leaf === "setting internal-network set") {
           return runWrite(invocation.flags, (session, coordinator) => runInternalNetworkSet(session, coordinator, invocation.flags));
+        }
+        if (invocation.leaf === "setting syslog set" || invocation.leaf === "setting kafka set") {
+          const kind = invocation.leaf === "setting syslog set" ? "syslog" : "kafka";
+          return runWrite(invocation.flags, (session, coordinator) => runExportSettingSet(session, coordinator, invocation.flags, kind));
         }
         if (invocation.leaf === "proxy list" || invocation.leaf === "proxy show") {
           if (invocation.leaf === "proxy show") proxyId(invocation.flags);

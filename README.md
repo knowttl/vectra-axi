@@ -348,6 +348,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.assignment-outcome.create`, `.edit`, `.delete` | Custom assignment outcomes on QUX or RUX |
 | `<generation>.proxy.create`, `.edit`; `rux.proxy.delete` | User-defined proxies; settings affect detection attribution |
 | `qux.setting.internal-network.set` | High risk: replaces all monitoring and drop lists; changes what is monitored or dropped |
+| `qux.setting.syslog.set`, `qux.setting.kafka.set` | Disruptive: replaces detection export configuration and redirects data egress |
 | `<generation>.threat-feed.create`, `.edit`, `.delete`, `.file.set`, `.file.delete` | Threat intelligence feeds; affect matching and detection scoring |
 | `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
 | `<generation>.detection.fixed.set` | Mark/unmark legacy fixed state on QUX or RUX |
@@ -355,6 +356,15 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.detection.triage.set`, `.clear` | Set/clear per-detection triage suppression on QUX or RUX |
 | `<generation>.triage-rule.create`, `.edit`, `.delete` | Create/replace/delete org-wide triage rules on QUX or RUX |
 | `<generation>.host.close`, `<generation>.account.close` | Close hosts/accounts with all active detections on QUX (release 9.3+) or RUX |
+
+QUX `setting syslog set --config-file <path|->` and `setting kafka set --config-file <path|->` accept full JSON documents with real secrets restored.
+Start from the complete preview structure, never from redacted preview output or the projected `api get` subset, which omits keys the POST would then drop.
+Documents containing `***redacted***` are rejected before any preview.
+These endpoints configure servers already created through the UI.
+They preview redacted before/after documents, skip unchanged documents, and re-read before sending to detect concurrent changes.
+The re-read is not atomic concurrency protection.
+Execution requires the exact confirmation target `syslog export` or `kafka export`, alongside the existing profile opt-in and operation allowlist.
+RUX is unsupported.
 
 Replace `<kind>` with `detection`, `host`, or `account`, except assignments, which support only `host` and `account`, and detection close/open/fixed set, which support only `detection`.
 Replace `<generation>` with `qux` or `rux`.
@@ -406,7 +416,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |
 | `assignment` | `assignment list`, `assignment set`, `assignment resolve`, `assignment outcome list`, `assignment outcome create`, `assignment outcome edit`, `assignment outcome delete`, `assignment outcome show` | QUX, RUX |
 | `threat-feed` | `threat-feed list`, `threat-feed show`, `threat-feed create`, `threat-feed edit`, `threat-feed delete`, `threat-feed file set`, `threat-feed file delete` | QUX, RUX |
-| `setting` | `setting internal-network show`, `setting internal-network set` | QUX |
+| `setting` | `setting internal-network show`, `setting internal-network set`, `setting syslog set`, `setting kafka set` | QUX |
 | `proxy` | `proxy list`, `proxy show`, `proxy create`, `proxy edit`, `proxy delete` | QUX, RUX |
 | `user` | `user list`, `user show` | QUX, RUX |
 | `audit` | `audit list` | QUX, RUX |

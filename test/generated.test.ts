@@ -81,7 +81,9 @@ describe("generated release records", () => {
     expect(rows).toHaveLength(Object.keys(catalogue).length);
     expect(rows).toEqual(Object.keys(catalogue).map((leaf) => {
       const lookup = leaf === "group member add" || leaf === "group member remove" ? "group member set" : leaf;
-      const effect = inventory.operations.find((operation) => operation.command === lookup)?.effect ?? "read";
+      const effects = inventory.operations.filter((operation) => operation.command === lookup).map((operation) => operation.effect);
+      const rank = (effect: string): number => effect === "disruptive" ? 3 : effect === "write" ? 2 : effect === "read" ? 1 : 2;
+      const effect = effects.sort((a, b) => rank(b) - rank(a))[0] ?? "read";
       return `| \`npx -y @knowttl/vectra-axi ${leaf}\` | native | ${effect} | ${listPaging(leaf) ?? "-"} |`;
     }));
   });

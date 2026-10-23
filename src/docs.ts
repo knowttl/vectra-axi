@@ -86,7 +86,10 @@ export function skillCommandTable(): string {
     "| Command | Capability | Vectra effect | List pagination |",
     "|---|---|---|---|",
     ...Object.keys(catalogue).map((leaf) => {
-      const effect = inventory.operations.find((operation) => operation.command === inventoryLeaf(leaf))?.effect ?? "read";
+      const effects = inventory.operations
+        .filter((operation) => operation.command === inventoryLeaf(leaf)).map((operation) => operation.effect);
+      const rank = (effect: string): number => effect === "disruptive" ? 3 : effect === "write" ? 2 : effect === "read" ? 1 : 2;
+      const effect = effects.sort((a, b) => rank(b) - rank(a))[0] ?? "read";
       return `| \`npx -y @knowttl/vectra-axi ${leaf}\` | native | ${effect} | ${listPaging(leaf) ?? "-"} |`;
     }),
   ].join("\n");
@@ -111,7 +114,7 @@ export function coverageDocument(): string {
     "",
     "# vectra-axi coverage",
     "",
-    "This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, RUX bulk note-append, assignment-write/resolve, note edit/delete, detection close/open, detection fixed set, detection triage set/clear, group create/edit/delete, group member add/remove/set, host key-asset, assignment outcome create/edit/delete, triage rule create/edit/delete, proxy create/edit/(RUX) delete, threat-feed create/edit/delete and file set/delete, internal-network set and host/account close families, not full Vectra API coverage.",
+    "This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, RUX bulk note-append, assignment-write/resolve, note edit/delete, detection close/open, detection fixed set, detection triage set/clear, group create/edit/delete, group member add/remove/set, host key-asset, assignment outcome create/edit/delete, triage rule create/edit/delete, proxy create/edit/(RUX) delete, threat-feed create/edit/delete and file set/delete, internal-network set, syslog/kafka export set and host/account close families, not full Vectra API coverage.",
     "Only `named` operations have an implemented, tested command leaf.",
     "The `implemented` disposition records tested internal OAuth exchanges with no command leaf;",
     "other operations remain planned, blocked or unreviewed until their own slices ship.",

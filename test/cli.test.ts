@@ -102,6 +102,35 @@ it("uploads a threat feed through the packaged CLI and real multipart sender", (
   ]));
 });
 
+it.each(["syslog", "kafka"])("previews and executes %s export settings through the packaged CLI", (kind) => {
+  const config = join(scratch, `${kind}-profile.json`);
+  const file = join(scratch, `${kind}-export.json`);
+  const trace = join(scratch, `${kind}-requests.jsonl`);
+  const payload = { [`${kind}_servers`]: [{ server: "192.0.2.10", bootstrap_servers: "export.example.com:9092",
+    port: 514, proto: "udp", cef: "cef", types: ["detection"], v2: true,
+    filters: { triaged_detections: { enabled: false } }, password: "synthetic-export-password" }] };
+  writeFileSync(file, JSON.stringify(payload));
+  writeFileSync(config, JSON.stringify({ profiles: { lab: {
+    kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: [`qux.setting.${kind}.set`] },
+  } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    VECTRA_AXI_WRITE_LOG: join(scratch, `${kind}-writes.log`),
+    NODE_OPTIONS: `--import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const args = ["setting", kind, "set", "--config", config, "--profile", "lab", "--config-file", file];
+  const preview = invoke(args, fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(decode(preview.stdout)).toMatchObject({ warning: expect.stringContaining("data egress"),
+    before: { [`${kind}_servers`]: [] }, after: { [`${kind}_servers`]: [expect.objectContaining({ password: "***redacted***" })] } });
+  expect(preview.stdout).not.toContain("synthetic-export-password");
+  const applied = invoke([...args, "--execute", "--confirm", `${kind} export`], fixtureEnv);
+  expect(applied.status).toBe(0);
+  expect(decode(applied.stdout)).toMatchObject({ operation: `qux.setting.${kind}.set`, audit: expect.any(String) });
+  const requests = readFileSync(trace, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+  expect(requests.map((request) => request.method)).toEqual(["GET", "GET", "GET", "POST"]);
+  expect(requests.at(-1)).toMatchObject({ url: `https://fixture.invalid/api/v2.5/settings/${kind}_config`, body: payload });
+});
+
 it("investigates a detection through the packaged list, show, full and resume commands", () => {
   const config = join(scratch, "investigation.json");
   const trace = join(scratch, "investigation-requests.jsonl");

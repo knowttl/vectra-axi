@@ -9,6 +9,7 @@ import type { CapabilityOperation } from "./inventory/schema.js";
 import { oauthCredentials, tokenRoute, type OAuthCredential, type TokenTransport } from "./oauth.js";
 import type { LoadedConfig, SelectedProfile } from "./profiles.js";
 import type { SecretRedactor } from "./redact.js";
+import { redactExportSettings } from "./redact.js";
 import { consumeMutationAuthorization } from "./writes.js";
 
 // Single HTTP seam for the session. Tests inject a fake; production uses nodeTransport.
@@ -28,7 +29,19 @@ export type SessionRequestOptions = {
   query?: Readonly<Record<string, string | number | boolean>>;
 };
 
-export type SessionResponse = { status: number; body: unknown };
+export type SessionResponse = { status: number; body: unknown; bodyDigest?: string };
+
+// Compare full settings documents without exposing secrets removed from read output.
+export function resourceDigest(value: unknown): string {
+  const ordered = (item: unknown): unknown => {
+    if (Array.isArray(item)) return item.map(ordered);
+    if (item && typeof item === "object") return Object.fromEntries(
+      Object.entries(item).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([key, child]) => [key, ordered(child)]),
+    );
+    return item;
+  };
+  return createHash("sha256").update(JSON.stringify(ordered(value))).digest("hex");
+}
 
 // The only authenticated interface command handlers receive. No transport,
 // fetch handle or credential material is exposed on this object.
@@ -384,7 +397,12 @@ export function createSession(args: {
       const response = await sendRaw(profile, configPath, redactor, transport,
         { method: "GET", url: current, headers: { Authorization: authorization, Accept: "application/json" },
           ...(signal ? { signal } : {}) });
-      if (response.status < 300 || response.status > 399) return { status: 200, body: redactor.payload(decodeResourceBody(profile, response)) };
+      if (response.status < 300 || response.status > 399) {
+        const body = decodeResourceBody(profile, response);
+        const exportSettings = /^qux\.setting\.(syslog|kafka)\.show$/.test(operation);
+        return { status: 200, body: exportSettings ? redactExportSettings(body, redactor) : redactor.payload(body),
+          ...(exportSettings ? { bodyDigest: resourceDigest(body) } : {}) };
+      }
       if (!response.location) {
         throw new AxiError(`Vectra redirect for ${record.id} has no destination`, "REQUEST_FAILED", [
           "The redirect response carried no Location header; no credential was forwarded",

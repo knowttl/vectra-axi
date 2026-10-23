@@ -62,6 +62,138 @@
   ],
   "operations": [
     {
+      "id": "qux.setting.syslog.show",
+      "command": "setting syslog set",
+      "slice": "READ-18",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "QUX only. Full export configuration document. Disruptive writes redirect detection export (data egress); redacted before/after preview, unchanged-document no-op and pre-send re-read. No atomic concurrency contract evidenced.",
+      "method": "GET",
+      "path": "/api/v2.5/settings/syslog_config",
+      "effect": "read",
+      "query": [],
+      "fields": ["syslog_servers"],
+      "paging": "none",
+      "permissions": "Requires settings read permission.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Syslog and Kafka configuration pp54-55, Appendix A pp124-125"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed settings read supporting full-document write preview; available via api get.",
+      "fixtureCases": [
+        "success",
+        "malformed-response",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "qux.setting.syslog.set",
+      "command": "setting syslog set",
+      "slice": "WRITE-18",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "QUX only. Full export configuration document. Disruptive writes redirect detection export (data egress); redacted before/after preview, unchanged-document no-op and pre-send re-read. No atomic concurrency contract evidenced.",
+      "method": "POST",
+      "path": "/api/v2.5/settings/syslog_config",
+      "effect": "disruptive",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires settings write permission plus hand-edited allowWrites and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Syslog and Kafka configuration pp54-55, Appendix A pp124-125"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented in src/settings.ts through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "noop",
+        "version-conflict",
+        "policy-refusal",
+        "confirmation",
+        "journal-redaction",
+        "server-reject",
+        "outcome-unknown",
+        "rux-unsupported"
+      ]
+    },
+    {
+      "id": "qux.setting.kafka.show",
+      "command": "setting kafka set",
+      "slice": "READ-18",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "QUX only. Full export configuration document. Disruptive writes redirect detection export (data egress); redacted before/after preview, unchanged-document no-op and pre-send re-read. No atomic concurrency contract evidenced.",
+      "method": "GET",
+      "path": "/api/v2.5/settings/kafka_config",
+      "effect": "read",
+      "query": [],
+      "fields": ["kafka_servers"],
+      "paging": "none",
+      "permissions": "Requires settings read permission.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Syslog and Kafka configuration pp54-55, Appendix A pp124-125"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed settings read supporting full-document write preview; available via api get.",
+      "fixtureCases": [
+        "success",
+        "malformed-response",
+        "access-denied"
+      ]
+    },
+    {
+      "id": "qux.setting.kafka.set",
+      "command": "setting kafka set",
+      "slice": "WRITE-18",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "QUX only. Full export configuration document. Disruptive writes redirect detection export (data egress); redacted before/after preview, unchanged-document no-op and pre-send re-read. No atomic concurrency contract evidenced.",
+      "method": "POST",
+      "path": "/api/v2.5/settings/kafka_config",
+      "effect": "disruptive",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires settings write permission plus hand-edited allowWrites and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Syslog and Kafka configuration pp54-55, Appendix A pp124-125"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented in src/settings.ts through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "noop",
+        "version-conflict",
+        "policy-refusal",
+        "confirmation",
+        "journal-redaction",
+        "server-reject",
+        "outcome-unknown",
+        "rux-unsupported"
+      ]
+    },
+    {
       "id": "qux.setting.internal-network.show",
       "command": "setting internal-network show",
       "slice": "READ-17",
@@ -7443,7 +7575,7 @@
       "deployment": "qux",
       "apiVersion": "2.5",
       "disposition": "unreviewed",
-      "rationale": "Remaining settings exclude the reviewed internal_network GET/POST. Other exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "rationale": "Remaining settings exclude the reviewed internal_network, syslog_config and kafka_config GET/POST routes. Other exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
       "evidence": [
         {
           "source": "qux-guide",

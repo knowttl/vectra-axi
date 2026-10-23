@@ -2,6 +2,22 @@ import { AxiError } from "axi-sdk-js";
 
 const REDACTED = "***redacted***";
 
+export function containsRedactedPlaceholder(value: unknown): boolean {
+  if (typeof value === "string") return value.includes(REDACTED);
+  if (Array.isArray(value)) return value.some(containsRedactedPlaceholder);
+  if (value && typeof value === "object") return Object.entries(value).some(([key, child]) => key.includes(REDACTED) || containsRedactedPlaceholder(child));
+  return false;
+}
+
+// Export configurations can contain vendor-specific TLS and SASL credentials.
+export function redactExportSettings(value: unknown, redactor = new SecretRedactor()): unknown {
+  if (Array.isArray(value)) return value.map((child) => redactExportSettings(child, redactor));
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, child]) => [redactor.text(key),
+    /password|passwd|pass.?phrase|secret|token|credential|key|cert|auth|url|jaas|connection.?string/i.test(key)
+      ? REDACTED : redactExportSettings(child, redactor)]));
+  return redactor.payload(value);
+}
+
 // One invocation owns this registry, including secrets from every configured profile.
 export class SecretRedactor {
   private readonly secrets = new Set<string>();

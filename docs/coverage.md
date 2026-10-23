@@ -2,7 +2,7 @@
 
 # vectra-axi coverage
 
-This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, RUX bulk note-append, assignment-write/resolve, note edit/delete, detection close/open, detection fixed set, detection triage set/clear, group create/edit/delete, group member add/remove/set, host key-asset, assignment outcome create/edit/delete, triage rule create/edit/delete, proxy create/edit/(RUX) delete, threat-feed create/edit/delete and file set/delete, internal-network set and host/account close families, not full Vectra API coverage.
+This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, RUX bulk note-append, assignment-write/resolve, note edit/delete, detection close/open, detection fixed set, detection triage set/clear, group create/edit/delete, group member add/remove/set, host key-asset, assignment outcome create/edit/delete, triage rule create/edit/delete, proxy create/edit/(RUX) delete, threat-feed create/edit/delete and file set/delete, internal-network set, syslog/kafka export set and host/account close families, not full Vectra API coverage.
 Only `named` operations have an implemented, tested command leaf.
 The `implemented` disposition records tested internal OAuth exchanges with no command leaf;
 other operations remain planned, blocked or unreviewed until their own slices ship.
@@ -11,7 +11,7 @@ there is no unrestricted passthrough.
 
 ## Counts
 
-- named: 188
+- named: 192
 - implemented: 2
 - reviewed-raw: 0
 - planned: 2
@@ -24,6 +24,10 @@ there is no unrestricted passthrough.
 
 | Operation | Command | Slice | Deployment/API | Paging | Disposition | Raw |
 |---|---|---|---|---|---|---|
+| `qux.setting.syslog.show` | setting syslog set | READ-18 | qux 2.5 | none | named | raw |
+| `qux.setting.syslog.set` | setting syslog set | WRITE-18 | qux 2.5 | none | named | named |
+| `qux.setting.kafka.show` | setting kafka set | READ-18 | qux 2.5 | none | named | raw |
+| `qux.setting.kafka.set` | setting kafka set | WRITE-18 | qux 2.5 | none | named | named |
 | `qux.setting.internal-network.show` | setting internal-network show | READ-17 | qux 2.5 | none | named | raw |
 | `qux.setting.internal-network.set` | setting internal-network set | WRITE-17 | qux 2.5 | none | named | named |
 | `qux.triage-rule.create` | triage rule create | WRITE-10 | qux 2.5 | none | named | named |
@@ -225,7 +229,7 @@ there is no unrestricted passthrough.
 - `qux.long-tail.campaigns` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.network-stats` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.match` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
-- `qux.long-tail.settings` (qux 2.5, unreviewed): Remaining settings exclude the reviewed internal_network GET/POST. Other exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
+- `qux.long-tail.settings` (qux 2.5, unreviewed): Remaining settings exclude the reviewed internal_network, syslog_config and kafka_config GET/POST routes. Other exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.vsensor` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.ad-group-directory` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.investigations` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
