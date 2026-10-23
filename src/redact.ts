@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { AxiError } from "axi-sdk-js";
 
 const REDACTED = "***redacted***";
@@ -21,6 +22,37 @@ export function redactExportSettings(value: unknown, redactor = new SecretRedact
 // One invocation owns this registry, including secrets from every configured profile.
 export class SecretRedactor {
   private readonly secrets = new Set<string>();
+  private readonly notificationStates = new Map<string, string>();
+
+  // Keep secret-only changes visible to the pre-send check without exposing raw state.
+  notificationState(id: string): string | undefined {
+    return this.notificationStates.get(id);
+  }
+
+  notificationSecrets(value: unknown): void {
+    if (!value || typeof value !== "object") return;
+    const record = value as Record<string, unknown>;
+    if (record.config && typeof record.config === "object" && "destination_params" in record.config
+      && typeof record.id === "string") {
+      this.notificationStates.set(record.id, createHash("sha256").update(JSON.stringify(value)).digest("hex"));
+    }
+    for (const [key, child] of Object.entries(record)) {
+      if (key === "destination_params" && child && typeof child === "object") {
+        const params = child as Record<string, unknown>;
+        if (typeof params.url === "string") {
+          this.add(params.url);
+          try {
+            const url = new URL(params.url);
+            this.add(url.username);
+            this.add(url.password);
+            for (const token of url.searchParams.values()) this.add(token);
+          } catch { /* Malformed webhook URLs are still registered in full. */ }
+        }
+      }
+      if (/token|secret|password|authorization/i.test(key) && typeof child === "string") this.add(child);
+      this.notificationSecrets(child);
+    }
+  }
 
   add(secret: string | undefined): void {
     if (secret) {
@@ -48,6 +80,7 @@ export class SecretRedactor {
 
   // Service payloads carry unknown secrets as well as registered credentials.
   payload(value: unknown): unknown {
+    this.notificationSecrets(value);
     if (typeof value === "string") return this.text(value)
       .replace(/-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z]+ )*PRIVATE KEY-----/g, REDACTED)
       .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, REDACTED)

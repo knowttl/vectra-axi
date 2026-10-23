@@ -91,6 +91,11 @@ See [operation coverage](https://github.com/knowttl/vectra-axi/blob/main/docs/co
 | `npx -y @knowttl/vectra-axi setting internal-network set` | native | write | - |
 | `npx -y @knowttl/vectra-axi setting syslog set` | native | disruptive | - |
 | `npx -y @knowttl/vectra-axi setting kafka set` | native | disruptive | - |
+| `npx -y @knowttl/vectra-axi notification destination list` | native | read | RUX: nonpaged single response; no --all |
+| `npx -y @knowttl/vectra-axi notification destination show` | native | read | - |
+| `npx -y @knowttl/vectra-axi notification destination create` | native | write | - |
+| `npx -y @knowttl/vectra-axi notification destination edit` | native | write | - |
+| `npx -y @knowttl/vectra-axi notification destination delete` | native | write | - |
 | `npx -y @knowttl/vectra-axi proxy list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
 | `npx -y @knowttl/vectra-axi proxy show` | native | read | - |
 | `npx -y @knowttl/vectra-axi proxy create` | native | write | - |

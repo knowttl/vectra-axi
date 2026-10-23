@@ -62,6 +62,218 @@
   ],
   "operations": [
     {
+      "id": "rux.notification-destination.list",
+      "command": "notification destination list",
+      "slice": "READ-19",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "RUX only. High risk: external event data egress. Maximum 24 destinations; unique titles. URLs and tokens redacted, including URL paths and queries. Create/edit use a full JSON document; edit is PUT replacement. Pre-send re-read compares secret-bearing state fingerprints; no atomic concurrency contract evidenced. No automatic replay.",
+      "method": "GET",
+      "path": "/api/v3.4/notifications/destinations/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "destination_type",
+        "title",
+        "enabled",
+        "config",
+        "date_created",
+        "created_by"
+      ],
+      "paging": "none",
+      "permissions": "Requires notification destination read permission.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "/api/v3.4/notifications/destinations/ GET; NotificationDestinationSerializerV3_4 and NotificationDestinationCreateV3_4"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed read through src/notifications.ts with payload redaction.",
+      "fixtureCases": [
+        "success",
+        "empty",
+        "malformed-response",
+        "redaction",
+        "qux-unsupported"
+      ]
+    },
+    {
+      "id": "rux.notification-destination.show",
+      "command": "notification destination show",
+      "slice": "READ-19",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "RUX only. High risk: external event data egress. Maximum 24 destinations; unique titles. URLs and tokens redacted, including URL paths and queries. Create/edit use a full JSON document; edit is PUT replacement. Pre-send re-read compares secret-bearing state fingerprints; no atomic concurrency contract evidenced. No automatic replay.",
+      "method": "GET",
+      "path": "/api/v3.4/notifications/destinations/{id}/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "id",
+        "destination_type",
+        "title",
+        "enabled",
+        "config",
+        "date_created",
+        "created_by"
+      ],
+      "paging": "none",
+      "permissions": "Requires notification destination read permission.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "/api/v3.4/notifications/destinations/{id}/ GET; NotificationDestinationSerializerV3_4 and NotificationDestinationCreateV3_4"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed read through src/notifications.ts with payload redaction.",
+      "fixtureCases": [
+        "success",
+        "empty",
+        "malformed-response",
+        "redaction",
+        "qux-unsupported"
+      ]
+    },
+    {
+      "id": "rux.notification-destination.create",
+      "command": "notification destination create",
+      "slice": "WRITE-19",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "RUX only. High risk: external event data egress. Maximum 24 destinations; unique titles. URLs and tokens redacted, including URL paths and queries. Create/edit use a full JSON document; edit is PUT replacement. Pre-send re-read compares secret-bearing state fingerprints; no atomic concurrency contract evidenced. No automatic replay.",
+      "method": "POST",
+      "path": "/api/v3.4/notifications/destinations/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "id",
+        "destination_type",
+        "title",
+        "enabled",
+        "config",
+        "date_created",
+        "created_by"
+      ],
+      "paging": "none",
+      "permissions": "Requires notification destination write permission, hand-edited allowWrites and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "/api/v3.4/notifications/destinations/ POST; NotificationDestinationSerializerV3_4 and NotificationDestinationCreateV3_4"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented through the unchanged WRITE-00 coordinator in src/notifications.ts.",
+      "fixtureCases": [
+        "success",
+        "preview",
+        "policy-refusal",
+        "confirmation",
+        "journal-redaction",
+        "server-reject",
+        "outcome-unknown",
+        "version-conflict",
+        "qux-unsupported"
+      ]
+    },
+    {
+      "id": "rux.notification-destination.edit",
+      "command": "notification destination edit",
+      "slice": "WRITE-19",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "RUX only. High risk: external event data egress. Maximum 24 destinations; unique titles. URLs and tokens redacted, including URL paths and queries. Create/edit use a full JSON document; edit is PUT replacement. Pre-send re-read compares secret-bearing state fingerprints; no atomic concurrency contract evidenced. No automatic replay.",
+      "method": "PUT",
+      "path": "/api/v3.4/notifications/destinations/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "id",
+        "destination_type",
+        "title",
+        "enabled",
+        "config",
+        "date_created",
+        "created_by"
+      ],
+      "paging": "none",
+      "permissions": "Requires notification destination write permission, hand-edited allowWrites and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "/api/v3.4/notifications/destinations/{id}/ PUT; NotificationDestinationSerializerV3_4 and NotificationDestinationCreateV3_4"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented through the unchanged WRITE-00 coordinator in src/notifications.ts.",
+      "fixtureCases": [
+        "success",
+        "preview",
+        "policy-refusal",
+        "confirmation",
+        "journal-redaction",
+        "server-reject",
+        "outcome-unknown",
+        "version-conflict",
+        "qux-unsupported"
+      ]
+    },
+    {
+      "id": "rux.notification-destination.delete",
+      "command": "notification destination delete",
+      "slice": "WRITE-19",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "RUX only. High risk: external event data egress. Maximum 24 destinations; unique titles. URLs and tokens redacted, including URL paths and queries. Create/edit use a full JSON document; edit is PUT replacement. Pre-send re-read compares secret-bearing state fingerprints; no atomic concurrency contract evidenced. No automatic replay.",
+      "method": "DELETE",
+      "path": "/api/v3.4/notifications/destinations/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "id",
+        "destination_type",
+        "title",
+        "enabled",
+        "config",
+        "date_created",
+        "created_by"
+      ],
+      "paging": "none",
+      "permissions": "Requires notification destination write permission, hand-edited allowWrites and exact operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established; availability depends on deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "/api/v3.4/notifications/destinations/{id}/ DELETE; NotificationDestinationSerializerV3_4 and NotificationDestinationCreateV3_4"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Implemented through the unchanged WRITE-00 coordinator in src/notifications.ts.",
+      "fixtureCases": [
+        "success",
+        "preview",
+        "policy-refusal",
+        "confirmation",
+        "journal-redaction",
+        "server-reject",
+        "outcome-unknown",
+        "version-conflict",
+        "qux-unsupported"
+      ]
+    },
+    {
       "id": "qux.setting.syslog.show",
       "command": "setting syslog set",
       "slice": "READ-18",
@@ -7640,7 +7852,7 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "disposition": "unreviewed",
-      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "rationale": "Destination list/show and create/edit/delete are named in READ-19/WRITE-19. Remaining notification operations require separate review; no additional raw access or support implied.",
       "evidence": [
         {
           "source": "rux-spec",

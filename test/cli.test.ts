@@ -131,6 +131,41 @@ it.each(["syslog", "kafka"])("previews and executes %s export settings through t
   expect(requests.at(-1)).toMatchObject({ url: `https://fixture.invalid/api/v2.5/settings/${kind}_config`, body: payload });
 });
 
+it("previews and creates a RUX destination through the packaged CLI without exposing webhook secrets", () => {
+  const config = join(scratch, "notification-profile.json");
+  const file = join(scratch, "notification-destination.json");
+  const trace = join(scratch, "notification-requests.jsonl");
+  const audit = join(scratch, "notification-writes.log");
+  const sentinel = "SYNTHETIC_NOTIFICATION_CLI_SECRET";
+  const payload = { destination_type: "teams_webhook", title: "Synthetic destination", enabled: true,
+    config: { destination_params: { url: `https://example.test/${sentinel}?token=${sentinel}` } } };
+  writeFileSync(file, JSON.stringify(payload));
+  writeFileSync(config, JSON.stringify({ profiles: { lab: {
+    kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth",
+    clientId: "synthetic-client", secretEnv: "SENTINEL_SECRET",
+    writes: { allowWrites: true, operations: ["rux.notification-destination.create"] },
+  } } }));
+  const fixtureEnv = { SENTINEL_SECRET: "synthetic-client-secret", DETECTION_TRACE: trace,
+    VECTRA_AXI_WRITE_LOG: audit,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const args = ["notification", "destination", "create", "--config", config, "--profile", "lab", "--config-file", file];
+  const preview = invoke(args, fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(preview.stderr).toBe("");
+  expect(decode(preview.stdout)).toMatchObject({ operation: "rux.notification-destination.create", target: "new notification destination" });
+  expect(preview.stdout).not.toContain(sentinel);
+  expect(preview.stdout).not.toContain("?token=");
+  const applied = invoke([...args, "--execute", "--confirm", "new notification destination"], fixtureEnv);
+  expect(applied.status).toBe(0);
+  expect(applied.stderr).toBe("");
+  expect(decode(applied.stdout)).toMatchObject({ state: "success" });
+  expect(applied.stdout).not.toContain(sentinel);
+  expect(readFileSync(audit, "utf8")).not.toMatch(/SYNTHETIC_NOTIFICATION|payload|destination_params/);
+  const requests = readFileSync(trace, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+  expect(requests.filter((request) => request.method === "POST" && request.url.includes("destinations")))
+    .toEqual([{ method: "POST", url: "https://fixture.invalid/api/v3.4/notifications/destinations/", body: payload }]);
+});
+
 it("investigates a detection through the packaged list, show, full and resume commands", () => {
   const config = join(scratch, "investigation.json");
   const trace = join(scratch, "investigation-requests.jsonl");
@@ -1829,7 +1864,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, doctor, auth, profile, config, detection, host, account, entity, assignment, threat-feed, setting, proxy, user, audit, group, triage, health, api, lockdown");
+  expect(result.stdout).toContain("Available commands: home, setup, doctor, auth, profile, config, detection, host, account, entity, assignment, threat-feed, setting, notification, proxy, user, audit, group, triage, health, api, lockdown");
   expect(result.stdout).not.toContain("detection list");
   expect(result.stdout.length).toBeLessThan(600);
   expect(result.stderr).toBe("");

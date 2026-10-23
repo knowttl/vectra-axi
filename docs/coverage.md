@@ -11,7 +11,7 @@ there is no unrestricted passthrough.
 
 ## Counts
 
-- named: 192
+- named: 197
 - implemented: 2
 - reviewed-raw: 0
 - planned: 2
@@ -24,6 +24,11 @@ there is no unrestricted passthrough.
 
 | Operation | Command | Slice | Deployment/API | Paging | Disposition | Raw |
 |---|---|---|---|---|---|---|
+| `rux.notification-destination.list` | notification destination list | READ-19 | rux 3.4 | none | named | raw |
+| `rux.notification-destination.show` | notification destination show | READ-19 | rux 3.4 | none | named | raw |
+| `rux.notification-destination.create` | notification destination create | WRITE-19 | rux 3.4 | none | named | named |
+| `rux.notification-destination.edit` | notification destination edit | WRITE-19 | rux 3.4 | none | named | named |
+| `rux.notification-destination.delete` | notification destination delete | WRITE-19 | rux 3.4 | none | named | named |
 | `qux.setting.syslog.show` | setting syslog set | READ-18 | qux 2.5 | none | named | raw |
 | `qux.setting.syslog.set` | setting syslog set | WRITE-18 | qux 2.5 | none | named | named |
 | `qux.setting.kafka.show` | setting kafka set | READ-18 | qux 2.5 | none | named | raw |
@@ -234,7 +239,7 @@ there is no unrestricted passthrough.
 - `qux.long-tail.ad-group-directory` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.investigations` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.connectors` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
-- `rux.long-tail.notifications` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
+- `rux.long-tail.notifications` (rux 3.4, unreviewed): Destination list/show and create/edit/delete are named in READ-19/WRITE-19. Remaining notification operations require separate review; no additional raw access or support implied.
 - `rux.long-tail.match` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.saml` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.unique-host-usage` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
