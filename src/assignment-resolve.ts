@@ -30,11 +30,12 @@ export async function runAssignmentResolve(
     invalid("--detections requires exactly one of --mark-fixed or --triage-as, and either action requires --detections");
   }
   if (triage !== undefined && (typeof triage !== "string" || !triage.trim())) invalid("--triage-as requires a non-empty label");
+  const triageLabel = typeof triage === "string" ? triage.trim() : undefined;
   const detectionIds = typeof detections === "string"
     ? [...new Set(detections.split(",").map((value) => positiveId(value.trim(), "--detections")))].sort((a, b) => a - b)
     : undefined;
   if (detectionIds && detectionIds.length > 100) invalid("--detections is limited to 100 IDs");
-  const note = flags.has("note") || flags.has("note-file") ? desiredNote(flags, kind) : undefined;
+  const note = flags.has("note") || flags.has("note-file") ? desiredNote(flags, kind, undefined, "assignment resolve") : undefined;
   if (flags.has("execute") && flags.has("dry-run")) invalid("--dry-run cannot be combined with --execute");
   const { profile } = session;
   const target = `${kind} ${id}`;
@@ -44,7 +45,7 @@ export async function runAssignmentResolve(
     effect: "disruptive", requiresConfirmation: true, target,
     payload: { outcome, ...(note !== undefined ? { note } : {}),
       ...(detectionIds ? { detection_ids: detectionIds } : {}),
-      ...(fixed ? { mark_as_fixed: true } : {}), ...(triage !== undefined ? { triage_as: triage } : {}) },
+      ...(fixed ? { mark_as_fixed: true } : {}), ...(triageLabel !== undefined ? { triage_as: triageLabel } : {}) },
   };
   // Check the write scope before routing reads. Only the verified open
   // assignment may supply the final mutation path.

@@ -51,8 +51,9 @@ export function desiredNote(
   flags: ReadonlyMap<string, string | boolean>,
   kind: NoteKind,
   readStdin: () => string = () => readFileSync(0, "utf8"),
+  commandOverride?: string,
 ): string {
-  const command = leaf(kind);
+  const command = commandOverride ?? leaf(kind);
   const inline = flags.get("note");
   const file = flags.get("note-file");
   if (inline !== undefined && file !== undefined) {
