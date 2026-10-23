@@ -969,6 +969,28 @@ export const catalogue: Readonly<Record<string, {
     },
     examples: ["vectra-axi setting internal-network set --profile <name> --include 198.51.100.0/24 --exclude none --drop none", "vectra-axi setting internal-network set --help"],
   },
+  "setting syslog set": {
+    description: "Replace QUX syslog export configuration; disruptive: redirects detection export (data egress)",
+    flags: {
+      ...globals,
+      "config-file": { kind: "value", valueName: "path|-", description: "Full JSON configuration document; '-' reads stdin (required)" },
+      execute: { kind: "boolean", description: "Send the mutation; default redacted before/after preview only" },
+      "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target 'syslog export' required with --execute" },
+    },
+    examples: ["vectra-axi setting syslog set --profile <name> --config-file <path>", "vectra-axi setting syslog set --help"],
+  },
+  "setting kafka set": {
+    description: "Replace QUX Kafka export configuration; disruptive: redirects detection export (data egress)",
+    flags: {
+      ...globals,
+      "config-file": { kind: "value", valueName: "path|-", description: "Full JSON configuration document; '-' reads stdin (required)" },
+      execute: { kind: "boolean", description: "Send the mutation; default redacted before/after preview only" },
+      "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target 'kafka export' required with --execute" },
+    },
+    examples: ["vectra-axi setting kafka set --profile <name> --config-file <path>", "vectra-axi setting kafka set --help"],
+  },
   "proxy list": {
     description: "List QUX or RUX proxies",
     flags: globals,
@@ -1561,7 +1583,7 @@ export function parseInvocation(argv: readonly string[]): {
       if (inline.length) usage(`--${name} does not accept a value`);
     } else {
       const next = inline.length ? inline.join("=") : args[++index];
-      if (!next?.trim() || (!inline.length && next.startsWith("-") && !((name === "tags-file" || name === "note-file" || name === "ids-file" || name === "rule-file" || name === "members-file") && next === "-"))) usage(`--${name} requires a non-empty value`);
+      if (!next?.trim() || (!inline.length && next.startsWith("-") && !((name === "tags-file" || name === "note-file" || name === "ids-file" || name === "rule-file" || name === "members-file" || name === "config-file") && next === "-"))) usage(`--${name} requires a non-empty value`);
       value = next!;
     }
     flags.set(name!, value);

@@ -89,6 +89,8 @@ See [operation coverage](https://github.com/knowttl/vectra-axi/blob/main/docs/co
 | `npx -y @knowttl/vectra-axi threat-feed file delete` | native | write | - |
 | `npx -y @knowttl/vectra-axi setting internal-network show` | native | read | - |
 | `npx -y @knowttl/vectra-axi setting internal-network set` | native | write | - |
+| `npx -y @knowttl/vectra-axi setting syslog set` | native | read | - |
+| `npx -y @knowttl/vectra-axi setting kafka set` | native | read | - |
 | `npx -y @knowttl/vectra-axi proxy list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
 | `npx -y @knowttl/vectra-axi proxy show` | native | read | - |
 | `npx -y @knowttl/vectra-axi proxy create` | native | write | - |

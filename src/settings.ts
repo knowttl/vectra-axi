@@ -1,8 +1,11 @@
 import { isIP } from "node:net";
+import { readFileSync } from "node:fs";
 import { AxiError } from "axi-sdk-js";
 import { z } from "zod";
 import type { LeafResult } from "./notes.js";
 import type { Session } from "./session.js";
+import { resourceDigest } from "./session.js";
+import { redactExportSettings } from "./redact.js";
 import type { MutationCoordinator, MutationDefinition } from "./writes.js";
 
 const warning = "High risk: changes what is monitored or dropped across the appliance.";
@@ -106,5 +109,66 @@ export async function runInternalNetworkSet(
     ...common, audit: result.auditId,
     error: result.kind === "failed" ? `Internal-network change rejected with status ${result.status}` : result.guidance,
     help: [`Read back with \`vectra-axi setting internal-network show --profile ${session.profile.name}\` before doing anything else; never replay an unknown outcome`],
+  } };
+}
+
+export async function runExportSettingSet(
+  session: Session, coordinator: MutationCoordinator, flags: ReadonlyMap<string, string | boolean>,
+  kind: "syslog" | "kafka", readStdin: () => string = () => readFileSync(0, "utf8"),
+): Promise<LeafResult> {
+  if (session.profile.kind !== "qux") throw new AxiError(
+    "Syslog and Kafka export settings are unsupported on RUX", "UNSUPPORTED_OPERATION",
+    ["Select a QUX profile"],
+  );
+  const file = flags.get("config-file");
+  let desired: unknown;
+  try {
+    if (typeof file !== "string" || !file.trim()) throw new Error();
+    desired = JSON.parse(file === "-" ? readStdin() : readFileSync(file, "utf8"));
+  } catch {
+    throw new AxiError("--config-file <path|-> must contain a full JSON object", "VALIDATION_ERROR");
+  }
+  const document = z.record(z.string(), z.unknown());
+  if (!document.safeParse(desired).success) throw new AxiError(
+    "--config-file must contain a full JSON object", "VALIDATION_ERROR",
+  );
+  const target = `${kind} export`;
+  const definition: MutationDefinition = {
+    operation: `qux.setting.${kind}.set`, method: "POST", path: `/api/v2.5/settings/${kind}_config`,
+    effect: "disruptive", requiresConfirmation: true, target, payload: desired,
+  };
+  coordinator.preview(definition);
+  let before: unknown;
+  let beforeDigest: string | undefined;
+  const readState = async () => {
+    const fresh = await session.request(`qux.setting.${kind}.show`, {});
+    if (!document.safeParse(fresh.body).success || !fresh.bodyDigest) throw new AxiError(
+      "Cannot determine export settings", "MALFORMED_RESPONSE", ["Read the settings before retrying"],
+    );
+    if (beforeDigest && beforeDigest !== fresh.bodyDigest) throw new AxiError(
+      "Export settings changed since preview", "VERSION_CONFLICT", ["Preview the settings again before executing"],
+    );
+    before = fresh.body;
+    beforeDigest = fresh.bodyDigest;
+    return fresh.bodyDigest;
+  };
+  const result = await coordinator.execute(definition, {
+    execute: flags.has("execute"), dryRun: flags.has("dry-run"),
+    ...(typeof flags.get("confirm") === "string" ? { confirm: flags.get("confirm") as string } : {}),
+    readState, isNoop: (digest) => digest === resourceDigest(desired),
+  });
+  const common = { profile: session.profile.name, operation: definition.operation, target,
+    warning: "Disruptive: redirects detection export (data egress) across the appliance." };
+  if (result.kind === "dry-run") return { failed: false, output: {
+    ...common, before, after: redactExportSettings(desired),
+    ...(result.preview.noop ? { state: "already in desired state (no-op)" }
+      : { help: [`Re-run with --execute --confirm '${target}' to replace the full document`] }),
+  } };
+  if (result.kind === "noop") return { failed: false, output: { ...common, state: "already in desired state (no-op)" } };
+  if (result.kind === "success") return { failed: false, output: { ...common, audit: result.auditId } };
+  return { failed: true, output: {
+    ...common, audit: result.auditId,
+    error: result.kind === "failed" ? `Export settings rejected with status ${result.status}` : result.guidance,
+    help: ["Read the export settings before doing anything else; never replay an unknown outcome"],
   } };
 }

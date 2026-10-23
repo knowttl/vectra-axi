@@ -37,6 +37,8 @@ const ruxHealthEvent2 = { id: 102, health_check_name: "disk", status: "WARNING",
   event_timestamp: "2026-10-01T12:05:00Z" };
 const next = "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2";
 const responses = new Map<string, { status: number; body: unknown }>([
+  ["https://fixture.invalid/api/v2.5/settings/syslog_config", { status: 200, body: { syslog_servers: [] } }],
+  ["https://fixture.invalid/api/v2.5/settings/kafka_config", { status: 200, body: { kafka_servers: [] } }],
   ["https://fixture.invalid/api/v2.5/settings/internal_network", { status: 200,
     body: { included_subnets: [], excluded_subnets: [], dropped_subnets: [] } }],
   ["https://fixture.invalid/api/v2.5/threatFeeds", { status: 200, body: { threatFeeds: [] } }],
@@ -259,6 +261,8 @@ const responses = new Map<string, { status: number; body: unknown }>([
 // delete sends one DELETE to the addressed note route after their preview
 // and re-reads; both answer 200 with an empty body in the fixture.
 const mutations = new Map<string, { status: number; body: unknown }>([
+  ["https://fixture.invalid/api/v2.5/settings/syslog_config", { status: 200, body: {} }],
+  ["https://fixture.invalid/api/v2.5/settings/kafka_config", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/threatFeeds", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/threatFeeds/3", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/rules", { status: 201, body: {} }],

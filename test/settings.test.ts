@@ -1,8 +1,8 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseInvocation } from "../src/catalogue.js";
-import { runInternalNetworkRead, runInternalNetworkSet } from "../src/settings.js";
+import { runExportSettingSet, runInternalNetworkRead, runInternalNetworkSet } from "../src/settings.js";
 import { loadConfig, selectProfile } from "../src/profiles.js";
 import { SecretRedactor } from "../src/redact.js";
 import { createSession, type RawTransport } from "../src/session.js";
@@ -28,6 +28,7 @@ afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 
 function harness(options: {
   kind?: "qux" | "rux"; state?: () => unknown;
+  exportKind?: "syslog" | "kafka";
   writes?: { allowWrites: boolean; operations: string[] }; status?: number; timeout?: boolean; readStatus?: number;
 } = {}) {
   const kind = options.kind ?? "qux";
@@ -35,7 +36,7 @@ function harness(options: {
     kind, origin: "https://fixture.invalid", apiVersion: kind === "qux" ? "2.5" : "3.4",
     ...(kind === "qux" ? { auth: "token", tokenEnv: "SYNTHETIC_TOKEN" }
       : { auth: "oauth", clientId: "synthetic-client", secretEnv: "SYNTHETIC_TOKEN" }),
-    writes: options.writes ?? { allowWrites: true, operations: [operation] },
+    writes: options.writes ?? { allowWrites: true, operations: [options.exportKind ? `qux.setting.${options.exportKind}.set` : operation] },
   } } }));
   const redactor = new SecretRedactor();
   const loaded = loadConfig(configPath, redactor);
@@ -44,7 +45,7 @@ function harness(options: {
   const transport: RawTransport = async (request) => {
     seen.push({ method: request.method, url: request.url, ...(request.body ? { body: request.body } : {}) });
     if (request.method === "GET") return {
-      status: options.readStatus ?? 200, bodyText: JSON.stringify(options.state ? options.state() : empty),
+      status: options.readStatus ?? 200, bodyText: JSON.stringify(options.state ? options.state() : options.exportKind ? {} : empty),
     };
     if (options.timeout) throw new Error("synthetic timeout");
     return { status: options.status ?? 200, bodyText: "{}" };
@@ -53,8 +54,11 @@ function harness(options: {
   const coordinator = createMutationCoordinator({ profile, configPath, redactor, transport, auditPath });
   return {
     seen, read: () => runInternalNetworkRead(session),
-    run: (args: string[] = input) => runInternalNetworkSet(session, coordinator,
-      new Map(parseInvocation(["setting", "internal-network", "set", ...args]).flags)),
+    run: (args: string[] = input, stdin?: () => string) => options.exportKind
+      ? runExportSettingSet(session, coordinator,
+        new Map(parseInvocation(["setting", options.exportKind, "set", ...args]).flags), options.exportKind, stdin)
+      : runInternalNetworkSet(session, coordinator,
+        new Map(parseInvocation(["setting", "internal-network", "set", ...args]).flags)),
   };
 }
 const journal = () => readFileSync(auditPath, "utf8").trim().split("\n").map((line) => JSON.parse(line));
@@ -180,4 +184,107 @@ it.each([
   expect((await run([...input, ...execute])).failed).toBe(true);
   expect(seen.filter((call) => call.method === "POST")).toHaveLength(1);
   expect(journal().at(-1)).toMatchObject({ outcome });
+});
+
+describe.each(["syslog", "kafka"] as const)("%s export settings", (exportKind) => {
+  const payload = { enabled: true, [`${exportKind}_servers`]: [{
+    cef: "cef", proto: "udp", server: "192.0.2.10", bootstrap_servers: "export.example.com:9092",
+    port: 514, types: ["host", "detection"], v2: true,
+    filters: { triaged_detections: { enabled: false }, detection_categories: { enabled: false, values: [] } },
+  }],
+    tls: { client_private_key: "synthetic-key", certificate: "synthetic-cert" },
+    sasl: { password: "synthetic-password", auth_token: "synthetic-token" } };
+  const filePath = join(scratch, `${exportKind}.json`);
+  const args = ["--config-file", filePath];
+  const send = [...args, "--execute", "--confirm", `${exportKind} export`];
+  beforeEach(() => writeFileSync(filePath, JSON.stringify(payload)));
+
+  it("previews a redacted diff and sends the full document once", async () => {
+    const { run, seen } = harness({ exportKind, state: () => ({ ...payload, enabled: false }) });
+    const preview = await run(args);
+    expect(preview.output).toMatchObject({ before: { enabled: false }, after: { enabled: true },
+      warning: expect.stringContaining("data egress") });
+    expect(JSON.stringify(preview)).not.toMatch(/synthetic-(key|cert|password|token)/);
+    expect(seen.every((call) => call.method === "GET")).toBe(true);
+    expect((await run(send)).failed).toBe(false);
+    expect(seen.filter((call) => call.method === "POST")).toEqual([
+      { method: "POST", url: `https://fixture.invalid/api/v2.5/settings/${exportKind}_config`, body: JSON.stringify(payload) },
+    ]);
+    expect(journal().map((line) => [line.kind, line.outcome, line.effect])).toEqual([
+      ["intent", undefined, "disruptive"], ["outcome", "SUCCESS", "disruptive"],
+    ]);
+    expect(readFileSync(auditPath, "utf8")).not.toMatch(/payload|synthetic-|export.example|password|certificate/);
+  });
+
+  it("reads stdin and recognizes unchanged documents regardless of key order", async () => {
+    const { run, seen } = harness({ exportKind, state: () => ({ ...payload, tls: { certificate: "synthetic-cert", client_private_key: "synthetic-key" } }) });
+    expect((await run(["--config-file", "-", "--execute"], () => JSON.stringify(payload))).output)
+      .toMatchObject({ state: expect.stringContaining("no-op") });
+    expect(seen.filter((call) => call.method === "POST")).toEqual([]);
+  });
+
+  it("detects a secret-only change despite identical redacted previews", async () => {
+    const { run, seen } = harness({ exportKind, state: () => ({ ...payload, sasl: { ...payload.sasl, password: "previous-password" } }) });
+    await run(send);
+    expect(seen.filter((call) => call.method === "POST")).toHaveLength(1);
+  });
+
+  it("refuses a concurrent secret-only change", async () => {
+    let reads = 0;
+    const { run, seen } = harness({ exportKind, state: () => ({ enabled: false, password: ++reads === 1 ? "first-password" : "second-password" }) });
+    await expect(run(send)).rejects.toMatchObject({ code: "VERSION_CONFLICT" });
+    expect(seen.filter((call) => call.method === "POST")).toEqual([]);
+    expect(journal().at(-1)).toMatchObject({ outcome: "NOT_SENT" });
+  });
+
+  it.each(["null", "[]", "bad JSON", '"text"'])("refuses malformed input %s without HTTP", async (body) => {
+    const { run, seen } = harness({ exportKind });
+    await expect(run(["--config-file", "-"], () => body)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    expect(seen).toEqual([]);
+  });
+
+  it("refuses RUX without HTTP", async () => {
+    const { run, seen } = harness({ exportKind, kind: "rux" });
+    await expect(run(send)).rejects.toMatchObject({ code: "UNSUPPORTED_OPERATION" });
+    expect(seen).toEqual([]);
+  });
+
+  it.each([
+    [{ allowWrites: false, operations: ["qux.host.tag.set"] }, "WRITES_DISABLED"],
+    [{ allowWrites: true, operations: ["qux.host.tag.set"] }, "OPERATION_NOT_WRITABLE"],
+  ])("refuses profile policy %j", async (writes, code) => {
+    const { run, seen } = harness({ exportKind, writes });
+    await expect(run(send)).rejects.toMatchObject({ code });
+    expect(seen).toEqual([]);
+  });
+
+  it("honors forced read-only", async () => {
+    vi.stubEnv("VECTRA_AXI_READ_ONLY", "1");
+    const { run, seen } = harness({ exportKind });
+    await expect(run(send)).rejects.toMatchObject({ code: "WRITES_DISABLED" });
+    expect(seen).toEqual([]);
+  });
+
+  it.each([
+    [["--execute"], "CONFIRM_REQUIRED"],
+    [["--execute", "--confirm", "other export"], "CONFIRM_MISMATCH"],
+  ])("refuses confirmation flags %j", async (flags, code) => {
+    const { run, seen } = harness({ exportKind });
+    await expect(run([...args, ...flags])).rejects.toMatchObject({ code });
+    expect(seen.filter((call) => call.method === "POST")).toEqual([]);
+  });
+
+  it.each([null, []])("refuses malformed reads %j", async (body) => {
+    const { run, seen } = harness({ exportKind, state: () => body });
+    await expect(run(send)).rejects.toMatchObject({ code: "MALFORMED_RESPONSE" });
+    expect(seen.filter((call) => call.method === "POST")).toEqual([]);
+  });
+
+  it.each([[403, false, "FAILED"], [200, true, "OUTCOME_UNKNOWN"]] as const)("journals %s %s without replay", async (status, timeout, outcome) => {
+    const { run, seen } = harness({ exportKind, status, timeout });
+    expect((await run(send)).failed).toBe(true);
+    expect(seen.filter((call) => call.method === "POST")).toHaveLength(1);
+    expect(journal().at(-1)).toMatchObject({ outcome });
+    expect(readFileSync(auditPath, "utf8")).not.toMatch(/payload|synthetic-|export.example/);
+  });
 });

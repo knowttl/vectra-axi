@@ -2195,6 +2195,68 @@ Replace QUX internal-network lists; high risk: changes what is monitored or drop
 }
 ```
 
+## setting syslog set
+
+Replace QUX syslog export configuration; disruptive: redirects detection export (data egress)
+
+- `qux.setting.syslog.show`: QUX API 2.5
+- `qux.setting.syslog.set`: QUX API 2.5
+
+```json
+{
+  "command": "vectra-axi setting syslog set",
+  "description": "Replace QUX syslog export configuration; disruptive: redirects detection export (data egress)",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--config-file <path|->": "Full JSON configuration document; '-' reads stdin (required)",
+    "--execute": "Send the mutation; default redacted before/after preview only",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact target 'syslog export' required with --execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi setting syslog set --profile <name> --config-file <path>",
+    "vectra-axi setting syslog set --help"
+  ]
+}
+```
+
+## setting kafka set
+
+Replace QUX Kafka export configuration; disruptive: redirects detection export (data egress)
+
+- `qux.setting.kafka.show`: QUX API 2.5
+- `qux.setting.kafka.set`: QUX API 2.5
+
+```json
+{
+  "command": "vectra-axi setting kafka set",
+  "description": "Replace QUX Kafka export configuration; disruptive: redirects detection export (data egress)",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--config-file <path|->": "Full JSON configuration document; '-' reads stdin (required)",
+    "--execute": "Send the mutation; default redacted before/after preview only",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact target 'kafka export' required with --execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi setting kafka set --profile <name> --config-file <path>",
+    "vectra-axi setting kafka set --help"
+  ]
+}
+```
+
 ## proxy list
 
 List QUX or RUX proxies
