@@ -406,9 +406,7 @@ it("rejects malformed group, member and rule rows instead of projecting them", a
 });
 
 it.each([
-  ["group create", ["group", "create"]],
   ["group update", ["group", "update", "--id", "8"]],
-  ["group delete", ["group", "delete", "--id", "8"]],
   ["group member create", ["group", "member", "create", "--id", "8"]],
   ["group member delete", ["group", "member", "delete", "--id", "8"]],
   ["triage rule update", ["triage", "rule", "update", "--id", "7"]],

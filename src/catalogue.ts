@@ -975,6 +975,57 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi group show --profile <name> --id 8",
     ],
   },
+  "group create": {
+    description: "Create a group on QUX or RUX under the explicit write policy",
+    flags: {
+      ...globals,
+      name: { kind: "value", valueName: "name", description: "Group name, required" },
+      description: { kind: "value", valueName: "text", description: "Group description, required" },
+      importance: { kind: "value", valueName: "value", description: "high, medium, low or never_prioritize; required" },
+      type: { kind: "value", valueName: "host|account|ip|domain", description: "Group kind, required" },
+      members: { kind: "value", valueName: "list", description: "Comma-separated host IDs, account UIDs, IPs or domains; exactly one of members, regex or AD DN required" },
+      regex: { kind: "value", valueName: "pattern", description: "Host/account membership regex; QUX requires release 9.0+" },
+      "ad-group-dn": { kind: "value", valueName: "dn", description: "Host/account AD group distinguished name; QUX requires release 9.6+" },
+      execute: { kind: "boolean", description: "Send the confirmed mutation; default previews only" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot be combined with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact group target from preview, required to execute" },
+    },
+    examples: [
+      "vectra-axi group create --profile <name> --type host --name Example --description Example --importance medium --members 7,9",
+      "vectra-axi group create --profile <name> --type domain --name Example --description Example --importance medium --members example.invalid --execute --confirm 'new group'",
+    ],
+  },
+  "group edit": {
+    description: "Edit a group on QUX or RUX under the explicit write policy",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Group ID (positive integer, required)" },
+      name: { kind: "value", valueName: "name", description: "Group name" },
+      description: { kind: "value", valueName: "text", description: "Group description" },
+      importance: { kind: "value", valueName: "value", description: "high, medium, low or never_prioritize" },
+      execute: { kind: "boolean", description: "Send the confirmed mutation; default previews only" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot be combined with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact group target from preview, required to execute" },
+    },
+    examples: [
+      "vectra-axi group edit --profile <name> --id 8 --importance high",
+      "vectra-axi group edit --profile <name> --id 8 --name Example --execute --confirm 'group 8'",
+    ],
+  },
+  "group delete": {
+    description: "Delete a group on QUX or RUX; deletion orphans triage rule references",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Group ID (positive integer, required)" },
+      execute: { kind: "boolean", description: "Send the confirmed mutation; default previews only" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot be combined with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact group target from preview, required to execute" },
+    },
+    examples: [
+      "vectra-axi group delete --profile <name> --id 8",
+      "vectra-axi group delete --profile <name> --id 8 --execute --confirm 'group 8'",
+    ],
+  },
   "group member add": {
     description: "Add to static group membership on QUX or RUX; groups drive triage rules and importance",
     flags: {
