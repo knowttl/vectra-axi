@@ -166,6 +166,7 @@ export function createMutationCoordinator(args: {
         "WRITES_DISABLED",
         [
           "Writes are disabled for this profile",
+          "RUX `notification destination create`/`edit`/`delete` requires a hand-edited writes scope; high risk: event data egress",
           "QUX `setting internal-network set` also requires a hand-edited writes scope; high risk: changes what is monitored or dropped",
           "QUX `setting syslog set` and `setting kafka set` require a hand-edited writes scope; disruptive: redirect detection export (data egress)",
           "Gated `tag set` replaces, bulk `tag bulk-set`/`tag bulk-delete` changes, `note add`/RUX `note bulk-add` appends, `note edit`/`note delete` changes, `assignment set`/`assignment resolve` changes, `assignment outcome create`/`edit`/`delete` changes, `detection close`/`detection open`/`detection fixed set` changes, `detection triage set`/`detection triage clear` changes, `group create`/`edit`/`delete` changes, `group member add`/`remove`/`set` changes, `triage rule create`/`triage rule edit`/`triage rule delete` changes, `proxy create`/`edit`/(RUX) `delete` changes, `threat-feed create`/`edit`/`delete` and `threat-feed file set`/`delete` changes, `host key-asset set` changes and `host close`/`account close` need a hand-edited writes scope on this profile",
@@ -179,6 +180,7 @@ export function createMutationCoordinator(args: {
         "OPERATION_NOT_WRITABLE",
         [
           "Writes are limited to this profile's configured operations",
+          "RUX `notification destination create`/`edit`/`delete` is implemented; high risk: event data egress",
           "QUX `setting internal-network set` is implemented; high risk: changes what is monitored or dropped",
           "QUX `setting syslog set` and `setting kafka set` are implemented; disruptive: redirect detection export (data egress)",
           "Only implemented operations can run: `tag set` replaces, bulk `tag bulk-set`/`tag bulk-delete` changes, `note add`/RUX `note bulk-add` appends, `note edit`/`note delete` changes, `assignment set`/`assignment resolve` changes, `assignment outcome create`/`edit`/`delete` changes, `detection close`/`detection open`/`detection fixed set` changes, `detection triage set`/`detection triage clear` changes, `group create`/`edit`/`delete` changes, `group member add`/`remove`/`set` changes, `triage rule create`/`triage rule edit`/`triage rule delete` changes, `proxy create`/`edit`/(RUX) `delete` changes, `threat-feed create`/`edit`/`delete` and `threat-feed file set`/`delete` changes, `host key-asset set` changes and `host close`/`account close`",
