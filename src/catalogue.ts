@@ -959,6 +959,54 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi group show --profile <name> --id 8",
     ],
   },
+  "group member add": {
+    description: "Add to static group membership on QUX or RUX; groups drive triage rules and importance",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Group ID (positive integer, required)" },
+      members: { kind: "value", valueName: "list", description: "Comma-separated host IDs, account UIDs, IPs or domains; exactly one member input required" },
+      "members-file": { kind: "value", valueName: "path|-", description: "JSON array of members; - reads stdin; [] clears membership with set" },
+      execute: { kind: "boolean", description: "Send the confirmed full replacement; default previews only" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot be combined with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact group target from preview, required to execute" },
+    },
+    examples: [
+      "vectra-axi group member add --profile <name> --id 8 --members 7,9",
+      "vectra-axi group member add --profile <name> --id 8 --members-file members.json --execute --confirm 'group 8'",
+    ],
+  },
+  "group member remove": {
+    description: "Remove from static group membership on QUX or RUX; groups drive triage rules and importance",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Group ID (positive integer, required)" },
+      members: { kind: "value", valueName: "list", description: "Comma-separated host IDs, account UIDs, IPs or domains; exactly one member input required" },
+      "members-file": { kind: "value", valueName: "path|-", description: "JSON array of members; - reads stdin; [] clears membership with set" },
+      execute: { kind: "boolean", description: "Send the confirmed full replacement; default previews only" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot be combined with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact group target from preview, required to execute" },
+    },
+    examples: [
+      "vectra-axi group member remove --profile <name> --id 8 --members 7,9",
+      "vectra-axi group member remove --profile <name> --id 8 --members-file members.json --execute --confirm 'group 8'",
+    ],
+  },
+  "group member set": {
+    description: "Replace static group membership on QUX or RUX; groups drive triage rules and importance",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Group ID (positive integer, required)" },
+      members: { kind: "value", valueName: "list", description: "Comma-separated host IDs, account UIDs, IPs or domains; exactly one member input required" },
+      "members-file": { kind: "value", valueName: "path|-", description: "JSON array of members; - reads stdin; [] clears membership with set" },
+      execute: { kind: "boolean", description: "Send the confirmed full replacement; default previews only" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot be combined with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact group target from preview, required to execute" },
+    },
+    examples: [
+      "vectra-axi group member set --profile <name> --id 8 --members 7,9",
+      "vectra-axi group member set --profile <name> --id 8 --members-file members.json --execute --confirm 'group 8'",
+    ],
+  },
   "group member list": {
     // Membership comes only from the dedicated paged member route, never
     // from embedded detail members capped at 2000 rows. The group ID is a
@@ -1249,7 +1297,7 @@ export function parseInvocation(argv: readonly string[]): {
       if (inline.length) usage(`--${name} does not accept a value`);
     } else {
       const next = inline.length ? inline.join("=") : args[++index];
-      if (!next?.trim() || (!inline.length && next.startsWith("-") && !((name === "tags-file" || name === "note-file" || name === "ids-file" || name === "rule-file") && next === "-"))) usage(`--${name} requires a non-empty value`);
+      if (!next?.trim() || (!inline.length && next.startsWith("-") && !((name === "tags-file" || name === "note-file" || name === "ids-file" || name === "rule-file" || name === "members-file") && next === "-"))) usage(`--${name} requires a non-empty value`);
       value = next!;
     }
     flags.set(name!, value);

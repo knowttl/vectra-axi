@@ -41,6 +41,7 @@ import { runTagSet } from "./tags.js";
 import { runDetectionState } from "./detection-state.js";
 import { runDetectionTriage } from "./detection-triage.js";
 import { runHostKeyAsset } from "./host-key-asset.js";
+import { runGroupMemberWrite } from "./group-write.js";
 import { runAssignmentOutcomeWrite } from "./assignment-outcome-write.js";
 import { runTriageRuleWrite } from "./triage-rule-write.js";
 import { createMutationCoordinator, readOnlyForced } from "./writes.js";
@@ -164,6 +165,10 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
           || invocation.leaf === "assignment outcome delete") {
           const action = invocation.leaf === "assignment outcome create" ? "create" : invocation.leaf === "assignment outcome edit" ? "edit" : "delete";
           return runWrite(invocation.flags, (session, coordinator) => runAssignmentOutcomeWrite(session, coordinator, invocation.flags, action));
+        }
+        if (invocation.leaf === "group member add" || invocation.leaf === "group member remove" || invocation.leaf === "group member set") {
+          const action = invocation.leaf.split(" ")[2] as "add" | "remove" | "set";
+          return runWrite(invocation.flags, (session, coordinator) => runGroupMemberWrite(session, coordinator, invocation.flags, action));
         }
         if (invocation.leaf === "host key-asset set") {
           return runWrite(invocation.flags, (session, coordinator) => runHostKeyAsset(session, coordinator, invocation.flags));
@@ -509,7 +514,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
   // One dispatch for every group/member/rule leaf: validate the flags,
   // select the profile, build the session on the injected transport, and
   // report partial reads with their rows and a nonzero exit status.
-  // Group and rule leaves are read-only; no group or rule mutation leaf exists.
+  // These group and rule leaves are read-only; membership writes use runWrite.
   type GroupsLeaf = "group list" | "group show" | "group member list"
     | "triage rule list" | "triage rule show";
   async function runGroups(leaf: GroupsLeaf, flags: ReadonlyMap<string, string | boolean>): Promise<Record<string, unknown>> {
