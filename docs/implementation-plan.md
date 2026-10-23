@@ -31,6 +31,8 @@ Recheck cited upstream contracts when implementing; record deployment/API/applia
 | WRITE-16 | QUX/RUX threat-feed list/show/create/edit/delete and file set/delete | WRITE-00 | Exact routes and payloads, 5000000-byte regular-file bound with SHA-256 re-verification and no stdin, metadata-only preview and journal, pre-send re-read without atomicity, exact confirmation, policy and audit tests. |
 | READ-17 | QUX internal-network settings read | CORE-02 | Internal-network show with normalized sorted subnet sets, empty/malformed/denied distinction, QUX-only with RUX-unsupported refusal. |
 | WRITE-17 | QUX internal-network desired-state set | WRITE-00, READ-17 | Full desired-state include/exclude/drop replacement with required flags, `none` clearing a list, CIDR validation, no-op, pre-send re-read without atomicity, exact confirmation, policy and audit tests. |
+| READ-18 | QUX syslog/kafka export settings read | CORE-02 | Full-document syslog/kafka export show supporting write preview, empty/malformed/denied distinction, QUX-only with RUX-unsupported refusal. |
+| WRITE-18 | QUX syslog/kafka export full-document set | WRITE-00, READ-18 | Full JSON document with real secrets, redacted-placeholder rejection, redacted before/after preview, secret-aware no-op, pre-send re-read without atomicity, exact export confirmation, policy and audit tests. |
 | PACK-01 | Read release, doctor, generated docs and installable skill | READ-01 through READ-08 | Offline packaged journeys, safe context/discovery, generated-doc freshness, explicit setup only. |
 | RUX-01 | RUX v3.4 OAuth and base session adapter | PACK-01 | Unversioned token route, expiry/refresh handling, same session contracts and unchanged QUX output. |
 | RUX-02 | RUX detections/entities/context reads | RUX-01 | Explicit urgency/importance versus QUX scores; RUX IDs/profile independent of QUX; supported query differences. |
@@ -78,7 +80,7 @@ Do not make every phase one umbrella task or commission the entire catalogue as 
 | 1: first investigation | AUTH-01, AUTH-02, CORE-01, CORE-02, READ-01 | Packaged CLI lists a synthetic detection, shows it, resumes safely and refuses all business writes. |
 | 2: useful QUX release | READ-02 through READ-08, PACK-01 | A complete synthetic on-prem investigation can inspect entities, notes/tags, assignment, rules/groups, audit, health and lockdown status. |
 | 3: cloud adoption | RUX-01 through RUX-06 | Explicit cloud profile passes the shared contracts; QUX output stays stable and generation-specific semantics remain visible. |
-| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-03/WRITE-05/WRITE-06/WRITE-07/WRITE-08/WRITE-09/WRITE-10/WRITE-13/WRITE-ENTITY-CLOSE/WRITE-15/WRITE-16/WRITE-17/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
+| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-03/WRITE-05/WRITE-06/WRITE-07/WRITE-08/WRITE-09/WRITE-10/WRITE-13/WRITE-ENTITY-CLOSE/WRITE-15/WRITE-16/WRITE-17/WRITE-18/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
 | 5: deliberate expansion | Selected API-01 and separately selected long-tail families | The capability map records exact dispositions per [inventory.md](inventory.md#dispositions-and-exclusions); there is no unrestricted passthrough. |
 
 Phase 1 is sequential because each step establishes a contract used by the next.
@@ -322,6 +324,10 @@ Its [offline acceptance suite](../test/threat-feeds.test.ts) covers exact routes
 See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 Internal-network settings show ships as READ-17 and full desired-state set ships as WRITE-17 on QUX v2.5 through the unchanged WRITE-00 coordinator.
 Its [offline acceptance suite](../test/settings.test.ts) covers exact routes and payloads, required include/exclude/drop flags with `none` clearing a list, network CIDR validation, normalized sorted output, equal-state no-ops, version-conflict refusal, confirmation, policy refusal, RUX-unsupported refusal, metadata-only auditing, rejection and unknown outcomes without replay.
+The set re-reads before sending; this client-side comparison is not atomic.
+See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+Syslog/kafka export settings show ships as READ-18 and full-document set ships as WRITE-18 on QUX v2.5 through the unchanged WRITE-00 coordinator.
+Its [offline acceptance suite](../test/settings.test.ts) covers exact routes and payloads, full-document `--config-file`/stdin input with `***redacted***` rejection, redacted before/after preview with passphrase and JAAS secret redaction and full-secret POST preservation, secret-aware no-op, version-conflict refusal, exact `syslog export`/`kafka export` confirmation, policy refusal, RUX-unsupported refusal, metadata-only auditing, rejection and unknown outcomes without replay.
 The set re-reads before sending; this client-side comparison is not atomic.
 See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 If safe concurrency is unavailable for a high-impact operation, document the limitation and keep that operation disabled until its policy is deliberately resolved.
