@@ -525,6 +525,32 @@ it("previews and executes a gated note delete through the packaged binary", () =
   expect(readFileSync(journal, "utf8")).not.toContain("short synthetic note");
 });
 
+it("previews and executes detection close through the packaged binary", () => {
+  const config = join(scratch, "detection-close.json");
+  const trace = join(scratch, "detection-close-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: ["qux.detection.close"] } } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    VECTRA_AXI_WRITE_LOG: join(scratch, "detection-close-writes.log"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const args = ["detection", "close", "--config", config, "--profile", "lab", "--id", "42", "--reason", "benign"];
+  const preview = invoke(args, fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(decode(preview.stdout)).toMatchObject({ operation: "qux.detection.close", proposed: { reason: "benign" } });
+  const unconfirmed = invoke([...args, "--execute"], fixtureEnv);
+  expect(unconfirmed.status).toBe(1);
+  expect(decode(unconfirmed.stdout)).toMatchObject({ code: "CONFIRM_REQUIRED" });
+  const applied = invoke([...args, "--execute", "--confirm", "detection 42"], fixtureEnv);
+  expect(applied.status).toBe(0);
+  expect(applied.stderr).toBe("");
+  expect(decode(applied.stdout)).toMatchObject({ state: "closed", audit: expect.any(String) });
+  const calls = readFileSync(trace, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+  expect(calls.filter((call) => call.method === "PATCH")).toEqual([
+    { method: "PATCH", url: "https://fixture.invalid/api/v2.5/detections/42/close", body: { reason: "benign" } },
+  ]);
+});
+
 it("previews and executes a gated assignment set through the packaged binary", () => {
   const config = join(scratch, "assignment-set.json");
   const trace = join(scratch, "assignment-set-requests.jsonl");

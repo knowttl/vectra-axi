@@ -39,6 +39,7 @@ Recheck cited upstream contracts when implementing; record deployment/API/applia
 | WRITE-02 | Detection/host/account action-shaped note append | WRITE-00, READ-03 | Exact appended note, file/stdin inputs, action preview, exact target confirmation, unknown-outcome no-replay, permission and audit tests. |
 | WRITE-03 | QUX/RUX host/account desired-state assignment | WRITE-00, READ-04, RUX-04 | Assign/reassign/unassign previews, exact user validation, no-op, pre-send state comparison, malformed-row refusal, exact target confirmation, policy and audit tests. |
 | WRITE-05 | Detection/host/account bulk tag set/delete | WRITE-00, READ-03 | Explicit bounded target list, per-target dry-run diffs, no-op detection, pre-send re-read per target, count-and-set confirmation, per-target audit, partial-failure reporting, unknown-outcome no-replay, permission and audit tests. |
+| WRITE-06 | QUX/RUX detection close/open | WRITE-00, READ-01 | Explicit single/bulk targets, native close/open routes, close reasons, no-op, release gating, exact target confirmation, policy and audit tests. |
 | WRITE-N | Remaining separately approved mutation families | WRITE-00, corresponding reads | One reviewed family per change; concurrency evidence, unknown outcome, audit failure and disruptive-confirmation cases. |
 
 PACK-01 is a useful SOC read release, not full Vectra API coverage.
@@ -262,7 +263,11 @@ All acceptance uses synthetic fixtures; no live instance, real credentials or cu
 See [README.md](../README.md) for shipped usage and concurrency limits, and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 
 Further writes require exact upstream concurrency evidence, effect classification and the same coordinator.
-Closing/reopening detections, resolving assignments and changing triage rules must remain distinct operations.
+Detection close/open ships as WRITE-06 on QUX release 9.3+ and RUX v3.4 through the unchanged WRITE-00 coordinator.
+Its [offline acceptance suite](../test/detection-state.test.ts) covers explicit single/bulk targets, native routes, close reasons, no-ops, release gating, confirmation, profile policy, metadata-only auditing, rejection and ambiguous outcomes without replay.
+The packaged CLI journey covers preview, confirmation refusal and execution against synthetic transport.
+Detection state is re-read before sending; this client-side comparison is not atomic.
+Closing/reopening detections, resolving assignments and changing triage rules remain distinct operations.
 If safe concurrency is unavailable for a high-impact operation, document the limitation and keep that operation disabled until its policy is deliberately resolved.
 Do not promise rollback for actions without a reliable inverse.
 

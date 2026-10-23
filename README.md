@@ -126,7 +126,7 @@ The CLI does not grant API permissions; configure the deployment's API role for 
 | QUX token reads | Personal API token with read access to the requested resource |
 | QUX OAuth reads | API client credentials on appliance 9.1+ with the requested resource access |
 | RUX reads | OAuth API client with read access to the requested resource; subscriptions may further restrict routes |
-| Named writes | Corresponding tag, note or assignment mutation permission, plus the local operation scope below |
+| Named writes | Corresponding tag, note, assignment or detection-state mutation permission, plus the local operation scope below |
 
 Permission names vary by deployment; the CLI does not prescribe a universal OAuth scope string.
 Resource requests and OAuth exchanges send credentials and requested operation data only to the configured HTTPS origin.
@@ -152,6 +152,8 @@ vectra-axi detection note add --profile onprem --id 42 --note 'Investigation sta
 vectra-axi detection note edit --profile cloud --id 42 --note-id 7 --note 'Investigation updated'
 vectra-axi detection note delete --profile cloud --id 42 --note-id 7
 vectra-axi assignment set --profile onprem --host 7 --user 3
+vectra-axi detection close --profile onprem --id 42 --reason benign
+vectra-axi detection open --profile cloud --ids 41,42
 ```
 
 For single-target tag changes, note appends, and assignments, confirmation is the kind and ID, for example `--execute --confirm 'detection 42'`.
@@ -166,6 +168,10 @@ Bulk confirmation names the complete normalized target set, for example `--execu
 - `note edit` replaces text and `note delete` removes a note.
   Their previews truncate long text; inspect `note list --full` before confirming.
 - `assignment set` requires one of `--host` or `--account`, plus one of `--user` or `--unassign`.
+- `detection close` and `detection open` accept exactly one of `--id` or `--ids`, capped at 100 explicit detections.
+  Close requires `--reason remediated|benign`; reopening restores scoring.
+  Single-target confirmation is `detection <id>`; bulk confirmation names the complete normalized set.
+  Both support QUX release 9.3 or later and RUX v3.4, re-read detection state before sending, and skip an already desired state.
 
 Tag replacement, note edit/delete, and assignment changes re-read before sending and refuse conflicting state with `VERSION_CONFLICT`.
 These comparisons are not atomic server-side version checks; concurrent changes after the re-read can still be overwritten or removed.
@@ -288,8 +294,9 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.<kind>.note.add` | Append notes on QUX or RUX |
 | `<generation>.<kind>.note.edit`, `<generation>.<kind>.note.delete` | Edit/delete notes on QUX or RUX |
 | `<generation>.<kind>.assignment.create`, `.reassign`, `.unassign` | Assignments for hosts/accounts on QUX or RUX |
+| `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
 
-Replace `<kind>` with `detection`, `host`, or `account`, except assignments, which support only `host` and `account`.
+Replace `<kind>` with `detection`, `host`, or `account`, except assignments, which support only `host` and `account`, and detection close/open, which supports only `detection`.
 Replace `<generation>` with `qux` or `rux`.
 Assignment suffixes each require the full operation name, such as `qux.host.assignment.reassign`.
 An absent scope or `allowWrites: false` disables writes; `operations` must be a nonempty array.
@@ -333,7 +340,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `auth` | `auth status` | Local |
 | `profile` | `profile list` | Local |
 | `config` | `config path` | Local |
-| `detection` | `detection list`, `detection show`, `detection event list`, `detection note list`, `detection tag list`, `detection tag set`, `detection tag bulk-set`, `detection tag bulk-delete`, `detection note add`, `detection note edit`, `detection note delete` | QUX, RUX |
+| `detection` | `detection list`, `detection show`, `detection event list`, `detection close`, `detection open`, `detection note list`, `detection tag list`, `detection tag set`, `detection tag bulk-set`, `detection tag bulk-delete`, `detection note add`, `detection note edit`, `detection note delete` | QUX, RUX |
 | `host` | `host list`, `host show`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
 | `account` | `account list`, `account show`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
 | `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |

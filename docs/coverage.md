@@ -11,7 +11,7 @@ there is no unrestricted passthrough.
 
 ## Counts
 
-- named: 116
+- named: 124
 - implemented: 2
 - reviewed-raw: 0
 - planned: 2
@@ -26,6 +26,14 @@ there is no unrestricted passthrough.
 |---|---|---|---|---|---|---|
 | `qux.detection.list` | detection list | READ-01 | qux 2.5 | collection | named | raw |
 | `qux.detection.show` | detection show | READ-01 | qux 2.5 | none | named | raw |
+| `qux.detection.close` | detection close | WRITE-06 | qux 2.5 | none | named | named |
+| `qux.detection.close-bulk` | detection close | WRITE-06 | qux 2.5 | none | named | named |
+| `qux.detection.open` | detection open | WRITE-06 | qux 2.5 | none | named | named |
+| `qux.detection.open-bulk` | detection open | WRITE-06 | qux 2.5 | none | named | named |
+| `rux.detection.close` | detection close | WRITE-06 | rux 3.4 | none | named | named |
+| `rux.detection.close-bulk` | detection close | WRITE-06 | rux 3.4 | none | named | named |
+| `rux.detection.open` | detection open | WRITE-06 | rux 3.4 | none | named | named |
+| `rux.detection.open-bulk` | detection open | WRITE-06 | rux 3.4 | none | named | named |
 | `qux.host.list` | host list | READ-02 | qux 2.5 | collection | named | raw |
 | `qux.host.show` | host show | READ-02 | qux 2.5 | none | named | raw |
 | `qux.host.note.list` | host note list | READ-03 | qux 2.5 | none | named | raw |
@@ -173,7 +181,6 @@ there is no unrestricted passthrough.
 - `qux.later.outcome-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `qux.later.group-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `qux.later.triage-rule-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
-- `qux.later.detection-close-open` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `qux.later.entity-close` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `rux.later.note-writes` (rux 3.4, planned): Per-object note append is a named WRITE-02 operation (rux.{detection,host,account}.note.add); per-note edit and delete are named WRITE-N (2a) operations (rux.{detection,host,account}.note.{edit,delete}). Bulk note creation stays planned with no authorized route.
 - `rux.later.tag-writes` (rux 3.4, planned): Per-object tag replace and bulk set/delete are named operations for detections, hosts and accounts, sequencing per-target PATCH replaces. Native bulk routes and the entity facade remain outside the named surface. No additional route is authorized by this family entry.
@@ -181,5 +188,4 @@ there is no unrestricted passthrough.
 - `rux.later.outcome-writes` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `rux.later.group-writes` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `rux.later.triage-rule-writes` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
-- `rux.later.detection-close-open` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `rux.later.entity-close` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.

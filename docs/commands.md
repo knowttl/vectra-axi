@@ -555,6 +555,81 @@ RUX: checkpoint batch; --cursor/--from continuation, no --all
 }
 ```
 
+## detection close
+
+Close QUX (9.3+) or RUX detections as remediated or benign through the gated write pipeline
+
+- `qux.detection.close`: QUX API 2.5
+- `qux.detection.close-bulk`: QUX API 2.5
+- `rux.detection.close`: RUX API 3.4
+- `rux.detection.close-bulk`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi detection close",
+  "description": "Close QUX (9.3+) or RUX detections as remediated or benign through the gated write pipeline",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Single detection ID; exactly one of --id or --ids is required",
+    "--ids <ids>": "Comma-separated detection IDs, normalized and capped at 100",
+    "--execute": "Send the confirmed change; default previews only",
+    "--dry-run": "Preview only; cannot be combined with --execute",
+    "--confirm <target>": "Exact target from the preview, required to execute a change",
+    "--reason <reason>": "Close reason: remediated or benign (required)"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi detection close --profile <name> 42 --reason benign",
+    "vectra-axi detection close --profile <name> --ids 41,42 --reason remediated"
+  ]
+}
+```
+
+## detection open
+
+Reopen QUX (9.3+) or RUX detections for scoring through the gated write pipeline
+
+- `qux.detection.open`: QUX API 2.5
+- `qux.detection.open-bulk`: QUX API 2.5
+- `rux.detection.open`: RUX API 3.4
+- `rux.detection.open-bulk`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi detection open",
+  "description": "Reopen QUX (9.3+) or RUX detections for scoring through the gated write pipeline",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Single detection ID; exactly one of --id or --ids is required",
+    "--ids <ids>": "Comma-separated detection IDs, normalized and capped at 100",
+    "--execute": "Send the confirmed change; default previews only",
+    "--dry-run": "Preview only; cannot be combined with --execute",
+    "--confirm <target>": "Exact target from the preview, required to execute a change"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi detection open --profile <name> 42",
+    "vectra-axi detection open --profile <name> --ids 41,42"
+  ]
+}
+```
+
 ## detection note list
 
 List full detection notes on QUX v2.5 or RUX v3.4 through the dedicated notes route

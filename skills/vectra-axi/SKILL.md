@@ -1,6 +1,6 @@
 ---
 name: vectra-axi
-description: "Inspect Vectra QUX and RUX detections, hosts, accounts, notes, tags, assignments, groups, health and lockdown, plus reviewed raw reads and gated tag, note and assignment writes, through token-efficient TOON output."
+description: "Inspect Vectra QUX and RUX detections, hosts, accounts, notes, tags, assignments, groups, health and lockdown, plus reviewed raw reads and gated tag, note, assignment and detection close/open writes, through token-efficient TOON output."
 user-invocable: false
 ---
 
@@ -8,7 +8,7 @@ user-invocable: false
 
 Agent-ergonomic CLI for Vectra AI, read-only by default, through token-efficient TOON output.
 Covers QUX (on-prem v2.5) and RUX (cloud v3.4) detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage-rule, audit, health, lockdown, detection-event and entity-scoring reads, plus the reviewed `api get` raw-read leaf over allowlisted GET operations.
-Gated tag replaces (`detection|host|account tag set`), bulk tag changes (`detection|host|account tag bulk-set|bulk-delete`), note appends (`detection|host|account note add`), note edits/deletes (`detection|host|account note edit|delete`) and assignment sets (`assignment set --host|--account --user|--unassign`) require hand-enabled profiles.
+Gated tag replaces (`detection|host|account tag set`), bulk tag changes (`detection|host|account tag bulk-set|bulk-delete`), note appends (`detection|host|account note add`), note edits/deletes (`detection|host|account note edit|delete`), assignment sets (`assignment set --host|--account --user|--unassign`) and detection close/open (`detection close` / `detection open`) require hand-enabled profiles.
 See the [command reference](https://github.com/knowttl/vectra-axi/blob/main/README.md#command-surface-and-subcommands) for shipped reads by deployment and write restrictions.
 
 Run commands non-interactively as `npx -y @knowttl/vectra-axi ...`: no global install needed and no interactive prompts.
@@ -43,6 +43,8 @@ See [operation coverage](https://github.com/knowttl/vectra-axi/blob/main/docs/co
 | `npx -y @knowttl/vectra-axi entity list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
 | `npx -y @knowttl/vectra-axi entity show` | native | read | - |
 | `npx -y @knowttl/vectra-axi entity scoring list` | native | read | RUX: checkpoint batch; --cursor/--from continuation, no --all |
+| `npx -y @knowttl/vectra-axi detection close` | native | write | - |
+| `npx -y @knowttl/vectra-axi detection open` | native | write | - |
 | `npx -y @knowttl/vectra-axi detection note list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
 | `npx -y @knowttl/vectra-axi detection tag list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
 | `npx -y @knowttl/vectra-axi detection tag set` | native | write | - |

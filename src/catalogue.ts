@@ -266,6 +266,37 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi entity scoring list --profile <name> --type host --cursor <cursor>",
     ],
   },
+  "detection close": {
+    description: "Close QUX (9.3+) or RUX detections as remediated or benign through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Single detection ID; exactly one of --id or --ids is required" },
+      ids: { kind: "value", valueName: "ids", description: "Comma-separated detection IDs, normalized and capped at 100" },
+      execute: { kind: "boolean", description: "Send the confirmed change; default previews only" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot be combined with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target from the preview, required to execute a change" },
+      reason: { kind: "value", valueName: "reason", description: "Close reason: remediated or benign (required)" },
+    },
+    examples: [
+      "vectra-axi detection close --profile <name> --id 42 --reason benign",
+      "vectra-axi detection close --profile <name> --ids 41,42 --reason remediated",
+    ],
+  },
+  "detection open": {
+    description: "Reopen QUX (9.3+) or RUX detections for scoring through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Single detection ID; exactly one of --id or --ids is required" },
+      ids: { kind: "value", valueName: "ids", description: "Comma-separated detection IDs, normalized and capped at 100" },
+      execute: { kind: "boolean", description: "Send the confirmed change; default previews only" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot be combined with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target from the preview, required to execute a change" },
+    },
+    examples: [
+      "vectra-axi detection open --profile <name> --id 42",
+      "vectra-axi detection open --profile <name> --ids 41,42",
+    ],
+  },
   "detection note list": {
     // Notes come only from the dedicated versioned notes resource, never
     // from the embedded detail summary. --full prints the complete returned
