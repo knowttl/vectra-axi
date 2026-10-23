@@ -144,6 +144,7 @@ Execution requires both `--execute` and an exact `--confirm` target.
 RUX `notification destination list` and `show --id <id>` redact webhook URLs and tokens.
 `notification destination create|edit --config-file <path|->` takes JSON with `destination_type`, `title`, optional `enabled`, and `config` containing `destination_params.url` and optional `event_rules`.
 Edit fully replaces the destination, so supply the original URL and tokens rather than redacted read output.
+Documents containing `***redacted***` are rejected before any preview.
 These are high risk egress operations; `delete --id <id>` stops event delivery.
 Allowlist `rux.notification-destination.create`, `.edit` or `.delete` and confirm `new notification destination` for create or `notification destination <id>` for edit/delete.
 The pre-send re-read detects changes, including secret-only changes, but does not provide atomic concurrency protection.
