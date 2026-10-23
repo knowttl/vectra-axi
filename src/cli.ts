@@ -38,6 +38,7 @@ import { createSession, nodeTransport, type RawTransport } from "./session.js";
 import { runTagBulk, type BulkTagAction } from "./tags-bulk.js";
 import { runTagSet } from "./tags.js";
 import { runDetectionState } from "./detection-state.js";
+import { runDetectionTriage } from "./detection-triage.js";
 import { runHostKeyAsset } from "./host-key-asset.js";
 import { runAssignmentOutcomeWrite } from "./assignment-outcome-write.js";
 import { createMutationCoordinator, readOnlyForced } from "./writes.js";
@@ -144,6 +145,10 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
           || invocation.leaf === "assignment outcome show"
           || invocation.leaf === "user list" || invocation.leaf === "user show") {
           return runAssignment(invocation.leaf, invocation.flags);
+        }
+        if (invocation.leaf === "detection triage set" || invocation.leaf === "detection triage clear") {
+          const action = invocation.leaf === "detection triage set" ? "set" : "clear";
+          return runWrite(invocation.flags, (session, coordinator) => runDetectionTriage(session, coordinator, invocation.flags, action));
         }
         if (invocation.leaf === "detection close" || invocation.leaf === "detection open") {
           const action = invocation.leaf === "detection close" ? "close" : "open";

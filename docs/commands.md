@@ -555,6 +555,69 @@ RUX: checkpoint batch; --cursor/--from continuation, no --all
 }
 ```
 
+## detection triage set
+
+Set a QUX or RUX per-detection triage label, suppressing scoring, through the gated write pipeline
+
+- `qux.detection.triage.set`: QUX API 2.5
+- `rux.detection.triage.set`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi detection triage set",
+  "description": "Set a QUX or RUX per-detection triage label, suppressing scoring, through the gated write pipeline",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--ids <ids>": "Comma-separated detection IDs, normalized and capped at 100 (required)",
+    "--category <label>": "Nonempty custom triage label (required)",
+    "--execute": "Send the confirmed change; default previews only",
+    "--dry-run": "Preview only; cannot be combined with --execute",
+    "--confirm <target>": "Exact target from the preview, required to execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi detection triage set --profile <name> --ids 41 --category synthetic-triage",
+    "vectra-axi detection triage set --profile <name> --ids 41,42 --category synthetic-triage"
+  ]
+}
+```
+
+## detection triage clear
+
+Clear QUX or RUX per-detection triage suppression through the gated write pipeline
+
+- `qux.detection.triage.clear`: QUX API 2.5
+- `rux.detection.triage.clear`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi detection triage clear",
+  "description": "Clear QUX or RUX per-detection triage suppression through the gated write pipeline",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--ids <ids>": "Comma-separated detection IDs, normalized and capped at 100 (required)",
+    "--execute": "Send the confirmed change; default previews only",
+    "--dry-run": "Preview only; cannot be combined with --execute",
+    "--confirm <target>": "Exact target from the preview, required to execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi detection triage clear --profile <name> --ids 41",
+    "vectra-axi detection triage clear --profile <name> --ids 41,42"
+  ]
+}
+```
+
 ## detection close
 
 Close QUX (9.3+) or RUX detections as remediated or benign through the gated write pipeline
