@@ -2137,6 +2137,64 @@ Preview or execute gated QUX or RUX threat-feed file delete
 }
 ```
 
+## setting internal-network show
+
+Show QUX internal-network monitoring and drop lists
+
+- `qux.setting.internal-network.show`: QUX API 2.5
+
+```json
+{
+  "command": "vectra-axi setting internal-network show",
+  "description": "Show QUX internal-network monitoring and drop lists",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi setting internal-network show --profile <name>",
+    "vectra-axi setting internal-network show --help"
+  ]
+}
+```
+
+## setting internal-network set
+
+Replace QUX internal-network lists; high risk: changes what is monitored or dropped
+
+- `qux.setting.internal-network.set`: QUX API 2.5
+
+```json
+{
+  "command": "vectra-axi setting internal-network set",
+  "description": "Replace QUX internal-network lists; high risk: changes what is monitored or dropped",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--include <cidrs|none>": "Full comma-separated network CIDRs to include; 'none' clears (required)",
+    "--exclude <cidrs|none>": "Full comma-separated network CIDRs to exclude; 'none' clears (required)",
+    "--drop <cidrs|none>": "Full comma-separated network CIDRs to drop; 'none' clears (required)",
+    "--execute": "Send the mutation; default before/after preview only",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact target 'internal network' required with --execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi setting internal-network set --profile <name> --include 198.51.100.0/24 --exclude none --drop none",
+    "vectra-axi setting internal-network set --help"
+  ]
+}
+```
+
 ## proxy list
 
 List QUX or RUX proxies

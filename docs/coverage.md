@@ -11,7 +11,7 @@ there is no unrestricted passthrough.
 
 ## Counts
 
-- named: 186
+- named: 188
 - implemented: 2
 - reviewed-raw: 0
 - planned: 2
@@ -24,6 +24,8 @@ there is no unrestricted passthrough.
 
 | Operation | Command | Slice | Deployment/API | Paging | Disposition | Raw |
 |---|---|---|---|---|---|---|
+| `qux.setting.internal-network.show` | setting internal-network show | READ-17 | qux 2.5 | none | named | raw |
+| `qux.setting.internal-network.set` | setting internal-network set | WRITE-17 | qux 2.5 | none | named | named |
 | `qux.triage-rule.create` | triage rule create | WRITE-10 | qux 2.5 | none | named | named |
 | `qux.triage-rule.edit` | triage rule edit | WRITE-10 | qux 2.5 | none | named | named |
 | `qux.triage-rule.delete` | triage rule delete | WRITE-10 | qux 2.5 | none | named | named |
@@ -223,7 +225,7 @@ there is no unrestricted passthrough.
 - `qux.long-tail.campaigns` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.network-stats` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.match` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
-- `qux.long-tail.settings` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
+- `qux.long-tail.settings` (qux 2.5, unreviewed): Remaining settings exclude the reviewed internal_network GET/POST. Other exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.vsensor` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.ad-group-directory` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.investigations` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
