@@ -178,9 +178,11 @@ Bulk confirmation names the complete normalized target set, for example `--execu
 
 - `tag set` replaces the complete tag set; an empty `--tags-file` clears it.
 - `tag bulk-set` adds named tags and `tag bulk-delete` removes named tags from at most 100 explicit targets.
-  Bulk operations run per target and may partially succeed; inspect every reported outcome.
+  Bulk tag operations run per target and may partially succeed; inspect every reported outcome.
 - `note add` appends every time, including repeated identical text.
   Note commands accept `--note` or `--note-file`; use `-` for stdin.
+- RUX `note bulk-add --ids 7,8 --note <text>` appends one note to at most 100 explicit targets with one native request.
+  It confirms the complete target count and set and appends again on every execution.
 - `note edit` replaces text and `note delete` removes a note.
   Their previews truncate long text; inspect `note list --full` before confirming.
 - `assignment set` requires one of `--host` or `--account`, plus one of `--user` or `--unassign`.
@@ -331,6 +333,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.<kind>.tag.set` | Replace tags on QUX or RUX |
 | `<generation>.<kind>.tag.bulk-set`, `<generation>.<kind>.tag.bulk-delete` | Bulk tag changes on QUX or RUX |
 | `<generation>.<kind>.note.add` | Append notes on QUX or RUX |
+| `rux.<kind>.note.bulk-add` | Append a note to up to 100 explicit RUX targets with one native request |
 | `<generation>.<kind>.note.edit`, `<generation>.<kind>.note.delete` | Edit/delete notes on QUX or RUX |
 | `<generation>.<kind>.assignment.create`, `.reassign`, `.unassign` | Assignments for hosts/accounts on QUX or RUX |
 | `<generation>.<kind>.assignment.resolve` | Resolve open assignments for hosts/accounts on QUX or RUX |
@@ -386,9 +389,9 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `auth` | `auth status` | Local |
 | `profile` | `profile list` | Local |
 | `config` | `config path` | Local |
-| `detection` | `detection list`, `detection show`, `detection event list`, `detection triage set`, `detection triage clear`, `detection fixed set`, `detection close`, `detection open`, `detection note list`, `detection tag list`, `detection tag set`, `detection tag bulk-set`, `detection tag bulk-delete`, `detection note add`, `detection note edit`, `detection note delete` | QUX, RUX |
-| `host` | `host list`, `host show`, `host key-asset set`, `host close`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
-| `account` | `account list`, `account show`, `account close`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
+| `detection` | `detection list`, `detection show`, `detection event list`, `detection triage set`, `detection triage clear`, `detection fixed set`, `detection close`, `detection open`, `detection note list`, `detection tag list`, `detection tag set`, `detection tag bulk-set`, `detection tag bulk-delete`, `detection note bulk-add`, `detection note add`, `detection note edit`, `detection note delete` | QUX, RUX |
+| `host` | `host list`, `host show`, `host key-asset set`, `host close`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note bulk-add`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
+| `account` | `account list`, `account show`, `account close`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note bulk-add`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
 | `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |
 | `assignment` | `assignment list`, `assignment set`, `assignment resolve`, `assignment outcome list`, `assignment outcome create`, `assignment outcome edit`, `assignment outcome delete`, `assignment outcome show` | QUX, RUX |
 | `user` | `user list`, `user show` | QUX, RUX |

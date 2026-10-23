@@ -7,6 +7,7 @@ import { createSession, type RawTransport, type Session } from "../src/session.j
 import { loadConfig, selectProfile, type SelectedProfile } from "../src/profiles.js";
 import { SecretRedactor } from "../src/redact.js";
 import { desiredNote, runNoteAdd } from "../src/note-add.js";
+import { runNoteBulk } from "../src/note-bulk.js";
 import { createMutationCoordinator, type MutationCoordinator } from "../src/writes.js";
 import type { LeafResult, NoteKind } from "../src/notes.js";
 
@@ -25,7 +26,8 @@ const enabledProfile = { kind: "qux", origin: "https://fixture.invalid", apiVers
   tokenEnv: "SENTINEL_TOKEN", writes: { allowWrites: true, operations: NOTE_OPERATIONS } };
 const ruxProfile = { kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth",
   clientId: "synthetic-client", secretEnv: "CLOUD_SECRET",
-  writes: { allowWrites: true, operations: ["rux.detection.note.add", "rux.host.note.add", "rux.account.note.add"] } };
+  writes: { allowWrites: true, operations: ["rux.detection.note.add", "rux.host.note.add", "rux.account.note.add",
+    "rux.detection.note.bulk-add", "rux.host.note.bulk-add", "rux.account.note.bulk-add"] } };
 
 beforeEach(() => {
   vi.stubEnv("SENTINEL_TOKEN", token);
@@ -56,6 +58,7 @@ function harness(args: {
     transport: args.transport, clock: () => NOW, auditPath });
   const run = (argv: string[], kind: NoteKind): Promise<LeafResult> => {
     const flags = new Map(parseInvocation(argv).flags);
+    if (argv[2] === "bulk-add") return runNoteBulk(session, coordinator, flags, kind);
     return runNoteAdd(session, coordinator, flags, kind, args.stdin ?? (() => ""));
   };
   return { session, coordinator, run };
@@ -82,6 +85,97 @@ function notesTransport(current: () => unknown[], seen: { method: string; url: s
 
 const auditLines = (): Record<string, unknown>[] =>
   readFileSync(auditPath, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+
+it.each(["detection", "host", "account"] as const)("previews then bulk-appends one RUX %s note with the canonical target set", async (kind) => {
+  const seen: { method: string; url: string; body?: string }[] = [];
+  const { run } = harness({ profile: selected(ruxProfile), transport: notesTransport(() => [], seen) });
+  const argv = [kind, "note", "bulk-add", "--ids", "8,7,8", "--note", "synthetic bulk note"];
+  const target = `2 targets: ${kind} 7, ${kind} 8`;
+  const preview = await run(argv, kind);
+  expect(preview.output).toMatchObject({ target, count: 2, note: "synthetic bulk note" });
+  expect(seen).toEqual([
+    { method: "GET", url: `https://fixture.invalid/api/v3.4/${kind}s/7/notes/` },
+    { method: "GET", url: `https://fixture.invalid/api/v3.4/${kind}s/8/notes/` },
+  ]);
+  expect(() => readFileSync(auditPath, "utf8")).toThrow();
+  const result = await run([...argv, "--execute", "--confirm", target], kind);
+  expect(result.failed).toBe(false);
+  expect(seen.filter((call) => call.method === "GET")).toHaveLength(6);
+  expect(seen.filter((call) => call.method === "POST")).toEqual([{
+    method: "POST", url: `https://fixture.invalid/api/v3.4/${kind}s/notes/`,
+    body: JSON.stringify({ note: "synthetic bulk note", objectIds: [7, 8] }),
+  }]);
+  expect(auditLines()).toEqual([
+    expect.objectContaining({ kind: "intent", operation: `rux.${kind}.note.bulk-add`, target }),
+    expect.objectContaining({ kind: "outcome", outcome: "SUCCESS" }),
+  ]);
+  expect(readFileSync(auditPath, "utf8")).not.toContain("synthetic bulk note");
+});
+
+it.each([
+  ["without opt-in", { ...ruxProfile, writes: undefined }, undefined, ["--confirm", "2 targets: host 7, host 8"], "WRITES_DISABLED"],
+  ["forced read-only", ruxProfile, "1", ["--confirm", "2 targets: host 7, host 8"], "WRITES_DISABLED"],
+  ["outside scope", { ...ruxProfile, writes: { allowWrites: true, operations: ["rux.host.note.add"] } }, undefined, ["--confirm", "2 targets: host 7, host 8"], "OPERATION_NOT_WRITABLE"],
+  ["without confirmation", ruxProfile, undefined, [], "CONFIRM_REQUIRED"],
+  ["wrong confirmation", ruxProfile, undefined, ["--confirm", "host 7"], "CONFIRM_MISMATCH"],
+] as const)("refuses bulk note append %s", async (_name, profile, readOnly, confirmation, code) => {
+  vi.stubEnv("VECTRA_AXI_READ_ONLY", readOnly);
+  const seen: { method: string; url: string; body?: string }[] = [];
+  const { run } = harness({ profile: selected(profile), transport: notesTransport(() => [], seen) });
+  await expect(run(["host", "note", "bulk-add", "--ids", "7,8", "--note", "synthetic bulk note",
+    "--execute", ...confirmation], "host")).rejects.toMatchObject({ code });
+  expect(seen.filter((call) => call.method === "POST")).toEqual([]);
+  expect(() => readFileSync(auditPath, "utf8")).toThrow();
+});
+
+it.each([
+  ["server rejection", { postStatus: 500 }, "FAILED"],
+  ["timeout", { postThrows: new Error("socket timed out") }, "OUTCOME_UNKNOWN"],
+] as const)("records bulk note %s without replay or journal payload", async (_name, overrides, outcome) => {
+  const seen: { method: string; url: string; body?: string }[] = [];
+  const { run } = harness({ profile: selected(ruxProfile), transport: notesTransport(() => [], seen, overrides) });
+  const result = await run(["host", "note", "bulk-add", "--ids", "7,8", "--note", "synthetic bulk note",
+    "--execute", "--confirm", "2 targets: host 7, host 8"], "host");
+  expect(result.failed).toBe(true);
+  expect(seen.filter((call) => call.method === "POST")).toHaveLength(1);
+  expect(auditLines()).toEqual([
+    expect.objectContaining({ kind: "intent" }), expect.objectContaining({ kind: "outcome", outcome }),
+  ]);
+  expect(readFileSync(auditPath, "utf8")).not.toContain("synthetic bulk note");
+});
+
+it.each(["0", "1,no", "9007199254740992", Array.from({ length: 101 }, (_, i) => i + 1).join(",")])(
+  "refuses invalid or excessive bulk note targets before HTTP (%s)", async (ids) => {
+    const seen: { method: string; url: string; body?: string }[] = [];
+    const { run } = harness({ profile: selected(ruxProfile), transport: notesTransport(() => [], seen) });
+    await expect(run(["host", "note", "bulk-add", "--ids", ids, "--note", "synthetic note"], "host"))
+      .rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    expect(seen).toEqual([]);
+  },
+);
+
+it("accepts exactly 100 bulk note targets and preserves file content", async () => {
+  const note = "synthetic file note\nsecond line\n";
+  writeFileSync(notePath, note);
+  const seen: { method: string; url: string; body?: string }[] = [];
+  const { run } = harness({ profile: selected(ruxProfile), transport: notesTransport(() => [], seen) });
+  const ids = Array.from({ length: 100 }, (_, i) => i + 1);
+  const result = await run(["host", "note", "bulk-add", "--ids", ids.join(","), "--note-file", notePath,
+    "--execute", "--confirm", `100 targets: ${ids.map((id) => `host ${id}`).join(", ")}`], "host");
+  expect(result.failed).toBe(false);
+  expect(seen.filter((call) => call.method === "POST")).toEqual([{
+    method: "POST", url: "https://fixture.invalid/api/v3.4/hosts/notes/",
+    body: JSON.stringify({ note, objectIds: ids }),
+  }]);
+});
+
+it("refuses QUX bulk notes before HTTP", async () => {
+  const seen: { method: string; url: string; body?: string }[] = [];
+  const { run } = harness({ transport: notesTransport(() => [], seen) });
+  await expect(run(["host", "note", "bulk-add", "--ids", "7,8", "--note", "synthetic note"], "host"))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  expect(seen).toEqual([]);
+});
 
 it.each(["detection", "host", "account"] as const)("previews then appends a RUX %s note through its slash route", async (kind) => {
   const seen: { method: string; url: string; body?: string }[] = [];

@@ -29,6 +29,7 @@ import { entityKind, listFields as entityListFields, listLimit as entityListLimi
   showId as entityShowId } from "./entities.js";
 import { NOTE_KINDS, noteOwnerId, runNoteList, runTagList, type NoteKind } from "./notes.js";
 import { runNoteAdd } from "./note-add.js";
+import { runNoteBulk } from "./note-bulk.js";
 import { runEntityClose } from "./entity-close.js";
 import { noteEntryId, runNoteDelete, runNoteEdit } from "./note-edit.js";
 import { configPath, envProfile, loadConfig, selectProfile } from "./profiles.js";
@@ -133,6 +134,11 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
           || invocation.leaf === "host tag bulk-set" || invocation.leaf === "host tag bulk-delete"
           || invocation.leaf === "account tag bulk-set" || invocation.leaf === "account tag bulk-delete") {
           return runTagBulks(invocation.leaf, invocation.flags);
+        }
+        if (invocation.leaf === "detection note bulk-add" || invocation.leaf === "host note bulk-add"
+          || invocation.leaf === "account note bulk-add") {
+          const kind = invocation.leaf.split(" ")[0] as NoteKind;
+          return runWrite(invocation.flags, (session, coordinator) => runNoteBulk(session, coordinator, invocation.flags, kind));
         }
         if (invocation.leaf === "detection note add" || invocation.leaf === "host note add"
           || invocation.leaf === "account note add") {
