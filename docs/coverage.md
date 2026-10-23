@@ -2,7 +2,7 @@
 
 # vectra-axi coverage
 
-This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, assignment-write, note edit/delete, detection close/open, host key-asset, assignment outcome create/edit/delete and host/account close families, not full Vectra API coverage.
+This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, assignment-write/resolve, note edit/delete, detection close/open, host key-asset, assignment outcome create/edit/delete and host/account close families, not full Vectra API coverage.
 Only `named` operations have an implemented, tested command leaf.
 The `implemented` disposition records tested internal OAuth exchanges with no command leaf;
 other operations remain planned, blocked or unreviewed until their own slices ship.
@@ -11,7 +11,7 @@ there is no unrestricted passthrough.
 
 ## Counts
 
-- named: 136
+- named: 140
 - implemented: 2
 - reviewed-raw: 0
 - planned: 2
@@ -166,6 +166,10 @@ there is no unrestricted passthrough.
 | `rux.assignment-outcome.create` | assignment outcome create | WRITE-10 | rux 3.4 | none | named | named |
 | `rux.assignment-outcome.edit` | assignment outcome edit | WRITE-10 | rux 3.4 | none | named | named |
 | `rux.assignment-outcome.delete` | assignment outcome delete | WRITE-10 | rux 3.4 | none | named | named |
+| `qux.host.assignment.resolve` | assignment resolve | WRITE-07 | qux 2.5 | none | named | named |
+| `qux.account.assignment.resolve` | assignment resolve | WRITE-07 | qux 2.5 | none | named | named |
+| `rux.host.assignment.resolve` | assignment resolve | WRITE-07 | rux 3.4 | none | named | named |
+| `rux.account.assignment.resolve` | assignment resolve | WRITE-07 | rux 3.4 | none | named | named |
 
 ## Deferred families
 
@@ -189,11 +193,11 @@ there is no unrestricted passthrough.
 - `rux.long-tail.ad-group-directory` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.later.note-writes` (qux 2.5, planned): Per-object note append is a named WRITE-02 operation (qux.detection.note.add, qux.host.note.add, qux.account.note.add); per-note edit and delete are named WRITE-N (2a) operations (qux.{detection,host,account}.note.{edit,delete}). Bulk note creation stays planned with no authorized route.
 - `qux.later.tag-writes` (qux 2.5, planned): Per-object tag replace is a named WRITE-01 operation (qux.detection.tag.set, qux.host.tag.set, qux.account.tag.set); bulk set/delete are named WRITE-05 operations (qux.detection.tag.bulk-set, qux.detection.tag.bulk-delete, qux.host.tag.bulk-set, qux.host.tag.bulk-delete, qux.account.tag.bulk-set, qux.account.tag.bulk-delete) sequencing per-target PATCH replaces with no vendor bulk route.
-- `qux.later.assignment-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
+- `qux.later.assignment-writes` (qux 2.5, planned): Assignment set and assignment resolve ship through the WRITE-00 coordinator. No additional route is authorized by this family entry.
 - `qux.later.group-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `qux.later.triage-rule-writes` (qux 2.5, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `rux.later.note-writes` (rux 3.4, planned): Per-object note append is a named WRITE-02 operation (rux.{detection,host,account}.note.add); per-note edit and delete are named WRITE-N (2a) operations (rux.{detection,host,account}.note.{edit,delete}). Bulk note creation stays planned with no authorized route.
 - `rux.later.tag-writes` (rux 3.4, planned): Per-object tag replace and bulk set/delete are named operations for detections, hosts and accounts, sequencing per-target PATCH replaces. Native bulk routes and the entity facade remain outside the named surface. No additional route is authorized by this family entry.
-- `rux.later.assignment-writes` (rux 3.4, planned): Assignment create/reassign/unassign ship through the WRITE-00 coordinator under assignment set. Assignment resolve remains planned; no additional route is authorized by this family entry.
+- `rux.later.assignment-writes` (rux 3.4, planned): Assignment set and assignment resolve ship through the WRITE-00 coordinator. No additional route is authorized by this family entry.
 - `rux.later.group-writes` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.
 - `rux.later.triage-rule-writes` (rux 3.4, planned): WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.

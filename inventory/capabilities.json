@@ -5468,6 +5468,170 @@
         "server-reject",
         "outcome-unknown"
       ]
+    },
+    {
+      "id": "qux.host.assignment.resolve",
+      "command": "assignment resolve",
+      "slice": "WRITE-07",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires a unique open assignment and an existing outcome, re-read before sending. No unresolve. Optional detection_ids require exactly one of mark_as_fixed or triage_as. 409 is FAILED; ambiguous outcomes are never replayed.",
+      "method": "PUT",
+      "path": "/api/v2.5/assignments/{id}/resolve",
+      "effect": "disruptive",
+      "query": [],
+      "fields": [
+        "outcome",
+        "note",
+        "detection_ids",
+        "mark_as_fixed",
+        "triage_as"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "set_assignment_resolved: PUT /assignments/{id}/resolve"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Assignment resolution through the unchanged WRITE-00 policy, separately allowlisted for each entity kind.",
+      "fixtureCases": [
+        "dry-run",
+        "resolve-success",
+        "no-open-assignment",
+        "unknown-outcome",
+        "version-conflict",
+        "refused-without-opt-in",
+        "server-rejection",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.account.assignment.resolve",
+      "command": "assignment resolve",
+      "slice": "WRITE-07",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Requires a unique open assignment and an existing outcome, re-read before sending. No unresolve. Optional detection_ids require exactly one of mark_as_fixed or triage_as. 409 is FAILED; ambiguous outcomes are never replayed.",
+      "method": "PUT",
+      "path": "/api/v2.5/assignments/{id}/resolve",
+      "effect": "disruptive",
+      "query": [],
+      "fields": [
+        "outcome",
+        "note",
+        "detection_ids",
+        "mark_as_fixed",
+        "triage_as"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the user's or API client's assigned role; resource write permission required (guide p9).",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "set_assignment_resolved: PUT /assignments/{id}/resolve"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Assignment resolution through the unchanged WRITE-00 policy, separately allowlisted for each entity kind.",
+      "fixtureCases": [
+        "dry-run",
+        "resolve-success",
+        "no-open-assignment",
+        "unknown-outcome",
+        "version-conflict",
+        "refused-without-opt-in",
+        "server-rejection",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.host.assignment.resolve",
+      "command": "assignment resolve",
+      "slice": "WRITE-07",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires a unique open assignment and an existing outcome, re-read before sending. No unresolve. Optional detection_ids require exactly one of mark_as_fixed or triage_as. 409 is FAILED; ambiguous outcomes are never replayed.",
+      "method": "PUT",
+      "path": "/api/v3.4/assignments/{id}/resolve/",
+      "effect": "disruptive",
+      "query": [],
+      "fields": [
+        "outcome",
+        "note",
+        "detection_ids",
+        "mark_as_fixed",
+        "triage_as"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource write permission; authorization denial is an error.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4_assignments_resolve; AssignmentsResolveBodyV3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Assignment resolution through the unchanged WRITE-00 policy, separately allowlisted for each entity kind.",
+      "fixtureCases": [
+        "dry-run",
+        "resolve-success",
+        "no-open-assignment",
+        "unknown-outcome",
+        "version-conflict",
+        "refused-without-opt-in",
+        "server-rejection",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.account.assignment.resolve",
+      "command": "assignment resolve",
+      "slice": "WRITE-07",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Requires a unique open assignment and an existing outcome, re-read before sending. No unresolve. Optional detection_ids require exactly one of mark_as_fixed or triage_as. 409 is FAILED; ambiguous outcomes are never replayed.",
+      "method": "PUT",
+      "path": "/api/v3.4/assignments/{id}/resolve/",
+      "effect": "disruptive",
+      "query": [],
+      "fields": [
+        "outcome",
+        "note",
+        "detection_ids",
+        "mark_as_fixed",
+        "triage_as"
+      ],
+      "paging": "none",
+      "permissions": "OAuth API client with resource write permission; authorization denial is an error.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4_assignments_resolve; AssignmentsResolveBodyV3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Assignment resolution through the unchanged WRITE-00 policy, separately allowlisted for each entity kind.",
+      "fixtureCases": [
+        "dry-run",
+        "resolve-success",
+        "no-open-assignment",
+        "unknown-outcome",
+        "version-conflict",
+        "refused-without-opt-in",
+        "server-rejection",
+        "unknown-outcome-no-replay"
+      ]
     }
   ],
   "deferredFamilies": [
@@ -5736,7 +5900,7 @@
       "deployment": "qux",
       "apiVersion": "2.5",
       "disposition": "planned",
-      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "rationale": "Assignment set and assignment resolve ship through the WRITE-00 coordinator. No additional route is authorized by this family entry.",
       "evidence": [
         {
           "source": "qux-guide",
@@ -5801,7 +5965,7 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "disposition": "planned",
-      "rationale": "Assignment create/reassign/unassign ship through the WRITE-00 coordinator under assignment set. Assignment resolve remains planned; no additional route is authorized by this family entry.",
+      "rationale": "Assignment set and assignment resolve ship through the WRITE-00 coordinator. No additional route is authorized by this family entry.",
       "evidence": [
         {
           "source": "rux-spec",

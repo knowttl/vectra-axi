@@ -1661,6 +1661,47 @@ Set a QUX or RUX host or account assignment to an exact user through the gated w
 }
 ```
 
+## assignment resolve
+
+Permanently resolve an open QUX or RUX host or account assignment through the gated write pipeline; there is no unresolve
+
+- `qux.host.assignment.resolve`: QUX API 2.5
+- `qux.account.assignment.resolve`: QUX API 2.5
+- `rux.host.assignment.resolve`: RUX API 3.4
+- `rux.account.assignment.resolve`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi assignment resolve",
+  "description": "Permanently resolve an open QUX or RUX host or account assignment through the gated write pipeline; there is no unresolve",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--host <id>": "Host ID; exactly one of --host or --account is required",
+    "--account <id>": "Account ID; exactly one of --host or --account is required",
+    "--outcome <id>": "Existing assignment outcome ID (required)",
+    "--note <text>": "Optional resolution note; cannot combine with --note-file",
+    "--note-file <path>": "Read the optional note from a file or - for stdin",
+    "--detections <ids>": "Comma-separated detection IDs (up to 100); requires --mark-fixed or --triage-as",
+    "--mark-fixed": "Mark selected detections fixed; requires --detections and excludes --triage-as",
+    "--triage-as <label>": "Triage selected detections under this label; requires --detections and excludes --mark-fixed",
+    "--confirm <target>": "Confirm the exact host|account <id> target when executing",
+    "--execute": "Send the resolution; default previews without sending",
+    "--dry-run": "Preview without sending; cannot combine with --execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi assignment resolve --profile <name> --host 7 --outcome 1 --note 'Investigation complete'",
+    "vectra-axi assignment resolve --profile <name> --account 7 --outcome 1 --execute --confirm 'account 7'",
+    "vectra-axi assignment resolve --profile <name> --host 7 --outcome 1 --detections 41,42 --mark-fixed"
+  ]
+}
+```
+
 ## assignment outcome list
 
 List QUX or RUX assignment outcomes with a bounded window

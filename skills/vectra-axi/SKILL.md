@@ -73,6 +73,7 @@ See [operation coverage](https://github.com/knowttl/vectra-axi/blob/main/docs/co
 | `npx -y @knowttl/vectra-axi account note delete` | native | write | - |
 | `npx -y @knowttl/vectra-axi assignment list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
 | `npx -y @knowttl/vectra-axi assignment set` | native | write | - |
+| `npx -y @knowttl/vectra-axi assignment resolve` | native | disruptive | - |
 | `npx -y @knowttl/vectra-axi assignment outcome list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
 | `npx -y @knowttl/vectra-axi assignment outcome create` | native | write | - |
 | `npx -y @knowttl/vectra-axi assignment outcome edit` | native | write | - |
