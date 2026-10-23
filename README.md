@@ -154,6 +154,7 @@ vectra-axi detection note delete --profile cloud --id 42 --note-id 7
 vectra-axi assignment set --profile onprem --host 7 --user 3
 vectra-axi detection close --profile onprem --id 42 --reason benign
 vectra-axi detection open --profile cloud --ids 41,42
+vectra-axi host key-asset set --profile onprem --id 7 --value true
 ```
 
 For single-target tag changes, note appends, and assignments, confirmation is the kind and ID, for example `--execute --confirm 'detection 42'`.
@@ -172,6 +173,9 @@ Bulk confirmation names the complete normalized target set, for example `--execu
   Close requires `--reason remediated|benign`; reopening restores scoring.
   Single-target confirmation is `detection <id>`; bulk confirmation names the complete normalized set.
   Both support QUX release 9.3 or later and RUX v3.4, re-read detection state before sending, and skip an already desired state.
+
+- `host key-asset set` requires `--id` and `--value true|false`, with confirmation `host <id>`.
+  QUX and RUX re-read `key_asset` before sending and skip an already desired state.
 
 Tag replacement, note edit/delete, and assignment changes re-read before sending and refuse conflicting state with `VERSION_CONFLICT`.
 These comparisons are not atomic server-side version checks; concurrent changes after the re-read can still be overwritten or removed.
@@ -295,6 +299,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.<kind>.note.edit`, `<generation>.<kind>.note.delete` | Edit/delete notes on QUX or RUX |
 | `<generation>.<kind>.assignment.create`, `.reassign`, `.unassign` | Assignments for hosts/accounts on QUX or RUX |
 | `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
+| `<generation>.host.key-asset.set` | Set host key-asset state on QUX or RUX |
 
 Replace `<kind>` with `detection`, `host`, or `account`, except assignments, which support only `host` and `account`, and detection close/open, which supports only `detection`.
 Replace `<generation>` with `qux` or `rux`.
@@ -341,7 +346,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `profile` | `profile list` | Local |
 | `config` | `config path` | Local |
 | `detection` | `detection list`, `detection show`, `detection event list`, `detection close`, `detection open`, `detection note list`, `detection tag list`, `detection tag set`, `detection tag bulk-set`, `detection tag bulk-delete`, `detection note add`, `detection note edit`, `detection note delete` | QUX, RUX |
-| `host` | `host list`, `host show`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
+| `host` | `host list`, `host show`, `host key-asset set`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
 | `account` | `account list`, `account show`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
 | `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |
 | `assignment` | `assignment list`, `assignment set`, `assignment outcome list`, `assignment outcome show` | QUX, RUX |

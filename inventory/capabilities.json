@@ -161,6 +161,70 @@
       ]
     },
     {
+      "id": "qux.host.key-asset.set",
+      "command": "host key-asset set",
+      "slice": "WRITE-08",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Exact host confirmation required. Host show key_asset is re-read before sending; already desired state is a no-op. Client-side re-read is not atomic.",
+      "method": "PATCH",
+      "path": "/api/v2.5/hosts/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Host mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Edit Host p96; key_asset True/False"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Host key-asset desired-state mutation implemented through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "noop",
+        "write-policy",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.host.key-asset.set",
+      "command": "host key-asset set",
+      "slice": "WRITE-08",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Exact host confirmation required. Host show key_asset is re-read before sending; already desired state is a no-op. Client-side re-read is not atomic.",
+      "method": "PATCH",
+      "path": "/api/v3.4/hosts/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Host mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "PATCH /api/v3.4/hosts/{id}/; key_asset true/false"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Host key-asset desired-state mutation implemented through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "success",
+        "noop",
+        "write-policy",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
       "id": "qux.detection.close",
       "command": "detection close",
       "slice": "WRITE-06",

@@ -45,6 +45,7 @@ See [operation coverage](https://github.com/knowttl/vectra-axi/blob/main/docs/co
 | `npx -y @knowttl/vectra-axi entity scoring list` | native | read | RUX: checkpoint batch; --cursor/--from continuation, no --all |
 | `npx -y @knowttl/vectra-axi detection close` | native | write | - |
 | `npx -y @knowttl/vectra-axi detection open` | native | write | - |
+| `npx -y @knowttl/vectra-axi host key-asset set` | native | write | - |
 | `npx -y @knowttl/vectra-axi detection note list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
 | `npx -y @knowttl/vectra-axi detection tag list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
 | `npx -y @knowttl/vectra-axi detection tag set` | native | write | - |
