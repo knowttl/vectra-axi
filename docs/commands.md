@@ -630,6 +630,41 @@ Reopen QUX (9.3+) or RUX detections for scoring through the gated write pipeline
 }
 ```
 
+## host key-asset set
+
+Set a QUX or RUX host key-asset flag through the gated write pipeline
+
+- `qux.host.key-asset.set`: QUX API 2.5
+- `rux.host.key-asset.set`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi host key-asset set",
+  "description": "Set a QUX or RUX host key-asset flag through the gated write pipeline",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Host ID (positive integer, required)",
+    "--value <bool>": "Desired key-asset state: true or false (required)",
+    "--execute": "Send the confirmed change; default previews only",
+    "--dry-run": "Preview only; cannot be combined with --execute",
+    "--confirm <target>": "Exact host target from the preview, required to execute a change"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi host key-asset set --profile <name> 7 --value true",
+    "vectra-axi host key-asset set --profile <name> 7 --value false --execute --confirm 'host 7'"
+  ]
+}
+```
+
 ## detection note list
 
 List full detection notes on QUX v2.5 or RUX v3.4 through the dedicated notes route

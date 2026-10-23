@@ -297,6 +297,21 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi detection open --profile <name> --ids 41,42",
     ],
   },
+  "host key-asset set": {
+    description: "Set a QUX or RUX host key-asset flag through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Host ID (positive integer, required)" },
+      value: { kind: "value", valueName: "bool", description: "Desired key-asset state: true or false (required)" },
+      execute: { kind: "boolean", description: "Send the confirmed change; default previews only" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot be combined with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact host target from the preview, required to execute a change" },
+    },
+    examples: [
+      "vectra-axi host key-asset set --profile <name> --id 7 --value true",
+      "vectra-axi host key-asset set --profile <name> --id 7 --value false --execute --confirm 'host 7'",
+    ],
+  },
   "detection note list": {
     // Notes come only from the dedicated versioned notes resource, never
     // from the embedded detail summary. --full prints the complete returned

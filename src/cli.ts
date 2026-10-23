@@ -37,6 +37,7 @@ import { createSession, nodeTransport, type RawTransport } from "./session.js";
 import { runTagBulk, type BulkTagAction } from "./tags-bulk.js";
 import { runTagSet } from "./tags.js";
 import { runDetectionState } from "./detection-state.js";
+import { runHostKeyAsset } from "./host-key-asset.js";
 import { createMutationCoordinator, readOnlyForced } from "./writes.js";
 
 const ASSIGNMENT_FIELDS = {
@@ -145,6 +146,9 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         if (invocation.leaf === "detection close" || invocation.leaf === "detection open") {
           const action = invocation.leaf === "detection close" ? "close" : "open";
           return runWrite(invocation.flags, (session, coordinator) => runDetectionState(session, coordinator, invocation.flags, action));
+        }
+        if (invocation.leaf === "host key-asset set") {
+          return runWrite(invocation.flags, (session, coordinator) => runHostKeyAsset(session, coordinator, invocation.flags));
         }
         if (invocation.leaf === "assignment set") {
           return runAssignmentSets(invocation.flags);
