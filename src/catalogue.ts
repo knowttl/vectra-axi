@@ -266,6 +266,35 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi entity scoring list --profile <name> --type host --cursor <cursor>",
     ],
   },
+  "detection triage set": {
+    description: "Set a QUX or RUX per-detection triage label, suppressing scoring, through the gated write pipeline",
+    flags: {
+      ...globals,
+      ids: { kind: "value", valueName: "ids", description: "Comma-separated detection IDs, normalized and capped at 100 (required)" },
+      category: { kind: "value", valueName: "label", description: "Nonempty custom triage label (required)" },
+      execute: { kind: "boolean", description: "Send the confirmed change; default previews only" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot be combined with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target from the preview, required to execute" },
+    },
+    examples: [
+      "vectra-axi detection triage set --profile <name> --ids 41 --category synthetic-triage",
+      "vectra-axi detection triage set --profile <name> --ids 41,42 --category synthetic-triage",
+    ],
+  },
+  "detection triage clear": {
+    description: "Clear QUX or RUX per-detection triage suppression through the gated write pipeline",
+    flags: {
+      ...globals,
+      ids: { kind: "value", valueName: "ids", description: "Comma-separated detection IDs, normalized and capped at 100 (required)" },
+      execute: { kind: "boolean", description: "Send the confirmed change; default previews only" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot be combined with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target from the preview, required to execute" },
+    },
+    examples: [
+      "vectra-axi detection triage clear --profile <name> --ids 41",
+      "vectra-axi detection triage clear --profile <name> --ids 41,42",
+    ],
+  },
   "detection close": {
     description: "Close QUX (9.3+) or RUX detections as remediated or benign through the gated write pipeline",
     flags: {

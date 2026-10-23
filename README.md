@@ -155,6 +155,8 @@ vectra-axi assignment set --profile onprem --host 7 --user 3
 vectra-axi assignment outcome create --profile onprem --title 'Example outcome' --category internal
 vectra-axi detection close --profile onprem --id 42 --reason benign
 vectra-axi detection open --profile cloud --ids 41,42
+vectra-axi detection triage set --profile cloud --ids 41 --category synthetic-triage
+vectra-axi detection triage clear --profile cloud --ids 41
 vectra-axi host key-asset set --profile onprem --id 7 --value true
 ```
 
@@ -186,6 +188,11 @@ Bulk confirmation names the complete normalized target set, for example `--execu
   Equal edits send nothing; changed state between reads is refused.
 - `host key-asset set` requires `--id` and `--value true|false`, with confirmation `host <id>`.
   QUX and RUX re-read `key_asset` before sending and skip an already desired state.
+- `detection triage set` requires `--ids` and a nonempty `--category`; `detection triage clear` requires `--ids`.
+  Triage suppresses scoring; clearing removes that suppression.
+  Both accept at most 100 explicit detections and confirm the complete normalized target set.
+  They re-read triage state before sending and refuse changes, without inferring an already desired label.
+  QUX support is VAT-only evidence; the QUX PDF does not document this per-detection route.
 
 Tag replacement, note edit/delete, and assignment changes re-read before sending and refuse conflicting state with `VERSION_CONFLICT`.
 These comparisons are not atomic server-side version checks; concurrent changes after the re-read can still be overwritten or removed.
@@ -311,6 +318,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.assignment-outcome.create`, `.edit`, `.delete` | Custom assignment outcomes on QUX or RUX |
 | `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
 | `<generation>.host.key-asset.set` | Set host key-asset state on QUX or RUX |
+| `<generation>.detection.triage.set`, `.clear` | Set/clear per-detection triage suppression on QUX or RUX |
 | `<generation>.host.close`, `<generation>.account.close` | Close hosts/accounts with all active detections on QUX (release 9.3+) or RUX |
 
 Replace `<kind>` with `detection`, `host`, or `account`, except assignments, which support only `host` and `account`, and detection close/open, which supports only `detection`.
@@ -357,7 +365,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `auth` | `auth status` | Local |
 | `profile` | `profile list` | Local |
 | `config` | `config path` | Local |
-| `detection` | `detection list`, `detection show`, `detection event list`, `detection close`, `detection open`, `detection note list`, `detection tag list`, `detection tag set`, `detection tag bulk-set`, `detection tag bulk-delete`, `detection note add`, `detection note edit`, `detection note delete` | QUX, RUX |
+| `detection` | `detection list`, `detection show`, `detection event list`, `detection triage set`, `detection triage clear`, `detection close`, `detection open`, `detection note list`, `detection tag list`, `detection tag set`, `detection tag bulk-set`, `detection tag bulk-delete`, `detection note add`, `detection note edit`, `detection note delete` | QUX, RUX |
 | `host` | `host list`, `host show`, `host key-asset set`, `host close`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
 | `account` | `account list`, `account show`, `account close`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
 | `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |

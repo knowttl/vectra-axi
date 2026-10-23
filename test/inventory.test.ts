@@ -77,6 +77,8 @@ describe("capability inventory", () => {
       "qux.detection.tag.bulk-set",
       "qux.detection.tag.list",
       "qux.detection.tag.set",
+      "qux.detection.triage.clear",
+      "qux.detection.triage.set",
       "qux.entity.account.list",
       "qux.entity.account.show",
       "qux.entity.host.list",
@@ -144,6 +146,8 @@ describe("capability inventory", () => {
       "rux.detection.tag.bulk-set",
       "rux.detection.tag.list",
       "rux.detection.tag.set",
+      "rux.detection.triage.clear",
+      "rux.detection.triage.set",
       "rux.entity.list",
       "rux.entity.scoring.list",
       "rux.entity.show",
@@ -195,7 +199,7 @@ describe("capability inventory", () => {
     ["invented completeness percentage", { completenessPercent: 100 }],
   ])("rejects %s", (_name, patch) => {
     const candidate = structuredClone(inventory);
-    Object.assign(candidate.operations[0], patch);
+    Object.assign(candidate.operations.find((operation: { id: string }) => operation.id === "qux.detection.list"), patch);
     expect(inventorySchema.safeParse(candidate).success).toBe(false);
   });
 

@@ -62,6 +62,134 @@
   ],
   "operations": [
     {
+      "id": "qux.detection.triage.set",
+      "command": "detection triage set",
+      "slice": "WRITE-09",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Explicit detection IDs only, at most 100. Triage suppresses scoring. Exact confirmation and pre-send triage-state re-read required; changed state is refused. Re-read is not atomic; no no-op inference because custom labels are not reliably exposed. VAT-only: the QUX PDF does not document this per-detection route.",
+      "method": "POST",
+      "path": "/api/v2.5/rules",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Detection mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "VAT-only: vectra.py mark_detections_custom/unmark_detections_custom, lines 1155-1181"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Per-detection triage implemented through the unchanged WRITE-00 coordinator; rule administration remains separate.",
+      "fixtureCases": [
+        "success",
+        "write-policy",
+        "version-conflict",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "qux.detection.triage.clear",
+      "command": "detection triage clear",
+      "slice": "WRITE-09",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Explicit detection IDs only, at most 100. Triage suppresses scoring. Exact confirmation and pre-send triage-state re-read required; changed state is refused. Re-read is not atomic; no no-op inference because custom labels are not reliably exposed. VAT-only: the QUX PDF does not document this per-detection route.",
+      "method": "DELETE",
+      "path": "/api/v2.5/rules",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Detection mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "vat-qux",
+          "locator": "VAT-only: vectra.py mark_detections_custom/unmark_detections_custom, lines 1155-1181"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Per-detection triage implemented through the unchanged WRITE-00 coordinator; rule administration remains separate.",
+      "fixtureCases": [
+        "success",
+        "write-policy",
+        "version-conflict",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.detection.triage.set",
+      "command": "detection triage set",
+      "slice": "WRITE-09",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Explicit detection IDs only, at most 100. Triage suppresses scoring. Exact confirmation and pre-send triage-state re-read required; changed state is refused. Re-read is not atomic; no no-op inference because custom labels are not reliably exposed.",
+      "method": "POST",
+      "path": "/api/v3.4/rules/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Detection mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /rules/ POST Task B and DELETE detectionIdList"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Per-detection triage implemented through the unchanged WRITE-00 coordinator; rule administration remains separate.",
+      "fixtureCases": [
+        "success",
+        "write-policy",
+        "version-conflict",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
+      "id": "rux.detection.triage.clear",
+      "command": "detection triage clear",
+      "slice": "WRITE-09",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Explicit detection IDs only, at most 100. Triage suppresses scoring. Exact confirmation and pre-send triage-state re-read required; changed state is refused. Re-read is not atomic; no no-op inference because custom labels are not reliably exposed.",
+      "method": "DELETE",
+      "path": "/api/v3.4/rules/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Detection mutation permission plus hand-edited profile write opt-in and operation allowlist.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /rules/ POST Task B and DELETE detectionIdList"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Per-detection triage implemented through the unchanged WRITE-00 coordinator; rule administration remains separate.",
+      "fixtureCases": [
+        "success",
+        "write-policy",
+        "version-conflict",
+        "server-reject",
+        "outcome-unknown"
+      ]
+    },
+    {
       "id": "qux.detection.list",
       "command": "detection list",
       "slice": "READ-01",
@@ -5762,7 +5890,7 @@
       "deployment": "qux",
       "apiVersion": "2.5",
       "disposition": "planned",
-      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "rationale": "Per-detection triage set/clear are named WRITE-09 operations. Rule create/edit/delete remain planned and require a separately reviewed mutation family. No additional route is authorized by this family entry.",
       "evidence": [
         {
           "source": "qux-guide",
@@ -5827,7 +5955,7 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "disposition": "planned",
-      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "rationale": "Per-detection triage set/clear are named WRITE-09 operations. Rule create/edit/delete remain planned and require a separately reviewed mutation family. No additional route is authorized by this family entry.",
       "evidence": [
         {
           "source": "rux-spec",

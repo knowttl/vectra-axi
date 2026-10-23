@@ -164,7 +164,7 @@ export function createMutationCoordinator(args: {
         "WRITES_DISABLED",
         [
           "Writes are disabled for this profile",
-          "Gated `tag set` replaces, bulk `tag bulk-set`/`tag bulk-delete` changes, `note add` appends, `note edit`/`note delete` changes, `assignment set` changes, `assignment outcome create`/`edit`/`delete` changes, `detection close`/`detection open` changes, `host key-asset set` changes and `host close`/`account close` need a hand-edited writes scope on this profile",
+          "Gated `tag set` replaces, bulk `tag bulk-set`/`tag bulk-delete` changes, `note add` appends, `note edit`/`note delete` changes, `assignment set` changes, `assignment outcome create`/`edit`/`delete` changes, `detection close`/`detection open` changes, `detection triage set`/`detection triage clear` changes, `host key-asset set` changes and `host close`/`account close` need a hand-edited writes scope on this profile",
         ],
       );
     }
@@ -175,7 +175,7 @@ export function createMutationCoordinator(args: {
         "OPERATION_NOT_WRITABLE",
         [
           "Writes are limited to this profile's configured operations",
-          "Only implemented operations can run: `tag set` replaces, bulk `tag bulk-set`/`tag bulk-delete` changes, `note add` appends, `note edit`/`note delete` changes, `assignment set` changes, `assignment outcome create`/`edit`/`delete` changes, `detection close`/`detection open` changes, `host key-asset set` changes and `host close`/`account close`",
+          "Only implemented operations can run: `tag set` replaces, bulk `tag bulk-set`/`tag bulk-delete` changes, `note add` appends, `note edit`/`note delete` changes, `assignment set` changes, `assignment outcome create`/`edit`/`delete` changes, `detection close`/`detection open` changes, `detection triage set`/`detection triage clear` changes, `host key-asset set` changes and `host close`/`account close`",
         ],
       );
     }
