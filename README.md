@@ -160,6 +160,7 @@ vectra-axi assignment set --profile onprem --host 7 --user 3
 vectra-axi assignment outcome create --profile onprem --title 'Example outcome' --category internal
 vectra-axi detection close --profile onprem --id 42 --reason benign
 vectra-axi detection open --profile cloud --ids 41,42
+vectra-axi detection fixed set --profile onprem --ids 41,42 --value true
 vectra-axi detection triage set --profile cloud --ids 41 --category synthetic-triage
 vectra-axi detection triage clear --profile cloud --ids 41
 vectra-axi host key-asset set --profile onprem --id 7 --value true
@@ -179,6 +180,10 @@ Bulk confirmation names the complete normalized target set, for example `--execu
 - `assignment set` requires one of `--host` or `--account`, plus one of `--user` or `--unassign`.
 - `assignment resolve` requires one of `--host` or `--account` and an existing `--outcome` ID.
   Preview warns that there is no unresolve; optional `--detections` requires exactly one of `--mark-fixed` or `--triage-as`.
+- `detection fixed set` marks or unmarks legacy fixed state with `--value true|false` and exactly one of `--id` or `--ids`, capped at 100 explicit detections.
+  QUX uses the bulk route even for a single ID; RUX uses single or bulk routes.
+  Marking fixed zeroes detection scores; detection close supersedes it on release 9.3+.
+  Preview and pre-send reads skip targets already in the desired state.
 - `detection close` and `detection open` accept exactly one of `--id` or `--ids`, capped at 100 explicit detections.
   Close requires `--reason remediated|benign`; reopening restores scoring.
   Single-target confirmation is `detection <id>`; bulk confirmation names the complete normalized set.
@@ -325,6 +330,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.<kind>.assignment.resolve` | Resolve open assignments for hosts/accounts on QUX or RUX |
 | `<generation>.assignment-outcome.create`, `.edit`, `.delete` | Custom assignment outcomes on QUX or RUX |
 | `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
+| `<generation>.detection.fixed.set` | Mark/unmark legacy fixed state on QUX or RUX |
 | `<generation>.host.key-asset.set` | Set host key-asset state on QUX or RUX |
 | `<generation>.detection.triage.set`, `.clear` | Set/clear per-detection triage suppression on QUX or RUX |
 | `<generation>.triage-rule.create`, `.edit`, `.delete` | Create/replace/delete org-wide triage rules on QUX or RUX |
@@ -374,7 +380,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `auth` | `auth status` | Local |
 | `profile` | `profile list` | Local |
 | `config` | `config path` | Local |
-| `detection` | `detection list`, `detection show`, `detection event list`, `detection triage set`, `detection triage clear`, `detection close`, `detection open`, `detection note list`, `detection tag list`, `detection tag set`, `detection tag bulk-set`, `detection tag bulk-delete`, `detection note add`, `detection note edit`, `detection note delete` | QUX, RUX |
+| `detection` | `detection list`, `detection show`, `detection event list`, `detection triage set`, `detection triage clear`, `detection fixed set`, `detection close`, `detection open`, `detection note list`, `detection tag list`, `detection tag set`, `detection tag bulk-set`, `detection tag bulk-delete`, `detection note add`, `detection note edit`, `detection note delete` | QUX, RUX |
 | `host` | `host list`, `host show`, `host key-asset set`, `host close`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
 | `account` | `account list`, `account show`, `account close`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
 | `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |

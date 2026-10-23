@@ -22,7 +22,7 @@ afterEach(() => {
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 
 function harness(options: {
-  kind?: "qux" | "rux"; state?: (id: number) => unknown; release?: string;
+  kind?: "qux" | "rux"; state?: (id: number) => unknown; fixed?: (id: number) => unknown; release?: string;
   writes?: { allowWrites: boolean; operations: string[] }; status?: number; timeout?: boolean;
 } = {}) {
   const kind = options.kind ?? "qux";
@@ -32,7 +32,7 @@ function harness(options: {
       : { auth: "oauth", clientId: "synthetic-client", secretEnv: "SYNTHETIC_TOKEN" }),
     ...(options.release ? { applianceRelease: options.release } : {}),
     writes: options.writes ?? { allowWrites: true,
-      operations: ["close", "close-bulk", "open", "open-bulk"].map((action) => `${kind}.detection.${action}`) },
+      operations: ["close", "close-bulk", "open", "open-bulk", "fixed.set"].map((action) => `${kind}.detection.${action}`) },
   };
   writeFileSync(configPath, JSON.stringify({ profiles: { lab: profile } }));
   const redactor = new SecretRedactor();
@@ -46,7 +46,10 @@ function harness(options: {
     seen.push({ method: request.method, url: request.url, ...(request.body ? { body: request.body } : {}) });
     if (request.method === "GET") {
       const id = Number(new URL(request.url).pathname.split("/").filter(Boolean).at(-1));
-      return { status: 200, bodyText: JSON.stringify({ id, state: options.state?.(id) ?? "active" }) };
+      const fixed = options.fixed?.(id);
+      return { status: 200, bodyText: JSON.stringify({ id, state: options.fixed
+        ? typeof fixed === "boolean" ? fixed ? "fixed" : "active" : fixed
+        : options.state?.(id) ?? "active" }) };
     }
     if (options.timeout) throw new Error("synthetic timeout");
     return { status: options.status ?? 200, bodyText: "{}" };
@@ -55,13 +58,106 @@ function harness(options: {
   const coordinator = createMutationCoordinator({ profile: selected, configPath, redactor, transport, auditPath });
   return {
     seen,
-    run: (action: "close" | "open", args: string[] = []) => runDetectionState(
-      session, coordinator, new Map(parseInvocation(["detection", action, ...args]).flags), action),
+    run: (action: "close" | "open" | "fixed set", args: string[] = []) => runDetectionState(
+      session, coordinator, new Map(parseInvocation(["detection", ...action.split(" "), ...args]).flags), action),
   };
 }
 const execute = ["--execute", "--confirm", "detection 42"];
 const close = ["--id", "42", "--reason", "benign"];
 const journal = () => readFileSync(auditPath, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+
+it("previews legacy scoring effects and marks a normalized QUX bulk set", async () => {
+  const { run, seen } = harness({ release: "9.2" });
+  const args = ["--ids", "42,41,42", "--value", "true"];
+  expect((await run("fixed set", args)).output).toMatchObject({
+    desired: true, proposed: { detectionIdList: [41, 42], mark_as_fixed: true },
+    warning: expect.stringContaining("zeroes detection scores"),
+  });
+  expect(seen.every((call) => call.method === "GET")).toBe(true);
+  await run("fixed set", [...args, "--execute", "--confirm", "2 targets: detection 41, detection 42"]);
+  expect(seen.filter((call) => call.method === "PATCH")).toEqual([
+    { method: "PATCH", url: "https://fixture.invalid/api/v2.5/detections",
+      body: '{"detectionIdList":[41,42],"mark_as_fixed":true}' },
+  ]);
+  expect(journal().map((line) => [line.kind, line.outcome])).toEqual([["intent", undefined], ["outcome", "SUCCESS"]]);
+  expect(readFileSync(auditPath, "utf8")).not.toMatch(/mark_as_fixed|detectionIdList|payload|synthetic-secret/);
+});
+
+it.each([
+  ["qux", "--id", "42", "/api/v2.5/detections", { detectionIdList: [42], mark_as_fixed: false }],
+  ["rux", "--id", "42", "/api/v3.4/detections/42/", { mark_as_fixed: false }],
+  ["rux", "--ids", "41,42", "/api/v3.4/detections/", { detectionIdList: [41, 42], mark_as_fixed: false }],
+] as const)("unmarks %s %s via its evidenced route", async (kind, flag, ids, path, payload) => {
+  const { run, seen } = harness({ kind, fixed: () => true });
+  await run("fixed set", [flag, ids, "--value", "false", "--execute", "--confirm",
+    flag === "--id" ? "detection 42" : "2 targets: detection 41, detection 42"]);
+  expect(seen.filter((call) => call.method === "PATCH")).toEqual([
+    { method: "PATCH", url: `https://fixture.invalid${path}`, body: JSON.stringify(payload) },
+  ]);
+  expect(seen.filter((call) => call.method === "GET")).toHaveLength(flag === "--id" ? 2 : 4);
+});
+
+it.each([true, false])("treats fixed=%s as a no-op when already desired", async (fixed) => {
+  const { run, seen } = harness({ fixed: () => fixed });
+  expect((await run("fixed set", ["--id", "42", "--value", String(fixed), ...execute])).output)
+    .toMatchObject({ state: expect.stringContaining("no-op") });
+  expect(seen.filter((call) => call.method === "PATCH")).toEqual([]);
+});
+
+it.each([
+  [{ allowWrites: false, operations: ["qux.detection.fixed.set"] }, false, "WRITES_DISABLED"],
+  [{ allowWrites: true, operations: ["qux.detection.open"] }, false, "OPERATION_NOT_WRITABLE"],
+  [{ allowWrites: true, operations: ["qux.detection.fixed.set"] }, true, "WRITES_DISABLED"],
+] as const)("retains fixed-set policy refusals %j read-only=%s", async (writes, readOnly, code) => {
+  if (readOnly) vi.stubEnv("VECTRA_AXI_READ_ONLY", "1");
+  const { run, seen } = harness({ writes: { ...writes, operations: [...writes.operations] } });
+  await expect(run("fixed set", ["--id", "42", "--value", "true", ...execute])).rejects.toMatchObject({ code });
+  expect(seen).toEqual([]);
+});
+
+it.each([
+  [["--execute"], "CONFIRM_REQUIRED"],
+  [["--execute", "--confirm", "detection 41"], "CONFIRM_MISMATCH"],
+  [["--execute", "--dry-run"], "VALIDATION_ERROR"],
+] as const)("refuses invalid fixed-set execution flags %j", async (args, code) => {
+  const { run, seen } = harness();
+  await expect(run("fixed set", ["--id", "42", "--value", "true", ...args])).rejects.toMatchObject({ code });
+  expect(seen.filter((call) => call.method === "PATCH")).toEqual([]);
+});
+
+it.each([[403, false, "FAILED"], [200, true, "OUTCOME_UNKNOWN"]] as const)(
+  "reports fixed-set rejection or ambiguity without replay: %s %s", async (status, timeout, outcome) => {
+    const { run, seen } = harness({ status, timeout });
+    expect((await run("fixed set", ["--id", "42", "--value", "true", ...execute])).failed).toBe(true);
+    expect(seen.filter((call) => call.method === "PATCH")).toHaveLength(1);
+    expect(journal().at(-1)).toMatchObject({ outcome });
+  });
+
+it.each([undefined, null, "", 0])("refuses malformed fixed state %s", async (fixed) => {
+  const { run, seen } = harness({ fixed: () => fixed });
+  await expect(run("fixed set", ["--id", "42", "--value", "true", ...execute]))
+    .rejects.toMatchObject({ code: "MALFORMED_RESPONSE" });
+  expect(seen.filter((call) => call.method === "PATCH")).toEqual([]);
+});
+
+it.each([
+  ["--id", "42"], ["--id", "42", "--value", "yes"],
+  ["--id", "42", "--ids", "41", "--value", "true"],
+  ["--ids", "41,", "--value", "true"],
+].map((args) => ({ args })))("refuses invalid fixed-set input $args", async ({ args }) => {
+  const { run, seen } = harness();
+  await expect(run("fixed set", args)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  expect(seen).toEqual([]);
+});
+
+it("skips fixed-set when the pre-send read reaches the desired state", async () => {
+  let reads = 0;
+  const { run, seen } = harness({ fixed: () => ++reads > 1 });
+  expect((await run("fixed set", ["--id", "42", "--value", "true", ...execute])).output)
+    .toMatchObject({ state: expect.stringContaining("no-op") });
+  expect(seen.filter((call) => call.method === "PATCH")).toEqual([]);
+  expect(journal().at(-1)).toMatchObject({ outcome: "NOT_SENT" });
+});
 
 it("previews then closes a QUX detection with the exact reason and journals metadata only", async () => {
   const { run, seen } = harness();

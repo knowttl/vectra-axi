@@ -551,6 +551,31 @@ it("previews and executes detection close through the packaged binary", () => {
   ]);
 });
 
+it("previews and executes legacy detection fixed set through the packaged binary", () => {
+  const config = join(scratch, "detection-fixed.json");
+  const trace = join(scratch, "detection-fixed-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: ["qux.detection.fixed.set"] } } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    VECTRA_AXI_WRITE_LOG: join(scratch, "detection-fixed-writes.log"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const args = ["detection", "fixed", "set", "--config", config, "--profile", "lab", "--id", "42", "--value", "true"];
+  const preview = invoke(args, fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(decode(preview.stdout)).toMatchObject({ operation: "qux.detection.fixed.set",
+    proposed: { detectionIdList: [42], mark_as_fixed: true },
+    warning: expect.stringContaining("close supersedes mark-fixed") });
+  const applied = invoke([...args, "--execute", "--confirm", "detection 42"], fixtureEnv);
+  expect(applied.status).toBe(0);
+  expect(applied.stderr).toBe("");
+  expect(decode(applied.stdout)).toMatchObject({ mark_as_fixed: true, audit: expect.any(String) });
+  const calls = readFileSync(trace, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+  expect(calls.filter((call) => call.method === "PATCH")).toEqual([
+    { method: "PATCH", url: "https://fixture.invalid/api/v2.5/detections", body: { detectionIdList: [42], mark_as_fixed: true } },
+  ]);
+});
+
 it("previews and executes full triage-rule writes through the packaged binary", () => {
   const config = join(scratch, "rule-write.json");
   const trace = join(scratch, "rule-write-requests.jsonl");

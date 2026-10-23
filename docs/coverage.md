@@ -2,7 +2,7 @@
 
 # vectra-axi coverage
 
-This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, assignment-write/resolve, note edit/delete, detection close/open, detection triage set/clear, group member add/remove/set, host key-asset, assignment outcome create/edit/delete, triage rule create/edit/delete and host/account close families, not full Vectra API coverage.
+This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, assignment-write/resolve, note edit/delete, detection close/open, detection fixed set, detection triage set/clear, group member add/remove/set, host key-asset, assignment outcome create/edit/delete, triage rule create/edit/delete and host/account close families, not full Vectra API coverage.
 Only `named` operations have an implemented, tested command leaf.
 The `implemented` disposition records tested internal OAuth exchanges with no command leaf;
 other operations remain planned, blocked or unreviewed until their own slices ship.
@@ -11,7 +11,7 @@ there is no unrestricted passthrough.
 
 ## Counts
 
-- named: 152
+- named: 154
 - implemented: 2
 - reviewed-raw: 0
 - planned: 2
@@ -38,10 +38,12 @@ there is no unrestricted passthrough.
 | `qux.detection.show` | detection show | READ-01 | qux 2.5 | none | named | raw |
 | `qux.host.key-asset.set` | host key-asset set | WRITE-08 | qux 2.5 | none | named | named |
 | `rux.host.key-asset.set` | host key-asset set | WRITE-08 | rux 3.4 | none | named | named |
+| `qux.detection.fixed.set` | detection fixed set | WRITE-13 | qux 2.5 | none | named | named |
 | `qux.detection.close` | detection close | WRITE-06 | qux 2.5 | none | named | named |
 | `qux.detection.close-bulk` | detection close | WRITE-06 | qux 2.5 | none | named | named |
 | `qux.detection.open` | detection open | WRITE-06 | qux 2.5 | none | named | named |
 | `qux.detection.open-bulk` | detection open | WRITE-06 | qux 2.5 | none | named | named |
+| `rux.detection.fixed.set` | detection fixed set | WRITE-13 | rux 3.4 | none | named | named |
 | `rux.detection.close` | detection close | WRITE-06 | rux 3.4 | none | named | named |
 | `rux.detection.close-bulk` | detection close | WRITE-06 | rux 3.4 | none | named | named |
 | `rux.detection.open` | detection open | WRITE-06 | rux 3.4 | none | named | named |
