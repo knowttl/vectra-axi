@@ -141,6 +141,12 @@ Even previews require that scope and may read current state over the network.
 Omitting `--execute` previews without sending a mutation.
 `--dry-run` is explicit preview mode and cannot be combined with `--execute`.
 Execution requires both `--execute` and an exact `--confirm` target.
+RUX `notification destination list` and `show --id <id>` redact webhook URLs and tokens.
+`notification destination create|edit --config-file <path|->` takes JSON with `destination_type`, `title`, optional `enabled`, and `config` containing `destination_params.url` and optional `event_rules`.
+Edit fully replaces the destination, so supply the original URL and tokens rather than redacted read output.
+These are high risk egress operations; `delete --id <id>` stops event delivery.
+Allowlist `rux.notification-destination.create`, `.edit` or `.delete` and confirm `new notification destination` for create or `notification destination <id>` for edit/delete.
+The pre-send re-read detects changes, including secret-only changes, but does not provide atomic concurrency protection.
 Group member add/remove/set previews the full member diff; groups drive triage rules and importance.
 Use `--id <id>` with either `--members <comma-separated-list>` or `--members-file <path|->` containing a JSON array.
 An empty JSON array with set clears membership.
@@ -348,6 +354,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.assignment-outcome.create`, `.edit`, `.delete` | Custom assignment outcomes on QUX or RUX |
 | `<generation>.proxy.create`, `.edit`; `rux.proxy.delete` | User-defined proxies; settings affect detection attribution |
 | `qux.setting.internal-network.set` | High risk: replaces all monitoring and drop lists; changes what is monitored or dropped |
+| `rux.notification-destination.create`, `.edit`, `.delete` | High risk: redirects event data to external endpoints or stops delivery; RUX only |
 | `<generation>.threat-feed.create`, `.edit`, `.delete`, `.file.set`, `.file.delete` | Threat intelligence feeds; affect matching and detection scoring |
 | `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
 | `<generation>.detection.fixed.set` | Mark/unmark legacy fixed state on QUX or RUX |
@@ -407,6 +414,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `assignment` | `assignment list`, `assignment set`, `assignment resolve`, `assignment outcome list`, `assignment outcome create`, `assignment outcome edit`, `assignment outcome delete`, `assignment outcome show` | QUX, RUX |
 | `threat-feed` | `threat-feed list`, `threat-feed show`, `threat-feed create`, `threat-feed edit`, `threat-feed delete`, `threat-feed file set`, `threat-feed file delete` | QUX, RUX |
 | `setting` | `setting internal-network show`, `setting internal-network set` | QUX |
+| `notification` | `notification destination list`, `notification destination show`, `notification destination create`, `notification destination edit`, `notification destination delete` | RUX |
 | `proxy` | `proxy list`, `proxy show`, `proxy create`, `proxy edit`, `proxy delete` | QUX, RUX |
 | `user` | `user list`, `user show` | QUX, RUX |
 | `audit` | `audit list` | QUX, RUX |

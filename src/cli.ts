@@ -47,6 +47,7 @@ import { runAssignmentOutcomeWrite } from "./assignment-outcome-write.js";
 import { runTriageRuleWrite } from "./triage-rule-write.js";
 import { proxyId, runProxyRead, runProxyWrite } from "./proxies.js";
 import { runInternalNetworkRead, runInternalNetworkSet } from "./settings.js";
+import { runNotificationRead, runNotificationWrite } from "./notifications.js";
 import { threatFeedId, runThreatFeedRead, runThreatFeedWrite } from "./threat-feeds.js";
 import { createMutationCoordinator, readOnlyForced } from "./writes.js";
 
@@ -191,6 +192,16 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         }
         if (invocation.leaf === "setting internal-network set") {
           return runWrite(invocation.flags, (session, coordinator) => runInternalNetworkSet(session, coordinator, invocation.flags));
+        }
+        if (invocation.leaf === "notification destination list" || invocation.leaf === "notification destination show") {
+          const loaded = loadConfig(invocation.flags.get("config") as string | undefined, redactor);
+          const selected = selectProfile(loaded.config, invocation.flags.get("profile") as string | undefined);
+          const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+          return (await runNotificationRead(session, invocation.flags, invocation.leaf.endsWith("list") ? "list" : "show")).output;
+        }
+        if (["notification destination create", "notification destination edit", "notification destination delete"].includes(invocation.leaf)) {
+          const action = invocation.leaf.split(" ")[2] as "create" | "edit" | "delete";
+          return runWrite(invocation.flags, (session, coordinator) => runNotificationWrite(session, coordinator, invocation.flags, action, redactor));
         }
         if (invocation.leaf === "proxy list" || invocation.leaf === "proxy show") {
           if (invocation.leaf === "proxy show") proxyId(invocation.flags);

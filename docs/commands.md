@@ -2195,6 +2195,162 @@ Replace QUX internal-network lists; high risk: changes what is monitored or drop
 }
 ```
 
+## notification destination list
+
+List RUX notification destinations; webhook URLs and tokens are redacted
+
+- `rux.notification-destination.list`: RUX API 3.4
+
+RUX: nonpaged single response; no --all
+
+```json
+{
+  "command": "vectra-axi notification destination list",
+  "description": "List RUX notification destinations; webhook URLs and tokens are redacted",
+  "pagination": "RUX: nonpaged single response; no --all",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi notification destination list --profile <name>",
+    "vectra-axi notification destination list --help"
+  ]
+}
+```
+
+## notification destination show
+
+Show a RUX notification destination with webhook URLs and tokens redacted
+
+- `rux.notification-destination.show`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi notification destination show",
+  "description": "Show a RUX notification destination with webhook URLs and tokens redacted",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Destination string ID (required)"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi notification destination show --profile <name> <id>",
+    "vectra-axi notification destination show --help"
+  ]
+}
+```
+
+## notification destination create
+
+Create a RUX notification destination; high risk: external event data egress
+
+- `rux.notification-destination.create`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi notification destination create",
+  "description": "Create a RUX notification destination; high risk: external event data egress",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--config-file <path|->": "JSON destination_type, title, optional enabled and config with destination_params.url and optional event_rules (required); URLs and tokens are redacted",
+    "--execute": "Send the mutation; default preview only",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact target 'new notification destination' required with --execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi notification destination create --profile <name> --config-file <path>",
+    "vectra-axi notification destination create --help"
+  ]
+}
+```
+
+## notification destination edit
+
+Fully replace a RUX notification destination; high risk: external event data egress
+
+- `rux.notification-destination.edit`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi notification destination edit",
+  "description": "Fully replace a RUX notification destination; high risk: external event data egress",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Destination string ID (required)",
+    "--config-file <path|->": "Full JSON destination document, including the original URL and tokens (required); redacted read output cannot be replayed",
+    "--execute": "Send the mutation; default preview only",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact preview target required with --execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi notification destination edit --profile <name> <id> --config-file <path>",
+    "vectra-axi notification destination edit --help"
+  ]
+}
+```
+
+## notification destination delete
+
+Delete a RUX notification destination; high risk: stops external event delivery
+
+- `rux.notification-destination.delete`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi notification destination delete",
+  "description": "Delete a RUX notification destination; high risk: stops external event delivery",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Destination string ID (required)",
+    "--execute": "Send the mutation; default preview only",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact preview target required with --execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi notification destination delete --profile <name> <id>",
+    "vectra-axi notification destination delete --help"
+  ]
+}
+```
+
 ## proxy list
 
 List QUX or RUX proxies

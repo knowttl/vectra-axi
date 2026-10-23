@@ -37,6 +37,7 @@ const ruxHealthEvent2 = { id: 102, health_check_name: "disk", status: "WARNING",
   event_timestamp: "2026-10-01T12:05:00Z" };
 const next = "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2";
 const responses = new Map<string, { status: number; body: unknown }>([
+  ["https://fixture.invalid/api/v3.4/notifications/destinations/", { status: 200, body: { destinations: [] } }],
   ["https://fixture.invalid/api/v2.5/settings/internal_network", { status: 200,
     body: { included_subnets: [], excluded_subnets: [], dropped_subnets: [] } }],
   ["https://fixture.invalid/api/v2.5/threatFeeds", { status: 200, body: { threatFeeds: [] } }],
@@ -259,6 +260,7 @@ const responses = new Map<string, { status: number; body: unknown }>([
 // delete sends one DELETE to the addressed note route after their preview
 // and re-reads; both answer 200 with an empty body in the fixture.
 const mutations = new Map<string, { status: number; body: unknown }>([
+  ["https://fixture.invalid/api/v3.4/notifications/destinations/", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/threatFeeds", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/threatFeeds/3", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/rules", { status: 201, body: {} }],
@@ -292,7 +294,7 @@ https.request = ((options: RequestOptions, callback: (response: IncomingMessage)
   const allowedMethod = options.method === "GET" || options.method === "PATCH" || options.method === "POST"
     || options.method === "PUT" || options.method === "DELETE";
   // RUX-02: cloud resource reads carry the exchanged Bearer token.
-  const ruxResource = options.method === "GET" && headers.Authorization === "Bearer packaged-rux-token";
+  const ruxResource = (options.method === "GET" || mutation !== undefined) && headers.Authorization === "Bearer packaged-rux-token";
   if (!fixture || !(allowedMethod && headers.Authorization === "Token packaged-detection-token"
     || ruxExchange || ruxResource)) {
     throw new Error(`Unexpected synthetic request: ${options.method} ${url}`);
