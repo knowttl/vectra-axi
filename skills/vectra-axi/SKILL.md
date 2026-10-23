@@ -53,6 +53,7 @@ See [operation coverage](https://github.com/knowttl/vectra-axi/blob/main/docs/co
 | `npx -y @knowttl/vectra-axi detection tag set` | native | write | - |
 | `npx -y @knowttl/vectra-axi detection tag bulk-set` | native | write | - |
 | `npx -y @knowttl/vectra-axi detection tag bulk-delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi detection note bulk-add` | native | write | - |
 | `npx -y @knowttl/vectra-axi detection note add` | native | write | - |
 | `npx -y @knowttl/vectra-axi detection note edit` | native | write | - |
 | `npx -y @knowttl/vectra-axi detection note delete` | native | write | - |
@@ -63,6 +64,7 @@ See [operation coverage](https://github.com/knowttl/vectra-axi/blob/main/docs/co
 | `npx -y @knowttl/vectra-axi host tag set` | native | write | - |
 | `npx -y @knowttl/vectra-axi host tag bulk-set` | native | write | - |
 | `npx -y @knowttl/vectra-axi host tag bulk-delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi host note bulk-add` | native | write | - |
 | `npx -y @knowttl/vectra-axi host note add` | native | write | - |
 | `npx -y @knowttl/vectra-axi host note edit` | native | write | - |
 | `npx -y @knowttl/vectra-axi host note delete` | native | write | - |
@@ -71,6 +73,7 @@ See [operation coverage](https://github.com/knowttl/vectra-axi/blob/main/docs/co
 | `npx -y @knowttl/vectra-axi account tag set` | native | write | - |
 | `npx -y @knowttl/vectra-axi account tag bulk-set` | native | write | - |
 | `npx -y @knowttl/vectra-axi account tag bulk-delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi account note bulk-add` | native | write | - |
 | `npx -y @knowttl/vectra-axi account note add` | native | write | - |
 | `npx -y @knowttl/vectra-axi account note edit` | native | write | - |
 | `npx -y @knowttl/vectra-axi account note delete` | native | write | - |

@@ -2,7 +2,7 @@
 
 # vectra-axi coverage
 
-This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, assignment-write/resolve, note edit/delete, detection close/open, detection fixed set, detection triage set/clear, group create/edit/delete, group member add/remove/set, host key-asset, assignment outcome create/edit/delete, triage rule create/edit/delete and host/account close families, not full Vectra API coverage.
+This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, RUX bulk note-append, assignment-write/resolve, note edit/delete, detection close/open, detection fixed set, detection triage set/clear, group create/edit/delete, group member add/remove/set, host key-asset, assignment outcome create/edit/delete, triage rule create/edit/delete and host/account close families, not full Vectra API coverage.
 Only `named` operations have an implemented, tested command leaf.
 The `implemented` disposition records tested internal OAuth exchanges with no command leaf;
 other operations remain planned, blocked or unreviewed until their own slices ship.
@@ -11,7 +11,7 @@ there is no unrestricted passthrough.
 
 ## Counts
 
-- named: 160
+- named: 163
 - implemented: 2
 - reviewed-raw: 0
 - planned: 2
@@ -105,6 +105,7 @@ there is no unrestricted passthrough.
 | `rux.host.list` | host list | RUX-02 | rux 3.4 | collection | named | raw |
 | `rux.host.show` | host show | RUX-02 | rux 3.4 | none | named | raw |
 | `rux.host.note.list` | host note list | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.host.note.bulk-add` | host note bulk-add | WRITE-14 | rux 3.4 | none | named | named |
 | `rux.host.note.add` | host note add | WRITE-02 | rux 3.4 | none | named | named |
 | `rux.host.note.edit` | host note edit | WRITE-N | rux 3.4 | none | named | named |
 | `rux.host.note.delete` | host note delete | WRITE-N | rux 3.4 | none | named | named |
@@ -121,11 +122,13 @@ there is no unrestricted passthrough.
 | `rux.account.list` | account list | RUX-02 | rux 3.4 | collection | named | raw |
 | `rux.account.show` | account show | RUX-02 | rux 3.4 | none | named | raw |
 | `rux.account.note.list` | account note list | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.account.note.bulk-add` | account note bulk-add | WRITE-14 | rux 3.4 | none | named | named |
 | `rux.account.note.add` | account note add | WRITE-02 | rux 3.4 | none | named | named |
 | `rux.account.note.edit` | account note edit | WRITE-N | rux 3.4 | none | named | named |
 | `rux.account.note.delete` | account note delete | WRITE-N | rux 3.4 | none | named | named |
 | `rux.account.tag.list` | account tag list | RUX-04 | rux 3.4 | none | named | raw |
 | `rux.detection.note.list` | detection note list | RUX-04 | rux 3.4 | none | named | raw |
+| `rux.detection.note.bulk-add` | detection note bulk-add | WRITE-14 | rux 3.4 | none | named | named |
 | `rux.detection.note.add` | detection note add | WRITE-02 | rux 3.4 | none | named | named |
 | `rux.detection.note.edit` | detection note edit | WRITE-N | rux 3.4 | none | named | named |
 | `rux.detection.note.delete` | detection note delete | WRITE-N | rux 3.4 | none | named | named |
@@ -216,7 +219,7 @@ there is no unrestricted passthrough.
 - `qux.later.assignment-writes` (qux 2.5, planned): Assignment set and assignment resolve ship through the WRITE-00 coordinator. No additional route is authorized by this family entry.
 - `qux.later.group-writes` (qux 2.5, planned): Group member replacement and group create/edit/delete ship as named operations. No additional route is authorized by this family entry.
 - `qux.later.triage-rule-writes` (qux 2.5, planned): Per-detection triage set/clear are named WRITE-09 operations; rule create/edit/delete are named WRITE-10 operations. No additional route is authorized by this family entry.
-- `rux.later.note-writes` (rux 3.4, planned): Per-object note append is a named WRITE-02 operation (rux.{detection,host,account}.note.add); per-note edit and delete are named WRITE-N (2a) operations (rux.{detection,host,account}.note.{edit,delete}). Bulk note creation stays planned with no authorized route.
+- `rux.later.note-writes` (rux 3.4, planned): Per-object append, bulk append and per-note edit/delete are named operations (rux.{detection,host,account}.note.{add,bulk-add,edit,delete}). No additional note route is authorized by this family.
 - `rux.later.tag-writes` (rux 3.4, planned): Per-object tag replace and bulk set/delete are named operations for detections, hosts and accounts, sequencing per-target PATCH replaces. Native bulk routes and the entity facade remain outside the named surface. No additional route is authorized by this family entry.
 - `rux.later.assignment-writes` (rux 3.4, planned): Assignment set and assignment resolve ship through the WRITE-00 coordinator. No additional route is authorized by this family entry.
 - `rux.later.group-writes` (rux 3.4, planned): Group member replacement and group create/edit/delete ship as named operations. No additional route is authorized by this family entry.

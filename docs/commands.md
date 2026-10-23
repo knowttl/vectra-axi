@@ -936,6 +936,38 @@ Remove tags from QUX or RUX detections in bulk with per-target diffs through the
 }
 ```
 
+## detection note bulk-add
+
+Append one note to up to 100 explicit RUX detection targets through the gated write pipeline
+
+- `rux.detection.note.bulk-add`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi detection note bulk-add",
+  "description": "Append one note to up to 100 explicit RUX detection targets through the gated write pipeline",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--ids <ids>": "Comma-separated positive target IDs (required, maximum 100 unique IDs)",
+    "--note <text>": "Non-empty note text",
+    "--note-file <path>": "Read exact note text from a file; use - for stdin",
+    "--execute": "Send the append; default previews without sending",
+    "--dry-run": "Preview only; cannot be combined with --execute",
+    "--confirm <target>": "Exact target count and set shown in the preview"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi detection note bulk-add --profile <name> --ids 7,8 --note <text>",
+    "vectra-axi detection note bulk-add --profile <name> --ids 7,8 --note-file ./note.txt --execute --confirm '2 targets: detection 7, detection 8'"
+  ]
+}
+```
+
 ## detection note add
 
 Append one QUX or RUX detection note through the gated write pipeline
@@ -1286,6 +1318,38 @@ Remove tags from QUX or RUX hosts in bulk with per-target diffs through the gate
 }
 ```
 
+## host note bulk-add
+
+Append one note to up to 100 explicit RUX host targets through the gated write pipeline
+
+- `rux.host.note.bulk-add`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi host note bulk-add",
+  "description": "Append one note to up to 100 explicit RUX host targets through the gated write pipeline",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--ids <ids>": "Comma-separated positive target IDs (required, maximum 100 unique IDs)",
+    "--note <text>": "Non-empty note text",
+    "--note-file <path>": "Read exact note text from a file; use - for stdin",
+    "--execute": "Send the append; default previews without sending",
+    "--dry-run": "Preview only; cannot be combined with --execute",
+    "--confirm <target>": "Exact target count and set shown in the preview"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi host note bulk-add --profile <name> --ids 7,8 --note <text>",
+    "vectra-axi host note bulk-add --profile <name> --ids 7,8 --note-file ./note.txt --execute --confirm '2 targets: host 7, host 8'"
+  ]
+}
+```
+
 ## host note add
 
 Append one QUX or RUX host note through the gated write pipeline
@@ -1562,6 +1626,38 @@ Remove tags from QUX or RUX accounts in bulk with per-target diffs through the g
   "examples": [
     "vectra-axi account tag bulk-delete --profile <name> --ids 7,8 --tags a,b",
     "vectra-axi account tag bulk-delete --profile <name> --ids 7,8 --tags a,b --execute --confirm '2 targets: account 7, account 8'"
+  ]
+}
+```
+
+## account note bulk-add
+
+Append one note to up to 100 explicit RUX account targets through the gated write pipeline
+
+- `rux.account.note.bulk-add`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi account note bulk-add",
+  "description": "Append one note to up to 100 explicit RUX account targets through the gated write pipeline",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--ids <ids>": "Comma-separated positive target IDs (required, maximum 100 unique IDs)",
+    "--note <text>": "Non-empty note text",
+    "--note-file <path>": "Read exact note text from a file; use - for stdin",
+    "--execute": "Send the append; default previews without sending",
+    "--dry-run": "Preview only; cannot be combined with --execute",
+    "--confirm <target>": "Exact target count and set shown in the preview"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi account note bulk-add --profile <name> --ids 7,8 --note <text>",
+    "vectra-axi account note bulk-add --profile <name> --ids 7,8 --note-file ./note.txt --execute --confirm '2 targets: account 7, account 8'"
   ]
 }
 ```

@@ -249,6 +249,10 @@ See [README.md](../README.md) for shipped usage and the [capability records](../
 For each future mutation, define whether the command is desired-state or action-shaped and document no-op behavior accordingly.
 Do not make additive note creation falsely idempotent by dropping repeated intended notes.
 Tests cover changed current state, denied target, missing/mismatched confirmation, failure to write audit intent and a server-accepted mutation followed by a client timeout.
+RUX bulk note append ships as WRITE-14 on RUX v3.4 through the unchanged WRITE-00 coordinator.
+Its cases in the [offline acceptance suite](../test/note-add.test.ts) cover explicit bounded targets, canonical target sets, single native appends, file/stdin inputs, exact count-and-set confirmation, policy refusal, server rejection and unknown outcomes without replay, invalid and over-limit targets, and QUX refusal.
+One native request appends the same note to at most 100 explicit targets; the pre-send re-read checks each target and every execution appends again.
+See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 
 WRITE-N (2a) selects per-object detection, host and account note edit and note delete, built on READ-03/RUX-04 note reads and WRITE-00.
 Its [offline acceptance suite](../test/note-edit.test.ts) covers desired-state before/after previews, exact replacement bodies, file/stdin inputs, already-matching and already-deleted no-ops, missing notes, changed current state, exact target-plus-note confirmation, policy refusal, denied reads, server rejection and unknown outcomes without replay.

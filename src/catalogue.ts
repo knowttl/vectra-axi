@@ -432,6 +432,22 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi detection tag bulk-delete --profile <name> --ids 41,42 --tags a,b --execute --confirm '2 targets: detection 41, detection 42'",
     ],
   },
+  "detection note bulk-add": {
+    description: "Append one note to up to 100 explicit RUX detection targets through the gated write pipeline",
+    flags: {
+      ...globals,
+      ids: { kind: "value", valueName: "ids", description: "Comma-separated positive target IDs (required, maximum 100 unique IDs)" },
+      note: { kind: "value", valueName: "text", description: "Non-empty note text" },
+      "note-file": { kind: "value", valueName: "path", description: "Read exact note text from a file; use - for stdin" },
+      execute: { kind: "boolean", description: "Send the append; default previews without sending" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot be combined with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target count and set shown in the preview" },
+    },
+    examples: [
+      "vectra-axi detection note bulk-add --profile <name> --ids 7,8 --note <text>",
+      "vectra-axi detection note bulk-add --profile <name> --ids 7,8 --note-file ./note.txt --execute --confirm '2 targets: detection 7, detection 8'",
+    ],
+  },
   "detection note add": {
     description: "Append one QUX or RUX detection note through the gated write pipeline",
     flags: {
@@ -582,6 +598,22 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi host tag bulk-delete --profile <name> --ids 7,8 --tags a,b --execute --confirm '2 targets: host 7, host 8'",
     ],
   },
+  "host note bulk-add": {
+    description: "Append one note to up to 100 explicit RUX host targets through the gated write pipeline",
+    flags: {
+      ...globals,
+      ids: { kind: "value", valueName: "ids", description: "Comma-separated positive target IDs (required, maximum 100 unique IDs)" },
+      note: { kind: "value", valueName: "text", description: "Non-empty note text" },
+      "note-file": { kind: "value", valueName: "path", description: "Read exact note text from a file; use - for stdin" },
+      execute: { kind: "boolean", description: "Send the append; default previews without sending" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot be combined with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target count and set shown in the preview" },
+    },
+    examples: [
+      "vectra-axi host note bulk-add --profile <name> --ids 7,8 --note <text>",
+      "vectra-axi host note bulk-add --profile <name> --ids 7,8 --note-file ./note.txt --execute --confirm '2 targets: host 7, host 8'",
+    ],
+  },
   "host note add": {
     description: "Append one QUX or RUX host note through the gated write pipeline",
     flags: {
@@ -700,6 +732,22 @@ export const catalogue: Readonly<Record<string, {
     examples: [
       "vectra-axi account tag bulk-delete --profile <name> --ids 7,8 --tags a,b",
       "vectra-axi account tag bulk-delete --profile <name> --ids 7,8 --tags a,b --execute --confirm '2 targets: account 7, account 8'",
+    ],
+  },
+  "account note bulk-add": {
+    description: "Append one note to up to 100 explicit RUX account targets through the gated write pipeline",
+    flags: {
+      ...globals,
+      ids: { kind: "value", valueName: "ids", description: "Comma-separated positive target IDs (required, maximum 100 unique IDs)" },
+      note: { kind: "value", valueName: "text", description: "Non-empty note text" },
+      "note-file": { kind: "value", valueName: "path", description: "Read exact note text from a file; use - for stdin" },
+      execute: { kind: "boolean", description: "Send the append; default previews without sending" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot be combined with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target count and set shown in the preview" },
+    },
+    examples: [
+      "vectra-axi account note bulk-add --profile <name> --ids 7,8 --note <text>",
+      "vectra-axi account note bulk-add --profile <name> --ids 7,8 --note-file ./note.txt --execute --confirm '2 targets: account 7, account 8'",
     ],
   },
   "account note add": {

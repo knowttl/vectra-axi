@@ -3225,6 +3225,42 @@
       ]
     },
     {
+      "id": "rux.host.note.bulk-add",
+      "command": "host note bulk-add",
+      "slice": "WRITE-14",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "RUX only; allowlisted, confirmed append to at most 100 targets. Upstream audit records only the first 50 IDs; the local journal names the full set.",
+      "method": "POST",
+      "path": "/api/v3.4/hosts/notes/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "note",
+        "objectIds"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the API client's assigned role; resource write permission required.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "POST /api/v3.4/{tvui_types}/notes/ (Bulk Create Note); note and objectIds"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Native bulk note append through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "dry-run-preview",
+        "exact-appended-body",
+        "confirmation-required",
+        "unknown-outcome",
+        "refused-without-opt-in",
+        "server-rejection"
+      ]
+    },
+    {
       "id": "rux.host.note.add",
       "command": "host note add",
       "slice": "WRITE-02",
@@ -3816,6 +3852,42 @@
       ]
     },
     {
+      "id": "rux.account.note.bulk-add",
+      "command": "account note bulk-add",
+      "slice": "WRITE-14",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "RUX only; allowlisted, confirmed append to at most 100 targets. Upstream audit records only the first 50 IDs; the local journal names the full set.",
+      "method": "POST",
+      "path": "/api/v3.4/accounts/notes/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "note",
+        "objectIds"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the API client's assigned role; resource write permission required.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "POST /api/v3.4/{tvui_types}/notes/ (Bulk Create Note); note and objectIds"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Native bulk note append through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "dry-run-preview",
+        "exact-appended-body",
+        "confirmation-required",
+        "unknown-outcome",
+        "refused-without-opt-in",
+        "server-rejection"
+      ]
+    },
+    {
       "id": "rux.account.note.add",
       "command": "account note add",
       "slice": "WRITE-02",
@@ -3997,6 +4069,42 @@
         "empty",
         "access-denied",
         "embedded-summary-truncated"
+      ]
+    },
+    {
+      "id": "rux.detection.note.bulk-add",
+      "command": "detection note bulk-add",
+      "slice": "WRITE-14",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "RUX only; allowlisted, confirmed append to at most 100 targets. Upstream audit records only the first 50 IDs; the local journal names the full set.",
+      "method": "POST",
+      "path": "/api/v3.4/detections/notes/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "note",
+        "objectIds"
+      ],
+      "paging": "none",
+      "permissions": "API access follows the API client's assigned role; resource write permission required.",
+      "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "POST /api/v3.4/{tvui_types}/notes/ (Bulk Create Note); note and objectIds"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Native bulk note append through the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "dry-run-preview",
+        "exact-appended-body",
+        "confirmation-required",
+        "unknown-outcome",
+        "refused-without-opt-in",
+        "server-rejection"
       ]
     },
     {
@@ -6703,7 +6811,7 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "disposition": "planned",
-      "rationale": "Per-object note append is a named WRITE-02 operation (rux.{detection,host,account}.note.add); per-note edit and delete are named WRITE-N (2a) operations (rux.{detection,host,account}.note.{edit,delete}). Bulk note creation stays planned with no authorized route.",
+      "rationale": "Per-object append, bulk append and per-note edit/delete are named operations (rux.{detection,host,account}.note.{add,bulk-add,edit,delete}). No additional note route is authorized by this family.",
       "evidence": [
         {
           "source": "rux-spec",
