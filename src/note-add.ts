@@ -72,7 +72,9 @@ export function desiredNote(
   }
   if (!note!.trim()) {
     invalid(`${command} requires a non-empty note`,
-      `To replace the text of an existing note, run \`vectra-axi ${kind} note edit\`; to remove one, run \`vectra-axi ${kind} note delete\``,
+      ...(commandOverride === undefined
+        ? [`To replace the text of an existing note, run \`vectra-axi ${kind} note edit\`; to remove one, run \`vectra-axi ${kind} note delete\``]
+        : []),
       `Run \`vectra-axi ${command} --help\``);
   }
   return note!;
