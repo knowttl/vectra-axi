@@ -87,6 +87,14 @@ See [operation coverage](https://github.com/knowttl/vectra-axi/blob/main/docs/co
 | `npx -y @knowttl/vectra-axi threat-feed delete` | native | write | - |
 | `npx -y @knowttl/vectra-axi threat-feed file set` | native | write | - |
 | `npx -y @knowttl/vectra-axi threat-feed file delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi match enablement show` | native | read | - |
+| `npx -y @knowttl/vectra-axi match ruleset show` | native | read | - |
+| `npx -y @knowttl/vectra-axi match assignment list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `npx -y @knowttl/vectra-axi match enablement set` | native | disruptive | - |
+| `npx -y @knowttl/vectra-axi match ruleset upload` | native | write | - |
+| `npx -y @knowttl/vectra-axi match ruleset delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi match assignment set` | native | write | - |
+| `npx -y @knowttl/vectra-axi match assignment delete` | native | write | - |
 | `npx -y @knowttl/vectra-axi setting internal-network show` | native | read | - |
 | `npx -y @knowttl/vectra-axi setting internal-network set` | native | write | - |
 | `npx -y @knowttl/vectra-axi setting syslog set` | native | disruptive | - |

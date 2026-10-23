@@ -350,6 +350,8 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `qux.setting.internal-network.set` | High risk: replaces all monitoring and drop lists; changes what is monitored or dropped |
 | `qux.setting.syslog.set`, `qux.setting.kafka.set` | Disruptive: replaces detection export configuration and redirects data egress |
 | `<generation>.threat-feed.create`, `.edit`, `.delete`, `.file.set`, `.file.delete` | Threat intelligence feeds; affect matching and detection scoring |
+| `<generation>.match.enablement.set` | Disruptive: changing Match enablement causes a reboot; licence required to enable |
+| `<generation>.match.ruleset.upload`, `.delete`, `.assignment.set`, `.assignment.delete` | Match rulesets and device assignments; licence required for upload and assignment creation |
 | `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
 | `<generation>.detection.fixed.set` | Mark/unmark legacy fixed state on QUX or RUX |
 | `<generation>.host.key-asset.set` | Set host key-asset state on QUX or RUX |
@@ -416,6 +418,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |
 | `assignment` | `assignment list`, `assignment set`, `assignment resolve`, `assignment outcome list`, `assignment outcome create`, `assignment outcome edit`, `assignment outcome delete`, `assignment outcome show` | QUX, RUX |
 | `threat-feed` | `threat-feed list`, `threat-feed show`, `threat-feed create`, `threat-feed edit`, `threat-feed delete`, `threat-feed file set`, `threat-feed file delete` | QUX, RUX |
+| `match` | `match enablement show`, `match ruleset show`, `match assignment list`, `match enablement set`, `match ruleset upload`, `match ruleset delete`, `match assignment set`, `match assignment delete` | QUX, RUX |
 | `setting` | `setting internal-network show`, `setting internal-network set`, `setting syslog set`, `setting kafka set` | QUX |
 | `proxy` | `proxy list`, `proxy show`, `proxy create`, `proxy edit`, `proxy delete` | QUX, RUX |
 | `user` | `user list`, `user show` | QUX, RUX |
@@ -444,6 +447,16 @@ Edit accepts `--id` plus any of the create fields; existing default fields are p
 `threat-feed file set --id <id> --file <stix>` uploads or replaces a file; `threat-feed file delete --id <id>` removes the file; `threat-feed delete --id <id>` removes the feed.
 All existing-feed writes confirm `threat feed <id>` and re-read metadata before sending; this check is not atomic.
 Writes remain off until a hand-edited profile allowlists the exact operation, default to preview, and require `--execute --confirm` to send.
+
+Use `match enablement show --device SYNTH0001`, `match ruleset show --uuid <uuid>` and `match assignment list` to read Match state.
+`match enablement set --device SYNTH0001 --value true` previews a disruptive change and warns that changing state causes a reboot.
+Enabling requires a valid Match licence; a previously enabled device can be disabled after licence expiry.
+Enablement confirms `match device SYNTH0001`; unchanged state is a no-op.
+`match ruleset upload --file <path>` uses the bounded multipart sender, capped at 5000000 bytes, and confirms `new match ruleset`.
+The RUX multipart `/vectra-match/rules/` route is deprecated; the documented successor is the staged `/rules/upload/` flow, a follow-up candidate.
+`match ruleset delete --uuid <uuid>` confirms `match ruleset <uuid>`.
+`match assignment set|delete --device SYNTH0001 --uuid <uuid>` adds or removes one ruleset on one device and confirms `match assignment SYNTH0001 ruleset <uuid>`.
+Match writes re-read before sending, without atomic concurrency protection; upload previews and journals contain only file metadata, never file bytes.
 `VECTRA_AXI_READ_ONLY=1` overrides that opt-in.
 Uploads accept regular file paths only, never stdin, and refuse files over 5,000,000 bytes before any request.
 The sender verifies the file digest again before sending; preview and journal record only the name, size and SHA-256 digest, never file bytes or paths.

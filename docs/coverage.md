@@ -11,7 +11,7 @@ there is no unrestricted passthrough.
 
 ## Counts
 
-- named: 192
+- named: 208
 - implemented: 2
 - reviewed-raw: 0
 - planned: 2
@@ -24,6 +24,22 @@ there is no unrestricted passthrough.
 
 | Operation | Command | Slice | Deployment/API | Paging | Disposition | Raw |
 |---|---|---|---|---|---|---|
+| `qux.match.enablement.show` | match enablement show | WRITE-20 | qux 2.5 | none | named | raw |
+| `qux.match.ruleset.show` | match ruleset show | WRITE-20 | qux 2.5 | none | named | raw |
+| `qux.match.assignment.list` | match assignment list | WRITE-20 | qux 2.5 | none | named | raw |
+| `qux.match.enablement.set` | match enablement set | WRITE-20 | qux 2.5 | none | named | named |
+| `qux.match.ruleset.upload` | match ruleset upload | WRITE-20 | qux 2.5 | none | named | named |
+| `qux.match.ruleset.delete` | match ruleset delete | WRITE-20 | qux 2.5 | none | named | named |
+| `qux.match.assignment.set` | match assignment set | WRITE-20 | qux 2.5 | none | named | named |
+| `qux.match.assignment.delete` | match assignment delete | WRITE-20 | qux 2.5 | none | named | named |
+| `rux.match.enablement.show` | match enablement show | WRITE-20 | rux 3.4 | none | named | raw |
+| `rux.match.ruleset.show` | match ruleset show | WRITE-20 | rux 3.4 | none | named | raw |
+| `rux.match.assignment.list` | match assignment list | WRITE-20 | rux 3.4 | none | named | raw |
+| `rux.match.enablement.set` | match enablement set | WRITE-20 | rux 3.4 | none | named | named |
+| `rux.match.ruleset.upload` | match ruleset upload | WRITE-20 | rux 3.4 | none | named | named |
+| `rux.match.ruleset.delete` | match ruleset delete | WRITE-20 | rux 3.4 | none | named | named |
+| `rux.match.assignment.set` | match assignment set | WRITE-20 | rux 3.4 | none | named | named |
+| `rux.match.assignment.delete` | match assignment delete | WRITE-20 | rux 3.4 | none | named | named |
 | `qux.setting.syslog.show` | setting syslog set | READ-18 | qux 2.5 | none | named | raw |
 | `qux.setting.syslog.set` | setting syslog set | WRITE-18 | qux 2.5 | none | named | named |
 | `qux.setting.kafka.show` | setting kafka set | READ-18 | qux 2.5 | none | named | raw |
@@ -228,14 +244,14 @@ there is no unrestricted passthrough.
 - `qux.long-tail.search` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.campaigns` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.network-stats` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
-- `qux.long-tail.match` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
+- `qux.long-tail.match` (qux 2.5, unreviewed): Remaining Match reads exclude the reviewed enablement, ruleset detail and assignment reads. Enablement, multipart ruleset upload/delete and assignment set/delete writes are named separately under unchanged write policy. Other routes remain unreviewed.
 - `qux.long-tail.settings` (qux 2.5, unreviewed): Remaining settings exclude the reviewed internal_network, syslog_config and kafka_config GET/POST routes. Other exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.vsensor` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.ad-group-directory` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.investigations` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.connectors` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.notifications` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
-- `rux.long-tail.match` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
+- `rux.long-tail.match` (rux 3.4, unreviewed): Remaining Match reads exclude the reviewed enablement, ruleset detail and assignment reads. Enablement, multipart ruleset upload/delete and assignment set/delete writes are named separately under unchanged write policy. Deprecated multipart rules upload is supported; staged /rules/upload/ is the documented successor and a follow-up candidate. Other routes remain unreviewed.
 - `rux.long-tail.saml` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.unique-host-usage` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.ad-group-directory` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
