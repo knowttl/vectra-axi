@@ -87,6 +87,17 @@ export async function runGroupMemberWrite(
     if (!window.complete || window.cursor || window.total !== null && window.total !== window.rows.length) {
       throw new AxiError("Complete group membership is required before replacing members", "INCOMPLETE_READ", ["Read the complete membership before retrying"]);
     }
+    const userMember = (value: Member): Member => {
+      const identity = typeof value === "string" ? value.trim() : value;
+      if (type === "host") {
+        const number = typeof identity === "string" && /^\d+$/.test(identity) ? Number(identity) : identity;
+        if (typeof number === "number" && Number.isSafeInteger(number) && number > 0) return number;
+        invalid(`Invalid ${type} group member identity`);
+      }
+      if (typeof identity === "string" && identity) return identity;
+      if (typeof identity === "number" && Number.isSafeInteger(identity) && identity > 0) return String(identity);
+      invalid(`Invalid ${type} group member identity`);
+    };
     const current = normalized(window.rows);
     if (before !== undefined) {
       if (originalType !== type || JSON.stringify(before) !== JSON.stringify(current)) {
@@ -95,7 +106,7 @@ export async function runGroupMemberWrite(
     } else {
       before = current;
       originalType = type;
-      const requested = normalized((input as Member[]).map(member));
+      const requested = normalized((input as Member[]).map(userMember));
       desired = action === "set" ? requested : action === "add" ? normalized([...current, ...requested])
         : current.filter((value) => !requested.includes(value));
     }
