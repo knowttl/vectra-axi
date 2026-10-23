@@ -77,7 +77,8 @@ export async function runProxyWrite(
   let current: Proxy | null | undefined;
   const isNoop = (state: unknown): boolean => {
     const row = state as Proxy | null;
-    return action !== "delete" && row !== null && (address === undefined || address === row.address)
+    return action !== "delete" && row !== null && (action !== "create" || row.source.toLowerCase() === "user")
+      && (address === undefined || address === row.address)
       && (consider === undefined || row.considerProxy === (consider === "true"));
   };
   const readState = async (): Promise<Proxy | null> => {
