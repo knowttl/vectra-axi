@@ -194,3 +194,21 @@ it.each(["not json", JSON.stringify({ ...desired, config: null }), JSON.stringif
     await expect(run("create", input)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
     expect(seen).toEqual([]);
   });
+
+it.each([
+  ["placeholder token with restored url", { ...desired, config: { ...desired.config,
+    destination_params: { url: "https://example.test/hooks/restored", token: "***redacted***" } } }],
+  ["placeholder in nested key", { ...desired, config: { ...desired.config,
+    destination_params: { url: "https://example.test/hooks/restored", "***redacted***-key": "value" } } }],
+  ["placeholder in nested event rule", { ...desired, config: { ...desired.config,
+    event_rules: { system_health: "***redacted***" },
+    destination_params: { url: "https://example.test/hooks/restored", token: "synthetic-token" } } }],
+])("refuses %s without HTTP", async (_, doc) => {
+  writeFileSync(destinationFile, JSON.stringify(doc));
+  for (const action of ["create", "edit"] as const) {
+    const { run, seen } = harness();
+    const args = action === "create" ? input : ["--id", "dest-19", ...input];
+    await expect(run(action, args)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    expect(seen).toEqual([]);
+  }
+});
