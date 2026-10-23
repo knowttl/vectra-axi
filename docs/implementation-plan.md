@@ -259,6 +259,10 @@ Previews show the complete before/after documents and warn about org-wide suppre
 Edit and delete re-read the full rule and refuse any change with VERSION_CONFLICT; this comparison is not atomic.
 The [offline acceptance suite](../test/triage-rule-write.test.ts) covers exact routes and bodies, malformed input before HTTP, file/stdin inputs, confirmation, policy, metadata-only auditing, rejection and unknown outcomes without replay.
 Group member add/remove/set uses full paged membership reads and a gated full replacement, refusing regex/AD groups and concurrent changes.
+Group create/edit/delete ships as WRITE-12 on QUX v2.5 and RUX v3.4 through the unchanged WRITE-00 coordinator.
+Its [offline acceptance suite](../test/group-write.test.ts) covers exact routes and payloads, membership-choice and release gating, equal-edit no-ops, changed metadata refusal, confirmation, policy refusal, metadata-only auditing, rejection and unknown outcomes without replay.
+Create requires exactly one of members, regex or AD DN, with QUX release gates for regex and AD groups; edit and delete re-read metadata and refuse any change with VERSION_CONFLICT, and delete warns that triage rule references are orphaned; these client-side comparisons are not atomic.
+See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 
 WRITE-03 selects desired-state QUX/RUX host and account assignment, built on READ-04/RUX-04 assignment reads and WRITE-00.
 Detection assignment is outside this approved slice; see [README.md](../README.md) for the upstream limitation.
