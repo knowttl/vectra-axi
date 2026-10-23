@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { LeafResult } from "./notes.js";
 import type { Session } from "./session.js";
 import { resourceDigest } from "./session.js";
-import { redactExportSettings } from "./redact.js";
+import { redactExportSettings, containsRedactedPlaceholder } from "./redact.js";
 import type { MutationCoordinator, MutationDefinition } from "./writes.js";
 
 const warning = "High risk: changes what is monitored or dropped across the appliance.";
@@ -131,6 +131,12 @@ export async function runExportSettingSet(
   const document = z.record(z.string(), z.unknown());
   if (!document.safeParse(desired).success) throw new AxiError(
     "--config-file must contain a full JSON object", "VALIDATION_ERROR",
+  );
+  if (containsRedactedPlaceholder(desired)) throw new AxiError(
+    "--config-file must not contain ***redacted*** placeholders", "VALIDATION_ERROR", [
+      "Restore real secrets from your vault instead of copying preview output",
+      "Start from the complete preview structure, never the projected api-get subset",
+    ],
   );
   const target = `${kind} export`;
   const definition: MutationDefinition = {

@@ -86,7 +86,10 @@ export function skillCommandTable(): string {
     "| Command | Capability | Vectra effect | List pagination |",
     "|---|---|---|---|",
     ...Object.keys(catalogue).map((leaf) => {
-      const effect = inventory.operations.find((operation) => operation.command === inventoryLeaf(leaf))?.effect ?? "read";
+      const effects = inventory.operations
+        .filter((operation) => operation.command === inventoryLeaf(leaf)).map((operation) => operation.effect);
+      const rank = (effect: string): number => effect === "disruptive" ? 3 : effect === "write" ? 2 : effect === "read" ? 1 : 2;
+      const effect = effects.sort((a, b) => rank(b) - rank(a))[0] ?? "read";
       return `| \`npx -y @knowttl/vectra-axi ${leaf}\` | native | ${effect} | ${listPaging(leaf) ?? "-"} |`;
     }),
   ].join("\n");

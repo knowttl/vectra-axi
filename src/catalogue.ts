@@ -973,7 +973,7 @@ export const catalogue: Readonly<Record<string, {
     description: "Replace QUX syslog export configuration; disruptive: redirects detection export (data egress)",
     flags: {
       ...globals,
-      "config-file": { kind: "value", valueName: "path|-", description: "Full JSON configuration document; '-' reads stdin (required)" },
+      "config-file": { kind: "value", valueName: "path|-", description: "Full JSON configuration document with real secrets; redacted placeholders rejected; '-' reads stdin (required)" },
       execute: { kind: "boolean", description: "Send the mutation; default redacted before/after preview only" },
       "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
       confirm: { kind: "value", valueName: "target", description: "Exact target 'syslog export' required with --execute" },
@@ -984,7 +984,7 @@ export const catalogue: Readonly<Record<string, {
     description: "Replace QUX Kafka export configuration; disruptive: redirects detection export (data egress)",
     flags: {
       ...globals,
-      "config-file": { kind: "value", valueName: "path|-", description: "Full JSON configuration document; '-' reads stdin (required)" },
+      "config-file": { kind: "value", valueName: "path|-", description: "Full JSON configuration document with real secrets; redacted placeholders rejected; '-' reads stdin (required)" },
       execute: { kind: "boolean", description: "Send the mutation; default redacted before/after preview only" },
       "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
       confirm: { kind: "value", valueName: "target", description: "Exact target 'kafka export' required with --execute" },

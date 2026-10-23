@@ -2210,7 +2210,7 @@ Replace QUX syslog export configuration; disruptive: redirects detection export 
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
-    "--config-file <path|->": "Full JSON configuration document; '-' reads stdin (required)",
+    "--config-file <path|->": "Full JSON configuration document with real secrets; redacted placeholders rejected; '-' reads stdin (required)",
     "--execute": "Send the mutation; default redacted before/after preview only",
     "--dry-run": "Preview without sending (default)",
     "--confirm <target>": "Exact target 'syslog export' required with --execute"
@@ -2241,7 +2241,7 @@ Replace QUX Kafka export configuration; disruptive: redirects detection export (
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
-    "--config-file <path|->": "Full JSON configuration document; '-' reads stdin (required)",
+    "--config-file <path|->": "Full JSON configuration document with real secrets; redacted placeholders rejected; '-' reads stdin (required)",
     "--execute": "Send the mutation; default redacted before/after preview only",
     "--dry-run": "Preview without sending (default)",
     "--confirm <target>": "Exact target 'kafka export' required with --execute"

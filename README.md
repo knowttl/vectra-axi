@@ -357,7 +357,9 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.triage-rule.create`, `.edit`, `.delete` | Create/replace/delete org-wide triage rules on QUX or RUX |
 | `<generation>.host.close`, `<generation>.account.close` | Close hosts/accounts with all active detections on QUX (release 9.3+) or RUX |
 
-QUX `setting syslog set --config-file <path|->` and `setting kafka set --config-file <path|->` accept full JSON documents copied from their settings GET routes.
+QUX `setting syslog set --config-file <path|->` and `setting kafka set --config-file <path|->` accept full JSON documents with real secrets restored.
+Start from the complete preview structure, never from redacted preview output or the projected `api get` subset, which omits keys the POST would then drop.
+Documents containing `***redacted***` are rejected before any preview.
 These endpoints configure servers already created through the UI.
 They preview redacted before/after documents, skip unchanged documents, and re-read before sending to detect concurrent changes.
 The re-read is not atomic concurrency protection.
