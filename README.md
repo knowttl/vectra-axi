@@ -305,6 +305,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.<kind>.assignment.create`, `.reassign`, `.unassign` | Assignments for hosts/accounts on QUX or RUX |
 | `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
 | `<generation>.host.key-asset.set` | Set host key-asset state on QUX or RUX |
+| `<generation>.host.close`, `<generation>.account.close` | Close hosts/accounts with all active detections on QUX (release 9.3+) or RUX |
 
 Replace `<kind>` with `detection`, `host`, or `account`, except assignments, which support only `host` and `account`, and detection close/open, which supports only `detection`.
 Replace `<generation>` with `qux` or `rux`.

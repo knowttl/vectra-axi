@@ -41,6 +41,7 @@ Recheck cited upstream contracts when implementing; record deployment/API/applia
 | WRITE-05 | Detection/host/account bulk tag set/delete | WRITE-00, READ-03 | Explicit bounded target list, per-target dry-run diffs, no-op detection, pre-send re-read per target, count-and-set confirmation, per-target audit, partial-failure reporting, unknown-outcome no-replay, permission and audit tests. |
 | WRITE-06 | QUX/RUX detection close/open | WRITE-00, READ-01 | Explicit single/bulk targets, native close/open routes, close reasons, no-op, release gating, exact target confirmation, policy and audit tests. |
 | WRITE-08 | QUX/RUX host desired-state key-asset | WRITE-00, READ-02 | Explicit host target, desired key-asset flag, no-op, pre-send state comparison, exact target confirmation, policy and audit tests. |
+| WRITE-ENTITY-CLOSE | QUX/RUX host/account disruptive close | WRITE-00, READ-01, READ-02 | Explicit host/account target, bounded active-detection preview, changed-set refusal, exact entity confirmation, release gating, policy and audit tests. |
 | WRITE-N | Remaining separately approved mutation families | WRITE-00, corresponding reads | One reviewed family per change; concurrency evidence, unknown outcome, audit failure and disruptive-confirmation cases. |
 
 PACK-01 is a useful SOC read release, not full Vectra API coverage.
@@ -68,7 +69,7 @@ Do not make every phase one umbrella task or commission the entire catalogue as 
 | 1: first investigation | AUTH-01, AUTH-02, CORE-01, CORE-02, READ-01 | Packaged CLI lists a synthetic detection, shows it, resumes safely and refuses all business writes. |
 | 2: useful QUX release | READ-02 through READ-08, PACK-01 | A complete synthetic on-prem investigation can inspect entities, notes/tags, assignment, rules/groups, audit, health and lockdown status. |
 | 3: cloud adoption | RUX-01 through RUX-06 | Explicit cloud profile passes the shared contracts; QUX output stays stable and generation-specific semantics remain visible. |
-| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-03/WRITE-05/WRITE-06/WRITE-08/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
+| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-03/WRITE-05/WRITE-06/WRITE-08/WRITE-ENTITY-CLOSE/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
 | 5: deliberate expansion | Selected API-01 and separately selected long-tail families | The capability map records exact dispositions per [inventory.md](inventory.md#dispositions-and-exclusions); there is no unrestricted passthrough. |
 
 Phase 1 is sequential because each step establishes a contract used by the next.
