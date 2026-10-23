@@ -74,6 +74,9 @@ See [operation coverage](https://github.com/knowttl/vectra-axi/blob/main/docs/co
 | `npx -y @knowttl/vectra-axi assignment list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
 | `npx -y @knowttl/vectra-axi assignment set` | native | write | - |
 | `npx -y @knowttl/vectra-axi assignment outcome list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `npx -y @knowttl/vectra-axi assignment outcome create` | native | write | - |
+| `npx -y @knowttl/vectra-axi assignment outcome edit` | native | write | - |
+| `npx -y @knowttl/vectra-axi assignment outcome delete` | native | write | - |
 | `npx -y @knowttl/vectra-axi assignment outcome show` | native | read | - |
 | `npx -y @knowttl/vectra-axi user list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
 | `npx -y @knowttl/vectra-axi user show` | native | read | - |

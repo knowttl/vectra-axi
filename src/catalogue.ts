@@ -768,6 +768,51 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi assignment outcome list --profile <name> --fields id,title,category",
     ],
   },
+  "assignment outcome create": {
+    description: "Create a custom QUX or RUX assignment outcome through the gated write pipeline",
+    flags: {
+      ...globals,
+      title: { kind: "value", valueName: "text", description: "Outcome title (required)" },
+      category: { kind: "value", valueName: "category", description: "benign_true_positive, malicious_true_positive, false_positive or internal (required)" },
+      execute: { kind: "boolean", description: "Send the confirmed change; default previews only" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot combine with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target from the preview, required to execute" },
+    },
+    examples: [
+      "vectra-axi assignment outcome create --profile <name> --title \"Example outcome\" --category internal",
+      "vectra-axi assignment outcome create --profile <name> --title \"Example outcome\" --category internal --execute --confirm 'new assignment outcome'",
+    ],
+  },
+  "assignment outcome edit": {
+    description: "Edit a custom QUX or RUX assignment outcome through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Custom outcome ID (positive integer, required)" },
+      title: { kind: "value", valueName: "text", description: "Outcome title" },
+      category: { kind: "value", valueName: "category", description: "benign_true_positive, malicious_true_positive, false_positive or internal" },
+      execute: { kind: "boolean", description: "Send the confirmed change; default previews only" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot combine with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target from the preview, required to execute" },
+    },
+    examples: [
+      "vectra-axi assignment outcome edit --profile <name> --id 5 --title \"Updated outcome\"",
+      "vectra-axi assignment outcome edit --profile <name> --id 5 --title \"Updated outcome\" --execute --confirm 'assignment outcome 5'",
+    ],
+  },
+  "assignment outcome delete": {
+    description: "Delete a custom QUX or RUX assignment outcome through the gated write pipeline",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Custom outcome ID (positive integer, required)" },
+      execute: { kind: "boolean", description: "Send the confirmed change; default previews only" },
+      "dry-run": { kind: "boolean", description: "Preview only; cannot combine with --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target from the preview, required to execute" },
+    },
+    examples: [
+      "vectra-axi assignment outcome delete --profile <name> --id 5",
+      "vectra-axi assignment outcome delete --profile <name> --id 5 --execute --confirm 'assignment outcome 5'",
+    ],
+  },
   "assignment outcome show": {
     description: "Show one QUX or RUX assignment outcome in full detail",
     flags: {

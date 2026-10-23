@@ -551,6 +551,38 @@ it("previews and executes detection close through the packaged binary", () => {
   ]);
 });
 
+it("previews and executes custom assignment outcome writes through the packaged binary", () => {
+  const config = join(scratch, "outcome-write.json");
+  const trace = join(scratch, "outcome-write-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: ["qux.assignment-outcome.create", "qux.assignment-outcome.delete"] } } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    VECTRA_AXI_WRITE_LOG: join(scratch, "outcome-write.log"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const create = ["assignment", "outcome", "create", ...context, "--title", "Example outcome", "--category", "internal"];
+  const preview = invoke(create, fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(decode(preview.stdout)).toMatchObject({ target: "new assignment outcome", proposed: { title: "Example outcome", category: "internal" } });
+  const applied = invoke([...create, "--execute", "--confirm", "new assignment outcome"], fixtureEnv);
+  expect(applied.status).toBe(0);
+  expect(decode(applied.stdout)).toMatchObject({ state: "success", operation: "qux.assignment-outcome.create" });
+  const refused = invoke(["assignment", "outcome", "delete", ...context, "--id", "1", "--execute", "--confirm", "assignment outcome 1"], fixtureEnv);
+  expect(refused.status).toBe(1);
+  expect(decode(refused.stdout)).toMatchObject({ code: "BUILTIN_OUTCOME" });
+  const deleted = invoke(["assignment", "outcome", "delete", ...context, "--id", "5", "--execute", "--confirm", "assignment outcome 5"], fixtureEnv);
+  expect(deleted.status).toBe(0);
+  expect(decode(deleted.stdout)).toMatchObject({ state: "success", operation: "qux.assignment-outcome.delete" });
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "POST", url: "https://fixture.invalid/api/v2.5/assignment_outcomes", body: { title: "Example outcome", category: "internal" } },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/assignment_outcomes/1" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/assignment_outcomes/5" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/assignment_outcomes/5" },
+    { method: "DELETE", url: "https://fixture.invalid/api/v2.5/assignment_outcomes/5", body: {} },
+  ]);
+});
+
 it("previews and executes a gated assignment set through the packaged binary", () => {
   const config = join(scratch, "assignment-set.json");
   const trace = join(scratch, "assignment-set-requests.jsonl");
@@ -1543,7 +1575,7 @@ it.each([
   ["unknown entity scoring flag", ["entity", "scoring", "list", "--state", "active"], "Unknown flag: --state"],
   ["unknown doctor flag", ["doctor", "--limit", "1"], "Unknown flag: --limit"],
   ["unknown assignment flag", ["assignment", "list", "--state", "active"], "Unknown flag: --state"],
-  ["unknown outcome leaf", ["assignment", "outcome", "delete"], "Unknown command: assignment outcome delete"],
+  ["unknown outcome leaf", ["assignment", "outcome", "unknown"], "Unknown command: assignment outcome unknown"],
   ["bare assignment outcome group", ["assignment", "outcome"], "Unknown command: assignment outcome"],
   ["lockdown execution leaf", ["lockdown", "execute", "--type", "host"], "Unknown command: lockdown execute"],
   ["bare lockdown group", ["lockdown"], "Unknown command: lockdown"],

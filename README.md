@@ -152,6 +152,7 @@ vectra-axi detection note add --profile onprem --id 42 --note 'Investigation sta
 vectra-axi detection note edit --profile cloud --id 42 --note-id 7 --note 'Investigation updated'
 vectra-axi detection note delete --profile cloud --id 42 --note-id 7
 vectra-axi assignment set --profile onprem --host 7 --user 3
+vectra-axi assignment outcome create --profile onprem --title 'Example outcome' --category internal
 vectra-axi detection close --profile onprem --id 42 --reason benign
 vectra-axi detection open --profile cloud --ids 41,42
 vectra-axi host key-asset set --profile onprem --id 7 --value true
@@ -179,6 +180,10 @@ Bulk confirmation names the complete normalized target set, for example `--execu
   A changed active detection set on the pre-send re-read is refused; this check is not atomic with the mutation.
   QUX requires release 9.3 or later when `applianceRelease` is declared; undeclared releases are left to the server.
 
+- `assignment outcome create` requires `--title` and `--category benign_true_positive|malicious_true_positive|false_positive|internal`, confirmed with `new assignment outcome`.
+  `assignment outcome edit` requires `--id` and at least one of `--title` or `--category`; delete requires `--id`.
+  Edit and delete confirm `assignment outcome <id>` and refuse builtin outcomes on both reads.
+  Equal edits send nothing; changed state between reads is refused.
 - `host key-asset set` requires `--id` and `--value true|false`, with confirmation `host <id>`.
   QUX and RUX re-read `key_asset` before sending and skip an already desired state.
 
@@ -303,6 +308,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.<kind>.note.add` | Append notes on QUX or RUX |
 | `<generation>.<kind>.note.edit`, `<generation>.<kind>.note.delete` | Edit/delete notes on QUX or RUX |
 | `<generation>.<kind>.assignment.create`, `.reassign`, `.unassign` | Assignments for hosts/accounts on QUX or RUX |
+| `<generation>.assignment-outcome.create`, `.edit`, `.delete` | Custom assignment outcomes on QUX or RUX |
 | `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
 | `<generation>.host.key-asset.set` | Set host key-asset state on QUX or RUX |
 | `<generation>.host.close`, `<generation>.account.close` | Close hosts/accounts with all active detections on QUX (release 9.3+) or RUX |
@@ -355,7 +361,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `host` | `host list`, `host show`, `host key-asset set`, `host close`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
 | `account` | `account list`, `account show`, `account close`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
 | `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |
-| `assignment` | `assignment list`, `assignment set`, `assignment outcome list`, `assignment outcome show` | QUX, RUX |
+| `assignment` | `assignment list`, `assignment set`, `assignment outcome list`, `assignment outcome create`, `assignment outcome edit`, `assignment outcome delete`, `assignment outcome show` | QUX, RUX |
 | `user` | `user list`, `user show` | QUX, RUX |
 | `audit` | `audit list` | QUX, RUX |
 | `group` | `group list`, `group show`, `group member list` | QUX, RUX |
