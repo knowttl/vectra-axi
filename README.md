@@ -336,7 +336,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.triage-rule.create`, `.edit`, `.delete` | Create/replace/delete org-wide triage rules on QUX or RUX |
 | `<generation>.host.close`, `<generation>.account.close` | Close hosts/accounts with all active detections on QUX (release 9.3+) or RUX |
 
-Replace `<kind>` with `detection`, `host`, or `account`, except assignments, which support only `host` and `account`, and detection close/open, which supports only `detection`.
+Replace `<kind>` with `detection`, `host`, or `account`, except assignments, which support only `host` and `account`, and detection close/open/fixed set, which support only `detection`.
 Replace `<generation>` with `qux` or `rux`.
 Assignment suffixes each require the full operation name, such as `qux.host.assignment.reassign`.
 An absent scope or `allowWrites: false` disables writes; `operations` must be a nonempty array.
