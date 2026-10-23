@@ -41,6 +41,32 @@ function invoke(args: string[], extraEnv: Record<string, string> = {}) {
   });
 }
 
+it("previews and confirms Match enablement through the packaged CLI", () => {
+  const config = join(scratch, "match.json");
+  const trace = join(scratch, "match-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: ["qux.match.enablement.set"] },
+  } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    VECTRA_AXI_WRITE_LOG: join(scratch, "match-writes.log"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}`,
+  };
+  const args = ["match", "enablement", "set", "--config", config, "--profile", "lab", "--device", "SYNTH0001", "--value", "true"];
+  const preview = invoke(args, fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(preview.stdout).toContain("reboot");
+  expect(preview.stdout).toContain("licence");
+  expect(invoke([...args, "--execute"], fixtureEnv).stdout).toContain("CONFIRM_REQUIRED");
+  const result = invoke([...args, "--execute", "--confirm", "match device SYNTH0001"], fixtureEnv);
+  expect(result.status).toBe(0);
+  expect(decode(result.stdout)).toMatchObject({ operation: "qux.match.enablement.set", state: "success" });
+  const requests = readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line));
+  expect(requests.filter((row) => row.method === "POST")).toEqual([
+    { method: "POST", url: "https://fixture.invalid/api/v2.5/vectra-match/enablement", body: { device_serial: "SYNTH0001", desired_state: true } },
+  ]);
+});
+
 const groups = [...new Set(Object.keys(catalogue).flatMap((leaf) => {
   const words = leaf.split(" ");
   return words.slice(1).map((_word, index) => words.slice(0, index + 1).join(" "));
@@ -1864,7 +1890,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, doctor, auth, profile, config, detection, host, account, entity, assignment, threat-feed, setting, notification, proxy, user, audit, group, triage, health, api, lockdown");
+  expect(result.stdout).toContain("Available commands: home, setup, doctor, auth, profile, config, detection, host, account, entity, assignment, threat-feed, match, setting, notification, proxy, user, audit, group, triage, health, api, lockdown");
   expect(result.stdout).not.toContain("detection list");
   expect(result.stdout.length).toBeLessThan(600);
   expect(result.stderr).toBe("");

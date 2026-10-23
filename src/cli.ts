@@ -49,6 +49,7 @@ import { proxyId, runProxyRead, runProxyWrite } from "./proxies.js";
 import { runExportSettingSet, runInternalNetworkRead, runInternalNetworkSet } from "./settings.js";
 import { runNotificationRead, runNotificationWrite } from "./notifications.js";
 import { threatFeedId, runThreatFeedRead, runThreatFeedWrite } from "./threat-feeds.js";
+import { runMatchRead, runMatchWrite, type MatchAction } from "./match.js";
 import { createMutationCoordinator, readOnlyForced } from "./writes.js";
 
 const ASSIGNMENT_FIELDS = {
@@ -183,6 +184,16 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         if (["threat-feed create", "threat-feed edit", "threat-feed delete", "threat-feed file set", "threat-feed file delete"].includes(invocation.leaf)) {
           const action = invocation.leaf.slice("threat-feed ".length).replace(" ", ".") as "create" | "edit" | "delete" | "file.set" | "file.delete";
           return runWrite(invocation.flags, (session, coordinator) => runThreatFeedWrite(session, coordinator, invocation.flags, action));
+        }
+        if (["match enablement show", "match ruleset show", "match assignment list"].includes(invocation.leaf)) {
+          const loaded = loadConfig(invocation.flags.get("config") as string | undefined, redactor);
+          const selected = selectProfile(loaded.config, invocation.flags.get("profile") as string | undefined);
+          const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+          return (await runMatchRead(session, invocation.flags, invocation.leaf.split(" ")[1] as "enablement" | "ruleset" | "assignment")).output;
+        }
+        if (["match enablement set", "match ruleset upload", "match ruleset delete", "match assignment set", "match assignment delete"].includes(invocation.leaf)) {
+          const action = invocation.leaf.slice("match ".length).replace(" ", ".") as MatchAction;
+          return runWrite(invocation.flags, (session, coordinator) => runMatchWrite(session, coordinator, invocation.flags, action));
         }
         if (invocation.leaf === "setting internal-network show") {
           const loaded = loadConfig(invocation.flags.get("config") as string | undefined, redactor);

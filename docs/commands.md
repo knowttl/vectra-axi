@@ -2137,6 +2137,250 @@ Preview or execute gated QUX or RUX threat-feed file delete
 }
 ```
 
+## match enablement show
+
+Read current Match enablement for one device
+
+- `qux.match.enablement.show`: QUX API 2.5
+- `rux.match.enablement.show`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi match enablement show",
+  "description": "Read current Match enablement for one device",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--device <serial>": "Device serial (required)"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi match enablement show --help",
+    "vectra-axi match enablement show --profile <name> --device SYNTH0001"
+  ]
+}
+```
+
+## match ruleset show
+
+Read Match ruleset metadata without rule contents
+
+- `qux.match.ruleset.show`: QUX API 2.5
+- `rux.match.ruleset.show`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi match ruleset show",
+  "description": "Read Match ruleset metadata without rule contents",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--uuid <uuid>": "Ruleset UUID (required)"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi match ruleset show --help",
+    "vectra-axi match ruleset show --profile <name> --uuid <uuid>"
+  ]
+}
+```
+
+## match assignment list
+
+Read all Match device-to-ruleset assignments
+
+- `qux.match.assignment.list`: QUX API 2.5
+- `rux.match.assignment.list`: RUX API 3.4
+
+QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all
+
+```json
+{
+  "command": "vectra-axi match assignment list",
+  "description": "Read all Match device-to-ruleset assignments",
+  "pagination": "QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi match assignment list --help",
+    "vectra-axi match assignment list --profile <name>"
+  ]
+}
+```
+
+## match enablement set
+
+Preview or execute disruptive Match enablement; changing state causes a reboot; valid licence required to enable
+
+- `qux.match.enablement.set`: QUX API 2.5
+- `rux.match.enablement.set`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi match enablement set",
+  "description": "Preview or execute disruptive Match enablement; changing state causes a reboot; valid licence required to enable",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--device <serial>": "Device serial (required)",
+    "--value <true|false>": "Desired enablement (required); changing state causes a reboot; enabling requires a valid Match licence",
+    "--execute": "Send the mutation; default preview only; requires hand-edited profile opt-in and allowlist",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact preview target required with --execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi match enablement set --help",
+    "vectra-axi match enablement set --profile <name> --device SYNTH0001 --value true"
+  ]
+}
+```
+
+## match ruleset upload
+
+Upload Match rules through bounded multipart; licence required; RUX /rules/ is deprecated, staged /rules/upload/ is the documented successor (follow-up candidate)
+
+- `qux.match.ruleset.upload`: QUX API 2.5
+- `rux.match.ruleset.upload`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi match ruleset upload",
+  "description": "Upload Match rules through bounded multipart; licence required; RUX /rules/ is deprecated, staged /rules/upload/ is the documented successor (follow-up candidate)",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--file <path>": "Regular ruleset file path only, never stdin; maximum 5000000 bytes; preview and journal contain metadata only (required)",
+    "--execute": "Send the mutation; default preview only; requires hand-edited profile opt-in and allowlist",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact preview target required with --execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi match ruleset upload --help",
+    "vectra-axi match ruleset upload --profile <name> --file <file>"
+  ]
+}
+```
+
+## match ruleset delete
+
+Preview or execute gated Match ruleset delete
+
+- `qux.match.ruleset.delete`: QUX API 2.5
+- `rux.match.ruleset.delete`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi match ruleset delete",
+  "description": "Preview or execute gated Match ruleset delete",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--uuid <uuid>": "Ruleset UUID (required)",
+    "--execute": "Send the mutation; default preview only; requires hand-edited profile opt-in and allowlist",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact preview target required with --execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi match ruleset delete --help",
+    "vectra-axi match ruleset delete --profile <name> --uuid <uuid>"
+  ]
+}
+```
+
+## match assignment set
+
+Preview or execute gated Match assignment set
+
+- `qux.match.assignment.set`: QUX API 2.5
+- `rux.match.assignment.set`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi match assignment set",
+  "description": "Preview or execute gated Match assignment set",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--device <serial>": "Device serial (required)",
+    "--uuid <uuid>": "Ruleset UUID (required)",
+    "--execute": "Send the mutation; default preview only; requires hand-edited profile opt-in and allowlist",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact preview target required with --execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi match assignment set --help",
+    "vectra-axi match assignment set --profile <name> --device SYNTH0001 --uuid <uuid>"
+  ]
+}
+```
+
+## match assignment delete
+
+Preview or execute gated Match assignment delete
+
+- `qux.match.assignment.delete`: QUX API 2.5
+- `rux.match.assignment.delete`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi match assignment delete",
+  "description": "Preview or execute gated Match assignment delete",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--device <serial>": "Device serial (required)",
+    "--uuid <uuid>": "Ruleset UUID (required)",
+    "--execute": "Send the mutation; default preview only; requires hand-edited profile opt-in and allowlist",
+    "--dry-run": "Preview without sending (default)",
+    "--confirm <target>": "Exact preview target required with --execute"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi match assignment delete --help",
+    "vectra-axi match assignment delete --profile <name> --device SYNTH0001 --uuid <uuid>"
+  ]
+}
+```
+
 ## setting internal-network show
 
 Show QUX internal-network monitoring and drop lists

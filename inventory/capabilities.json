@@ -62,6 +62,584 @@
   ],
   "operations": [
     {
+      "id": "qux.match.enablement.show",
+      "command": "match enablement show",
+      "slice": "WRITE-20",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op.",
+      "method": "GET",
+      "path": "/api/v2.5/vectra-match/enablement",
+      "effect": "read",
+      "query": [
+        "device_serial"
+      ],
+      "fields": [
+        "is_enabled",
+        "details"
+      ],
+      "paging": "none",
+      "permissions": "Requires Match read permission.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Vectra Match pp68-74, 145, 164-167; endpoint overview p8 reboot warning"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.match.ruleset.show",
+      "command": "match ruleset show",
+      "slice": "WRITE-20",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op.",
+      "method": "GET",
+      "path": "/api/v2.5/vectra-match/rules",
+      "effect": "read",
+      "query": [
+        "uuid"
+      ],
+      "fields": [
+        "uuid",
+        "name",
+        "hashsum",
+        "device_serials",
+        "timestamp",
+        "details"
+      ],
+      "paging": "none",
+      "permissions": "Requires Match read permission.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Vectra Match pp68-74, 145, 164-167; endpoint overview p8 reboot warning"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.match.assignment.list",
+      "command": "match assignment list",
+      "slice": "WRITE-20",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op.",
+      "method": "GET",
+      "path": "/api/v2.5/vectra-match/assignment",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "device_to_rules_map",
+        "details"
+      ],
+      "paging": "none",
+      "permissions": "Requires Match read permission.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Vectra Match pp68-74, 145, 164-167; endpoint overview p8 reboot warning"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.match.enablement.set",
+      "command": "match enablement set",
+      "slice": "WRITE-20",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op.",
+      "method": "POST",
+      "path": "/api/v2.5/vectra-match/enablement",
+      "effect": "disruptive",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires Match write permission and unchanged WRITE-00 gates.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Vectra Match pp68-74, 145, 164-167; endpoint overview p8 reboot warning"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.match.ruleset.upload",
+      "command": "match ruleset upload",
+      "slice": "WRITE-20",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op.",
+      "method": "POST",
+      "path": "/api/v2.5/vectra-match/rules",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires Match write permission and unchanged WRITE-00 gates.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Vectra Match pp68-74, 145, 164-167; endpoint overview p8 reboot warning"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.match.ruleset.delete",
+      "command": "match ruleset delete",
+      "slice": "WRITE-20",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op.",
+      "method": "DELETE",
+      "path": "/api/v2.5/vectra-match/rules",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires Match write permission and unchanged WRITE-00 gates.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Vectra Match pp68-74, 145, 164-167; endpoint overview p8 reboot warning"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.match.assignment.set",
+      "command": "match assignment set",
+      "slice": "WRITE-20",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op.",
+      "method": "POST",
+      "path": "/api/v2.5/vectra-match/assignment",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires Match write permission and unchanged WRITE-00 gates.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Vectra Match pp68-74, 145, 164-167; endpoint overview p8 reboot warning"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.match.assignment.delete",
+      "command": "match assignment delete",
+      "slice": "WRITE-20",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op.",
+      "method": "DELETE",
+      "path": "/api/v2.5/vectra-match/assignment",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires Match write permission and unchanged WRITE-00 gates.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "Vectra Match pp68-74, 145, 164-167; endpoint overview p8 reboot warning"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.match.enablement.show",
+      "command": "match enablement show",
+      "slice": "WRITE-20",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op. Multipart POST /vectra-match/rules/ is deprecated; the staged /rules/upload/ flow is the documented successor and a follow-up candidate.",
+      "method": "GET",
+      "path": "/api/v3.4/vectra-match/enablement/",
+      "effect": "read",
+      "query": [
+        "device_serial"
+      ],
+      "fields": [
+        "is_enabled",
+        "details"
+      ],
+      "paging": "none",
+      "permissions": "Requires Match read permission.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /vectra-match/enablement/, /rules/ and /assignment/; MatchEnablementSerializerV3_3, MatchRulesSerializerV3_3, MatchAssignmentSerializerV3_3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.match.ruleset.show",
+      "command": "match ruleset show",
+      "slice": "WRITE-20",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op. Multipart POST /vectra-match/rules/ is deprecated; the staged /rules/upload/ flow is the documented successor and a follow-up candidate.",
+      "method": "GET",
+      "path": "/api/v3.4/vectra-match/rules/",
+      "effect": "read",
+      "query": [
+        "uuid"
+      ],
+      "fields": [
+        "uuid",
+        "name",
+        "hashsum",
+        "device_serials",
+        "timestamp",
+        "details"
+      ],
+      "paging": "none",
+      "permissions": "Requires Match read permission.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /vectra-match/enablement/, /rules/ and /assignment/; MatchEnablementSerializerV3_3, MatchRulesSerializerV3_3, MatchAssignmentSerializerV3_3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.match.assignment.list",
+      "command": "match assignment list",
+      "slice": "WRITE-20",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op. Multipart POST /vectra-match/rules/ is deprecated; the staged /rules/upload/ flow is the documented successor and a follow-up candidate.",
+      "method": "GET",
+      "path": "/api/v3.4/vectra-match/assignment/",
+      "effect": "read",
+      "query": [],
+      "fields": [
+        "device_to_rules_map",
+        "details"
+      ],
+      "paging": "none",
+      "permissions": "Requires Match read permission.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /vectra-match/enablement/, /rules/ and /assignment/; MatchEnablementSerializerV3_3, MatchRulesSerializerV3_3, MatchAssignmentSerializerV3_3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.match.enablement.set",
+      "command": "match enablement set",
+      "slice": "WRITE-20",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op. Multipart POST /vectra-match/rules/ is deprecated; the staged /rules/upload/ flow is the documented successor and a follow-up candidate.",
+      "method": "POST",
+      "path": "/api/v3.4/vectra-match/enablement/",
+      "effect": "disruptive",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires Match write permission and unchanged WRITE-00 gates.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /vectra-match/enablement/, /rules/ and /assignment/; MatchEnablementSerializerV3_3, MatchRulesSerializerV3_3, MatchAssignmentSerializerV3_3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.match.ruleset.upload",
+      "command": "match ruleset upload",
+      "slice": "WRITE-20",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op. Multipart POST /vectra-match/rules/ is deprecated; the staged /rules/upload/ flow is the documented successor and a follow-up candidate.",
+      "method": "POST",
+      "path": "/api/v3.4/vectra-match/rules/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires Match write permission and unchanged WRITE-00 gates.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /vectra-match/enablement/, /rules/ and /assignment/; MatchEnablementSerializerV3_3, MatchRulesSerializerV3_3, MatchAssignmentSerializerV3_3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.match.ruleset.delete",
+      "command": "match ruleset delete",
+      "slice": "WRITE-20",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op. Multipart POST /vectra-match/rules/ is deprecated; the staged /rules/upload/ flow is the documented successor and a follow-up candidate.",
+      "method": "DELETE",
+      "path": "/api/v3.4/vectra-match/rules/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires Match write permission and unchanged WRITE-00 gates.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /vectra-match/enablement/, /rules/ and /assignment/; MatchEnablementSerializerV3_3, MatchRulesSerializerV3_3, MatchAssignmentSerializerV3_3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.match.assignment.set",
+      "command": "match assignment set",
+      "slice": "WRITE-20",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op. Multipart POST /vectra-match/rules/ is deprecated; the staged /rules/upload/ flow is the documented successor and a follow-up candidate.",
+      "method": "POST",
+      "path": "/api/v3.4/vectra-match/assignment/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires Match write permission and unchanged WRITE-00 gates.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /vectra-match/enablement/, /rules/ and /assignment/; MatchEnablementSerializerV3_3, MatchRulesSerializerV3_3, MatchAssignmentSerializerV3_3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.match.assignment.delete",
+      "command": "match assignment delete",
+      "slice": "WRITE-20",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Enablement changes cause a reboot. Valid Match licence required to enable, upload rules or add assignments; disabling a previously enabled device is permitted after licence expiry. Writes require explicit profile opt-in, exact operation allowlist and confirmation. Read before send; unchanged enablement and assignments are no-ops. Client-side re-reads are not atomic. Upload accepts a regular file path only, at most 5000000 bytes, verified by SHA-256 before send; preview and journal contain file metadata only. Assignment set adds one ruleset to one device. Upload re-reads the assignment map; file metadata never implies a no-op. Multipart POST /vectra-match/rules/ is deprecated; the staged /rules/upload/ flow is the documented successor and a follow-up candidate.",
+      "method": "DELETE",
+      "path": "/api/v3.4/vectra-match/assignment/",
+      "effect": "write",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Requires Match write permission and unchanged WRITE-00 gates.",
+      "licence": "Vectra Match licence required for enablement, rules upload and assignment creation; expired-licence disable permitted.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "v3.4 /vectra-match/enablement/, /rules/ and /assignment/; MatchEnablementSerializerV3_3, MatchRulesSerializerV3_3, MatchAssignmentSerializerV3_3"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Reviewed Match read and write support under unchanged write policy.",
+      "fixtureCases": [
+        "synthetic-match-reads",
+        "write-policy",
+        "enablement-reboot-warning",
+        "unchanged-noop",
+        "multipart-file-bound",
+        "redacted-journal",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
       "id": "rux.notification-destination.list",
       "command": "notification destination list",
       "slice": "READ-19",
@@ -7774,7 +8352,7 @@
       "deployment": "qux",
       "apiVersion": "2.5",
       "disposition": "unreviewed",
-      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "rationale": "Remaining Match reads exclude the reviewed enablement, ruleset detail and assignment reads. Enablement, multipart ruleset upload/delete and assignment set/delete writes are named separately under unchanged write policy. Other routes remain unreviewed.",
       "evidence": [
         {
           "source": "qux-guide",
@@ -7865,7 +8443,7 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "disposition": "unreviewed",
-      "rationale": "Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.",
+      "rationale": "Remaining Match reads exclude the reviewed enablement, ruleset detail and assignment reads. Enablement, multipart ruleset upload/delete and assignment set/delete writes are named separately under unchanged write policy. Deprecated multipart rules upload is supported; staged /rules/upload/ is the documented successor and a follow-up candidate. Other routes remain unreviewed.",
       "evidence": [
         {
           "source": "rux-spec",

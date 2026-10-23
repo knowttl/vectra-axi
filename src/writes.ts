@@ -166,6 +166,7 @@ export function createMutationCoordinator(args: {
         "WRITES_DISABLED",
         [
           "Writes are disabled for this profile",
+          "Match enablement, ruleset and assignment writes require hand-edited opt-in; enablement changes cause a reboot and enabling requires a valid Match licence",
           "RUX `notification destination create`/`edit`/`delete` requires a hand-edited writes scope; high risk: event data egress",
           "QUX `setting internal-network set` also requires a hand-edited writes scope; high risk: changes what is monitored or dropped",
           "QUX `setting syslog set` and `setting kafka set` require a hand-edited writes scope; disruptive: redirect detection export (data egress)",
@@ -180,6 +181,7 @@ export function createMutationCoordinator(args: {
         "OPERATION_NOT_WRITABLE",
         [
           "Writes are limited to this profile's configured operations",
+          "Implemented Match writes: `match enablement set`, `match ruleset upload`/`delete`, `match assignment set`/`delete`; enablement changes cause a reboot",
           "RUX `notification destination create`/`edit`/`delete` is implemented; high risk: event data egress",
           "QUX `setting internal-network set` is implemented; high risk: changes what is monitored or dropped",
           "QUX `setting syslog set` and `setting kafka set` are implemented; disruptive: redirect detection export (data egress)",

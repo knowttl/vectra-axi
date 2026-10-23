@@ -951,6 +951,87 @@ export const catalogue: Readonly<Record<string, {
     },
     examples: ["vectra-axi threat-feed file delete --help", "vectra-axi threat-feed file delete --profile <name> --id <id>"],
   },
+  "match enablement show": {
+    description: "Read current Match enablement for one device",
+    flags: {
+      ...globals,
+      device: { kind: "value", valueName: "serial", description: "Device serial (required)" },
+    },
+    examples: ["vectra-axi match enablement show --help", "vectra-axi match enablement show --profile <name> --device SYNTH0001"],
+  },
+  "match ruleset show": {
+    description: "Read Match ruleset metadata without rule contents",
+    flags: {
+      ...globals,
+      uuid: { kind: "value", valueName: "uuid", description: "Ruleset UUID (required)" },
+    },
+    examples: ["vectra-axi match ruleset show --help", "vectra-axi match ruleset show --profile <name> --uuid <uuid>"],
+  },
+  "match assignment list": {
+    description: "Read all Match device-to-ruleset assignments",
+    flags: {
+      ...globals,
+    },
+    examples: ["vectra-axi match assignment list --help", "vectra-axi match assignment list --profile <name>"],
+  },
+  "match enablement set": {
+    description: "Preview or execute disruptive Match enablement; changing state causes a reboot; valid licence required to enable",
+    flags: {
+      ...globals,
+      device: { kind: "value", valueName: "serial", description: "Device serial (required)" },
+      value: { kind: "value", valueName: "true|false", description: "Desired enablement (required); changing state causes a reboot; enabling requires a valid Match licence" },
+      execute: { kind: "boolean", description: "Send the mutation; default preview only; requires hand-edited profile opt-in and allowlist" },
+      "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
+      confirm: { kind: "value", valueName: "target", description: "Exact preview target required with --execute" },
+    },
+    examples: ["vectra-axi match enablement set --help", "vectra-axi match enablement set --profile <name> --device SYNTH0001 --value true"],
+  },
+  "match ruleset upload": {
+    description: "Upload Match rules through bounded multipart; licence required; RUX /rules/ is deprecated, staged /rules/upload/ is the documented successor (follow-up candidate)",
+    flags: {
+      ...globals,
+      file: { kind: "value", valueName: "path", description: "Regular ruleset file path only, never stdin; maximum 5000000 bytes; preview and journal contain metadata only (required)" },
+      execute: { kind: "boolean", description: "Send the mutation; default preview only; requires hand-edited profile opt-in and allowlist" },
+      "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
+      confirm: { kind: "value", valueName: "target", description: "Exact preview target required with --execute" },
+    },
+    examples: ["vectra-axi match ruleset upload --help", "vectra-axi match ruleset upload --profile <name> --file <file>"],
+  },
+  "match ruleset delete": {
+    description: "Preview or execute gated Match ruleset delete",
+    flags: {
+      ...globals,
+      uuid: { kind: "value", valueName: "uuid", description: "Ruleset UUID (required)" },
+      execute: { kind: "boolean", description: "Send the mutation; default preview only; requires hand-edited profile opt-in and allowlist" },
+      "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
+      confirm: { kind: "value", valueName: "target", description: "Exact preview target required with --execute" },
+    },
+    examples: ["vectra-axi match ruleset delete --help", "vectra-axi match ruleset delete --profile <name> --uuid <uuid>"],
+  },
+  "match assignment set": {
+    description: "Preview or execute gated Match assignment set",
+    flags: {
+      ...globals,
+      device: { kind: "value", valueName: "serial", description: "Device serial (required)" },
+      uuid: { kind: "value", valueName: "uuid", description: "Ruleset UUID (required)" },
+      execute: { kind: "boolean", description: "Send the mutation; default preview only; requires hand-edited profile opt-in and allowlist" },
+      "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
+      confirm: { kind: "value", valueName: "target", description: "Exact preview target required with --execute" },
+    },
+    examples: ["vectra-axi match assignment set --help", "vectra-axi match assignment set --profile <name> --device SYNTH0001 --uuid <uuid>"],
+  },
+  "match assignment delete": {
+    description: "Preview or execute gated Match assignment delete",
+    flags: {
+      ...globals,
+      device: { kind: "value", valueName: "serial", description: "Device serial (required)" },
+      uuid: { kind: "value", valueName: "uuid", description: "Ruleset UUID (required)" },
+      execute: { kind: "boolean", description: "Send the mutation; default preview only; requires hand-edited profile opt-in and allowlist" },
+      "dry-run": { kind: "boolean", description: "Preview without sending (default)" },
+      confirm: { kind: "value", valueName: "target", description: "Exact preview target required with --execute" },
+    },
+    examples: ["vectra-axi match assignment delete --help", "vectra-axi match assignment delete --profile <name> --device SYNTH0001 --uuid <uuid>"],
+  },
   "setting internal-network show": {
     description: "Show QUX internal-network monitoring and drop lists",
     flags: globals,
