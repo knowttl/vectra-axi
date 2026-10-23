@@ -2379,6 +2379,45 @@
       ]
     },
     {
+      "id": "qux.group.member.set",
+      "command": "group member set",
+      "slice": "WRITE-11",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": "9.2",
+      "constraints": "Full paged membership required; add/remove compute a full replacement client-side. Default replace PATCH without membership_action. Refuse regex/AD groups and changed membership before send. Groups drive triage rules and importance; the re-read is not atomic protection.",
+      "method": "PATCH",
+      "path": "/api/v2.5/groups/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "members"
+      ],
+      "paging": "none",
+      "permissions": "Group mutation permission plus explicit local write scope required.",
+      "licence": "No endpoint-specific licence prerequisite established.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp41-43; PATCH /groups/{id}"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Group member add/remove/set uses src/group-write.ts and the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "full-list-replace",
+        "paged-members",
+        "no-op",
+        "concurrent-change",
+        "regex-ad-refused",
+        "policy-refused",
+        "confirmation",
+        "journal-redacted",
+        "server-reject",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
       "id": "qux.group.list",
       "command": "group list",
       "slice": "READ-05",
@@ -4314,6 +4353,45 @@
         "success",
         "access-denied",
         "malformed-response"
+      ]
+    },
+    {
+      "id": "rux.group.member.set",
+      "command": "group member set",
+      "slice": "WRITE-11",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Full paged membership required; add/remove compute a full replacement client-side. Default replace PATCH without membership_action. Refuse regex/AD groups and changed membership before send. Groups drive triage rules and importance; the re-read is not atomic protection.",
+      "method": "PATCH",
+      "path": "/api/v3.4/groups/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "members"
+      ],
+      "paging": "none",
+      "permissions": "Group mutation permission plus explicit local write scope required.",
+      "licence": "No endpoint-specific licence prerequisite established.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "PATCH /api/v3.4/groups/{id}/"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Group member add/remove/set uses src/group-write.ts and the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "full-list-replace",
+        "paged-members",
+        "no-op",
+        "concurrent-change",
+        "regex-ad-refused",
+        "policy-refused",
+        "confirmation",
+        "journal-redacted",
+        "server-reject",
+        "unknown-outcome-no-replay"
       ]
     },
     {
@@ -6283,7 +6361,7 @@
       "deployment": "qux",
       "apiVersion": "2.5",
       "disposition": "planned",
-      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "rationale": "Group membership replacement ships as qux.group.member.set (add/remove compute the full list client-side). Group create/edit/delete remain planned. No additional route is authorized by this family entry.",
       "evidence": [
         {
           "source": "qux-guide",
@@ -6348,7 +6426,7 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "disposition": "planned",
-      "rationale": "WRITE-00 coordinator and separately approved exact mutation family required. No route is authorized by this family entry.",
+      "rationale": "Group membership replacement ships as rux.group.member.set (add/remove compute the full list client-side). Group create/edit/delete remain planned. No additional route is authorized by this family entry.",
       "evidence": [
         {
           "source": "rux-spec",

@@ -258,7 +258,7 @@ JSON rule files require null conditions or an OR root with exactly one AND child
 Previews show the complete before/after documents and warn about org-wide suppression of future detections.
 Edit and delete re-read the full rule and refuse any change with VERSION_CONFLICT; this comparison is not atomic.
 The [offline acceptance suite](../test/triage-rule-write.test.ts) covers exact routes and bodies, malformed input before HTTP, file/stdin inputs, confirmation, policy, metadata-only auditing, rejection and unknown outcomes without replay.
-Group membership writes remain planned.
+Group member add/remove/set uses full paged membership reads and a gated full replacement, refusing regex/AD groups and concurrent changes.
 
 WRITE-03 selects desired-state QUX/RUX host and account assignment, built on READ-04/RUX-04 assignment reads and WRITE-00.
 Detection assignment is outside this approved slice; see [README.md](../README.md) for the upstream limitation.

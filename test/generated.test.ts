@@ -80,7 +80,8 @@ describe("generated release records", () => {
     const rows = skillCommandTable().split("\n").slice(2);
     expect(rows).toHaveLength(Object.keys(catalogue).length);
     expect(rows).toEqual(Object.keys(catalogue).map((leaf) => {
-      const effect = inventory.operations.find((operation) => operation.command === leaf)?.effect ?? "read";
+      const lookup = leaf === "group member add" || leaf === "group member remove" ? "group member set" : leaf;
+      const effect = inventory.operations.find((operation) => operation.command === lookup)?.effect ?? "read";
       return `| \`npx -y @knowttl/vectra-axi ${leaf}\` | native | ${effect} | ${listPaging(leaf) ?? "-"} |`;
     }));
   });

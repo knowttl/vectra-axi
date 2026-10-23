@@ -2102,6 +2102,114 @@ Show one group on QUX v2.5 or RUX v3.4 in full detail
 }
 ```
 
+## group member add
+
+Add to static group membership on QUX or RUX; groups drive triage rules and importance
+
+- `qux.group.member.set`: QUX API 2.5
+- `rux.group.member.set`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi group member add",
+  "description": "Add to static group membership on QUX or RUX; groups drive triage rules and importance",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Group ID (positive integer, required)",
+    "--members <list>": "Comma-separated host IDs, account UIDs, IPs or domains; exactly one member input required",
+    "--members-file <path|->": "JSON array of members; - reads stdin; [] clears membership with set",
+    "--execute": "Send the confirmed full replacement; default previews only",
+    "--dry-run": "Preview only; cannot be combined with --execute",
+    "--confirm <target>": "Exact group target from preview, required to execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi group member add --profile <name> 8 --members 7,9",
+    "vectra-axi group member add --profile <name> 8 --members-file members.json --execute --confirm 'group 8'"
+  ]
+}
+```
+
+## group member remove
+
+Remove from static group membership on QUX or RUX; groups drive triage rules and importance
+
+- `qux.group.member.set`: QUX API 2.5
+- `rux.group.member.set`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi group member remove",
+  "description": "Remove from static group membership on QUX or RUX; groups drive triage rules and importance",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Group ID (positive integer, required)",
+    "--members <list>": "Comma-separated host IDs, account UIDs, IPs or domains; exactly one member input required",
+    "--members-file <path|->": "JSON array of members; - reads stdin; [] clears membership with set",
+    "--execute": "Send the confirmed full replacement; default previews only",
+    "--dry-run": "Preview only; cannot be combined with --execute",
+    "--confirm <target>": "Exact group target from preview, required to execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi group member remove --profile <name> 8 --members 7,9",
+    "vectra-axi group member remove --profile <name> 8 --members-file members.json --execute --confirm 'group 8'"
+  ]
+}
+```
+
+## group member set
+
+Replace static group membership on QUX or RUX; groups drive triage rules and importance
+
+- `qux.group.member.set`: QUX API 2.5
+- `rux.group.member.set`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi group member set",
+  "description": "Replace static group membership on QUX or RUX; groups drive triage rules and importance",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Group ID (positive integer, required)",
+    "--members <list>": "Comma-separated host IDs, account UIDs, IPs or domains; exactly one member input required",
+    "--members-file <path|->": "JSON array of members; - reads stdin; [] clears membership with set",
+    "--execute": "Send the confirmed full replacement; default previews only",
+    "--dry-run": "Preview only; cannot be combined with --execute",
+    "--confirm <target>": "Exact group target from preview, required to execute"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi group member set --profile <name> 8 --members 7,9",
+    "vectra-axi group member set --profile <name> 8 --members-file members.json --execute --confirm 'group 8'"
+  ]
+}
+```
+
 ## group member list
 
 List one group's members on QUX v2.5 (appliance 9.2+) or RUX v3.4 through the paged member route

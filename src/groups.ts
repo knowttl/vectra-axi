@@ -13,8 +13,9 @@ import type { Session } from "./session.js";
 // embedded detail summary capped at 2000 rows; member windows stay scoped to
 // their group ID and are never merged across groups. Triage rules describe
 // automation only: rule output never claims a detection is benign.
-// This reader authorizes GETs only; rule writes use the separate WRITE-00
-// coordinator in triage-rule-write.ts. Assignments/users stay READ-04.
+// Group membership writes live in group-write.ts; rule writes use the separate WRITE-00
+// coordinator in triage-rule-write.ts. This session authorizes read GETs only.
+// Assignments/users stay READ-04.
 
 export const GROUP_LIST_OPERATION = "qux.group.list";
 export const GROUP_SHOW_OPERATION = "qux.group.show";

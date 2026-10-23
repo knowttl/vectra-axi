@@ -240,7 +240,7 @@ Named text mutations use file/stdin inputs, as the WRITE-02 note append does.
 There is no assumed server-side dry-run capability.
 
 See the [implementation plan](implementation-plan.md#phase-4-add-writes-as-a-new-capability-one-family-at-a-time) for remaining mutation families and their selection requirements.
-Group mutations require explicit semantic and concurrency analysis.
+Group create/edit/delete require explicit semantic and concurrency analysis.
 Lockdown execution is unpromised until an exact public mutation contract is established.
 [az-axi gates](https://github.com/knowttl/az-axi/blob/7d31138eb82e0fc6adec867e7690be6cf87725b6/src/lib/gates.ts#L68), [client enforcement](https://github.com/knowttl/az-axi/blob/7d31138eb82e0fc6adec867e7690be6cf87725b6/src/lib/client.ts#L106) and [audit serialization](https://github.com/knowttl/az-axi/blob/7d31138eb82e0fc6adec867e7690be6cf87725b6/src/lib/writeLog.ts#L67) are conventions to adapt, not a ready-made Vectra policy implementation.
 
