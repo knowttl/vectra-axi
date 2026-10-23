@@ -2,7 +2,7 @@
 
 # vectra-axi coverage
 
-This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, RUX bulk note-append, assignment-write/resolve, note edit/delete, detection close/open, detection fixed set, detection triage set/clear, group create/edit/delete, group member add/remove/set, host key-asset, assignment outcome create/edit/delete, triage rule create/edit/delete and host/account close families, not full Vectra API coverage.
+This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, RUX bulk note-append, assignment-write/resolve, note edit/delete, detection close/open, detection fixed set, detection triage set/clear, group create/edit/delete, group member add/remove/set, host key-asset, assignment outcome create/edit/delete, triage rule create/edit/delete, proxy create/edit/(RUX) delete and host/account close families, not full Vectra API coverage.
 Only `named` operations have an implemented, tested command leaf.
 The `implemented` disposition records tested internal OAuth exchanges with no command leaf;
 other operations remain planned, blocked or unreviewed until their own slices ship.
@@ -11,7 +11,7 @@ there is no unrestricted passthrough.
 
 ## Counts
 
-- named: 163
+- named: 172
 - implemented: 2
 - reviewed-raw: 0
 - planned: 2
@@ -193,13 +193,21 @@ there is no unrestricted passthrough.
 | `qux.account.assignment.resolve` | assignment resolve | WRITE-07 | qux 2.5 | none | named | named |
 | `rux.host.assignment.resolve` | assignment resolve | WRITE-07 | rux 3.4 | none | named | named |
 | `rux.account.assignment.resolve` | assignment resolve | WRITE-07 | rux 3.4 | none | named | named |
+| `qux.proxy.list` | proxy list | READ-15 | qux 2.5 | none | named | raw |
+| `qux.proxy.show` | proxy show | READ-15 | qux 2.5 | none | named | raw |
+| `qux.proxy.create` | proxy create | WRITE-15 | qux 2.5 | none | named | named |
+| `qux.proxy.edit` | proxy edit | WRITE-15 | qux 2.5 | none | named | named |
+| `rux.proxy.list` | proxy list | READ-15 | rux 3.4 | none | named | raw |
+| `rux.proxy.show` | proxy show | READ-15 | rux 3.4 | none | named | raw |
+| `rux.proxy.create` | proxy create | WRITE-15 | rux 3.4 | none | named | named |
+| `rux.proxy.edit` | proxy edit | WRITE-15 | rux 3.4 | none | named | named |
+| `rux.proxy.delete` | proxy delete | WRITE-15 | rux 3.4 | none | named | named |
 
 ## Deferred families
 
 - `qux.long-tail.search` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.campaigns` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.network-stats` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
-- `qux.long-tail.proxies` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.match` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.feeds` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.long-tail.settings` (qux 2.5, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
@@ -211,7 +219,6 @@ there is no unrestricted passthrough.
 - `rux.long-tail.match` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.feeds` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.saml` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
-- `rux.long-tail.proxies` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.unique-host-usage` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `rux.long-tail.ad-group-directory` (rux 3.4, unreviewed): Family only; exact operations, effects, permissions and routes require a separately commissioned review. No raw access or support implied.
 - `qux.later.note-writes` (qux 2.5, planned): Per-object note append is a named WRITE-02 operation (qux.detection.note.add, qux.host.note.add, qux.account.note.add); per-note edit and delete are named WRITE-N (2a) operations (qux.{detection,host,account}.note.{edit,delete}). Bulk note creation stays planned with no authorized route.

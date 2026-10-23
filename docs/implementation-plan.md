@@ -26,6 +26,8 @@ Recheck cited upstream contracts when implementing; record deployment/API/applia
 | READ-06 | Audit windows | CORE-02 | Inclusive UTC day semantics, required bounded dates, response-byte cap and truthful partial/error behavior. |
 | READ-07 | Health/checks and QUX health events | CORE-02 | Release-gated events, returned checkpoints, cached/fresh semantics as documented, no synthetic availability. |
 | READ-08 | Lockdown status | READ-02 | Host/account status routes, product/permission limits, no unverified lockdown mutation. |
+| READ-15 | QUX/RUX proxy reads | READ-02 | Proxy list/show by address/ID. |
+| WRITE-15 | QUX/RUX user-defined proxy create/edit and RUX-only delete | WRITE-00, READ-15 | User-defined source guards, QUX delete refusal, no-op, pre-send re-read, exact confirmation, policy and audit tests. |
 | PACK-01 | Read release, doctor, generated docs and installable skill | READ-01 through READ-08 | Offline packaged journeys, safe context/discovery, generated-doc freshness, explicit setup only. |
 | RUX-01 | RUX v3.4 OAuth and base session adapter | PACK-01 | Unversioned token route, expiry/refresh handling, same session contracts and unchanged QUX output. |
 | RUX-02 | RUX detections/entities/context reads | RUX-01 | Explicit urgency/importance versus QUX scores; RUX IDs/profile independent of QUX; supported query differences. |
@@ -73,7 +75,7 @@ Do not make every phase one umbrella task or commission the entire catalogue as 
 | 1: first investigation | AUTH-01, AUTH-02, CORE-01, CORE-02, READ-01 | Packaged CLI lists a synthetic detection, shows it, resumes safely and refuses all business writes. |
 | 2: useful QUX release | READ-02 through READ-08, PACK-01 | A complete synthetic on-prem investigation can inspect entities, notes/tags, assignment, rules/groups, audit, health and lockdown status. |
 | 3: cloud adoption | RUX-01 through RUX-06 | Explicit cloud profile passes the shared contracts; QUX output stays stable and generation-specific semantics remain visible. |
-| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-03/WRITE-05/WRITE-06/WRITE-07/WRITE-08/WRITE-09/WRITE-10/WRITE-13/WRITE-ENTITY-CLOSE/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
+| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-03/WRITE-05/WRITE-06/WRITE-07/WRITE-08/WRITE-09/WRITE-10/WRITE-13/WRITE-ENTITY-CLOSE/WRITE-15/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
 | 5: deliberate expansion | Selected API-01 and separately selected long-tail families | The capability map records exact dispositions per [inventory.md](inventory.md#dispositions-and-exclusions); there is no unrestricted passthrough. |
 
 Phase 1 is sequential because each step establishes a contract used by the next.
@@ -308,6 +310,10 @@ Assignment resolve ships as WRITE-07 for QUX v2.5 and RUX v3.4 through the uncha
 Its [offline acceptance suite](../test/assignment-resolve.test.ts) covers entity targets, outcome validation, optional notes and detection actions, confirmation, policy refusal, metadata-only auditing, rejection and unknown outcomes without replay.
 The open assignment and outcome are re-read before sending; this client-side check is not atomic.
 Resolution is disruptive, has no unresolve, and remains off unless explicitly allowlisted per generation and entity kind.
+Proxy reads ship as READ-15 and user-defined proxy create/edit/(RUX) delete ships as WRITE-15 on QUX v2.5 and RUX v3.4 through the unchanged WRITE-00 coordinator.
+Its [offline acceptance suite](../test/proxies.test.ts) covers exact routes and payloads, QUX delete refusal, user-source guards, equal-state no-ops, changed-state refusal, confirmation, policy refusal, metadata-only auditing, rejection and unknown outcomes without replay.
+Create reads the full list; edits and deletes re-read the proxy and refuse any change with VERSION_CONFLICT; these client-side comparisons are not atomic.
+See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 If safe concurrency is unavailable for a high-impact operation, document the limitation and keep that operation disabled until its policy is deliberately resolved.
 Do not promise rollback for actions without a reliable inverse.
 

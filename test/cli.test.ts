@@ -608,6 +608,40 @@ it("previews and executes full triage-rule writes through the packaged binary", 
   ]);
 });
 
+it("reads, previews and creates proxies through the packaged binary", () => {
+  const config = join(scratch, "proxy-write.json");
+  const trace = join(scratch, "proxy-write-requests.jsonl");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: ["qux.proxy.create"] } } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    VECTRA_AXI_WRITE_LOG: join(scratch, "proxy-write.log"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const listed = invoke(["proxy", "list", ...context], fixtureEnv);
+  expect(listed.status).toBe(0);
+  expect(decode(listed.stdout)).toMatchObject({ count: 0, proxies: [] });
+  const shown = invoke(["proxy", "show", ...context, "--id", "proxy-1"], fixtureEnv);
+  expect(shown.status).toBe(0);
+  expect(decode(shown.stdout)).toMatchObject({ id: "proxy-1", address: "192.0.2.10", considerProxy: true });
+  const create = ["proxy", "create", ...context, "--address", "192.0.2.10", "--consider", "true"];
+  const preview = invoke(create, fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(decode(preview.stdout)).toMatchObject({ target: "new proxy 192.0.2.10",
+    warning: "Proxy settings affect detection attribution.", proposed: { address: "192.0.2.10", considerProxy: true } });
+  const applied = invoke([...create, "--execute", "--confirm", "new proxy 192.0.2.10"], fixtureEnv);
+  expect(applied.status).toBe(0);
+  expect(decode(applied.stdout)).toMatchObject({ state: "success", operation: "qux.proxy.create" });
+  expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/proxies" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/proxies/proxy-1" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/proxies" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/proxies" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/proxies" },
+    { method: "POST", url: "https://fixture.invalid/api/v2.5/proxies", body: { proxy: { address: "192.0.2.10", considerProxy: true } } },
+  ]);
+});
+
 it("previews and executes custom assignment outcome writes through the packaged binary", () => {
   const config = join(scratch, "outcome-write.json");
   const trace = join(scratch, "outcome-write-requests.jsonl");
@@ -1708,7 +1742,7 @@ it.each([
   expect(result.status).toBe(2);
   expect(result.stdout).toContain("Unknown command: update");
   expect(result.stdout).toContain("code: VALIDATION_ERROR");
-  expect(result.stdout).toContain("Available commands: home, setup, doctor, auth, profile, config, detection, host, account, entity, assignment, user, audit, group, triage, health, api, lockdown");
+  expect(result.stdout).toContain("Available commands: home, setup, doctor, auth, profile, config, detection, host, account, entity, assignment, proxy, user, audit, group, triage, health, api, lockdown");
   expect(result.stdout).not.toContain("detection list");
   expect(result.stdout.length).toBeLessThan(600);
   expect(result.stderr).toBe("");
