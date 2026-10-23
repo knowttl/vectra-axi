@@ -388,7 +388,7 @@ QUX group membership requires appliance 9.2 or later.
 The generated [full command reference](docs/commands.md) lists every executable leaf, its deployment support and paging contract from the CLI registry and inventory.
 The [coverage record](docs/coverage.md) lists operation dispositions and limits.
 Unlisted operations are not implied by this table.
-There is no lockdown execution, assignment resolution, group mutation, or triage-rule mutation command.
+There is no lockdown execution, assignment resolution, group mutation, or triage-rule administration command.
 QUX lockdown status requires the corresponding Microsoft Defender ATP or AD Lockdown integration.
 RUX health and lockdown responses vary with subscriptions; empty or denied results do not establish that a deployment is healthy.
 Triage rules describe automation and do not establish that a detection is benign.

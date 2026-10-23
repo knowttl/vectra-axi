@@ -41,6 +41,7 @@ Recheck cited upstream contracts when implementing; record deployment/API/applia
 | WRITE-05 | Detection/host/account bulk tag set/delete | WRITE-00, READ-03 | Explicit bounded target list, per-target dry-run diffs, no-op detection, pre-send re-read per target, count-and-set confirmation, per-target audit, partial-failure reporting, unknown-outcome no-replay, permission and audit tests. |
 | WRITE-06 | QUX/RUX detection close/open | WRITE-00, READ-01 | Explicit single/bulk targets, native close/open routes, close reasons, no-op, release gating, exact target confirmation, policy and audit tests. |
 | WRITE-08 | QUX/RUX host desired-state key-asset | WRITE-00, READ-02 | Explicit host target, desired key-asset flag, no-op, pre-send state comparison, exact target confirmation, policy and audit tests. |
+| WRITE-09 | QUX/RUX per-detection triage set/clear | WRITE-00, READ-01 | Explicit bounded detection targets, nonempty category validation, pre-send triage-state comparison without no-op inference, exact target confirmation, policy and audit tests. |
 | WRITE-10 | QUX/RUX custom assignment outcome create/edit/delete | WRITE-00, READ-04, RUX-04 | Explicit title/category validation, builtin refusal, no-op, pre-send state comparison, exact target confirmation, policy and audit tests. |
 | WRITE-ENTITY-CLOSE | QUX/RUX host/account disruptive close | WRITE-00, READ-01, READ-02 | Explicit host/account target, bounded active-detection preview, changed-set refusal, exact entity confirmation, release gating, policy and audit tests. |
 | WRITE-N | Remaining separately approved mutation families | WRITE-00, corresponding reads | One reviewed family per change; concurrency evidence, unknown outcome, audit failure and disruptive-confirmation cases. |
@@ -70,7 +71,7 @@ Do not make every phase one umbrella task or commission the entire catalogue as 
 | 1: first investigation | AUTH-01, AUTH-02, CORE-01, CORE-02, READ-01 | Packaged CLI lists a synthetic detection, shows it, resumes safely and refuses all business writes. |
 | 2: useful QUX release | READ-02 through READ-08, PACK-01 | A complete synthetic on-prem investigation can inspect entities, notes/tags, assignment, rules/groups, audit, health and lockdown status. |
 | 3: cloud adoption | RUX-01 through RUX-06 | Explicit cloud profile passes the shared contracts; QUX output stays stable and generation-specific semantics remain visible. |
-| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-03/WRITE-05/WRITE-06/WRITE-08/WRITE-10/WRITE-ENTITY-CLOSE/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
+| 4: controlled changes | WRITE-00, then selected WRITE-01/WRITE-02/WRITE-03/WRITE-05/WRITE-06/WRITE-08/WRITE-09/WRITE-10/WRITE-ENTITY-CLOSE/WRITE-N | Each enabled mutation has independently verified policy, preview, confirmation, outcome and audit behavior. |
 | 5: deliberate expansion | Selected API-01 and separately selected long-tail families | The capability map records exact dispositions per [inventory.md](inventory.md#dispositions-and-exclusions); there is no unrestricted passthrough. |
 
 Phase 1 is sequential because each step establishes a contract used by the next.
@@ -251,7 +252,7 @@ WRITE-N (2a) selects per-object detection, host and account note edit and note d
 Its [offline acceptance suite](../test/note-edit.test.ts) covers desired-state before/after previews, exact replacement bodies, file/stdin inputs, already-matching and already-deleted no-ops, missing notes, changed current state, exact target-plus-note confirmation, policy refusal, denied reads, server rejection and unknown outcomes without replay.
 All acceptance uses synthetic fixtures; no live instance, real credentials or customer data is used.
 See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
-Triage rules and group membership writes are not approved.
+Triage-rule administration and group membership writes are not approved.
 
 WRITE-03 selects desired-state QUX/RUX host and account assignment, built on READ-04/RUX-04 assignment reads and WRITE-00.
 Detection assignment is outside this approved slice; see [README.md](../README.md) for the upstream limitation.
@@ -273,6 +274,9 @@ Detection state is re-read before sending; this client-side comparison is not at
 Host key-asset ships as WRITE-08 on QUX v2.5 and RUX v3.4 through the unchanged WRITE-00 coordinator.
 Its [offline acceptance suite](../test/host-key-asset.test.ts) covers explicit host targets, desired-state payloads, no-ops, changed current state, exact target confirmation, policy refusal, server rejection and ambiguous outcomes without replay.
 Host `key_asset` is re-read before sending; this client-side comparison is not atomic.
+Per-detection triage set/clear ships as WRITE-09 on QUX v2.5 and RUX v3.4 through the unchanged WRITE-00 coordinator.
+Its [offline acceptance suite](../test/detection-triage.test.ts) covers explicit bounded detection targets, nonempty category validation, pre-send triage-state comparison without no-op inference, exact target confirmation, policy refusal, server rejection and ambiguous outcomes without replay.
+Triage suppresses scoring; clearing removes that suppression. This client-side comparison is not atomic.
 Custom assignment outcomes ship as WRITE-10 on QUX v2.5 and RUX v3.4 through the unchanged WRITE-00 coordinator.
 Its [offline acceptance suite](../test/assignment-outcome-write.test.ts) covers explicit title/category validation, builtin-outcome refusal, equal-edit no-ops, changed current state, exact target confirmation, policy refusal, server rejection and ambiguous outcomes without replay.
 Edit and delete re-read before sending; this client-side comparison is not atomic.
