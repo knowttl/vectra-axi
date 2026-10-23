@@ -251,6 +251,8 @@ const responses = new Map<string, { status: number; body: unknown }>([
 // delete sends one DELETE to the addressed note route after their preview
 // and re-reads; both answer 200 with an empty body in the fixture.
 const mutations = new Map<string, { status: number; body: unknown }>([
+  ["https://fixture.invalid/api/v2.5/rules", { status: 201, body: {} }],
+  ["https://fixture.invalid/api/v2.5/rules/7", { status: 200, body: {} }],
   ["https://fixture.invalid/api/v2.5/assignment_outcomes", { status: 201, body: {} }],
   ["https://fixture.invalid/api/v2.5/assignment_outcomes/5", { status: 204, body: {} }],
   ["https://fixture.invalid/api/v2.5/detections/42/close", { status: 200, body: {} }],

@@ -1000,6 +1000,49 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi triage rule list --profile <name> --contains synthetic",
     ],
   },
+  "triage rule create": {
+    description: "Create an org-wide QUX or RUX triage rule (high risk: suppresses future detections)",
+    flags: {
+      ...globals,
+      "rule-file": { kind: "value", valueName: "path|-", description: "Full JSON rule: description, detection_category, triage_category, detection, is_whitelist, source_conditions, additional_conditions; trees are null or OR with one AND child and ANY_OF/NONE_OF leaves" },
+      execute: { kind: "boolean", description: "Send the previewed mutation" },
+      "dry-run": { kind: "boolean", description: "Preview only (default); excludes --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target: new triage rule" },
+    },
+    examples: [
+      "vectra-axi triage rule create --profile <name> --rule-file rule.json",
+      "vectra-axi triage rule create --profile <name> --rule-file - --execute --confirm 'new triage rule'",
+    ],
+  },
+  "triage rule edit": {
+    description: "Fully replace an org-wide QUX or RUX triage rule with a before/after preview (high risk)",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Rule ID (positive integer, required)" },
+      "rule-file": { kind: "value", valueName: "path|-", description: "Complete replacement JSON, same schema as create; omitted fields are not merged; trees are null or OR with one AND child and ANY_OF/NONE_OF leaves" },
+      execute: { kind: "boolean", description: "Send the previewed mutation" },
+      "dry-run": { kind: "boolean", description: "Preview only (default); excludes --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target: triage rule <id>" },
+    },
+    examples: [
+      "vectra-axi triage rule edit --profile <name> --id 7 --rule-file rule.json",
+      "vectra-axi triage rule edit --profile <name> --id 7 --rule-file - --execute --confirm 'triage rule 7'",
+    ],
+  },
+  "triage rule delete": {
+    description: "Delete an org-wide QUX or RUX triage rule after previewing it (high risk)",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Rule ID (positive integer, required)" },
+      execute: { kind: "boolean", description: "Send the previewed mutation" },
+      "dry-run": { kind: "boolean", description: "Preview only (default); excludes --execute" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target: triage rule <id>" },
+    },
+    examples: [
+      "vectra-axi triage rule delete --profile <name> --id 7",
+      "vectra-axi triage rule delete --profile <name> --id 7 --execute --confirm 'triage rule 7'",
+    ],
+  },
   "triage rule show": {
     description: "Show one triage rule on QUX v2.5 or RUX v3.4 in full detail",
     flags: {
@@ -1206,7 +1249,7 @@ export function parseInvocation(argv: readonly string[]): {
       if (inline.length) usage(`--${name} does not accept a value`);
     } else {
       const next = inline.length ? inline.join("=") : args[++index];
-      if (!next?.trim() || (!inline.length && next.startsWith("-") && !((name === "tags-file" || name === "note-file" || name === "ids-file") && next === "-"))) usage(`--${name} requires a non-empty value`);
+      if (!next?.trim() || (!inline.length && next.startsWith("-") && !((name === "tags-file" || name === "note-file" || name === "ids-file" || name === "rule-file") && next === "-"))) usage(`--${name} requires a non-empty value`);
       value = next!;
     }
     flags.set(name!, value);

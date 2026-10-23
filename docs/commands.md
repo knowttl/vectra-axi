@@ -2179,6 +2179,106 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
 }
 ```
 
+## triage rule create
+
+Create an org-wide QUX or RUX triage rule (high risk: suppresses future detections)
+
+- `qux.triage-rule.create`: QUX API 2.5
+- `rux.triage-rule.create`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi triage rule create",
+  "description": "Create an org-wide QUX or RUX triage rule (high risk: suppresses future detections)",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--rule-file <path|->": "Full JSON rule: description, detection_category, triage_category, detection, is_whitelist, source_conditions, additional_conditions; trees are null or OR with one AND child and ANY_OF/NONE_OF leaves",
+    "--execute": "Send the previewed mutation",
+    "--dry-run": "Preview only (default); excludes --execute",
+    "--confirm <target>": "Exact target: new triage rule"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi triage rule create --profile <name> --rule-file rule.json",
+    "vectra-axi triage rule create --profile <name> --rule-file - --execute --confirm 'new triage rule'"
+  ]
+}
+```
+
+## triage rule edit
+
+Fully replace an org-wide QUX or RUX triage rule with a before/after preview (high risk)
+
+- `qux.triage-rule.edit`: QUX API 2.5
+- `rux.triage-rule.edit`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi triage rule edit",
+  "description": "Fully replace an org-wide QUX or RUX triage rule with a before/after preview (high risk)",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Rule ID (positive integer, required)",
+    "--rule-file <path|->": "Complete replacement JSON, same schema as create; omitted fields are not merged; trees are null or OR with one AND child and ANY_OF/NONE_OF leaves",
+    "--execute": "Send the previewed mutation",
+    "--dry-run": "Preview only (default); excludes --execute",
+    "--confirm <target>": "Exact target: triage rule <id>"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi triage rule edit --profile <name> 7 --rule-file rule.json",
+    "vectra-axi triage rule edit --profile <name> 7 --rule-file - --execute --confirm 'triage rule 7'"
+  ]
+}
+```
+
+## triage rule delete
+
+Delete an org-wide QUX or RUX triage rule after previewing it (high risk)
+
+- `qux.triage-rule.delete`: QUX API 2.5
+- `rux.triage-rule.delete`: RUX API 3.4
+
+```json
+{
+  "command": "vectra-axi triage rule delete",
+  "description": "Delete an org-wide QUX or RUX triage rule after previewing it (high risk)",
+  "flags": {
+    "--help": "Show concise help; default false",
+    "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
+    "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
+    "--id <id>": "Rule ID (positive integer, required)",
+    "--execute": "Send the previewed mutation",
+    "--dry-run": "Preview only (default); excludes --execute",
+    "--confirm <target>": "Exact target: triage rule <id>"
+  },
+  "arguments": {
+    "<id>": "Resource ID; use either a positional ID or --id, never both"
+  },
+  "combinations": [
+    "--help cannot be combined with --profile",
+    "--all cannot be combined with --limit"
+  ],
+  "examples": [
+    "vectra-axi triage rule delete --profile <name> 7",
+    "vectra-axi triage rule delete --profile <name> 7 --execute --confirm 'triage rule 7'"
+  ]
+}
+```
+
 ## triage rule show
 
 Show one triage rule on QUX v2.5 or RUX v3.4 in full detail

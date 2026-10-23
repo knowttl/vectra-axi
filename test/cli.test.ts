@@ -551,6 +551,38 @@ it("previews and executes detection close through the packaged binary", () => {
   ]);
 });
 
+it("previews and executes full triage-rule writes through the packaged binary", () => {
+  const config = join(scratch, "rule-write.json");
+  const trace = join(scratch, "rule-write-requests.jsonl");
+  const file = join(scratch, "rule.json");
+  const rule = { description: "Example rule", detection_category: "COMMAND & CONTROL", triage_category: "Example category",
+    detection: "Example detection", is_whitelist: false, source_conditions: null, additional_conditions: null };
+  writeFileSync(file, JSON.stringify(rule));
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: ["create", "edit", "delete"].map((action) => `qux.triage-rule.${action}`) } } } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: trace,
+    VECTRA_AXI_WRITE_LOG: join(scratch, "rule-write.log"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const create = ["triage", "rule", "create", ...context, "--rule-file", file];
+  expect(decode(invoke(create, fixtureEnv).stdout)).toMatchObject({ before: null, after: rule, risk: expect.stringContaining("org-wide") });
+  const refused = invoke([...create, "--execute"], fixtureEnv);
+  expect(refused.status).toBe(1);
+  expect(decode(refused.stdout)).toMatchObject({ code: "CONFIRM_REQUIRED" });
+  expect(invoke([...create, "--execute", "--confirm", "new triage rule"], fixtureEnv).status).toBe(0);
+  const edit = ["triage", "rule", "edit", ...context, "--id", "7", "--rule-file", file];
+  expect(decode(invoke(edit, fixtureEnv).stdout)).toMatchObject({ before: { id: 7 }, after: rule });
+  expect(invoke([...edit, "--execute", "--confirm", "triage rule 7"], fixtureEnv).status).toBe(0);
+  expect(invoke(["triage", "rule", "delete", ...context, "--id", "7", "--execute", "--confirm", "triage rule 7"], fixtureEnv).status).toBe(0);
+  const sent = readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line));
+  expect(sent.filter((call) => call.method !== "GET")).toEqual([
+    { method: "POST", url: "https://fixture.invalid/api/v2.5/rules", body: rule },
+    { method: "PUT", url: "https://fixture.invalid/api/v2.5/rules/7", body: rule },
+    { method: "DELETE", url: "https://fixture.invalid/api/v2.5/rules/7", body: {} },
+  ]);
+});
+
 it("previews and executes custom assignment outcome writes through the packaged binary", () => {
   const config = join(scratch, "outcome-write.json");
   const trace = join(scratch, "outcome-write-requests.jsonl");

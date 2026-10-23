@@ -411,9 +411,7 @@ it.each([
   ["group delete", ["group", "delete", "--id", "8"]],
   ["group member create", ["group", "member", "create", "--id", "8"]],
   ["group member delete", ["group", "member", "delete", "--id", "8"]],
-  ["triage rule create", ["triage", "rule", "create"]],
   ["triage rule update", ["triage", "rule", "update", "--id", "7"]],
-  ["triage rule delete", ["triage", "rule", "delete", "--id", "7"]],
 ])("refuses the %s mutation leaf as an unknown command", (_name, argv) => {
   expect(() => parseInvocation(argv)).toThrowError(/^Unknown command: /);
 });

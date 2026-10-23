@@ -42,6 +42,7 @@ import { runDetectionState } from "./detection-state.js";
 import { runDetectionTriage } from "./detection-triage.js";
 import { runHostKeyAsset } from "./host-key-asset.js";
 import { runAssignmentOutcomeWrite } from "./assignment-outcome-write.js";
+import { runTriageRuleWrite } from "./triage-rule-write.js";
 import { createMutationCoordinator, readOnlyForced } from "./writes.js";
 
 const ASSIGNMENT_FIELDS = {
@@ -154,6 +155,10 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         if (invocation.leaf === "detection close" || invocation.leaf === "detection open") {
           const action = invocation.leaf === "detection close" ? "close" : "open";
           return runWrite(invocation.flags, (session, coordinator) => runDetectionState(session, coordinator, invocation.flags, action));
+        }
+        if (invocation.leaf === "triage rule create" || invocation.leaf === "triage rule edit" || invocation.leaf === "triage rule delete") {
+          const action = invocation.leaf === "triage rule create" ? "create" : invocation.leaf === "triage rule edit" ? "edit" : "delete";
+          return runWrite(invocation.flags, (session, coordinator) => runTriageRuleWrite(session, coordinator, invocation.flags, action));
         }
         if (invocation.leaf === "assignment outcome create" || invocation.leaf === "assignment outcome edit"
           || invocation.leaf === "assignment outcome delete") {
