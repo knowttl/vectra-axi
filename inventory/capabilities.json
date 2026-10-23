@@ -2379,6 +2379,132 @@
       ]
     },
     {
+      "id": "qux.group.create",
+      "command": "group create",
+      "slice": "WRITE-12",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Exactly one members/regex/AD DN on create. Known QUX releases require 9.0 for regex, 9.6 for AD. Edit/delete re-read metadata before sending; not atomic protection. Delete orphans rule references.",
+      "method": "POST",
+      "path": "/api/v2.5/groups",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "type",
+        "name",
+        "description",
+        "importance",
+        "members",
+        "regex",
+        "ad_group_dn"
+      ],
+      "paging": "none",
+      "permissions": "Group mutation permission plus explicit local write scope required.",
+      "licence": "No endpoint-specific licence prerequisite established.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp41-43; POST /groups, PATCH/DELETE /groups/{id}"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Group lifecycle writes use src/group-write.ts and the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "payload",
+        "preview",
+        "no-op",
+        "concurrent-change",
+        "membership-choice",
+        "release-gates",
+        "policy-refused",
+        "confirmation",
+        "journal-redacted",
+        "server-reject",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.group.edit",
+      "command": "group edit",
+      "slice": "WRITE-12",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Exactly one members/regex/AD DN on create. Known QUX releases require 9.0 for regex, 9.6 for AD. Edit/delete re-read metadata before sending; not atomic protection. Delete orphans rule references.",
+      "method": "PATCH",
+      "path": "/api/v2.5/groups/{id}",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "name",
+        "description",
+        "importance"
+      ],
+      "paging": "none",
+      "permissions": "Group mutation permission plus explicit local write scope required.",
+      "licence": "No endpoint-specific licence prerequisite established.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp41-43; POST /groups, PATCH/DELETE /groups/{id}"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Group lifecycle writes use src/group-write.ts and the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "payload",
+        "preview",
+        "no-op",
+        "concurrent-change",
+        "membership-choice",
+        "release-gates",
+        "policy-refused",
+        "confirmation",
+        "journal-redacted",
+        "server-reject",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "qux.group.delete",
+      "command": "group delete",
+      "slice": "WRITE-12",
+      "deployment": "qux",
+      "apiVersion": "2.5",
+      "minimumRelease": null,
+      "constraints": "Exactly one members/regex/AD DN on create. Known QUX releases require 9.0 for regex, 9.6 for AD. Edit/delete re-read metadata before sending; not atomic protection. Delete orphans rule references.",
+      "method": "DELETE",
+      "path": "/api/v2.5/groups/{id}",
+      "effect": "disruptive",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Group mutation permission plus explicit local write scope required.",
+      "licence": "No endpoint-specific licence prerequisite established.",
+      "evidence": [
+        {
+          "source": "qux-guide",
+          "locator": "pp41-43; POST /groups, PATCH/DELETE /groups/{id}"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Group lifecycle writes use src/group-write.ts and the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "payload",
+        "preview",
+        "no-op",
+        "concurrent-change",
+        "membership-choice",
+        "release-gates",
+        "policy-refused",
+        "confirmation",
+        "journal-redacted",
+        "server-reject",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
       "id": "qux.group.member.set",
       "command": "group member set",
       "slice": "WRITE-11",
@@ -4353,6 +4479,132 @@
         "success",
         "access-denied",
         "malformed-response"
+      ]
+    },
+    {
+      "id": "rux.group.create",
+      "command": "group create",
+      "slice": "WRITE-12",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Exactly one members/regex/AD DN on create. Known QUX releases require 9.0 for regex, 9.6 for AD. Edit/delete re-read metadata before sending; not atomic protection. Delete orphans rule references.",
+      "method": "POST",
+      "path": "/api/v3.4/groups/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "type",
+        "name",
+        "description",
+        "importance",
+        "members",
+        "regex",
+        "ad_group_dn"
+      ],
+      "paging": "none",
+      "permissions": "Group mutation permission plus explicit local write scope required.",
+      "licence": "No endpoint-specific licence prerequisite established.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "POST /api/v3.4/groups/; PATCH/DELETE /api/v3.4/groups/{id}/"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Group lifecycle writes use src/group-write.ts and the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "payload",
+        "preview",
+        "no-op",
+        "concurrent-change",
+        "membership-choice",
+        "release-gates",
+        "policy-refused",
+        "confirmation",
+        "journal-redacted",
+        "server-reject",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.group.edit",
+      "command": "group edit",
+      "slice": "WRITE-12",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Exactly one members/regex/AD DN on create. Known QUX releases require 9.0 for regex, 9.6 for AD. Edit/delete re-read metadata before sending; not atomic protection. Delete orphans rule references.",
+      "method": "PATCH",
+      "path": "/api/v3.4/groups/{id}/",
+      "effect": "write",
+      "query": [],
+      "fields": [
+        "name",
+        "description",
+        "importance"
+      ],
+      "paging": "none",
+      "permissions": "Group mutation permission plus explicit local write scope required.",
+      "licence": "No endpoint-specific licence prerequisite established.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "POST /api/v3.4/groups/; PATCH/DELETE /api/v3.4/groups/{id}/"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Group lifecycle writes use src/group-write.ts and the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "payload",
+        "preview",
+        "no-op",
+        "concurrent-change",
+        "membership-choice",
+        "release-gates",
+        "policy-refused",
+        "confirmation",
+        "journal-redacted",
+        "server-reject",
+        "unknown-outcome-no-replay"
+      ]
+    },
+    {
+      "id": "rux.group.delete",
+      "command": "group delete",
+      "slice": "WRITE-12",
+      "deployment": "rux",
+      "apiVersion": "3.4",
+      "minimumRelease": null,
+      "constraints": "Exactly one members/regex/AD DN on create. Known QUX releases require 9.0 for regex, 9.6 for AD. Edit/delete re-read metadata before sending; not atomic protection. Delete orphans rule references.",
+      "method": "DELETE",
+      "path": "/api/v3.4/groups/{id}/",
+      "effect": "disruptive",
+      "query": [],
+      "fields": [],
+      "paging": "none",
+      "permissions": "Group mutation permission plus explicit local write scope required.",
+      "licence": "No endpoint-specific licence prerequisite established.",
+      "evidence": [
+        {
+          "source": "rux-spec",
+          "locator": "POST /api/v3.4/groups/; PATCH/DELETE /api/v3.4/groups/{id}/"
+        }
+      ],
+      "disposition": "named",
+      "rationale": "Group lifecycle writes use src/group-write.ts and the unchanged WRITE-00 coordinator.",
+      "fixtureCases": [
+        "payload",
+        "preview",
+        "no-op",
+        "concurrent-change",
+        "membership-choice",
+        "release-gates",
+        "policy-refused",
+        "confirmation",
+        "journal-redacted",
+        "server-reject",
+        "unknown-outcome-no-replay"
       ]
     },
     {
@@ -6361,7 +6613,7 @@
       "deployment": "qux",
       "apiVersion": "2.5",
       "disposition": "planned",
-      "rationale": "Group membership replacement ships as qux.group.member.set (add/remove compute the full list client-side). Group create/edit/delete remain planned. No additional route is authorized by this family entry.",
+      "rationale": "Group member replacement and group create/edit/delete ship as named operations. No additional route is authorized by this family entry.",
       "evidence": [
         {
           "source": "qux-guide",
@@ -6426,7 +6678,7 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "disposition": "planned",
-      "rationale": "Group membership replacement ships as rux.group.member.set (add/remove compute the full list client-side). Group create/edit/delete remain planned. No additional route is authorized by this family entry.",
+      "rationale": "Group member replacement and group create/edit/delete ship as named operations. No additional route is authorized by this family entry.",
       "evidence": [
         {
           "source": "rux-spec",

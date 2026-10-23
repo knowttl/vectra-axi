@@ -144,8 +144,14 @@ Execution requires both `--execute` and an exact `--confirm` target.
 Group member add/remove/set previews the full member diff; groups drive triage rules and importance.
 Use `--id <id>` with either `--members <comma-separated-list>` or `--members-file <path|->` containing a JSON array.
 An empty JSON array with set clears membership.
-Regex and AD groups are refused.
+Membership replacement refuses regex and AD groups.
 Enable `<generation>.group.member.set` for these commands and confirm `group <id>`; changed membership before sending is refused.
+Group create/edit/delete requires allowlisted `<generation>.group.<action>` operations.
+Create requires `--type host|account|ip|domain --name --description --importance` and exactly one of `--members`, `--regex` or `--ad-group-dn`; confirm `new group`.
+QUX regex creation requires release 9.0 and AD creation requires 9.6 when the profile release is known.
+Edit accepts `--id` and one or more of `--name`, `--description` and `--importance`.
+Edit and delete confirm `group <id>` and refuse changed metadata before sending; this re-read is not atomic protection.
+Delete is disruptive because it orphans triage rule references.
 `VECTRA_AXI_READ_ONLY=1` overrides every profile's write opt-in.
 
 These examples preview only, after the matching operations are enabled:
@@ -381,7 +387,7 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `assignment` | `assignment list`, `assignment set`, `assignment resolve`, `assignment outcome list`, `assignment outcome create`, `assignment outcome edit`, `assignment outcome delete`, `assignment outcome show` | QUX, RUX |
 | `user` | `user list`, `user show` | QUX, RUX |
 | `audit` | `audit list` | QUX, RUX |
-| `group` | `group list`, `group show`, `group member add`, `group member remove`, `group member set`, `group member list` | QUX, RUX |
+| `group` | `group list`, `group show`, `group create`, `group edit`, `group delete`, `group member add`, `group member remove`, `group member set`, `group member list` | QUX, RUX |
 | `triage` | `triage rule list`, `triage rule create`, `triage rule edit`, `triage rule delete`, `triage rule show` | QUX, RUX |
 | `health` | `health list`, `health show`, `health event list` | QUX, RUX |
 | `api` | `api get` | QUX, RUX |
@@ -406,7 +412,7 @@ Conditions are null or `{"OR":[{"AND":[{"ANY_OF":{"field":"host","label":"Host",
 Edit previews full before/after documents; delete previews the full rule.
 Execution needs an allowlisted `{qux,rux}.triage-rule.{create,edit,delete}` operation and exact `--execute --confirm 'new triage rule'` or `--confirm 'triage rule 7'`.
 Edit and delete refuse changed rules before sending; the client-side re-read is not atomic.
-There is no lockdown execution or group create/edit/delete command.
+There is no lockdown execution command.
 QUX lockdown status requires the corresponding Microsoft Defender ATP or AD Lockdown integration.
 RUX health and lockdown responses vary with subscriptions; empty or denied results do not establish that a deployment is healthy.
 Triage rules describe automation and do not establish that a detection is benign.
