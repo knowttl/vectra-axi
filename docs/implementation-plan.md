@@ -39,6 +39,7 @@ Recheck cited upstream contracts when implementing; record deployment/API/applia
 | WRITE-02 | Detection/host/account action-shaped note append | WRITE-00, READ-03 | Exact appended note, file/stdin inputs, action preview, exact target confirmation, unknown-outcome no-replay, permission and audit tests. |
 | WRITE-03 | QUX/RUX host/account desired-state assignment | WRITE-00, READ-04, RUX-04 | Assign/reassign/unassign previews, exact user validation, no-op, pre-send state comparison, malformed-row refusal, exact target confirmation, policy and audit tests. |
 | WRITE-05 | Detection/host/account bulk tag set/delete | WRITE-00, READ-03 | Explicit bounded target list, per-target dry-run diffs, no-op detection, pre-send re-read per target, count-and-set confirmation, per-target audit, partial-failure reporting, unknown-outcome no-replay, permission and audit tests. |
+| WRITE-06 | QUX/RUX detection close/open | WRITE-00, READ-01 | Explicit single/bulk targets, native close/open routes, close reasons, no-op, release gating, exact target confirmation, policy and audit tests. |
 | WRITE-N | Remaining separately approved mutation families | WRITE-00, corresponding reads | One reviewed family per change; concurrency evidence, unknown outcome, audit failure and disruptive-confirmation cases. |
 
 PACK-01 is a useful SOC read release, not full Vectra API coverage.
