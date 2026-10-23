@@ -123,7 +123,7 @@ describe("generated release records", () => {
   it("marks only shipped read leaves and the gated tag replaces, note appends and note edits/deletes as named operations", () => {
     const named = inventory.operations.filter((operation) => operation.disposition === "named");
     expect(named.length).toBeGreaterThan(0);
-    expect(named.every((operation) => operation.effect === "read" || operation.effect === "write")).toBe(true);
+    expect(named.every((operation) => ["read", "write", "disruptive"].includes(operation.effect))).toBe(true);
     const counts = Object.fromEntries(["named", "implemented", "planned", "blocked"].map((disposition) => [
       disposition,
       inventory.operations.filter((operation) => operation.disposition === disposition).length,

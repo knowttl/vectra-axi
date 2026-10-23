@@ -28,6 +28,7 @@ import { entityKind, listFields as entityListFields, listLimit as entityListLimi
   showId as entityShowId } from "./entities.js";
 import { NOTE_KINDS, noteOwnerId, runNoteList, runTagList, type NoteKind } from "./notes.js";
 import { runNoteAdd } from "./note-add.js";
+import { runEntityClose } from "./entity-close.js";
 import { noteEntryId, runNoteDelete, runNoteEdit } from "./note-edit.js";
 import { configPath, envProfile, loadConfig, selectProfile } from "./profiles.js";
 import { SKILL_HINT_LINE, needsSkillHint } from "./skill-hint.js";
@@ -149,6 +150,10 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         }
         if (invocation.leaf === "host key-asset set") {
           return runWrite(invocation.flags, (session, coordinator) => runHostKeyAsset(session, coordinator, invocation.flags));
+        }
+        if (invocation.leaf === "host close" || invocation.leaf === "account close") {
+          const kind = invocation.leaf === "host close" ? "host" : "account";
+          return runWrite(invocation.flags, (session, coordinator) => runEntityClose(session, coordinator, invocation.flags, kind));
         }
         if (invocation.leaf === "assignment set") {
           return runAssignmentSets(invocation.flags);

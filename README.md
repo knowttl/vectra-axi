@@ -126,7 +126,7 @@ The CLI does not grant API permissions; configure the deployment's API role for 
 | QUX token reads | Personal API token with read access to the requested resource |
 | QUX OAuth reads | API client credentials on appliance 9.1+ with the requested resource access |
 | RUX reads | OAuth API client with read access to the requested resource; subscriptions may further restrict routes |
-| Named writes | Corresponding tag, note, assignment or detection-state mutation permission, plus the local operation scope below |
+| Named writes | Corresponding tag, note, assignment, detection-state or entity-close mutation permission, plus the local operation scope below |
 
 Permission names vary by deployment; the CLI does not prescribe a universal OAuth scope string.
 Resource requests and OAuth exchanges send credentials and requested operation data only to the configured HTTPS origin.
@@ -173,6 +173,11 @@ Bulk confirmation names the complete normalized target set, for example `--execu
   Close requires `--reason remediated|benign`; reopening restores scoring.
   Single-target confirmation is `detection <id>`; bulk confirmation names the complete normalized set.
   Both support QUX release 9.3 or later and RUX v3.4, re-read detection state before sending, and skip an already desired state.
+- `host close` and `account close` require `--id` and `--reason remediated|benign`, with confirmation such as `--confirm 'host 7'`.
+  These disruptive operations close every active detection on the entity and have no single inverse.
+  The preview counts active detections by reading at most 100 entries from the entity's `detection_set`; larger sets are refused.
+  A changed active detection set on the pre-send re-read is refused; this check is not atomic with the mutation.
+  QUX requires release 9.3 or later when `applianceRelease` is declared; undeclared releases are left to the server.
 
 - `host key-asset set` requires `--id` and `--value true|false`, with confirmation `host <id>`.
   QUX and RUX re-read `key_asset` before sending and skip an already desired state.
@@ -300,6 +305,7 @@ Add a `writes` object inside the selected profile to opt into specific implement
 | `<generation>.<kind>.assignment.create`, `.reassign`, `.unassign` | Assignments for hosts/accounts on QUX or RUX |
 | `<generation>.detection.close`, `<generation>.detection.open` (including `-bulk` variants) | Close/reopen detections on QUX (release 9.3+) or RUX |
 | `<generation>.host.key-asset.set` | Set host key-asset state on QUX or RUX |
+| `<generation>.host.close`, `<generation>.account.close` | Close hosts/accounts with all active detections on QUX (release 9.3+) or RUX |
 
 Replace `<kind>` with `detection`, `host`, or `account`, except assignments, which support only `host` and `account`, and detection close/open, which supports only `detection`.
 Replace `<generation>` with `qux` or `rux`.
@@ -346,8 +352,8 @@ Bare `-v`, `-V`, or `--version` prints the package version.
 | `profile` | `profile list` | Local |
 | `config` | `config path` | Local |
 | `detection` | `detection list`, `detection show`, `detection event list`, `detection close`, `detection open`, `detection note list`, `detection tag list`, `detection tag set`, `detection tag bulk-set`, `detection tag bulk-delete`, `detection note add`, `detection note edit`, `detection note delete` | QUX, RUX |
-| `host` | `host list`, `host show`, `host key-asset set`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
-| `account` | `account list`, `account show`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
+| `host` | `host list`, `host show`, `host key-asset set`, `host close`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
+| `account` | `account list`, `account show`, `account close`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
 | `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |
 | `assignment` | `assignment list`, `assignment set`, `assignment outcome list`, `assignment outcome show` | QUX, RUX |
 | `user` | `user list`, `user show` | QUX, RUX |

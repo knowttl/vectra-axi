@@ -435,6 +435,36 @@ export const catalogue: Readonly<Record<string, {
       "vectra-axi detection note delete --profile <name> --id 42 --note-id 7 --execute --confirm 'detection 42 note 7'",
     ],
   },
+  "host close": {
+    description: "Close a host and all its active detections through the gated disruptive write pipeline (QUX 9.3+, RUX)",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Host ID (positive integer, required)" },
+      reason: { kind: "value", valueName: "reason", description: "remediated or benign (required)" },
+      "dry-run": { kind: "boolean", description: "Preview the active detection count without sending (default)" },
+      execute: { kind: "boolean", description: "Execute the reviewed close" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target host <id> (required with --execute)" },
+    },
+    examples: [
+      "vectra-axi host close --profile <name> --id 7 --reason remediated",
+      "vectra-axi host close --profile <name> --id 7 --reason remediated --execute --confirm 'host 7'",
+    ],
+  },
+  "account close": {
+    description: "Close an account and all its active detections through the gated disruptive write pipeline (QUX 9.3+, RUX)",
+    flags: {
+      ...globals,
+      id: { kind: "value", valueName: "id", description: "Account ID (positive integer, required)" },
+      reason: { kind: "value", valueName: "reason", description: "remediated or benign (required)" },
+      "dry-run": { kind: "boolean", description: "Preview the active detection count without sending (default)" },
+      execute: { kind: "boolean", description: "Execute the reviewed close" },
+      confirm: { kind: "value", valueName: "target", description: "Exact target account <id> (required with --execute)" },
+    },
+    examples: [
+      "vectra-axi account close --profile <name> --id 7 --reason benign",
+      "vectra-axi account close --profile <name> --id 7 --reason benign --execute --confirm 'account 7'",
+    ],
+  },
   "host note list": {
     description: "List full host notes on QUX v2.5 or RUX v3.4 through the dedicated notes route",
     flags: {
