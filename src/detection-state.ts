@@ -89,7 +89,7 @@ export async function runDetectionState(
   const common = { profile: session.profile.name, operation: definition.operation, target };
   if (result.kind === "dry-run") return { failed: false, output: {
     ...common, current: baseline, desired: fixed ? value === "true" : action === "close" ? "closed" : "open",
-    ...(fixed ? { warning: "Marking fixed zeroes detection scores. Detection close supersedes mark-fixed on release 9.3 and later." } : {}),
+    ...(fixed ? { warning: value === "true" ? "Marking fixed zeroes detection scores. Detection close supersedes mark-fixed on release 9.3 and later." : "Unmarking fixed restores detection scoring. Detection close supersedes mark-fixed on release 9.3 and later." } : {}),
     ...(definition.payload ? { proposed: definition.payload } : {}),
     ...(result.preview.noop ? { state: "already in desired state (no-op)" }
       : { help: [`Re-run with --execute --confirm '${target}' to ${action} ${target}`] }),
