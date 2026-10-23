@@ -101,7 +101,9 @@ it.each(["edit", "delete"] as const)("sends %s after two reads with exact confir
   const { run, seen } = harness();
   const args = ["--id", "dest-19", ...(action === "edit" ? input : []), "--execute", "--confirm", "notification destination dest-19"];
   expect((await run(action, args)).failed).toBe(false);
-  expect(seen.map((call) => call.method)).toEqual(["GET", "GET", action === "edit" ? "PUT" : "DELETE"]);
+  expect(seen.map((call) => call.method)).toEqual(action === "edit"
+    ? ["GET", "GET", "GET", "GET", "PUT"]
+    : ["GET", "GET", "DELETE"]);
   expect(seen.at(-1)).toEqual({ method: action === "edit" ? "PUT" : "DELETE",
     url: "https://fixture.invalid/api/v3.4/notifications/destinations/dest-19/",
     ...(action === "edit" ? { body: JSON.stringify(desired) } : {}) });
@@ -185,6 +187,24 @@ it("redacts the current destination in a delete preview", async () => {
   expect(output).not.toContain(sentinel);
   expect(output).not.toContain("?token=");
   expect(seen.map((call) => call.method)).toEqual(["GET"]);
+});
+
+it("refuses duplicate-title edit before PUT", async () => {
+  const other = { ...row, id: "dest-20", title: "Other synthetic destination" };
+  writeFileSync(destinationFile, JSON.stringify({ ...desired, title: other.title }));
+  const { run, seen } = harness({ state: (url) => url.includes("dest-19") ? { destination: row } : { destinations: [row, other] } });
+  await expect(run("edit", ["--id", "dest-19", ...input, "--execute", "--confirm", "notification destination dest-19"]))
+    .rejects.toMatchObject({ code: "VERSION_CONFLICT" });
+  expect(seen.filter((call) => call.method === "PUT")).toEqual([]);
+  expect(seen.map((call) => call.method)).toEqual(["GET", "GET"]);
+});
+
+it("accepts edit keeping the current title", async () => {
+  const other = { ...row, id: "dest-20", title: "Other synthetic destination" };
+  const { run, seen } = harness({ state: (url) => url.includes("dest-19") ? { destination: row } : { destinations: [row, other] } });
+  expect((await run("edit", ["--id", "dest-19", ...input, "--execute", "--confirm", "notification destination dest-19"]))
+    .failed).toBe(false);
+  expect(seen.at(-1)).toMatchObject({ method: "PUT" });
 });
 
 it.each(["not json", JSON.stringify({ ...desired, config: null }), JSON.stringify({ ...desired, unexpected: sentinel })])(

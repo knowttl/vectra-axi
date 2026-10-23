@@ -107,6 +107,9 @@ export async function runNotificationWrite(
     if (action === "create" && (rows.length >= 24 || rows.some((row) => row.title === payload!.title))) throw new AxiError(
       "Destination limit or duplicate title prevents creation", "VERSION_CONFLICT", ["Read the destination list and choose a unique title within the 24-destination limit"],
     );
+    if (action === "edit" && (await readDestinations(session)).some((row) => row.id !== id && row.title === payload!.title)) throw new AxiError(
+      "Duplicate title prevents edit", "VERSION_CONFLICT", ["Read the destination list and choose a unique title within the 24-destination limit"],
+    );
     before = rows;
     fingerprints = fresh;
     return rows;
