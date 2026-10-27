@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/knowttl/vectra-axi/compare/v0.1.9...v0.1.10) (2026-10-27)
+
+
+### Features
+
+* **entities:** return all host fields in host show with full-text flag ([#91](https://github.com/knowttl/vectra-axi/issues/91)) ([28ff860](https://github.com/knowttl/vectra-axi/commit/28ff860f25b0a17ecdcf874286d1d9d40f93ae56))
+
 ## [0.1.9](https://github.com/knowttl/vectra-axi/compare/v0.1.8...v0.1.9) (2026-10-23)
 
 
