@@ -332,6 +332,38 @@ export function showId(flags: ReadonlyMap<string, string | boolean>, leaf: strin
 // the decoded detail, so the next command can name the same kind and ID.
 // An embedded note summary is surfaced under its own key with a pointer to
 // the full notes resource; show output never presents it as full notes.
+function fullHostOutput(
+  session: Session, flags: ReadonlyMap<string, string | boolean>, id: number, body: unknown, facade: boolean,
+): LeafResult {
+  const rux = session.profile.kind === "rux";
+  const detail = decodeEntity(body, entitySchema.passthrough(), rux ? "RUX v3.4" : "QUX v2.5");
+  let truncated = false;
+  function preview(value: unknown): unknown {
+    if (typeof value === "string" && !flags.has("full") && value.length > 500) {
+      truncated = true;
+      return `${value.slice(0, 500)}\n... (truncated, ${value.length} chars total)`;
+    }
+    if (Array.isArray(value)) return value.map(preview);
+    if (value !== null && typeof value === "object") {
+      return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, preview(entry)]));
+    }
+    return value;
+  }
+  const host = preview(detail) as Record<string, unknown>;
+  const summary = embeddedNoteSummary(host);
+  const help = [
+    ...(truncated ? [`Run \`${showCommand(session, flags, "host", id, facade)} --full\` for the complete text`] : []),
+    ...(summary !== undefined ? [`Run \`${noteListCommand(session, flags, "host", id)}\` for the full notes`] : []),
+  ];
+  return { failed: false, output: {
+    host,
+    profile: session.profile.name,
+    type: "host",
+    ...(summary !== undefined ? { note_summary: summary } : {}),
+    ...(help.length > 0 ? { help } : {}),
+  } };
+}
+
 async function runKindShow(
   session: Session, flags: ReadonlyMap<string, string | boolean>, kind: EntityKind, leaf: string, facade: boolean,
 ): Promise<LeafResult> {
@@ -348,6 +380,9 @@ async function runKindShow(
       type: kind,
       ...project(entity, RUX_ENTITY_DETAIL_FIELDS),
     } };
+  }
+  if (!rux && facade && kind === "host") {
+    return fullHostOutput(session, flags, id, body, true);
   }
   const detail = decodeEntity(body, entitySchema, rux ? "RUX v3.4" : "QUX v2.5");
   const fields = facade ? ENTITY_LIST_FIELDS : HOST_LIST_FIELDS;
@@ -371,32 +406,7 @@ export async function runHostShow(
   const id = showId(flags, "host show");
   const rux = session.profile.kind === "rux";
   const { body } = await session.request(showOperation("host", false, rux), { pathParams: { id } });
-  const detail = decodeEntity(body, entitySchema.passthrough(), rux ? "RUX v3.4" : "QUX v2.5");
-  let truncated = false;
-  function preview(value: unknown): unknown {
-    if (typeof value === "string" && !flags.has("full") && value.length > 500) {
-      truncated = true;
-      return `${value.slice(0, 500)}\n... (truncated, ${value.length} chars total)`;
-    }
-    if (Array.isArray(value)) return value.map(preview);
-    if (value !== null && typeof value === "object") {
-      return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, preview(entry)]));
-    }
-    return value;
-  }
-  const host = preview(detail) as Record<string, unknown>;
-  const summary = embeddedNoteSummary(host);
-  const help = [
-    ...(truncated ? [`Run \`${showCommand(session, flags, "host", id, false)} --full\` for the complete text`] : []),
-    ...(summary !== undefined ? [`Run \`${noteListCommand(session, flags, "host", id)}\` for the full notes`] : []),
-  ];
-  return { failed: false, output: {
-    host,
-    profile: session.profile.name,
-    type: "host",
-    ...(summary !== undefined ? { note_summary: summary } : {}),
-    ...(help.length > 0 ? { help } : {}),
-  } };
+  return fullHostOutput(session, flags, id, body, false);
 }
 
 export async function runAccountShow(

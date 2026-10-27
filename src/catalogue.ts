@@ -238,6 +238,7 @@ export const catalogue: Readonly<Record<string, {
       ...globals,
       type: { kind: "value", valueName: "kind", description: "Entity kind to show: host or account (required)" },
       id: { kind: "value", valueName: "id", description: "Entity ID to show (positive integer, required)" },
+      full: { kind: "boolean", description: "Show complete returned text; default previews strings longer than 500 characters" },
     },
     examples: [
       "vectra-axi entity show --profile <name> --type host --id 19",

@@ -525,6 +525,7 @@ Secret redaction applies with and without `--full`; upstream omissions cannot be
 `host list` keeps its compact field projection and existing paging budgets.
 
 `entity list` and `entity show` require `--type host|account`.
+`entity show --profile <name> --type host --id <id>` returns the same full host object as `host show`, with `--full` for complete text; account and RUX entity behavior is unchanged.
 RUX entity urgency and importance remain distinct from threat and certainty; its entity facade rejects threat/certainty filters.
 Use `host list` or `account list` for those filters on RUX.
 `user list --username` is QUX-only; RUX users expose `name` rather than `username`.

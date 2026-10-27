@@ -20,6 +20,7 @@ Filter the returned fields as needed.
 Strings longer than 500 characters are previewed; add `--full` for complete returned text, with secret redaction still applied.
 Upstream omissions cannot be restored with `--full`.
 `host list` keeps its compact projection and existing paging budgets.
+`entity show --profile <name> --type host --id <id>` returns the same full host object, with `--full` for complete returned text.
 
 After configuring a profile, run `npx -y @knowttl/vectra-axi doctor` to check connectivity.
 See [doctor guidance](https://github.com/knowttl/vectra-axi/blob/main/README.md#doctor) for profile selection and bounded checks.

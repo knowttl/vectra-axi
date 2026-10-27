@@ -6191,17 +6191,12 @@
       "deployment": "qux",
       "apiVersion": "2.5",
       "minimumRelease": null,
-      "constraints": "Local type-qualified facade only; --type host is required and selects the hosts route. Mixed listing is unavailable; host/account IDs are distinct.",
+      "constraints": "Local type-qualified facade only; --type host is required and selects the hosts route. Mixed listing is unavailable; host/account IDs are distinct. Host show retains all returned fields, with 500-character string previews and --full; upstream omissions cannot be restored.",
       "method": "GET",
       "path": "/api/v2.5/hosts/{id}",
       "effect": "read",
       "query": [],
-      "fields": [
-        "id",
-        "name",
-        "threat",
-        "certainty"
-      ],
+      "fields": ["*"],
       "paging": "none",
       "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
       "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
@@ -6212,7 +6207,7 @@
         }
       ],
       "disposition": "named",
-      "rationale": "Implemented and tested in READ-02; `entity show --type host --id` runs through this facade record.",
+      "rationale": "TD-023: entity show --type host retains every API response field under host as raw TOON, including unknown fields and nested values; * denotes all response fields. CLI metadata stays outside host so colliding API field names are preserved. Secret redaction remains active.",
       "fixtureCases": [
         "type-required",
         "host-account-same-numeric-id",

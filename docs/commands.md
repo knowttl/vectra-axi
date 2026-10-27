@@ -505,7 +505,8 @@ Show one entity of one kind on QUX v2.5 or RUX v3.4 in full detail
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
     "--type <kind>": "Entity kind to show: host or account (required)",
-    "--id <id>": "Entity ID to show (positive integer, required)"
+    "--id <id>": "Entity ID to show (positive integer, required)",
+    "--full": "Show complete returned text; default previews strings longer than 500 characters"
   },
   "arguments": {
     "<id>": "Resource ID; use either a positional ID or --id, never both"

@@ -381,6 +381,35 @@ it("keeps the same numeric host and account IDs distinct through the entity faca
   ]);
 });
 
+it("shows every host field through the entity facade on the packaged CLI", () => {
+  const config = join(scratch, "entity-host-show.json");
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token",
+    DETECTION_TRACE: join(scratch, "entity-host-show-requests.jsonl"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const context = ["--config", config, "--profile", "lab"];
+  const preview = invoke(["entity", "show", ...context, "--type", "host", "--id", "23"], fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(preview.stderr).toBe("");
+  const shortened = `${"x".repeat(500)}\n... (truncated, 501 chars total)`;
+  expect(decode(preview.stdout)).toMatchObject({
+    profile: "lab", type: "host",
+    host: {
+      id: 23, ip: "192.0.2.23", mac_address: "02:00:00:00:00:23",
+      profile: "api-profile", type: "api-type", help: ["api-help"], note_summary: "api-summary",
+      future_field: { token_echo: "***redacted***", values: [null, false, 0, shortened] },
+    },
+    help: expect.arrayContaining([expect.stringContaining("--type host --id 23 --full")]),
+  });
+  const full = invoke(["entity", "show", ...context, "--type", "host", "--id", "23", "--full"], fixtureEnv);
+  expect(full.status).toBe(0);
+  expect(decode(full.stdout)).toMatchObject({ profile: "lab", type: "host",
+    host: { id: 23, note: "x".repeat(501),
+      future_field: { token_echo: "***redacted***", values: [null, false, 0, "x".repeat(501)] } } });
+  expect(full.stdout).not.toContain("packaged-detection-token");
+});
+
 it("reads notes and tags through the packaged note, full and tag commands", () => {
   const config = join(scratch, "notes.json");
   const trace = join(scratch, "notes-requests.jsonl");
