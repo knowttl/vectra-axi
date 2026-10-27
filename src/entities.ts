@@ -391,9 +391,9 @@ export async function runHostShow(
     ...(summary !== undefined ? [`Run \`${noteListCommand(session, flags, "host", id)}\` for the full notes`] : []),
   ];
   return { failed: false, output: {
+    ...host,
     profile: session.profile.name,
     type: "host",
-    ...host,
     ...(summary !== undefined ? { note_summary: summary } : {}),
     ...(help.length > 0 ? { help } : {}),
   } };
