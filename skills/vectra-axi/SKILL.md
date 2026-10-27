@@ -14,6 +14,14 @@ Run commands non-interactively as `npx -y @knowttl/vectra-axi ...`: no global in
 Version pinning is the installer's choice: use `npx -y @knowttl/vectra-axi@<version> ...` to select a specific release.
 Never run against a real Vectra instance in tests; use the offline suite instead.
 
+`host show --profile <name> --id <id>` returns all API host fields as raw TOON on QUX and RUX, including IP/MAC data when present and unknown nested fields.
+Read API fields under `host`; CLI metadata remains outside that object, preserving API fields even when their names match metadata keys.
+Filter the returned fields as needed.
+Strings longer than 500 characters are previewed; add `--full` for complete returned text, with secret redaction still applied.
+Upstream omissions cannot be restored with `--full`.
+`host list` keeps its compact projection and existing paging budgets.
+`entity show --profile <name> --type host --id <id>` returns the same full host object, with `--full` for complete returned text.
+
 After configuring a profile, run `npx -y @knowttl/vectra-axi doctor` to check connectivity.
 See [doctor guidance](https://github.com/knowttl/vectra-axi/blob/main/README.md#doctor) for profile selection and bounded checks.
 

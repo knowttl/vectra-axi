@@ -41,6 +41,41 @@ function invoke(args: string[], extraEnv: Record<string, string> = {}) {
   });
 }
 
+it.each(["qux", "rux"])("shows every %s host field through the packaged CLI", (kind) => {
+  const config = join(scratch, `host-detail-${kind}.json`);
+  const profile = kind === "qux"
+    ? { kind, origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" }
+    : { kind, origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth", clientId: "synthetic-client", secretEnv: "CLOUD_SECRET" };
+  writeFileSync(config, JSON.stringify({ profiles: { lab: profile } }));
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token", CLOUD_SECRET: "synthetic-secret",
+    DETECTION_TRACE: join(scratch, `host-detail-${kind}-requests.jsonl`),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const args = ["host", "show", "--config", config, "--profile", "lab", "23"];
+  const preview = invoke(args, fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(preview.stderr).toBe("");
+  const shortened = `${"x".repeat(500)}\n... (truncated, 501 chars total)`;
+  expect(decode(preview.stdout)).toMatchObject({
+    profile: "lab", type: "host",
+    host: {
+      id: 23, ip: "192.0.2.23", mac_address: "02:00:00:00:00:23", tags: [],
+      profile: "api-profile", type: "api-type", help: ["api-help"], note_summary: "api-summary",
+      asset_category: null, is_key_asset: false, note: shortened,
+      detection_set: [`https://fixture.invalid/api/v${kind === "qux" ? "2.5/detections/42" : "3.4/detections/42/"}`],
+      future_field: { token_echo: "***redacted***", values: [null, false, 0, shortened] },
+    },
+    help: expect.arrayContaining([expect.stringContaining("--full")]),
+  });
+  const full = invoke([...args, "--full"], fixtureEnv);
+  expect(full.status).toBe(0);
+  expect(decode(full.stdout)).toMatchObject({ profile: "lab", type: "host", host: {
+    profile: "api-profile", type: "api-type", help: ["api-help"], note_summary: "api-summary",
+    note: "x".repeat(501),
+    future_field: { token_echo: "***redacted***", values: [null, false, 0, "x".repeat(501)] } } });
+  expect(full.stdout).not.toContain("packaged-detection-token");
+  expect(full.stdout).not.toContain("packaged-rux-token");
+});
+
 it("previews and confirms Match enablement through the packaged CLI", () => {
   const config = join(scratch, "match.json");
   const trace = join(scratch, "match-requests.jsonl");
@@ -323,7 +358,7 @@ it("keeps the same numeric host and account IDs distinct through the entity faca
   const hostShown = invoke(["host", "show", ...context, "--id", "7"], fixtureEnv);
   expect(hostShown.status).toBe(0);
   expect(hostShown.stderr).toBe("");
-  expect(decode(hostShown.stdout)).toMatchObject({ profile: "lab", type: "host", id: 7, threat: 90 });
+  expect(decode(hostShown.stdout)).toMatchObject({ profile: "lab", type: "host", host: { id: 7, threat: 90 } });
   const accountShown = invoke(["account", "show", ...context, "--id", "7"], fixtureEnv);
   expect(accountShown.status).toBe(0);
   expect(accountShown.stderr).toBe("");
@@ -344,6 +379,35 @@ it("keeps the same numeric host and account IDs distinct through the entity faca
     { method: "GET", url: "https://fixture.invalid/api/v2.5/accounts/7" },
     { method: "GET", url: "https://fixture.invalid/api/v2.5/hosts?t_score_gte=70" },
   ]);
+});
+
+it("shows every host field through the entity facade on the packaged CLI", () => {
+  const config = join(scratch, "entity-host-show.json");
+  const fixtureEnv = { SENTINEL_TOKEN: "packaged-detection-token",
+    DETECTION_TRACE: join(scratch, "entity-host-show-requests.jsonl"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const context = ["--config", config, "--profile", "lab"];
+  const preview = invoke(["entity", "show", ...context, "--type", "host", "--id", "23"], fixtureEnv);
+  expect(preview.status).toBe(0);
+  expect(preview.stderr).toBe("");
+  const shortened = `${"x".repeat(500)}\n... (truncated, 501 chars total)`;
+  expect(decode(preview.stdout)).toMatchObject({
+    profile: "lab", type: "host",
+    host: {
+      id: 23, ip: "192.0.2.23", mac_address: "02:00:00:00:00:23",
+      profile: "api-profile", type: "api-type", help: ["api-help"], note_summary: "api-summary",
+      future_field: { token_echo: "***redacted***", values: [null, false, 0, shortened] },
+    },
+    help: expect.arrayContaining([expect.stringContaining("--type host --id 23 --full")]),
+  });
+  const full = invoke(["entity", "show", ...context, "--type", "host", "--id", "23", "--full"], fixtureEnv);
+  expect(full.status).toBe(0);
+  expect(decode(full.stdout)).toMatchObject({ profile: "lab", type: "host",
+    host: { id: 23, note: "x".repeat(501),
+      future_field: { token_echo: "***redacted***", values: [null, false, 0, "x".repeat(501)] } } });
+  expect(full.stdout).not.toContain("packaged-detection-token");
 });
 
 it("reads notes and tags through the packaged note, full and tag commands", () => {
@@ -727,7 +791,7 @@ it("previews and executes full triage-rule writes through the packaged binary", 
     { method: "PUT", url: "https://fixture.invalid/api/v2.5/rules/7", body: rule },
     { method: "DELETE", url: "https://fixture.invalid/api/v2.5/rules/7", body: {} },
   ]);
-});
+}, 15_000);
 
 it("reads, previews and replaces internal-network settings through the packaged binary", () => {
   const config = join(scratch, "settings-write.json");

@@ -350,7 +350,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
 
 ## host show
 
-Show one host's ID, name, state, threat and certainty on QUX v2.5 or RUX v3.4
+Show every returned host field under host on QUX v2.5 or RUX v3.4 as raw TOON, with CLI metadata outside the host object
 
 - `qux.host.show`: QUX API 2.5
 - `rux.host.show`: RUX API 3.4
@@ -358,12 +358,13 @@ Show one host's ID, name, state, threat and certainty on QUX v2.5 or RUX v3.4
 ```json
 {
   "command": "vectra-axi host show",
-  "description": "Show one host's ID, name, state, threat and certainty on QUX v2.5 or RUX v3.4",
+  "description": "Show every returned host field under host on QUX v2.5 or RUX v3.4 as raw TOON, with CLI metadata outside the host object",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
-    "--id <id>": "Host ID to show (positive integer, required)"
+    "--id <id>": "Host ID to show (positive integer, required)",
+    "--full": "Show complete returned text; default previews strings longer than 500 characters"
   },
   "arguments": {
     "<id>": "Resource ID; use either a positional ID or --id, never both"
@@ -504,7 +505,8 @@ Show one entity of one kind on QUX v2.5 or RUX v3.4 in full detail
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
     "--type <kind>": "Entity kind to show: host or account (required)",
-    "--id <id>": "Entity ID to show (positive integer, required)"
+    "--id <id>": "Entity ID to show (positive integer, required)",
+    "--full": "Show complete returned text; default previews strings longer than 500 characters"
   },
   "arguments": {
     "<id>": "Resource ID; use either a positional ID or --id, never both"

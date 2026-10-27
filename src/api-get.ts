@@ -219,6 +219,7 @@ function decodeRow(row: unknown): Record<string, unknown> {
 }
 
 function project(row: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {
+  if (fields.includes("*")) return row;
   return Object.fromEntries(fields.filter((field) => Object.hasOwn(row, field)).map((field) => [field, row[field]]));
 }
 

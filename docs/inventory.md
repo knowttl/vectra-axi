@@ -27,7 +27,7 @@ They must not be reused for a different operation.
 | `constraints` | Authentication, release-dependent fields, selectors and generation-specific semantics that cannot be inferred from a route. |
 | `method`, `path`, `effect` | Exact method and resource path template, plus read, auth-exchange, credential-export, write or disruptive classification. |
 | `query` | Conservative subset of evidenced upstream query names for the initial journey; not a CLI flag list or an exhaustive upstream parameter inventory. |
-| `fields` | Conservative subset of evidenced response fields useful to callers and the reviewed raw field policy; not an exhaustive upstream field inventory or a decoder. |
+| `fields` | Conservative subset of evidenced response fields useful to callers and the reviewed raw field policy; `["*"]` retains every returned field for host detail. Not a decoder or an exhaustive upstream field inventory. |
 | `paging` | `none` for a single response, `collection` for count/results/next, `checkpoint` for returned event checkpoints, or `date-window` for QUX audits. |
 | `permissions`, `licence` | Established prerequisites or explicit gaps in evidence; unknown entitlement is never assumed unrestricted access. |
 | `evidence` | Source ID plus page, method/path or symbol locator supporting the record. |

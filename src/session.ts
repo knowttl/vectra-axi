@@ -148,7 +148,7 @@ function cleanParam(name: string, value: string | number): string {
 
 export function fieldSelection(record: CapabilityOperation, raw: string, source: string): readonly string[] {
   const fields = raw.split(",").map((field) => field.trim()).filter(Boolean);
-  const unknown = fields.filter((field) => !record.fields.includes(field));
+  const unknown = record.fields.includes("*") ? [] : fields.filter((field) => !record.fields.includes(field));
   if (fields.length === 0 || unknown.length > 0) {
     throw new AxiError(`Unknown ${source} value: ${unknown.join(", ") || "(empty)"}`, "VALIDATION_ERROR", [
       `Operation ${record.id} supports fields: ${record.fields.join(", ")}`,

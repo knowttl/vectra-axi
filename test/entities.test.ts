@@ -48,6 +48,62 @@ const listPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
 });
 const hostNext = "https://fixture.invalid/api/v2.5/hosts?min_id=2";
 
+it.each([
+  { size: 500, full: false, truncated: false },
+  { size: 501, full: false, truncated: true },
+  { size: 501, full: true, truncated: false },
+])("previews host strings at the boundary: $size characters, full=$full", async ({ size, full, truncated }) => {
+  const value = "x".repeat(size);
+  const transport: RawTransport = async () => ({ status: 200,
+    bodyText: JSON.stringify(host(23, { added_field: { text: value } })) });
+  const result = await runHostShow(session(transport),
+    flags(["host", "show", "--id", "23", ...(full ? ["--full"] : [])]));
+  expect(result.output.host).toMatchObject({ added_field: { text: truncated
+    ? `${value.slice(0, 500)}\n... (truncated, ${size} chars total)` : value } });
+  expect(result.output.help).toEqual(truncated
+    ? ["Run `vectra-axi host show --profile lab --id 23 --full` for the complete text"] : undefined);
+});
+
+it("returns every QUX host field through the entity facade", async () => {
+  const body = host(23, { ip: "192.0.2.23", mac_address: "02:00:00:00:00:23",
+    profile: "api-profile", type: "api-type", help: ["api-help"], note_summary: "api-summary",
+    nested: { level: [null, false, 0] }, future_field: "added", empty: [], zero: 0, no: false, nil: null });
+  const transport: RawTransport = async () => ({ status: 200, bodyText: JSON.stringify(body) });
+  const result = await runEntityShow(session(transport),
+    flags(["entity", "show", "--type", "host", "--id", "23"]));
+  expect(result.output.host).toMatchObject({ id: 23, ip: "192.0.2.23", mac_address: "02:00:00:00:00:23",
+    profile: "api-profile", type: "api-type", help: ["api-help"], note_summary: "api-summary",
+    nested: { level: [null, false, 0] }, future_field: "added", empty: [], zero: 0, no: false, nil: null });
+  expect(result.output).toMatchObject({ profile: "lab", type: "host" });
+  expect(result.output).not.toHaveProperty("threat");
+  expect(result.output).not.toHaveProperty("note_summary");
+});
+
+it.each([
+  { size: 500, full: false, truncated: false },
+  { size: 501, full: false, truncated: true },
+  { size: 501, full: true, truncated: false },
+])("previews entity facade host strings at the boundary: $size characters, full=$full", async ({ size, full, truncated }) => {
+  const value = "x".repeat(size);
+  const transport: RawTransport = async () => ({ status: 200,
+    bodyText: JSON.stringify(host(23, { added_field: { text: value } })) });
+  const result = await runEntityShow(session(transport),
+    flags(["entity", "show", "--type", "host", "--id", "23", ...(full ? ["--full"] : [])]));
+  expect(result.output.host).toMatchObject({ added_field: { text: truncated
+    ? `${value.slice(0, 500)}\n... (truncated, ${size} chars total)` : value } });
+  expect(result.output.help).toEqual(truncated
+    ? ["Run `vectra-axi entity show --profile lab --type host --id 23 --full` for the complete text"] : undefined);
+});
+
+it("keeps the QUX entity account show narrow", async () => {
+  const transport: RawTransport = async () => ({ status: 200,
+    bodyText: JSON.stringify(account(7, { ip: "192.0.2.7", future_field: "added" })) });
+  const result = await runEntityShow(session(transport),
+    flags(["entity", "show", "--type", "account", "--id", "7"]));
+  expect(result.output).toEqual({ profile: "lab", type: "account",
+    id: 7, name: "synthetic-account-7", threat: 10, certainty: 20 });
+});
+
 it.each([false, true])("finds a host by name in one page without --all (RUX: %s)", async (rux) => {
   const urls: string[] = [];
   const respond = (url: string) => {
@@ -135,7 +191,7 @@ it("keeps the same numeric host and account IDs distinct", async () => {
   const shownHost = await runHostShow(owned, flags(["host", "show", "--id", "7"]));
   expect(shownHost).toEqual({ failed: false, output: {
     profile: "lab", type: "host",
-    id: 7, name: "synthetic-host-7", state: "active", threat: 90, certainty: 80,
+    host: { id: 7, name: "synthetic-host-7", state: "active", threat: 90, certainty: 80 },
   } });
   const shownAccount = await runAccountShow(owned, flags(["account", "show", "--id", "7"]));
   expect(shownAccount).toEqual({ failed: false, output: {
@@ -143,8 +199,9 @@ it("keeps the same numeric host and account IDs distinct", async () => {
     id: 7, name: "synthetic-account-7", state: "active", threat: 10, certainty: 20,
   } });
   const entityHost = await runEntityShow(owned, flags(["entity", "show", "--type", "host", "--id", "7"]));
-  expect(entityHost.output).toMatchObject({ type: "host", threat: 90, certainty: 80 });
-  expect(entityHost.output).not.toHaveProperty("state");
+  expect(entityHost.output).toMatchObject({ type: "host",
+    host: { id: 7, name: "synthetic-host-7", state: "active", threat: 90, certainty: 80 } });
+  expect(entityHost.output).not.toHaveProperty("threat");
   const entityAccount = await runEntityShow(owned, flags(["entity", "show", "--type", "account", "--id", "7"]));
   expect(entityAccount.output).toMatchObject({ type: "account", threat: 10, certainty: 20 });
   expect(entityAccount.output).not.toHaveProperty("state");
@@ -261,9 +318,9 @@ it("keeps QUX threat/certainty labels and null scores instead of zero", async ()
   expect(listed.output.hosts).toEqual([
     { id: 1, name: "synthetic-host-1", state: "active", threat: null, certainty: null }]);
   const shown = await runHostShow(owned, flags(["host", "show", "--id", "1"]));
-  expect(shown.output).toMatchObject({ threat: null, certainty: null });
-  expect(shown.output).not.toHaveProperty("urgency");
-  expect(shown.output).not.toHaveProperty("importance");
+  expect(shown.output.host).toMatchObject({ threat: null, certainty: null });
+  expect(shown.output.host).not.toHaveProperty("urgency");
+  expect(shown.output.host).not.toHaveProperty("importance");
 });
 
 it("projects a --fields subset and rejects state on the facade", async () => {
@@ -553,7 +610,7 @@ it("keeps the same numeric host and account IDs distinct on a cloud profile", as
     flags(["host", "show", "--profile", "cloud", "--id", "7"]));
   expect(shownHost).toEqual({ failed: false, output: {
     profile: "cloud", type: "host",
-    id: 7, name: "synthetic-host-7", state: "active", threat: 90, certainty: 80,
+    host: { id: 7, name: "synthetic-host-7", state: "active", threat: 90, certainty: 80 },
   } });
   const shownAccount = await runAccountShow(owned,
     flags(["account", "show", "--profile", "cloud", "--id", "7"]));
