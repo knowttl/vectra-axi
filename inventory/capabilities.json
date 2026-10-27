@@ -1939,18 +1939,12 @@
       "deployment": "qux",
       "apiVersion": "2.5",
       "minimumRelease": null,
-      "constraints": "Requires explicit QUX v2.5 profile; base-route minimum appliance release not established.",
+      "constraints": "Requires explicit QUX v2.5 profile; base-route minimum appliance release not established. Host show retains all returned fields, with 500-character string previews and --full; upstream omissions cannot be restored.",
       "method": "GET",
       "path": "/api/v2.5/hosts/{id}",
       "effect": "read",
       "query": [],
-      "fields": [
-        "id",
-        "name",
-        "state",
-        "threat",
-        "certainty"
-      ],
+      "fields": ["*"],
       "paging": "none",
       "permissions": "API access follows the user's or API client's assigned role; resource read permission required (guide p9).",
       "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
@@ -1961,7 +1955,7 @@
         }
       ],
       "disposition": "named",
-      "rationale": "Implemented and tested in READ-02; `host show` decodes the recorded detail fields with its kind retained.",
+      "rationale": "TD-023: host show retains every API response field as raw TOON, including unknown fields and nested values; * denotes all response fields. Secret redaction remains active.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -4124,18 +4118,12 @@
       "deployment": "rux",
       "apiVersion": "3.4",
       "minimumRelease": null,
-      "constraints": "Requires explicit RUX v3.4 profile; no QUX identity or score conversion.",
+      "constraints": "Requires explicit RUX v3.4 profile; no QUX identity or score conversion. Host show retains all returned fields, with 500-character string previews and --full; upstream omissions cannot be restored.",
       "method": "GET",
       "path": "/api/v3.4/hosts/{id}/",
       "effect": "read",
       "query": [],
-      "fields": [
-        "id",
-        "name",
-        "state",
-        "threat",
-        "certainty"
-      ],
+      "fields": ["*"],
       "paging": "none",
       "permissions": "OAuth API client with resource read permission; authorization denial is an error, not an empty result.",
       "licence": "No endpoint-specific licence prerequisite established in the cited evidence; availability must be checked for the selected deployment.",
@@ -4146,7 +4134,7 @@
         }
       ],
       "disposition": "named",
-      "rationale": "Enabled by RUX-02; `host show` decodes the recorded detail fields on a cloud profile with the ID scoped to that profile.",
+      "rationale": "TD-023: host show retains every API response field as raw TOON, including unknown fields and nested values; * denotes all response fields. Secret redaction remains active.",
       "fixtureCases": [
         "success",
         "access-denied",

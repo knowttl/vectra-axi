@@ -58,6 +58,24 @@ const listPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
   status: 200, bodyText: JSON.stringify({ results: rows, ...extra }),
 });
 
+it.each(["qux", "rux"])("retains all %s host fields under the raw wildcard policy", async (kind) => {
+  const body = { id: 23, ip: "192.0.2.23", mac_address: "02:00:00:00:00:23",
+    future_field: { values: [null, false, 0] } };
+  const transport: RawTransport = async () => ({ status: 200, bodyText: JSON.stringify(body) });
+  const owned = kind === "qux" ? session(transport) : cloudSession(transport);
+  const result = await runApiGet(owned,
+    flags(["api", "get", "--operation", `${kind}.host.show`, "--path", "id=23"]));
+  expect(result.output.result).toEqual(body);
+});
+
+it("allows agents to select an API-added host field in raw reads", async () => {
+  const transport: RawTransport = async () => ({ status: 200,
+    bodyText: JSON.stringify({ id: 23, future_field: { values: [null, false, 0] } }) });
+  const result = await runApiGet(session(transport),
+    flags(["api", "get", "--operation", "qux.host.show", "--path", "id=23", "--fields", "future_field"]));
+  expect(result.output.result).toEqual({ future_field: { values: [null, false, 0] } });
+});
+
 it("reads a collection through the operation ID with recorded query keys", async () => {
   let url = "";
   let calls = 0;

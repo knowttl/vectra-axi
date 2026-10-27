@@ -169,10 +169,11 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "host show": {
-    description: "Show one host's ID, name, state, threat and certainty on QUX v2.5 or RUX v3.4",
+    description: "Show every returned host field on QUX v2.5 or RUX v3.4 as raw TOON output",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Host ID to show (positive integer, required)" },
+      full: { kind: "boolean", description: "Show complete returned text; default previews strings longer than 500 characters" },
     },
     examples: [
       "vectra-axi host show --profile <name> --id 19",

@@ -518,6 +518,11 @@ vectra-axi audit list --profile cloud --limit 20
 vectra-axi api get --profile onprem --operation qux.detection.show --path id=42
 ```
 
+`host show` returns every host field supplied by the QUX v2.5 or RUX v3.4 API as raw TOON, including IP/MAC data when present, nested values and fields added by the API.
+Strings longer than 500 characters are previewed; use `host show --profile <name> --id <id> --full` for complete returned text.
+Secret redaction applies with and without `--full`; upstream omissions cannot be recovered.
+`host list` keeps its compact field projection and existing paging budgets.
+
 `entity list` and `entity show` require `--type host|account`.
 RUX entity urgency and importance remain distinct from threat and certainty; its entity facade rejects threat/certainty filters.
 Use `host list` or `account list` for those filters on RUX.

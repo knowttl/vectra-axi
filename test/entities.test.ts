@@ -48,6 +48,22 @@ const listPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
 });
 const hostNext = "https://fixture.invalid/api/v2.5/hosts?min_id=2";
 
+it.each([
+  { size: 500, full: false, truncated: false },
+  { size: 501, full: false, truncated: true },
+  { size: 501, full: true, truncated: false },
+])("previews host strings at the boundary: $size characters, full=$full", async ({ size, full, truncated }) => {
+  const value = "x".repeat(size);
+  const transport: RawTransport = async () => ({ status: 200,
+    bodyText: JSON.stringify(host(23, { added_field: { text: value } })) });
+  const result = await runHostShow(session(transport),
+    flags(["host", "show", "--id", "23", ...(full ? ["--full"] : [])]));
+  expect(result.output.added_field).toEqual({ text: truncated
+    ? `${value.slice(0, 500)}\n... (truncated, ${size} chars total)` : value });
+  expect(result.output.help).toEqual(truncated
+    ? ["Run `vectra-axi host show --profile lab --id 23 --full` for the complete text"] : undefined);
+});
+
 it.each([false, true])("finds a host by name in one page without --all (RUX: %s)", async (rux) => {
   const urls: string[] = [];
   const respond = (url: string) => {

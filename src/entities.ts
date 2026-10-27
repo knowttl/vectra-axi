@@ -368,7 +368,35 @@ async function runKindShow(
 export async function runHostShow(
   session: Session, flags: ReadonlyMap<string, string | boolean>,
 ): Promise<LeafResult> {
-  return runKindShow(session, flags, "host", "host show", false);
+  const id = showId(flags, "host show");
+  const rux = session.profile.kind === "rux";
+  const { body } = await session.request(showOperation("host", false, rux), { pathParams: { id } });
+  const detail = decodeEntity(body, entitySchema.passthrough(), rux ? "RUX v3.4" : "QUX v2.5");
+  let truncated = false;
+  function preview(value: unknown): unknown {
+    if (typeof value === "string" && !flags.has("full") && value.length > 500) {
+      truncated = true;
+      return `${value.slice(0, 500)}\n... (truncated, ${value.length} chars total)`;
+    }
+    if (Array.isArray(value)) return value.map(preview);
+    if (value !== null && typeof value === "object") {
+      return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, preview(entry)]));
+    }
+    return value;
+  }
+  const host = preview(detail) as Record<string, unknown>;
+  const summary = embeddedNoteSummary(host);
+  const help = [
+    ...(truncated ? [`Run \`${showCommand(session, flags, "host", id, false)} --full\` for the complete text`] : []),
+    ...(summary !== undefined ? [`Run \`${noteListCommand(session, flags, "host", id)}\` for the full notes`] : []),
+  ];
+  return { failed: false, output: {
+    profile: session.profile.name,
+    type: "host",
+    ...host,
+    ...(summary !== undefined ? { note_summary: summary } : {}),
+    ...(help.length > 0 ? { help } : {}),
+  } };
 }
 
 export async function runAccountShow(
