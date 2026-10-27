@@ -169,7 +169,7 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "host show": {
-    description: "Show every returned host field on QUX v2.5 or RUX v3.4 as raw TOON output",
+    description: "Show every returned host field under host on QUX v2.5 or RUX v3.4 as raw TOON, with CLI metadata outside the host object",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Host ID to show (positive integer, required)" },

@@ -58,8 +58,8 @@ it.each([
     bodyText: JSON.stringify(host(23, { added_field: { text: value } })) });
   const result = await runHostShow(session(transport),
     flags(["host", "show", "--id", "23", ...(full ? ["--full"] : [])]));
-  expect(result.output.added_field).toEqual({ text: truncated
-    ? `${value.slice(0, 500)}\n... (truncated, ${size} chars total)` : value });
+  expect(result.output.host).toMatchObject({ added_field: { text: truncated
+    ? `${value.slice(0, 500)}\n... (truncated, ${size} chars total)` : value } });
   expect(result.output.help).toEqual(truncated
     ? ["Run `vectra-axi host show --profile lab --id 23 --full` for the complete text"] : undefined);
 });
@@ -151,7 +151,7 @@ it("keeps the same numeric host and account IDs distinct", async () => {
   const shownHost = await runHostShow(owned, flags(["host", "show", "--id", "7"]));
   expect(shownHost).toEqual({ failed: false, output: {
     profile: "lab", type: "host",
-    id: 7, name: "synthetic-host-7", state: "active", threat: 90, certainty: 80,
+    host: { id: 7, name: "synthetic-host-7", state: "active", threat: 90, certainty: 80 },
   } });
   const shownAccount = await runAccountShow(owned, flags(["account", "show", "--id", "7"]));
   expect(shownAccount).toEqual({ failed: false, output: {
@@ -277,9 +277,9 @@ it("keeps QUX threat/certainty labels and null scores instead of zero", async ()
   expect(listed.output.hosts).toEqual([
     { id: 1, name: "synthetic-host-1", state: "active", threat: null, certainty: null }]);
   const shown = await runHostShow(owned, flags(["host", "show", "--id", "1"]));
-  expect(shown.output).toMatchObject({ threat: null, certainty: null });
-  expect(shown.output).not.toHaveProperty("urgency");
-  expect(shown.output).not.toHaveProperty("importance");
+  expect(shown.output.host).toMatchObject({ threat: null, certainty: null });
+  expect(shown.output.host).not.toHaveProperty("urgency");
+  expect(shown.output.host).not.toHaveProperty("importance");
 });
 
 it("projects a --fields subset and rejects state on the facade", async () => {
@@ -569,7 +569,7 @@ it("keeps the same numeric host and account IDs distinct on a cloud profile", as
     flags(["host", "show", "--profile", "cloud", "--id", "7"]));
   expect(shownHost).toEqual({ failed: false, output: {
     profile: "cloud", type: "host",
-    id: 7, name: "synthetic-host-7", state: "active", threat: 90, certainty: 80,
+    host: { id: 7, name: "synthetic-host-7", state: "active", threat: 90, certainty: 80 },
   } });
   const shownAccount = await runAccountShow(owned,
     flags(["account", "show", "--profile", "cloud", "--id", "7"]));

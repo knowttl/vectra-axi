@@ -67,12 +67,14 @@ const responses = new Map<string, { status: number; body: unknown }>([
   // Synthetic host detail shaped after qux-guide pp30-33 and rux-spec HostSerializerV3_4.
   ["https://fixture.invalid/api/v2.5/hosts/23", { status: 200, body: {
     ...host7, id: 23, ip: "192.0.2.23", mac_address: "02:00:00:00:00:23",
+    profile: "api-profile", type: "api-type", help: ["api-help"], note_summary: "api-summary",
     tags: [], asset_category: null, is_key_asset: false,
     note: "x".repeat(501), detection_set: ["https://fixture.invalid/api/v2.5/detections/42"],
     future_field: { token_echo: "packaged-detection-token", values: [null, false, 0, "x".repeat(501)] },
   } }],
   ["https://fixture.invalid/api/v3.4/hosts/23/", { status: 200, body: {
     ...host7, id: 23, ip: "192.0.2.23", mac_address: "02:00:00:00:00:23",
+    profile: "api-profile", type: "api-type", help: ["api-help"], note_summary: "api-summary",
     tags: [], asset_category: null, is_key_asset: false,
     note: "x".repeat(501), detection_set: ["https://fixture.invalid/api/v3.4/detections/42/"],
     future_field: { token_echo: "packaged-rux-token", values: [null, false, 0, "x".repeat(501)] },

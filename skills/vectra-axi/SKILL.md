@@ -15,6 +15,7 @@ Version pinning is the installer's choice: use `npx -y @knowttl/vectra-axi@<vers
 Never run against a real Vectra instance in tests; use the offline suite instead.
 
 `host show --profile <name> --id <id>` returns all API host fields as raw TOON on QUX and RUX, including IP/MAC data when present and unknown nested fields.
+Read API fields under `host`; CLI metadata remains outside that object, preserving API fields even when their names match metadata keys.
 Filter the returned fields as needed.
 Strings longer than 500 characters are previewed; add `--full` for complete returned text, with secret redaction still applied.
 Upstream omissions cannot be restored with `--full`.

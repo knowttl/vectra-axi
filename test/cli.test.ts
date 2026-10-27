@@ -56,16 +56,22 @@ it.each(["qux", "rux"])("shows every %s host field through the packaged CLI", (k
   expect(preview.stderr).toBe("");
   const shortened = `${"x".repeat(500)}\n... (truncated, 501 chars total)`;
   expect(decode(preview.stdout)).toMatchObject({
-    id: 23, ip: "192.0.2.23", mac_address: "02:00:00:00:00:23", tags: [],
-    asset_category: null, is_key_asset: false, note: shortened,
-    detection_set: [`https://fixture.invalid/api/v${kind === "qux" ? "2.5/detections/42" : "3.4/detections/42/"}`],
-    future_field: { token_echo: "***redacted***", values: [null, false, 0, shortened] },
+    profile: "lab", type: "host",
+    host: {
+      id: 23, ip: "192.0.2.23", mac_address: "02:00:00:00:00:23", tags: [],
+      profile: "api-profile", type: "api-type", help: ["api-help"], note_summary: "api-summary",
+      asset_category: null, is_key_asset: false, note: shortened,
+      detection_set: [`https://fixture.invalid/api/v${kind === "qux" ? "2.5/detections/42" : "3.4/detections/42/"}`],
+      future_field: { token_echo: "***redacted***", values: [null, false, 0, shortened] },
+    },
     help: expect.arrayContaining([expect.stringContaining("--full")]),
   });
   const full = invoke([...args, "--full"], fixtureEnv);
   expect(full.status).toBe(0);
-  expect(decode(full.stdout)).toMatchObject({ note: "x".repeat(501),
-    future_field: { token_echo: "***redacted***", values: [null, false, 0, "x".repeat(501)] } });
+  expect(decode(full.stdout)).toMatchObject({ profile: "lab", type: "host", host: {
+    profile: "api-profile", type: "api-type", help: ["api-help"], note_summary: "api-summary",
+    note: "x".repeat(501),
+    future_field: { token_echo: "***redacted***", values: [null, false, 0, "x".repeat(501)] } } });
   expect(full.stdout).not.toContain("packaged-detection-token");
   expect(full.stdout).not.toContain("packaged-rux-token");
 });
@@ -352,7 +358,7 @@ it("keeps the same numeric host and account IDs distinct through the entity faca
   const hostShown = invoke(["host", "show", ...context, "--id", "7"], fixtureEnv);
   expect(hostShown.status).toBe(0);
   expect(hostShown.stderr).toBe("");
-  expect(decode(hostShown.stdout)).toMatchObject({ profile: "lab", type: "host", id: 7, threat: 90 });
+  expect(decode(hostShown.stdout)).toMatchObject({ profile: "lab", type: "host", host: { id: 7, threat: 90 } });
   const accountShown = invoke(["account", "show", ...context, "--id", "7"], fixtureEnv);
   expect(accountShown.status).toBe(0);
   expect(accountShown.stderr).toBe("");

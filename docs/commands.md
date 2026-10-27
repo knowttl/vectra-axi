@@ -350,7 +350,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
 
 ## host show
 
-Show every returned host field on QUX v2.5 or RUX v3.4 as raw TOON output
+Show every returned host field under host on QUX v2.5 or RUX v3.4 as raw TOON, with CLI metadata outside the host object
 
 - `qux.host.show`: QUX API 2.5
 - `rux.host.show`: RUX API 3.4
@@ -358,7 +358,7 @@ Show every returned host field on QUX v2.5 or RUX v3.4 as raw TOON output
 ```json
 {
   "command": "vectra-axi host show",
-  "description": "Show every returned host field on QUX v2.5 or RUX v3.4 as raw TOON output",
+  "description": "Show every returned host field under host on QUX v2.5 or RUX v3.4 as raw TOON, with CLI metadata outside the host object",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",

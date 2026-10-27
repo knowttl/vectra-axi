@@ -519,6 +519,7 @@ vectra-axi api get --profile onprem --operation qux.detection.show --path id=42
 ```
 
 `host show` returns every host field supplied by the QUX v2.5 or RUX v3.4 API as raw TOON, including IP/MAC data when present, nested values and fields added by the API.
+The API object is under `host`; CLI metadata (`profile`, `type`, `help`, `note_summary`) stays outside it, so identically named API fields are preserved inside `host`.
 Strings longer than 500 characters are previewed; use `host show --profile <name> --id <id> --full` for complete returned text.
 Secret redaction applies with and without `--full`; upstream omissions cannot be recovered.
 `host list` keeps its compact field projection and existing paging budgets.

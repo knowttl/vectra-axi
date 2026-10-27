@@ -1955,7 +1955,7 @@
         }
       ],
       "disposition": "named",
-      "rationale": "TD-023: host show retains every API response field as raw TOON, including unknown fields and nested values; * denotes all response fields. Secret redaction remains active.",
+      "rationale": "TD-023: host show retains every API response field under host as raw TOON, including unknown fields and nested values; * denotes all response fields. CLI metadata stays outside host so colliding API field names are preserved. Secret redaction remains active.",
       "fixtureCases": [
         "success",
         "access-denied",
@@ -4134,7 +4134,7 @@
         }
       ],
       "disposition": "named",
-      "rationale": "TD-023: host show retains every API response field as raw TOON, including unknown fields and nested values; * denotes all response fields. Secret redaction remains active.",
+      "rationale": "TD-023: host show retains every API response field under host as raw TOON, including unknown fields and nested values; * denotes all response fields. CLI metadata stays outside host so colliding API field names are preserved. Secret redaction remains active.",
       "fixtureCases": [
         "success",
         "access-denied",
