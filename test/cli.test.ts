@@ -41,6 +41,51 @@ function invoke(args: string[], extraEnv: Record<string, string> = {}) {
   });
 }
 
+const guideCommands = readFileSync(join(root, "docs/agent-guide.md"), "utf8")
+  .split("\n").filter((line) => line.startsWith("vectra-axi "));
+
+it.each(guideCommands)("runs the published investigation example: %s", (command) => {
+  const config = join(scratch, "agent-guide.json");
+  writeFileSync(config, JSON.stringify({ profiles: {
+    lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" },
+    cloud: { kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth", clientId: "synthetic-client", secretEnv: "CLOUD_SECRET" },
+  } }));
+  const result = invoke(command.split(" ").slice(1), {
+    VECTRA_AXI_CONFIG: config, VECTRA_AXI_READ_ONLY: "1",
+    SENTINEL_TOKEN: "packaged-detection-token", CLOUD_SECRET: "synthetic-secret",
+    DETECTION_TRACE: join(scratch, "agent-guide-requests.jsonl"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}`,
+  });
+  expect(result.status, result.stdout + result.stderr).toBe(0);
+  expect(decode(result.stdout)).toBeTruthy();
+});
+
+it.each(["lab", "cloud"])("reads host detection details without per-detection requests on %s", (profile) => {
+  const config = join(scratch, `agent-guide-${profile}.json`);
+  writeFileSync(config, JSON.stringify({ profiles: {
+    lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" },
+    cloud: { kind: "rux", origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth", clientId: "synthetic-client", secretEnv: "CLOUD_SECRET" },
+  } }));
+  const trace = join(scratch, `agent-guide-${profile}-requests.jsonl`);
+  const result = invoke(["detection", "list", "--profile", profile, "--host-id", "7",
+    "--fields", "id,summary,grouped_details", "--limit", "20"], {
+    VECTRA_AXI_CONFIG: config, VECTRA_AXI_READ_ONLY: "1",
+    SENTINEL_TOKEN: "packaged-detection-token", CLOUD_SECRET: "synthetic-secret", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}`,
+  });
+  expect(result.status, result.stdout + result.stderr).toBe(0);
+  expect(decode(result.stdout)).toMatchObject({ detections: [{ id: 42,
+    summary: { dst_ips: ["10.0.0.2"] },
+    grouped_details: [{ dst_ips: ["10.0.0.2"], target_domains: ["example.test:443"] }],
+  }] });
+  const requests = readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line));
+  expect(requests.filter((request) => request.method === "GET")).toEqual([
+    { method: "GET", url: profile === "lab"
+      ? "https://fixture.invalid/api/v2.5/detections?host_id=7&page_size=100"
+      : "https://fixture.invalid/api/v3.4/detections/?host_id=7&page_size=100" },
+  ]);
+});
+
 it.each(["qux", "rux"])("shows every %s host field through the packaged CLI", (kind) => {
   const config = join(scratch, `host-detail-${kind}.json`);
   const profile = kind === "qux"

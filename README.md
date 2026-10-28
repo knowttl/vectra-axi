@@ -54,6 +54,7 @@ Hooks inject local session context into Claude Code, Codex and OpenCode; the ski
 Neither grants API permissions or enables writes.
 Install hooks from a stable global installation; temporary, worktree and pipeline targets are refused.
 Restart the agent session after installation.
+Start investigations with the [compact agent guide](docs/agent-guide.md).
 See [SKILL.md](skills/vectra-axi/SKILL.md) for the full command table and [hook behavior](docs/configuration.md#session-hooks) for details.
 To remove hooks, delete only `vectra-axi-hook` SessionStart entries from `~/.claude/settings.json` and `~/.codex/hooks.json`, and delete `~/.config/opencode/plugins/axi-vectra-axi-hook.js`.
 Keep other integrations and Codex's shared hooks setting intact.
