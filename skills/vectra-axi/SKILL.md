@@ -8,7 +8,7 @@ user-invocable: false
 
 Agent-ergonomic CLI for Vectra AI, read-only by default, through token-efficient TOON output.
 Covers QUX (on-prem v2.5) and RUX (cloud v3.4) detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage-rule, audit, health, lockdown, detection-event and entity-scoring reads, plus the reviewed `api get` raw-read leaf over allowlisted GET operations.
-Gated writes require hand-enabled profiles; see the [command reference](https://github.com/knowttl/vectra-axi/blob/main/README.md#command-surface-and-subcommands) for shipped writes by deployment and write restrictions.
+Gated writes require hand-enabled profiles; see the [write reference](https://github.com/knowttl/vectra-axi/blob/main/docs/writes.md) for shipped writes by deployment and write restrictions.
 
 Run commands non-interactively as `npx -y @knowttl/vectra-axi ...`: no global install needed and no interactive prompts.
 Version pinning is the installer's choice: use `npx -y @knowttl/vectra-axi@<version> ...` to select a specific release.
@@ -34,7 +34,7 @@ See [doctor guidance](https://github.com/knowttl/vectra-axi/blob/main/README.md#
 ## Orientation
 
 The table lists shipped commands: `native` means implemented, and the Vectra effect is `read` or gated `write`.
-See [operation coverage](https://github.com/knowttl/vectra-axi/blob/main/docs/coverage.md) for per-operation dispositions and [development guidance](https://github.com/knowttl/vectra-axi/blob/main/README.md#development--testing) for regenerating these records.
+See [operation coverage](https://github.com/knowttl/vectra-axi/blob/main/docs/coverage.md) for per-operation dispositions and [development guidance](https://github.com/knowttl/vectra-axi/blob/main/README.md#development--testing) for the link to contributor validation and regeneration instructions.
 
 <!-- command-registry:start -->
 | Command | Capability | Vectra effect | List pagination |
@@ -196,15 +196,15 @@ npx -y @knowttl/vectra-axi detection list --profile <name> --state active --limi
 
 ## Selecting a profile
 
-See [configuration](https://github.com/knowttl/vectra-axi/blob/main/README.md#configuration) for profile flags, selection precedence and missing-profile errors, including doctor's multiple-profile behavior.
+See [configuration](https://github.com/knowttl/vectra-axi/blob/main/docs/configuration.md) for profile flags, selection precedence and missing-profile errors, including doctor's multiple-profile behavior.
 
 ## Safety
 
 Read-only by default. Every write previews first and sends only with `--execute` plus a typed `--confirm` naming the exact target; the profile must hand-enable the operation in its `writes` scope, and `VECTRA_AXI_READ_ONLY=1` forces read-only for the whole process.
 Unknown outcomes are never replayed: ambiguous timeouts report the audit id with read-back guidance instead of resending.
 Known secret values are scrubbed from output and error metadata.
-See [configuration](https://github.com/knowttl/vectra-axi/blob/main/README.md#configuration) for generation-specific authorization and credential behavior.
+See [configuration](https://github.com/knowttl/vectra-axi/blob/main/docs/configuration.md) for generation-specific authorization and credential behavior.
 Host 7 and account 7 are different objects: `entity show` requires `--type host|account`.
-See [output guidance](https://github.com/knowttl/vectra-axi/blob/main/README.md#toon-output-behavior) for QUX date windows and RUX checkpoint feeds.
+See [output guidance](https://github.com/knowttl/vectra-axi/blob/main/docs/output.md) for QUX date windows and RUX checkpoint feeds.
 Health event reads start from a returned `--from` checkpoint, never a computed next ID.
 Lockdown output is status only; no lockdown execution leaf exists.

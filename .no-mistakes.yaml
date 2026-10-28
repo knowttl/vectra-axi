@@ -6,7 +6,8 @@ commands:
   lint: 'node scripts/isolated.mjs corepack pnpm run lint'
 document:
   instructions: |
-    README.md owns the product introduction, development commands and shipped behavior.
+    README.md owns product orientation and quickstart; docs/commands.md and the skill own the generated command reference.
+    docs/configuration.md, docs/writes.md and docs/output.md own behavior details; CONTRIBUTING.md owns development commands.
     docs/design.md owns accepted architecture and upstream evidence.
     docs/implementation-plan.md owns slice scope, commissioning and acceptance.
     docs/inventory.md owns the inventory format, evidence rules and disposition meanings.

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { AxiError } from "axi-sdk-js";
 import { inventorySchema } from "./inventory/schema.js";
 
-export const DESCRIPTION = "Vectra AI QUX and RUX CLI for agents and the humans running them, with reviewed investigation reads and explicitly gated writes.";
+export const DESCRIPTION = "Vectra AI QUX and RUX CLI for agents and the humans running them, with bounded reads and gated writes.";
 
 // Inventory evidence never enables a runtime leaf. Endpoint slices bind IDs explicitly.
 // This module loads both from source (src/catalogue.ts under Vitest) and packaged

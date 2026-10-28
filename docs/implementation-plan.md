@@ -1,5 +1,7 @@
 # vectra-axi implementation slices
 
+[Commissioning sequence](#commissioning-sequence) · [Phase 0: turn design knowledge into one executable catalogue](#phase-0-turn-design-knowledge-into-one-executable-catalogue) · [Phase 1: prove the session with one real user journey](#phase-1-prove-the-session-with-one-real-user-journey) · [Phase 2: finish the on-prem SOC read release](#phase-2-finish-the-on-prem-soc-read-release) · [Phase 3: adopt RUX without making callers relearn the tool](#phase-3-adopt-rux-without-making-callers-relearn-the-tool) · [Phase 4: add writes as a new capability, one family at a time](#phase-4-add-writes-as-a-new-capability-one-family-at-a-time) · [Phase 5: deliberate expansion](#phase-5-deliberate-expansion) · [Per-slice handoff template](#per-slice-handoff-template)
+
 Status: planning baseline following the selected TypeScript, read-only-first and existing-SDK direction.
 Repository: `knowttl/vectra-axi`; base: `main`.
 Implementation is not authorized by this plan alone.
@@ -114,7 +116,7 @@ The CLI-01 handoff uses INV-01 commit `ab4c042` as its prerequisite and changes 
 Its [packaged acceptance suite](../test/cli.test.ts) packs and unpacks the package, resolves its declared binary and reuses installed local dependencies without fetching packages.
 It invokes the binary with closed stdin and an empty synthetic home under the [shared network guard](../test/network-guard.ts).
 It also checks version with the command graph absent and compares version latency with a Node startup floor measured in the same test process.
-See [README.md](../README.md) for shipped behavior and development commands.
+See [the command reference](commands.md) for shipped behavior and development commands.
 
 ## Phase 1: prove the session with one real user journey
 
@@ -150,7 +152,7 @@ See [README.md](../README.md) for write-policy fields.
 ### CORE-01 handoff and acceptance
 
 CORE-01 builds on AUTH-01 and AUTH-02 without enabling command leaves or changing inventory dispositions.
-See [README.md](../README.md) for shipped behavior and the [archived handoff](https://github.com/knowttl/vectra-axi/blob/archive/internal-docs/docs/core-01-handoff.md) for the session interface.
+See [the command reference](commands.md) for shipped behavior and the [archived handoff](https://github.com/knowttl/vectra-axi/blob/archive/internal-docs/docs/core-01-handoff.md) for the session interface.
 The [session acceptance suite](../test/session.test.ts) verifies operation authorization before credentials, bound-route and query validation for redirects and continuations, shared token/OAuth transport, credential reuse and expiry, failure mapping and redaction.
 It also exercises production-adapter deadline cleanup, premature response termination, body limits and IPv6 transport options through a fake HTTPS boundary.
 The suite uses synthetic fixtures and the [external-network guard](../test/network-guard.ts); it does not establish live appliance or TLS-handshake compatibility.
@@ -215,11 +217,11 @@ Never infer the next event ID from the number of returned events.
 RUX-03 (part a) selects the detection-event feed, built on RUX-02 and READ-07.
 Its [offline acceptance suite](../test/detection-events.test.ts) covers returned checkpoints, mid-batch cursors, repeated-checkpoint refusal, remaining-count reporting, cancellation and denied reads.
 The [packaged cloud journey](../test/cli.test.ts) exercises detection event reads with synthetic profiles and transport fixtures.
-See [README.md](../README.md) for shipped behavior and the [capability records](../inventory/capabilities.json) for exact routes and dispositions.
+See [the command reference](commands.md) for shipped behavior and the [capability records](../inventory/capabilities.json) for exact routes and dispositions.
 RUX-03 (part b) selects the entity-scoring feed, built on RUX-02 and part a's checkpoint grammar with the required type selector; audit events remain the separate part c.
 Its [offline acceptance suite](../test/entity-scoring.test.ts) covers the required type selector, returned checkpoints, mid-batch cursors, repeated-checkpoint refusal, remaining-count reporting, cancellation and denied reads.
 The [packaged cloud journey](../test/cli.test.ts) exercises entity scoring reads with synthetic profiles and transport fixtures.
-See [README.md](../README.md) for shipped behavior and the [capability records](../inventory/capabilities.json) for exact routes and dispositions.
+See [the command reference](commands.md) for shipped behavior and the [capability records](../inventory/capabilities.json) for exact routes and dispositions.
 RUX audit date convenience flags expand to the documented timestamp contract, while lower-level supported time filters remain explicit.
 RUX-03 (part c) implements the audit-event feed through the shared checkpoint runner with part a.
 Its [offline acceptance suite](../test/audit-events.test.ts) covers returned checkpoints, mid-batch cursors, replay changes, repeated-checkpoint refusal, remaining-count reporting, cancellation, denied reads, date expansion and explicit timestamp bounds.
@@ -229,16 +231,16 @@ RUX-04/05/06 migrate the remaining named read families through the session inter
 RUX-04 (part a) selects detection/host/account note and tag reads, built on RUX-02 and READ-03; see RUX-04b below for the separate assignment/context portion.
 Its [offline acceptance suite](../test/notes.test.ts) covers version-specific note/tag selectors and response shapes, distinct host/account IDs, long-text hints, empty and denied reads, and malformed responses.
 The [packaged cloud journey](../test/cli.test.ts) exercises note and tag reads with synthetic profiles and transport fixtures.
-See [README.md](../README.md) for shipped behavior and the [capability records](../inventory/capabilities.json) for exact routes and dispositions, including planned entity note/tag leaves.
+See [the command reference](commands.md) for shipped behavior and the [capability records](../inventory/capabilities.json) for exact routes and dispositions, including planned entity note/tag leaves.
 Run unchanged QUX contract cases alongside each RUX change.
 RUX-04b implements the assignment/outcome/user portion of RUX-04; note/tag reads remain the separate RUX-04a portion.
 Its [synthetic acceptance suite](../test/assignments.test.ts) covers version-specific routes, assignment status and target kinds, distinct outcome/user identities, generation-specific user filters and fields, empty versus denied results, cursor resumption and malformed assignment rows alongside the existing QUX cases.
-See [README.md](../README.md) for shipped behavior and the [capability records](../inventory/capabilities.json) for exact routes, allowlists and dispositions.
+See [the command reference](commands.md) for shipped behavior and the [capability records](../inventory/capabilities.json) for exact routes, allowlists and dispositions.
 RUX-06 implements the shared health snapshot, individual-check, health-event and lockdown-status leaves, built on RUX-01, READ-07 and READ-08.
 Its [health acceptance suite](../test/health.test.ts) covers subscription-sensitive snapshots, freshness flags, unsupported checks, integer checkpoints, bounded cursor resumption, generation isolation, malformed responses and denied reads alongside the QUX cases.
 Its [lockdown acceptance suite](../test/lockdown.test.ts) covers generation-specific selectors and row shapes, cloud traffic status, refusal of traffic on QUX, empty versus denied results and malformed responses.
 The [packaged CLI suite](../test/cli.test.ts) exercises the cloud health and lockdown journey with synthetic profiles and transport fixtures only.
-Connector status/details, EDR status/details and network-brain ping ship as RUX-only `health show` selectors with their recorded filter flags; see the [capability records](../inventory/capabilities.json) for their routes and [README.md](../README.md) for shipped usage.
+Connector status/details, EDR status/details and network-brain ping ship as RUX-only `health show` selectors with their recorded filter flags; see the [capability records](../inventory/capabilities.json) for their routes and [the command reference](commands.md) for shipped usage.
 v3.5 support requires its own version-diff assessment after the preview contract becomes suitable; it is not a hidden fallback for missing 3.4 fields.
 
 ## Phase 4: add writes as a new capability, one family at a time
@@ -249,25 +251,25 @@ See [the mutation architecture](design.md#later-mutation-coordinator) for its en
 WRITE-01 selects per-object detection, host and account tag replacement, built on READ-03 and WRITE-00.
 Its [offline acceptance suite](../test/tags.test.ts) covers desired-state diffs, no-ops, file/stdin inputs and clearing, changed current state, exact target confirmation, policy refusal, denied reads, server rejection and unknown outcomes without replay.
 All acceptance uses synthetic fixtures; no live instance, real credentials or customer data is used.
-See [README.md](../README.md) for shipped usage and concurrency limits, and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+See [the write reference](writes.md) for shipped usage and concurrency limits, and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 Bulk tag set/delete ships as the WRITE-05 slice and note edits/deletes ship as the WRITE-N (2a) slice below.
 
 WRITE-02 selects per-object detection, host and account note append, built on READ-03 and WRITE-00.
 Its [offline acceptance suite](../test/note-add.test.ts) covers action-shaped previews, exact appended bodies, file/stdin inputs, exact target confirmation, policy refusal, denied targets, server rejection and unknown outcomes without replay.
 All acceptance uses synthetic fixtures; no live instance, real credentials or customer data is used.
-See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+See [the command reference](commands.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 For each future mutation, define whether the command is desired-state or action-shaped and document no-op behavior accordingly.
 Do not make additive note creation falsely idempotent by dropping repeated intended notes.
 Tests cover changed current state, denied target, missing/mismatched confirmation, failure to write audit intent and a server-accepted mutation followed by a client timeout.
 RUX bulk note append ships as WRITE-14 on RUX v3.4 through the unchanged WRITE-00 coordinator.
 Its cases in the [offline acceptance suite](../test/note-add.test.ts) cover explicit bounded targets, canonical target sets, single native appends, file/stdin inputs, exact count-and-set confirmation, policy refusal, server rejection and unknown outcomes without replay, invalid and over-limit targets, and QUX refusal.
 One native request appends the same note to at most 100 explicit targets; the pre-send re-read checks each target and every execution appends again.
-See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+See [the command reference](commands.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 
 WRITE-N (2a) selects per-object detection, host and account note edit and note delete, built on READ-03/RUX-04 note reads and WRITE-00.
 Its [offline acceptance suite](../test/note-edit.test.ts) covers desired-state before/after previews, exact replacement bodies, file/stdin inputs, already-matching and already-deleted no-ops, missing notes, changed current state, exact target-plus-note confirmation, policy refusal, denied reads, server rejection and unknown outcomes without replay.
 All acceptance uses synthetic fixtures; no live instance, real credentials or customer data is used.
-See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+See [the command reference](commands.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 Triage-rule create, full replacement and delete ship as WRITE-10 through the unchanged WRITE-00 coordinator.
 JSON rule files require null conditions or an OR root with exactly one AND child and ANY_OF/NONE_OF leaves.
 Previews show the complete before/after documents and warn about org-wide suppression of future detections.
@@ -277,19 +279,19 @@ Group member add/remove/set uses full paged membership reads and a gated full re
 Group create/edit/delete ships as WRITE-12 on QUX v2.5 and RUX v3.4 through the unchanged WRITE-00 coordinator.
 Its [offline acceptance suite](../test/group-write.test.ts) covers exact routes and payloads, membership-choice and release gating, equal-edit no-ops, changed metadata refusal, confirmation, policy refusal, metadata-only auditing, rejection and unknown outcomes without replay.
 Create requires exactly one of members, regex or AD DN, with QUX release gates for regex and AD groups; edit and delete re-read metadata and refuse any change with VERSION_CONFLICT, and delete warns that triage rule references are orphaned; these client-side comparisons are not atomic.
-See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+See [the command reference](commands.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 
 WRITE-03 selects desired-state QUX/RUX host and account assignment, built on READ-04/RUX-04 assignment reads and WRITE-00.
-Detection assignment is outside this approved slice; see [README.md](../README.md) for the upstream limitation.
+Detection assignment is outside this approved slice; see [the coverage record](coverage.md) for the upstream limitation.
 Its [offline acceptance suite](../test/assignment-set.test.ts) covers assign/reassign/unassign, exact user validation, no-ops, changed current state, duplicate open assignments across pages, omitted assignee or entity identity on both entity paths, confirmation, policy refusal, audit records, server rejection and unknown outcomes without replay.
 The [packaged CLI journey](../test/cli.test.ts) exercises preview, confirmation and execution through synthetic profiles and transport fixtures.
-See [README.md](../README.md) for shipped usage and concurrency limits, and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+See [the write reference](writes.md) for shipped usage and concurrency limits, and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 
 WRITE-05 selects detection, host and account bulk tag set/delete, built on READ-03 and WRITE-00.
 Its [offline acceptance suite](../test/tags-bulk.test.ts) covers explicit target parsing, per-target dry-run diffs, no-ops, union/subtract sends with per-target audits, changed current state, exact count-and-set confirmation, policy refusal, denied reads, server rejection, partial failures and unknown outcomes without replay.
 The [packaged CLI journey](../test/cli.test.ts) exercises preview, confirmation and execution through synthetic profiles and transport fixtures.
 All acceptance uses synthetic fixtures; no live instance, real credentials or customer data is used.
-See [README.md](../README.md) for shipped usage and concurrency limits, and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+See [the write reference](writes.md) for shipped usage and concurrency limits, and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 
 Further writes require exact upstream concurrency evidence, effect classification and the same coordinator.
 Detection close/open ships as WRITE-06 on QUX release 9.3+ and RUX v3.4 through the unchanged WRITE-00 coordinator.
@@ -309,7 +311,7 @@ Triage suppresses scoring; clearing removes that suppression. This client-side c
 Custom assignment outcomes ship as WRITE-10 on QUX v2.5 and RUX v3.4 through the unchanged WRITE-00 coordinator.
 Its [offline acceptance suite](../test/assignment-outcome-write.test.ts) covers explicit title/category validation, builtin-outcome refusal, equal-edit no-ops, changed current state, exact target confirmation, policy refusal, server rejection and ambiguous outcomes without replay.
 Edit and delete re-read before sending; this client-side comparison is not atomic.
-See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+See [the command reference](commands.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 Host/account close ships as a disruptive action through WRITE-00, with exact entity confirmation and a bounded active detection preview.
 It refuses a changed active detection set on the pre-send re-read; no atomic upstream concurrency contract or single inverse is evidenced.
 The operation remains off unless the profile explicitly allowlists its close operation.
@@ -321,24 +323,24 @@ Resolution is disruptive, has no unresolve, and remains off unless explicitly al
 Proxy reads ship as READ-15 and user-defined proxy create/edit/(RUX) delete ships as WRITE-15 on QUX v2.5 and RUX v3.4 through the unchanged WRITE-00 coordinator.
 Its [offline acceptance suite](../test/proxies.test.ts) covers exact routes and payloads, QUX delete refusal, user-source guards, equal-state no-ops, changed-state refusal, confirmation, policy refusal, metadata-only auditing, rejection and unknown outcomes without replay.
 Create reads the full list; edits and deletes re-read the proxy and refuse any change with VERSION_CONFLICT; these client-side comparisons are not atomic.
-See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+See [the command reference](commands.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 Threat-feed list/show/create/edit/delete and file set/delete ship as WRITE-16 on QUX v2.5 and RUX v3.4 through the unchanged WRITE-00 coordinator with bounded multipart uploads.
 Its [offline acceptance suite](../test/threat-feeds.test.ts) covers exact routes and payloads, create field validation, regular-file-only 5000000-byte bound with SHA-256 re-verification and stdin refusal, metadata-only preview and journal, pre-send re-read without atomicity, no no-op inference for file operations, confirmation, policy refusal, rejection and unknown outcomes without replay.
-See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+See [the command reference](commands.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 Internal-network settings show ships as READ-17 and full desired-state set ships as WRITE-17 on QUX v2.5 through the unchanged WRITE-00 coordinator.
 Its [offline acceptance suite](../test/settings.test.ts) covers exact routes and payloads, required include/exclude/drop flags with `none` clearing a list, network CIDR validation, normalized sorted output, equal-state no-ops, version-conflict refusal, confirmation, policy refusal, RUX-unsupported refusal, metadata-only auditing, rejection and unknown outcomes without replay.
 The set re-reads before sending; this client-side comparison is not atomic.
 Notification destination list/show ships as READ-19 and create/edit/delete ships as WRITE-19 on RUX v3.4 through the unchanged WRITE-00 coordinator.
 Its [offline acceptance suite](../test/notifications.test.ts) covers exact routes and full-document payloads with `***redacted***` rejection, secret redaction, the 24-destination limit and duplicate-title refusal, pre-send re-read with VERSION_CONFLICT without atomicity, exact confirmation, policy refusal, metadata-only auditing, rejection and unknown outcomes without replay, and QUX-unsupported refusal.
-See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+See [the command reference](commands.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 Syslog/kafka export settings show ships as READ-18 and full-document set ships as WRITE-18 on QUX v2.5 through the unchanged WRITE-00 coordinator.
 Its [offline acceptance suite](../test/settings.test.ts) covers exact routes and payloads, full-document `--config-file`/stdin input with `***redacted***` rejection, redacted before/after preview with passphrase and JAAS secret redaction and full-secret POST preservation, secret-aware no-op, version-conflict refusal, exact `syslog export`/`kafka export` confirmation, policy refusal, RUX-unsupported refusal, metadata-only auditing, rejection and unknown outcomes without replay.
 The set re-reads before sending; this client-side comparison is not atomic.
-See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+See [the command reference](commands.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 Match enablement/ruleset/assignment reads and enablement set, ruleset upload/delete and assignment set/delete ship as WRITE-20 on QUX v2.5 and RUX v3.4 through the unchanged WRITE-00 coordinator with bounded multipart upload.
 Its [offline acceptance suite](../test/match.test.ts) covers exact routes and payloads, disruptive enablement with reboot warning and licence-gated enable, regular-file-only 5000000-byte bound with SHA-256 re-verification and stdin refusal, metadata-only preview and journal, unchanged-state no-ops, pre-send re-read without atomicity, exact confirmation, policy refusal, rejection and unknown outcomes without replay.
 The enablement set re-reads before sending; this client-side comparison is not atomic.
-See [README.md](../README.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
+See [the command reference](commands.md) for shipped usage and the [capability records](../inventory/capabilities.json) for exact routes and upstream evidence.
 If safe concurrency is unavailable for a high-impact operation, document the limitation and keep that operation disabled until its policy is deliberately resolved.
 Do not promise rollback for actions without a reliable inverse.
 
@@ -346,7 +348,7 @@ Do not promise rollback for actions without a reliable inverse.
 
 API-01 implements the separately approved reviewed raw-read slice through the existing session.
 Its [offline acceptance suite](../test/api-get.test.ts) covers operation refusal, generation isolation, query and field policy, encoded pair values, bounded windows and cursor resumption, partial failures, redaction and truncation.
-See [README.md](../README.md) for shipped usage and [generated coverage](coverage.md) for per-operation availability.
+See [the command reference](commands.md) for shipped usage and [generated coverage](coverage.md) for per-operation availability.
 Long-tail families remain separately commissioned scope.
 
 ## Per-slice handoff template
