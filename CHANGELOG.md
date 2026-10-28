@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.11](https://github.com/knowttl/vectra-axi/compare/v0.1.10...v0.1.11) (2026-10-28)
+
+
+### Bug Fixes
+
+* **detections:** expose triage and assignment context ([#95](https://github.com/knowttl/vectra-axi/issues/95)) ([07e02e4](https://github.com/knowttl/vectra-axi/commit/07e02e48ed5f5f8a1aa0e033119ef2e4643ef527))
+* restore QUX collection pagination and reject zero IDs ([#93](https://github.com/knowttl/vectra-axi/issues/93)) ([b2a0db5](https://github.com/knowttl/vectra-axi/commit/b2a0db5e245aed3bb5a5d956dab614f7d611f638))
+
 ## [0.1.10](https://github.com/knowttl/vectra-axi/compare/v0.1.9...v0.1.10) (2026-10-27)
 
 
