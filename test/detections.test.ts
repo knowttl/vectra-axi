@@ -46,6 +46,49 @@ const timeline = {
   grouped_details: [{ dst_ips: ["10.0.0.2"], target_domains: ["example.test:443"] }],
 };
 
+const triage = {
+  is_triaged: true, triage_rule_id: 3, triage_category: "custom",
+  assigned_to: { id: 5, username: "analyst@example.test" }, assigned_date: "2026-10-01T12:00:00Z",
+  filtered_by_rule: true, filtered_by_user: false, filtered_by_ai: false, is_marked_custom: true,
+};
+
+it.each([
+  ["qux", []], ["qux", ["--full"]], ["rux", []], ["rux", ["--full"]],
+] as const)("shows %s triage and assignment with flags %j", async (kind, extraFlags) => {
+  const respond = () => ({ status: 200, bodyText: JSON.stringify(detection(42, triage)) });
+  const owned = kind === "rux" ? cloudSession(cloudFixture(respond)) : session(async () => respond());
+  const shown = await runDetectionShow(owned, flags(["detection", "show", "--id", "42", ...extraFlags]));
+  expect(shown.output).toMatchObject({ id: 42, ...triage });
+});
+
+it.each(["qux", "rux"])("projects %s triage fields only when requested in lists", async (kind) => {
+  const respond = () => listPage([detection(42, triage)]);
+  const owned = kind === "rux" ? cloudSession(cloudFixture(respond)) : session(async () => respond());
+  const defaults = await runDetectionList(owned, flags(["detection", "list"]));
+  expect(defaults.output.detections).toEqual([detection(42)]);
+  const projected = await runDetectionList(owned,
+    flags(["detection", "list", "--fields", ["id", ...Object.keys(triage)].join(",")]));
+  expect(projected.output.detections).toEqual([{ id: 42, ...triage }]);
+});
+
+it.each(["qux", "rux"])("preserves %s null assignment and false triage values", async (kind) => {
+  const values = { is_triaged: false, triage_rule_id: null, assigned_to: null, assigned_date: null };
+  const respond = () => ({ status: 200, bodyText: JSON.stringify(detection(42, values)) });
+  const owned = kind === "rux" ? cloudSession(cloudFixture(respond)) : session(async () => respond());
+  const shown = await runDetectionShow(owned,
+    flags(["detection", "show", "--id", "42", "--fields", "id,is_triaged,triage_rule_id,assigned_to,assigned_date"]));
+  expect(shown.output).toEqual({ profile: kind === "rux" ? "cloud" : "lab", id: 42, ...values });
+});
+
+it.each(["qux", "rux"])("redacts %s credentials inside assignment details", async (kind) => {
+  const credential = kind === "rux" ? "fake-cloud-secret-SENTINEL" : token;
+  const assigned = { username: "analyst@example.test", token: "synthetic-nested-secret", detail: credential };
+  const respond = () => ({ status: 200, bodyText: JSON.stringify(detection(42, { assigned_to: assigned })) });
+  const owned = kind === "rux" ? cloudSession(cloudFixture(respond)) : session(async () => respond());
+  const shown = await runDetectionShow(owned, flags(["detection", "show", "--id", "42", "--full"]));
+  expect(shown.output.assigned_to).toEqual({ username: "analyst@example.test", token: "***redacted***", detail: "***redacted***" });
+});
+
 it.each(["qux", "rux"])("preserves %s timeline and target details with --full", async (kind) => {
   const transport: RawTransport = async () => ({ status: 200,
     bodyText: JSON.stringify(detection(42, timeline)) });

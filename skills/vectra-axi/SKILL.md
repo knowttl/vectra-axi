@@ -14,6 +14,12 @@ Run commands non-interactively as `npx -y @knowttl/vectra-axi ...`: no global in
 Version pinning is the installer's choice: use `npx -y @knowttl/vectra-axi@<version> ...` to select a specific release.
 Never run against a real Vectra instance in tests; use the offline suite instead.
 
+`detection show` includes returned triage and assignment fields on QUX and RUX: `is_triaged`, `triage_rule_id`, `triage_category`, `assigned_to`, `assigned_date`, `filtered_by_rule`, `filtered_by_user`, `filtered_by_ai` and `is_marked_custom`.
+Request these explicitly with `detection list --fields`; default list columns remain compact.
+Assignment details can contain user identities, with credential redaction applied to nested values.
+Use `--full` for the complete returned description; upstream omissions cannot be restored.
+Use `triage rule list` and `audit list` for additional triage context.
+
 `host show --profile <name> --id <id>` returns all API host fields as raw TOON on QUX and RUX, including IP/MAC data when present and unknown nested fields.
 Read API fields under `host`; CLI metadata remains outside that object, preserving API fields even when their names match metadata keys.
 Filter the returned fields as needed.
