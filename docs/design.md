@@ -1,5 +1,7 @@
 # vectra-axi design
 
+[Purpose and scope](#purpose-and-scope) · [Accepted decisions](#accepted-decisions) · [Evidence and API contracts](#evidence-and-api-contracts) · [Capability map](#capability-map) · [Architecture and module depth](#architecture-and-module-depth) · [Profiles and authentication](#profiles-and-authentication) · [CLI and output contract](#cli-and-output-contract) · [Collections, events and bounded reads](#collections-events-and-bounded-reads) · [Later mutation coordinator](#later-mutation-coordinator) · [Change recipe and tests](#change-recipe-and-tests)
+
 Planning baseline prepared on 2026-10-03.
 This document describes intended behavior, not implemented commands.
 TypeScript, a read-only first release, and existing AXI SDK reuse were selected during the design review.
@@ -103,7 +105,7 @@ The mutation coordinator uses a separate authorized sender in `src/session.ts`, 
 
 As domain slices land, the session will expose caller-shaped operations such as `listDetections(query, window)`, `getDetection(id)` and `listEntities(kind, query, window)`.
 CORE-01 supplies the operation-scoped foundation described in the [archived session interface](https://github.com/knowttl/vectra-axi/blob/archive/internal-docs/docs/core-01-handoff.md), and CORE-02 supplies the [archived collection interface](https://github.com/knowttl/vectra-axi/blob/archive/internal-docs/docs/core-02-handoff.md).
-See [README.md](../README.md) for shipped domain reads.
+See [the command reference](commands.md) for shipped domain reads.
 The session and collection reader own profile/version resolution, capability checks, origin enforcement, credential lifecycle, retries, response validation and pagination.
 Deleting this module would distribute those responsibilities across commands, so it earns its interface through depth and locality.
 Do not add a trivial wrapper class per endpoint or expose arbitrary route/payload execution as the domain interface.
@@ -206,11 +208,11 @@ Do not automatically replay ambiguous mutations.
 
 ## Later mutation coordinator
 
-See [README.md](../README.md) for the shipped operation surface.
+See [the command reference](commands.md) for the shipped operation surface.
 Reviewed raw reads use the same operation catalogue and session and cannot bypass sensitive-route or write policy.
 
 WRITE-00 implements the coordinator in `src/writes.ts`; WRITE-01 binds desired-state tag replaces in `src/tags.ts`, WRITE-02 binds action-shaped note appends in `src/note-add.ts`, WRITE-14 binds RUX bulk note appends in `src/note-bulk.ts`, WRITE-03 binds desired-state assignment changes in `src/assignment-set.ts`, WRITE-N (2a) binds desired-state note edits/deletes in `src/note-edit.ts`, WRITE-05 binds bulk tag set/delete fan-out in `src/tags-bulk.ts`, WRITE-06 binds explicit detection close/open in `src/detection-state.ts`, WRITE-13 binds legacy detection fixed set in the same module, WRITE-07 binds disruptive assignment resolution in `src/assignment-resolve.ts`, WRITE-08 binds desired-state host key-asset in `src/host-key-asset.ts`, WRITE-09 binds explicit per-detection triage set/clear in `src/detection-triage.ts`, WRITE-10 binds custom assignment outcome create/edit/delete in `src/assignment-outcome-write.ts` and triage rule create/edit/delete in `src/triage-rule-write.ts`, WRITE-11 binds group member add/remove/set and WRITE-12 binds group create/edit/delete in `src/group-write.ts`, WRITE-ENTITY-CLOSE binds disruptive host/account closes in `src/entity-close.ts`, READ-15/WRITE-15 bind proxy reads and user-defined proxy create/edit/(RUX) delete in `src/proxies.ts`, WRITE-16 binds threat-feed list/show/create/edit/delete and file set/delete in `src/threat-feeds.ts`, READ-17/WRITE-17 bind setting show and internal-network set and READ-18/WRITE-18 bind syslog/kafka export show/set in `src/settings.ts`, READ-19/WRITE-19 bind RUX notification destination list/show and create/edit/delete in `src/notifications.ts`, and WRITE-20 binds Match enablement/ruleset/assignment reads and enablement set, ruleset upload/delete and assignment set/delete in `src/match.ts` to it.
-See [README.md](../README.md) for shipped write behavior and [the implementation plan](implementation-plan.md#phase-4-add-writes-as-a-new-capability-one-family-at-a-time) for selected and future write slices.
+See [the write reference](writes.md) for shipped write behavior and [the implementation plan](implementation-plan.md#phase-4-add-writes-as-a-new-capability-one-family-at-a-time) for selected and future write slices.
 The coordinator keeps its original policy private and exposes a frozen scope snapshot, including the operation allowlist.
 Its sender independently consumes a single-use authorization bound to that sender, method and URL; authorization issuance is private to the coordinator.
 

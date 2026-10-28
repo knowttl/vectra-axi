@@ -2,7 +2,267 @@
 
 # Command reference
 
+[Domain summary](#domain-summary) · [Command table](#command-table) · [Command details](#command-details)
+
 Run `vectra-axi <command> --help` for flags and examples. Deployment support below is operation-specific.
+
+## Domain summary
+
+| Domain | Commands | Deployment |
+| --- | --- | --- |
+| `home` | `home` | Local |
+| `setup` | `setup`, `setup hooks` | Local |
+| `doctor` | `doctor` | QUX, RUX |
+| `auth` | `auth status` | Local |
+| `profile` | `profile list` | Local |
+| `config` | `config path` | Local |
+| `detection` | `detection list`, `detection show`, `detection event list`, `detection triage set`, `detection triage clear`, `detection fixed set`, `detection close`, `detection open`, `detection note list`, `detection tag list`, `detection tag set`, `detection tag bulk-set`, `detection tag bulk-delete`, `detection note bulk-add`, `detection note add`, `detection note edit`, `detection note delete` | QUX, RUX |
+| `host` | `host list`, `host show`, `host key-asset set`, `host close`, `host note list`, `host tag list`, `host tag set`, `host tag bulk-set`, `host tag bulk-delete`, `host note bulk-add`, `host note add`, `host note edit`, `host note delete` | QUX, RUX |
+| `account` | `account list`, `account show`, `account close`, `account note list`, `account tag list`, `account tag set`, `account tag bulk-set`, `account tag bulk-delete`, `account note bulk-add`, `account note add`, `account note edit`, `account note delete` | QUX, RUX |
+| `entity` | `entity list`, `entity show`, `entity scoring list` | QUX, RUX |
+| `assignment` | `assignment list`, `assignment set`, `assignment resolve`, `assignment outcome list`, `assignment outcome create`, `assignment outcome edit`, `assignment outcome delete`, `assignment outcome show` | QUX, RUX |
+| `threat-feed` | `threat-feed list`, `threat-feed show`, `threat-feed create`, `threat-feed edit`, `threat-feed delete`, `threat-feed file set`, `threat-feed file delete` | QUX, RUX |
+| `match` | `match enablement show`, `match ruleset show`, `match assignment list`, `match enablement set`, `match ruleset upload`, `match ruleset delete`, `match assignment set`, `match assignment delete` | QUX, RUX |
+| `setting` | `setting internal-network show`, `setting internal-network set`, `setting syslog set`, `setting kafka set` | QUX |
+| `notification` | `notification destination list`, `notification destination show`, `notification destination create`, `notification destination edit`, `notification destination delete` | RUX |
+| `proxy` | `proxy list`, `proxy show`, `proxy create`, `proxy edit`, `proxy delete` | QUX, RUX |
+| `user` | `user list`, `user show` | QUX, RUX |
+| `audit` | `audit list` | QUX, RUX |
+| `group` | `group list`, `group show`, `group create`, `group edit`, `group delete`, `group member add`, `group member remove`, `group member set`, `group member list` | QUX, RUX |
+| `triage` | `triage rule list`, `triage rule create`, `triage rule edit`, `triage rule delete`, `triage rule show` | QUX, RUX |
+| `health` | `health list`, `health show`, `health event list` | QUX, RUX |
+| `api` | `api get` | QUX, RUX |
+| `lockdown` | `lockdown list` | QUX, RUX |
+
+## Command table
+
+| Command | Capability | Vectra effect | List pagination |
+|---|---|---|---|
+| `npx -y @knowttl/vectra-axi home` | native | read | - |
+| `npx -y @knowttl/vectra-axi setup` | native | read | - |
+| `npx -y @knowttl/vectra-axi setup hooks` | native | read | - |
+| `npx -y @knowttl/vectra-axi doctor` | native | read | - |
+| `npx -y @knowttl/vectra-axi auth status` | native | read | - |
+| `npx -y @knowttl/vectra-axi profile list` | native | read | Local configuration; no endpoint or --all |
+| `npx -y @knowttl/vectra-axi config path` | native | read | - |
+| `npx -y @knowttl/vectra-axi detection list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `npx -y @knowttl/vectra-axi detection show` | native | read | - |
+| `npx -y @knowttl/vectra-axi detection event list` | native | read | RUX: checkpoint batch; --cursor/--from continuation, no --all |
+| `npx -y @knowttl/vectra-axi host list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `npx -y @knowttl/vectra-axi host show` | native | read | - |
+| `npx -y @knowttl/vectra-axi account list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `npx -y @knowttl/vectra-axi account show` | native | read | - |
+| `npx -y @knowttl/vectra-axi entity list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `npx -y @knowttl/vectra-axi entity show` | native | read | - |
+| `npx -y @knowttl/vectra-axi entity scoring list` | native | read | RUX: checkpoint batch; --cursor/--from continuation, no --all |
+| `npx -y @knowttl/vectra-axi detection triage set` | native | write | - |
+| `npx -y @knowttl/vectra-axi detection triage clear` | native | write | - |
+| `npx -y @knowttl/vectra-axi detection fixed set` | native | write | - |
+| `npx -y @knowttl/vectra-axi detection close` | native | write | - |
+| `npx -y @knowttl/vectra-axi detection open` | native | write | - |
+| `npx -y @knowttl/vectra-axi host key-asset set` | native | write | - |
+| `npx -y @knowttl/vectra-axi detection note list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `npx -y @knowttl/vectra-axi detection tag list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `npx -y @knowttl/vectra-axi detection tag set` | native | write | - |
+| `npx -y @knowttl/vectra-axi detection tag bulk-set` | native | write | - |
+| `npx -y @knowttl/vectra-axi detection tag bulk-delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi detection note bulk-add` | native | write | - |
+| `npx -y @knowttl/vectra-axi detection note add` | native | write | - |
+| `npx -y @knowttl/vectra-axi detection note edit` | native | write | - |
+| `npx -y @knowttl/vectra-axi detection note delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi host close` | native | disruptive | - |
+| `npx -y @knowttl/vectra-axi account close` | native | disruptive | - |
+| `npx -y @knowttl/vectra-axi host note list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `npx -y @knowttl/vectra-axi host tag list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `npx -y @knowttl/vectra-axi host tag set` | native | write | - |
+| `npx -y @knowttl/vectra-axi host tag bulk-set` | native | write | - |
+| `npx -y @knowttl/vectra-axi host tag bulk-delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi host note bulk-add` | native | write | - |
+| `npx -y @knowttl/vectra-axi host note add` | native | write | - |
+| `npx -y @knowttl/vectra-axi host note edit` | native | write | - |
+| `npx -y @knowttl/vectra-axi host note delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi account note list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `npx -y @knowttl/vectra-axi account tag list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `npx -y @knowttl/vectra-axi account tag set` | native | write | - |
+| `npx -y @knowttl/vectra-axi account tag bulk-set` | native | write | - |
+| `npx -y @knowttl/vectra-axi account tag bulk-delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi account note bulk-add` | native | write | - |
+| `npx -y @knowttl/vectra-axi account note add` | native | write | - |
+| `npx -y @knowttl/vectra-axi account note edit` | native | write | - |
+| `npx -y @knowttl/vectra-axi account note delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi assignment list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `npx -y @knowttl/vectra-axi assignment set` | native | write | - |
+| `npx -y @knowttl/vectra-axi assignment resolve` | native | disruptive | - |
+| `npx -y @knowttl/vectra-axi threat-feed list` | native | read | QUX: nonpaged single response; no --all; RUX: collection pages; bounded --all supported |
+| `npx -y @knowttl/vectra-axi threat-feed show` | native | read | - |
+| `npx -y @knowttl/vectra-axi threat-feed create` | native | write | - |
+| `npx -y @knowttl/vectra-axi threat-feed edit` | native | write | - |
+| `npx -y @knowttl/vectra-axi threat-feed delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi threat-feed file set` | native | write | - |
+| `npx -y @knowttl/vectra-axi threat-feed file delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi match enablement show` | native | read | - |
+| `npx -y @knowttl/vectra-axi match ruleset show` | native | read | - |
+| `npx -y @knowttl/vectra-axi match assignment list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `npx -y @knowttl/vectra-axi match enablement set` | native | disruptive | - |
+| `npx -y @knowttl/vectra-axi match ruleset upload` | native | write | - |
+| `npx -y @knowttl/vectra-axi match ruleset delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi match assignment set` | native | write | - |
+| `npx -y @knowttl/vectra-axi match assignment delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi setting internal-network show` | native | read | - |
+| `npx -y @knowttl/vectra-axi setting internal-network set` | native | write | - |
+| `npx -y @knowttl/vectra-axi setting syslog set` | native | disruptive | - |
+| `npx -y @knowttl/vectra-axi setting kafka set` | native | disruptive | - |
+| `npx -y @knowttl/vectra-axi notification destination list` | native | read | RUX: nonpaged single response; no --all |
+| `npx -y @knowttl/vectra-axi notification destination show` | native | read | - |
+| `npx -y @knowttl/vectra-axi notification destination create` | native | write | - |
+| `npx -y @knowttl/vectra-axi notification destination edit` | native | write | - |
+| `npx -y @knowttl/vectra-axi notification destination delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi proxy list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `npx -y @knowttl/vectra-axi proxy show` | native | read | - |
+| `npx -y @knowttl/vectra-axi proxy create` | native | write | - |
+| `npx -y @knowttl/vectra-axi proxy edit` | native | write | - |
+| `npx -y @knowttl/vectra-axi proxy delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi assignment outcome list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `npx -y @knowttl/vectra-axi assignment outcome create` | native | write | - |
+| `npx -y @knowttl/vectra-axi assignment outcome edit` | native | write | - |
+| `npx -y @knowttl/vectra-axi assignment outcome delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi assignment outcome show` | native | read | - |
+| `npx -y @knowttl/vectra-axi user list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `npx -y @knowttl/vectra-axi user show` | native | read | - |
+| `npx -y @knowttl/vectra-axi audit list` | native | read | QUX: date window; narrow dates to bound the response, no --all; RUX: checkpoint batch; --cursor/--from continuation, no --all |
+| `npx -y @knowttl/vectra-axi group list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `npx -y @knowttl/vectra-axi group show` | native | read | - |
+| `npx -y @knowttl/vectra-axi group create` | native | write | - |
+| `npx -y @knowttl/vectra-axi group edit` | native | write | - |
+| `npx -y @knowttl/vectra-axi group delete` | native | disruptive | - |
+| `npx -y @knowttl/vectra-axi group member add` | native | write | - |
+| `npx -y @knowttl/vectra-axi group member remove` | native | write | - |
+| `npx -y @knowttl/vectra-axi group member set` | native | write | - |
+| `npx -y @knowttl/vectra-axi group member list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `npx -y @knowttl/vectra-axi triage rule list` | native | read | QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported |
+| `npx -y @knowttl/vectra-axi triage rule create` | native | write | - |
+| `npx -y @knowttl/vectra-axi triage rule edit` | native | write | - |
+| `npx -y @knowttl/vectra-axi triage rule delete` | native | write | - |
+| `npx -y @knowttl/vectra-axi triage rule show` | native | read | - |
+| `npx -y @knowttl/vectra-axi health list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+| `npx -y @knowttl/vectra-axi health show` | native | read | - |
+| `npx -y @knowttl/vectra-axi health event list` | native | read | QUX: checkpoint batch; --cursor/--from continuation, no --all; RUX: checkpoint batch; --cursor/--from continuation, no --all |
+| `npx -y @knowttl/vectra-axi api get` | native | read | - |
+| `npx -y @knowttl/vectra-axi lockdown list` | native | read | QUX: nonpaged single response; no --all; RUX: nonpaged single response; no --all |
+
+## Command details
+
+- [home](#home)
+- [setup](#setup)
+- [setup hooks](#setup-hooks)
+- [doctor](#doctor)
+- [auth status](#auth-status)
+- [profile list](#profile-list)
+- [config path](#config-path)
+- [detection list](#detection-list)
+- [detection show](#detection-show)
+- [detection event list](#detection-event-list)
+- [host list](#host-list)
+- [host show](#host-show)
+- [account list](#account-list)
+- [account show](#account-show)
+- [entity list](#entity-list)
+- [entity show](#entity-show)
+- [entity scoring list](#entity-scoring-list)
+- [detection triage set](#detection-triage-set)
+- [detection triage clear](#detection-triage-clear)
+- [detection fixed set](#detection-fixed-set)
+- [detection close](#detection-close)
+- [detection open](#detection-open)
+- [host key-asset set](#host-key-asset-set)
+- [detection note list](#detection-note-list)
+- [detection tag list](#detection-tag-list)
+- [detection tag set](#detection-tag-set)
+- [detection tag bulk-set](#detection-tag-bulk-set)
+- [detection tag bulk-delete](#detection-tag-bulk-delete)
+- [detection note bulk-add](#detection-note-bulk-add)
+- [detection note add](#detection-note-add)
+- [detection note edit](#detection-note-edit)
+- [detection note delete](#detection-note-delete)
+- [host close](#host-close)
+- [account close](#account-close)
+- [host note list](#host-note-list)
+- [host tag list](#host-tag-list)
+- [host tag set](#host-tag-set)
+- [host tag bulk-set](#host-tag-bulk-set)
+- [host tag bulk-delete](#host-tag-bulk-delete)
+- [host note bulk-add](#host-note-bulk-add)
+- [host note add](#host-note-add)
+- [host note edit](#host-note-edit)
+- [host note delete](#host-note-delete)
+- [account note list](#account-note-list)
+- [account tag list](#account-tag-list)
+- [account tag set](#account-tag-set)
+- [account tag bulk-set](#account-tag-bulk-set)
+- [account tag bulk-delete](#account-tag-bulk-delete)
+- [account note bulk-add](#account-note-bulk-add)
+- [account note add](#account-note-add)
+- [account note edit](#account-note-edit)
+- [account note delete](#account-note-delete)
+- [assignment list](#assignment-list)
+- [assignment set](#assignment-set)
+- [assignment resolve](#assignment-resolve)
+- [threat-feed list](#threat-feed-list)
+- [threat-feed show](#threat-feed-show)
+- [threat-feed create](#threat-feed-create)
+- [threat-feed edit](#threat-feed-edit)
+- [threat-feed delete](#threat-feed-delete)
+- [threat-feed file set](#threat-feed-file-set)
+- [threat-feed file delete](#threat-feed-file-delete)
+- [match enablement show](#match-enablement-show)
+- [match ruleset show](#match-ruleset-show)
+- [match assignment list](#match-assignment-list)
+- [match enablement set](#match-enablement-set)
+- [match ruleset upload](#match-ruleset-upload)
+- [match ruleset delete](#match-ruleset-delete)
+- [match assignment set](#match-assignment-set)
+- [match assignment delete](#match-assignment-delete)
+- [setting internal-network show](#setting-internal-network-show)
+- [setting internal-network set](#setting-internal-network-set)
+- [setting syslog set](#setting-syslog-set)
+- [setting kafka set](#setting-kafka-set)
+- [notification destination list](#notification-destination-list)
+- [notification destination show](#notification-destination-show)
+- [notification destination create](#notification-destination-create)
+- [notification destination edit](#notification-destination-edit)
+- [notification destination delete](#notification-destination-delete)
+- [proxy list](#proxy-list)
+- [proxy show](#proxy-show)
+- [proxy create](#proxy-create)
+- [proxy edit](#proxy-edit)
+- [proxy delete](#proxy-delete)
+- [assignment outcome list](#assignment-outcome-list)
+- [assignment outcome create](#assignment-outcome-create)
+- [assignment outcome edit](#assignment-outcome-edit)
+- [assignment outcome delete](#assignment-outcome-delete)
+- [assignment outcome show](#assignment-outcome-show)
+- [user list](#user-list)
+- [user show](#user-show)
+- [audit list](#audit-list)
+- [group list](#group-list)
+- [group show](#group-show)
+- [group create](#group-create)
+- [group edit](#group-edit)
+- [group delete](#group-delete)
+- [group member add](#group-member-add)
+- [group member remove](#group-member-remove)
+- [group member set](#group-member-set)
+- [group member list](#group-member-list)
+- [triage rule list](#triage-rule-list)
+- [triage rule create](#triage-rule-create)
+- [triage rule edit](#triage-rule-edit)
+- [triage rule delete](#triage-rule-delete)
+- [triage rule show](#triage-rule-show)
+- [health list](#health-list)
+- [health show](#health-show)
+- [health event list](#health-event-list)
+- [api get](#api-get)
+- [lockdown list](#lockdown-list)
 
 ## home
 

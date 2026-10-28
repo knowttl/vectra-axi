@@ -52,12 +52,12 @@ The inventory records evidence; the [strict executable catalogue](../src/catalog
 | `unavailable` | Evidence establishes that a requested capability is absent for this binding. |
 | `deprecated` | Previously supported contract deliberately retired with documented guidance. |
 
-The [capability records](../inventory/capabilities.json) own each operation's delivery state; see [README.md](../README.md) for shipped commands.
+The [capability records](../inventory/capabilities.json) own each operation's delivery state; see [the command reference](commands.md) for shipped commands.
 The generated [coverage record](coverage.md) reports raw availability separately in its `Raw` column; enabling raw access to a `named` operation does not change its inventory disposition to `reviewed-raw`.
 Neither an upstream GET nor a downloaded schema enables an endpoint.
 The QUX sensor registration token and AWS connector credential reads are `blocked` and cannot be exposed through raw-read access.
 OAuth exchanges are separate effects; a token POST does not authorize business POSTs.
-Unknown routes remain outside the catalogue; see [README.md](../README.md) for the session's shipped authorization policy.
+Unknown routes remain outside the catalogue; see [the permission reference](permissions.md) for the session's shipped authorization policy.
 
 `deferredFamilies` intentionally records only deployment/version, evidence, disposition and reason.
 It does not invent routes, command leaves, permission mappings or effects for a long tail that has not been reviewed.
@@ -81,5 +81,5 @@ The separately updated guide change log adds detection EDR context in 9.8.
 Individual QUX health checks require the view-health permission; denials must never appear as healthy empty results.
 
 The inventory's `az-tooling` source pins the tooling reference separately from the older design research reference.
-See [README.md](../README.md) for development requirements and commands and [.no-mistakes.yaml](../.no-mistakes.yaml) for local validation and gate commands; the test workflow file remains in the repository but is disabled on GitHub.
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for development requirements and commands and [.no-mistakes.yaml](../.no-mistakes.yaml) for local validation and gate commands.
 The [shared network guard](../test/network-guard.ts) owns automated network denial for Vitest and packaged CLI subprocesses.

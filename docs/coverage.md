@@ -2,6 +2,8 @@
 
 # vectra-axi coverage
 
+[Counts](#counts) · [Operations](#operations) · [Deferred families](#deferred-families)
+
 This is the supported QUX and RUX SOC read surface with gated QUX/RUX single and bulk tag-write, note-append, RUX bulk note-append, assignment-write/resolve, note edit/delete, detection close/open, detection fixed set, detection triage set/clear, group create/edit/delete, group member add/remove/set, host key-asset, assignment outcome create/edit/delete, triage rule create/edit/delete, proxy create/edit/(RUX) delete, threat-feed create/edit/delete and file set/delete, internal-network set, syslog/kafka export set, RUX notification destination create/edit/delete, Match enablement set, ruleset upload/delete and assignment set/delete, and host/account close families, not full Vectra API coverage.
 Only `named` operations have an implemented, tested command leaf.
 The `implemented` disposition records tested internal OAuth exchanges with no command leaf;

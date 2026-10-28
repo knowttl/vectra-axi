@@ -8,12 +8,10 @@ const skill = readFileSync(new URL("../skills/vectra-axi/SKILL.md", import.meta.
 const coverage = readFileSync(new URL("../docs/coverage.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 
 describe("generated release records", () => {
-  it("keeps the published command reference and README summary current", () => {
+  it("keeps the published command reference and domain summary current", () => {
     const commands = readFileSync(new URL("../docs/commands.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
-    const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8").replace(/\r\n/g, "\n");
     expect(commands).toBe(commandDocument());
-    expect(readme.split("<!-- command-registry:start -->\n")[1]?.split("\n<!-- command-registry:end -->")[0])
-      .toBe(commandSummary());
+    expect(commands).toContain(commandSummary());
   });
   it.each(Object.keys(catalogue).filter((leaf) => leaf.endsWith(" list")))
   ("inventories the pagination contract of %s", (leaf) => {
@@ -96,6 +94,7 @@ describe("generated release records", () => {
     const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
     const anchors = [...readme.matchAll(/^#{1,6} (.+)$/gm)].map((match) =>
       match[1]!.toLowerCase().replace(/[^\w -]/g, "").replace(/ /g, "-"));
+    anchors.push(...[...readme.matchAll(/<a id="([^"]+)"><\/a>/g)].map((match) => match[1]!));
     const links = [...skill.matchAll(/\]\(([^)]+)\)/g)].map((match) => match[1]!);
     expect(links.length).toBeGreaterThan(0);
     for (const link of links) {

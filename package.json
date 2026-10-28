@@ -2,7 +2,7 @@
   "name": "@knowttl/vectra-axi",
   "version": "0.1.11",
   "license": "MIT",
-  "description": "Vectra AI QUX and RUX CLI for agents and the humans running them, with reviewed investigation reads and explicitly gated writes.",
+  "description": "Vectra AI QUX and RUX CLI for agents and the humans running them, with bounded reads and gated writes.",
   "bin": {
     "vectra-axi": "bin/vectra-axi.js",
     "vectra-axi-hook": "bin/vectra-axi-hook.js"
