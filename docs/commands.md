@@ -328,9 +328,9 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
     "--threat-gte <score>": "Filter by server-side minimum threat score",
     "--certainty-gte <score>": "Filter by server-side minimum certainty score",
     "--tags <tags>": "Filter by server-side tags",
-    "--min-id <id>": "Server-side minimum host ID (non-negative integer)",
+    "--min-id <id>": "Server-side minimum host ID (positive integer)",
     "--all": "Traverse pages within 10 requests, 8 MiB, 60 seconds and 10000 rows; cannot combine with --limit",
-    "--max-id <id>": "Server-side maximum host ID (non-negative integer)",
+    "--max-id <id>": "Server-side maximum host ID (positive integer)",
     "--limit <rows>": "Row window for this read; default 100",
     "--fields <list>": "Comma-separated projection over id,name,state,threat,certainty",
     "--cursor <cursor>": "Resume a capped list with its original filters"
@@ -400,9 +400,9 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
     "--threat-gte <score>": "Filter by server-side minimum threat score",
     "--certainty-gte <score>": "Filter by server-side minimum certainty score",
     "--tags <tags>": "Filter by server-side tags",
-    "--min-id <id>": "Server-side minimum account ID (non-negative integer)",
+    "--min-id <id>": "Server-side minimum account ID (positive integer)",
     "--all": "Traverse pages within 10 requests, 8 MiB, 60 seconds and 10000 rows; cannot combine with --limit",
-    "--max-id <id>": "Server-side maximum account ID (non-negative integer)",
+    "--max-id <id>": "Server-side maximum account ID (positive integer)",
     "--limit <rows>": "Row window for this read; default 100",
     "--fields <list>": "Comma-separated projection over id,name,state,threat,certainty",
     "--cursor <cursor>": "Resume a capped list with its original filters"

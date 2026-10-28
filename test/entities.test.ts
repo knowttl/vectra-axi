@@ -137,6 +137,34 @@ it.each([
   expect(urls).toEqual([`https://fixture.invalid/api/v2.5/${route}?page_size=100`, next]);
 });
 
+it.each([
+  ["host", "min-id"], ["host", "max-id"], ["account", "min-id"], ["account", "max-id"],
+] as const)("rejects zero --%s for %s list before HTTP", async (noun, flag) => {
+  let calls = 0;
+  const transport: RawTransport = async () => {
+    calls += 1;
+    return listPage([]);
+  };
+  const run = noun === "host" ? runHostList : runAccountList;
+  await expect(run(session(transport), flags([noun, "list", `--${flag}`, "0"])))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR", message: `--${flag} must be a positive integer` });
+  expect(calls).toBe(0);
+});
+
+it.each([
+  ["host", "min-id"], ["host", "max-id"], ["account", "min-id"], ["account", "max-id"],
+] as const)("accepts --%s at the positive ID boundary for %s list", async (noun, flag) => {
+  let url = "";
+  const transport: RawTransport = async (request) => {
+    url = request.url;
+    return listPage([]);
+  };
+  const run = noun === "host" ? runHostList : runAccountList;
+  const result = await run(session(transport), flags([noun, "list", `--${flag}`, "1"]));
+  expect(result.failed).toBe(false);
+  expect(new URL(url).searchParams.get(flag.replace("-", "_"))).toBe("1");
+});
+
 it("maps host flags to the wire score keys before any HTTP", async () => {
   const transport: RawTransport = async () => listPage([host(1)], { count: 1 });
   let url = "";
