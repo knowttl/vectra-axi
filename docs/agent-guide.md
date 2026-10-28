@@ -70,7 +70,7 @@ Additional detection list fields worth requesting are `threat,certainty,is_triag
 Lists default to 100 rows; use `--limit 20` and a supported comma-separated `--fields` projection for a small first window.
 Default detection columns are `id,detection_type,state,threat,certainty`.
 `--fields` reduces output, not necessarily the upstream response size.
-Detail text is previewed; `--full` expands returned text, never missing API fields.
+Detail text is previewed; `--full` expands returned text without recovering server omissions.
 Host detail preserves every returned field rather than the list's compact projection.
 
 Collection lists (detections, hosts, accounts, entities, assignments, groups, group members and triage rules) support `--all` instead of `--limit`.
