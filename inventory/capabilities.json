@@ -1416,7 +1416,9 @@
         "threat_gte",
         "ordering",
         "min_id",
-        "max_id"
+        "max_id",
+        "page",
+        "page_size"
       ],
       "fields": [
         "id",
@@ -1437,7 +1439,7 @@
       "evidence": [
         {
           "source": "qux-guide",
-          "locator": "pp18-23; timing/source p19, src_host/summary/grouped_details p20; target_domains/dst_ips in Appendix A pp83-86; query table p22"
+          "locator": "pp18-23; timing/source p19, src_host/summary/grouped_details p20; target_domains/dst_ips in Appendix A pp83-86; paging query table p21, filters p22"
         }
       ],
       "disposition": "named",
@@ -1903,7 +1905,9 @@
         "c_score_gte",
         "tags",
         "min_id",
-        "max_id"
+        "max_id",
+        "page",
+        "page_size"
       ],
       "fields": [
         "id",
@@ -2286,7 +2290,9 @@
         "c_score_gte",
         "tags",
         "min_id",
-        "max_id"
+        "max_id",
+        "page",
+        "page_size"
       ],
       "fields": [
         "id",
@@ -6159,7 +6165,9 @@
         "c_score_gte",
         "tags",
         "min_id",
-        "max_id"
+        "max_id",
+        "page",
+        "page_size"
       ],
       "fields": [
         "id",
@@ -6265,7 +6273,9 @@
         "c_score_gte",
         "tags",
         "min_id",
-        "max_id"
+        "max_id",
+        "page",
+        "page_size"
       ],
       "fields": [
         "id",

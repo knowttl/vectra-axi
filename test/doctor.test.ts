@@ -51,7 +51,7 @@ it("checks a profile with one bounded detection read", async () => {
       next: "https://fixture.invalid/api/v2.5/detections?min_id=2" });
   };
   const result = await doctor(["lab"], transport);
-  expect(urls).toEqual(["https://fixture.invalid/api/v2.5/detections"]);
+  expect(urls).toEqual(["https://fixture.invalid/api/v2.5/detections?page_size=100"]);
   expect(result).toEqual({ failed: false, output: {
     config: path,
     check: expect.stringContaining("qux.detection.list"),
@@ -149,7 +149,7 @@ it("sends only documented detection GETs for a token profile", async () => {
     return body({ results: [detection], count: 1 });
   };
   await doctor(["lab"], transport);
-  expect(calls).toEqual([{ method: "GET", url: "https://fixture.invalid/api/v2.5/detections" }]);
+  expect(calls).toEqual([{ method: "GET", url: "https://fixture.invalid/api/v2.5/detections?page_size=100" }]);
 });
 
 it("never emits the configured secret in its rows", async () => {
@@ -191,7 +191,7 @@ it("drives an OAuth profile through the named exchange before the bounded read",
       redactor: new SecretRedactor(), transport });
     expect(calls).toEqual([
       { method: "POST", url: "https://fixture.invalid/api/v2.5/oauth2/token" },
-      { method: "GET", url: "https://fixture.invalid/api/v2.5/detections" },
+      { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?page_size=100" },
     ]);
     expect(result.failed).toBe(false);
   } finally {
@@ -295,7 +295,7 @@ it("checks on-prem and cloud profiles with their own documented check", async ()
     const result = await runDoctor({ loaded: owned, names: ["lab", "cloud"],
       redactor: new SecretRedactor(), transport });
     expect(urls).toEqual([
-      "GET https://fixture.invalid/api/v2.5/detections",
+      "GET https://fixture.invalid/api/v2.5/detections?page_size=100",
       "POST https://fixture.invalid/oauth2/token",
     ]);
     expect(result.failed).toBe(false);

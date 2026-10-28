@@ -51,9 +51,9 @@ export type CollectionPolicy = {
 
 // One default covers every collection operation. No reviewed per-endpoint
 // request/byte/deadline evidence exists yet, so none is invented; endpoint
-// deviations land here when evidenced. QUX detection/host/account pages can
-// reach 5000 rows upstream (design.md), but those routes accept no page_size
-// parameter, so the reader consumes whole pages there.
+// deviations land here when evidenced. QUX detection/host/account routes
+// support page and page_size (QUX v2.5 guide pp21, 26, 32); the inventory
+// declares those keys for the reader and the session's destination guard.
 const DEFAULT_POLICY: CollectionPolicy = {
   pageSize: 100,
   maxRequests: 10,

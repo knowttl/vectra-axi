@@ -37,6 +37,38 @@ const page = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
 });
 const nextPage = "https://fixture.invalid/api/v2.5/detections?min_id=9";
 
+it("rejects undeclared query keys alongside valid QUX paging keys", async () => {
+  const transport = vi.fn<RawTransport>().mockResolvedValueOnce(page(ids(1), {
+    next: "https://fixture.invalid/api/v2.5/detections?page=2&page_size=100&unknown=true",
+  }));
+  const result = await collect(session(transport), "qux.detection.list", { all: true });
+  expect(result).toMatchObject({ rows: ids(1), complete: false, error: { code: "DESTINATION_DENIED" } });
+  expect(transport).toHaveBeenCalledTimes(1);
+});
+
+it.each([
+  ["qux.detection.list", "detections"],
+  ["qux.host.list", "hosts"],
+  ["qux.account.list", "accounts"],
+  ["qux.entity.host.list", "hosts"],
+  ["qux.entity.account.list", "accounts"],
+])("follows numbered pages for %s with a limit and --all", async (operation, route) => {
+  const next = `https://fixture.invalid/api/v2.5/${route}?page=2&page_size=100`;
+  const transport = vi.fn<RawTransport>()
+    .mockResolvedValueOnce(page(ids(50), { count: 51, next }))
+    .mockResolvedValueOnce(page(ids(1, 51), { count: 51 }));
+  const owned = session(transport);
+  const limited = await collect(owned, operation, { limit: 500 });
+  expect(limited).toEqual({ rows: ids(51), total: 51, complete: true });
+  expect(transport.mock.calls.map(([request]) => request.url)).toEqual([
+    `https://fixture.invalid/api/v2.5/${route}?page_size=100`, next,
+  ]);
+  transport.mockClear()
+    .mockResolvedValueOnce(page(ids(50), { count: 51, next }))
+    .mockResolvedValueOnce(page(ids(1, 51), { count: 51 }));
+  expect(await collect(owned, operation, { all: true })).toEqual(limited);
+});
+
 it.each([0, ALL_COLLECTION_LIMIT])("finishes --all at exactly %i rows without another request", async (count) => {
   const transport = vi.fn<RawTransport>().mockResolvedValue(page(ids(count), { count }));
   const result = await collect(session(transport), "qux.detection.list", { all: true });
@@ -174,7 +206,7 @@ it("preserves unreturned rows when the limit ends inside a page", async () => {
   const second = await resume(owned, "qux.detection.list", first.cursor!);
   expect(second).toEqual({ rows: ids(3, 3), total: 5, complete: true });
   expect(transport).toHaveBeenCalledTimes(2);
-  expect(transport.mock.calls[1]![0].url).toBe("https://fixture.invalid/api/v2.5/detections");
+  expect(transport.mock.calls[1]![0].url).toBe("https://fixture.invalid/api/v2.5/detections?page_size=100");
 });
 
 it("skips an empty page that carries a continuation", async () => {
@@ -225,8 +257,8 @@ it("stops on a repeated continuation without refetching it", async () => {
 it("stops a multi-page cycle across page-boundary resumes", async () => {
   const transport = vi.fn<RawTransport>()
     .mockResolvedValueOnce(page(ids(100), { next: nextPage }))
-    .mockResolvedValueOnce(page(ids(100, 101), { next: "https://fixture.invalid/api/v2.5/detections" }))
-    .mockResolvedValueOnce(page(ids(100, 101), { next: "https://fixture.invalid/api/v2.5/detections" }));
+    .mockResolvedValueOnce(page(ids(100, 101), { next: "https://fixture.invalid/api/v2.5/detections?page_size=100" }))
+    .mockResolvedValueOnce(page(ids(100, 101), { next: "https://fixture.invalid/api/v2.5/detections?page_size=100" }));
   const owned = session(transport);
   const first = await collect(owned, "qux.detection.list");
   expect(first).toMatchObject({ rows: ids(100), complete: true, cursor: expect.any(String) });
@@ -243,7 +275,7 @@ it("keeps cycle history across within-page resumes without rejecting the pending
   const transport = vi.fn<RawTransport>()
     .mockResolvedValueOnce(page(ids(2), { next: nextPage }))
     .mockResolvedValueOnce(page(ids(2), { next: nextPage }))
-    .mockResolvedValueOnce(page(ids(2, 3), { next: "https://fixture.invalid/api/v2.5/detections" }));
+    .mockResolvedValueOnce(page(ids(2, 3), { next: "https://fixture.invalid/api/v2.5/detections?page_size=100" }));
   const owned = session(transport);
   const first = await collect(owned, "qux.detection.list", { limit: 1 });
   expect(first).toMatchObject({ rows: ids(1), complete: true });
@@ -258,7 +290,7 @@ it("keeps cycle history when resuming after a failed page", async () => {
   const transport = vi.fn<RawTransport>()
     .mockResolvedValueOnce(page(ids(2), { next: nextPage }))
     .mockResolvedValueOnce({ status: 500, bodyText: "failed" })
-    .mockResolvedValueOnce(page(ids(2, 3), { next: "https://fixture.invalid/api/v2.5/detections" }));
+    .mockResolvedValueOnce(page(ids(2, 3), { next: "https://fixture.invalid/api/v2.5/detections?page_size=100" }));
   const owned = session(transport);
   const first = await collect(owned, "qux.detection.list");
   expect(first).toMatchObject({ rows: ids(2), complete: false, error: { code: "REQUEST_FAILED" } });
@@ -437,7 +469,7 @@ it.each([
   [9, "9", 2], [9, "9", 100], [true, "true", 2], ["9", "9", 2],
 ] as const)("detects wire-equivalent repeated continuations for %s (%s) at limit %i", async (minId, wire, limit) => {
   const transport = vi.fn<RawTransport>().mockResolvedValue(page(ids(2), {
-    next: `https://fixture.invalid/api/v2.5/detections?min_id=${wire}`,
+    next: `https://fixture.invalid/api/v2.5/detections?min_id=${wire}&page_size=100`,
   }));
   const result = await collect(session(transport), "qux.detection.list", {
     query: { min_id: minId }, limit,
@@ -484,10 +516,10 @@ it("refuses a cross-origin continuation without fetching it", async () => {
   expect(JSON.stringify(transport.mock.calls)).not.toContain("collector.invalid");
 });
 
-it("requests page_size only where the operation declares it", async () => {
+it("requests the default page_size and preserves an explicit page_size", async () => {
   const detections = vi.fn<RawTransport>().mockResolvedValue(page([]));
   await collect(session(detections), "qux.detection.list");
-  expect(detections.mock.calls[0]![0].url).toBe("https://fixture.invalid/api/v2.5/detections");
+  expect(detections.mock.calls[0]![0].url).toBe("https://fixture.invalid/api/v2.5/detections?page_size=100");
   const members = vi.fn<RawTransport>().mockResolvedValue(page([]));
   await collect(session(members), "qux.group.member.list", { pathParams: { id: 7 } });
   expect(members.mock.calls[0]![0].url).toBe("https://fixture.invalid/api/v2.5/groups/7/members?page_size=100");

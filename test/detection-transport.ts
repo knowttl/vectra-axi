@@ -49,19 +49,19 @@ const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/api/v2.5/proxies", { status: 200, body: { meta: { count: 0 }, proxies: [] } }],
   ["https://fixture.invalid/api/v2.5/proxies/proxy-1", { status: 200,
     body: { meta: { count: 1 }, proxies: [{ id: "proxy-1", address: "192.0.2.10", considerProxy: true, source: "user" }] } }],
-  ["https://fixture.invalid/api/v2.5/detections?ordering=-id",
+  ["https://fixture.invalid/api/v2.5/detections?ordering=-id&page_size=100",
     { status: 200, body: { results: [second, first], count: 2 } }],
-  ["https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70",
+  ["https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&page_size=100",
     { status: 200, body: { results: [first], count: 2, next } }],
   [next, { status: 200, body: { results: [second], count: 2, next: null } }],
   ["https://fixture.invalid/api/v2.5/detections/1",
     { status: 200, body: { ...first, description: "synthetic detail ".repeat(100) } }],
   ["https://fixture.invalid/api/v2.5/detections/42", { status: 200, body: timeline42 }],
   ["https://fixture.invalid/api/v3.4/detections/42/", { status: 200, body: timeline42 }],
-  ["https://fixture.invalid/api/v2.5/detections?state=empty",
+  ["https://fixture.invalid/api/v2.5/detections?state=empty&page_size=100",
     { status: 200, body: { results: [], count: 0 } }],
-  ["https://fixture.invalid/api/v2.5/detections?state=denied", { status: 403, body: {} }],
-  ["https://fixture.invalid/api/v2.5/detections?state=malformed",
+  ["https://fixture.invalid/api/v2.5/detections?state=denied&page_size=100", { status: 403, body: {} }],
+  ["https://fixture.invalid/api/v2.5/detections?state=malformed&page_size=100",
     { status: 200, body: { results: [first, { ...second, threat: "high" }], count: 2 } }],
   ["https://fixture.invalid/api/v2.5/hosts/7", { status: 200, body: host7 }],
   // Synthetic host detail shaped after qux-guide pp30-33 and rux-spec HostSerializerV3_4.
@@ -80,7 +80,7 @@ const responses = new Map<string, { status: number; body: unknown }>([
     future_field: { token_echo: "packaged-rux-token", values: [null, false, 0, "x".repeat(501)] },
   } }],
   ["https://fixture.invalid/api/v2.5/accounts/7", { status: 200, body: account7 }],
-  ["https://fixture.invalid/api/v2.5/hosts?t_score_gte=70",
+  ["https://fixture.invalid/api/v2.5/hosts?t_score_gte=70&page_size=100",
     { status: 200, body: { results: [host7], count: 1 } }],
   ["https://fixture.invalid/api/v2.5/detections/42/notes",
     { status: 200, body: [{ id: 1, note: "synthetic detail ".repeat(100) }, { id: 2, note: "short synthetic note" }] }],
@@ -158,9 +158,9 @@ const responses = new Map<string, { status: number; body: unknown }>([
   // The bare list URL returns a first page with a continuation that a
   // one-row window keeps as evidence without following; the denied origin
   // exercises the synthetic access-failure journey.
-  ["https://fixture.invalid/api/v2.5/detections",
+  ["https://fixture.invalid/api/v2.5/detections?page_size=100",
     { status: 200, body: { results: [first], count: 2, next } }],
-  ["https://denied.invalid/api/v2.5/detections", { status: 403, body: {} }],
+  ["https://denied.invalid/api/v2.5/detections?page_size=100", { status: 403, body: {} }],
   // READ-08: lockdown status arrives as one unpaged list per kind through
   // its own status route; there is no execution leaf to fixture.
   ["https://fixture.invalid/api/v2.5/lockdown/host",

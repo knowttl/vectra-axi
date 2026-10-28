@@ -100,7 +100,7 @@ it("reads a collection through the operation ID with recorded query keys", async
   };
   const result = await runApiGet(session(spy),
     flags(["api", "get", "--operation", "qux.detection.list", "--query", "state=active&threat_gte=70"]));
-  expect(url).toBe("https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70");
+  expect(url).toBe("https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&page_size=100");
   expect(result).toEqual({ failed: false, output: {
     profile: "lab",
     operation: "qux.detection.list",

@@ -71,6 +71,8 @@ The number of records measures this inventory only; no API-wide denominator or c
 The RUX v3.4 specification hash still matches the design snapshot on 2026-10-03.
 RUX parameter names were checked directly against the published schema rather than copied from QUX.
 The QUX PDF and pinned VAT implementation provide differently shaped checks of authentication, notes/tags, entity routes and health checks.
+The pinned QUX PDF documents `page` and `page_size` for detections (p21), accounts (p26) and hosts (p32), including the entity facades using those routes.
+These paging keys do not apply to the dedicated note/tag responses or date-window audit reads.
 Where the guide does not enumerate the account tagging selector, see the account tag [capability record](../inventory/capabilities.json) for its supporting evidence.
 RUX tag tables are singular (`host`, `account`, `detection`, `entity`), while note resource selectors are plural.
 RUX user records use `name`, and entity response records expose `urgency_score` alongside `importance`.
