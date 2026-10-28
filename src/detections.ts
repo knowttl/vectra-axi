@@ -44,7 +44,9 @@ const FILTER_FLAGS = {
 
 const DEFAULT_LIST_FIELDS = ["id", "detection_type", "state", "threat", "certainty"] as const;
 export const DETECTION_LIST_FIELDS = [...DEFAULT_LIST_FIELDS,
-  "first_timestamp", "last_timestamp", "src_ip", "src_host", "summary", "grouped_details"] as const;
+  "first_timestamp", "last_timestamp", "src_ip", "src_host", "summary", "grouped_details",
+  "is_triaged", "triage_rule_id", "triage_category", "assigned_to", "assigned_date",
+  "filtered_by_rule", "filtered_by_user", "filtered_by_ai", "is_marked_custom"] as const;
 const DETECTION_SHOW_FIELDS = [...DETECTION_LIST_FIELDS, "description"] as const;
 
 type ListQuery = Record<string, string | number | boolean>;
@@ -127,6 +129,17 @@ const detectionSchema = z.object({
   summary: z.record(z.string(), z.unknown()).nullable().optional(),
   // Detection-specific keys include destination IPs and target domains.
   grouped_details: z.array(z.record(z.string(), z.unknown())).nullable().optional(),
+  // Preserve the server's triage and assignment representations, including
+  // nullable IDs and nested user identities, after session secret redaction.
+  is_triaged: z.unknown().optional(),
+  triage_rule_id: z.unknown().optional(),
+  triage_category: z.unknown().optional(),
+  assigned_to: z.unknown().optional(),
+  assigned_date: z.unknown().optional(),
+  filtered_by_rule: z.unknown().optional(),
+  filtered_by_user: z.unknown().optional(),
+  filtered_by_ai: z.unknown().optional(),
+  is_marked_custom: z.unknown().optional(),
 });
 const detailSchema = detectionSchema.extend({ description: z.string().nullable().optional() });
 

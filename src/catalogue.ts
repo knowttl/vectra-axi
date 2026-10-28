@@ -98,7 +98,7 @@ export const catalogue: Readonly<Record<string, {
       "min-id": { kind: "value", valueName: "id", description: "Server-side minimum detection ID (positive integer)" },
       "max-id": { kind: "value", valueName: "id", description: "Server-side maximum detection ID (positive integer)" },
       limit: { kind: "value", valueName: "rows", description: "Row window for this read; default 100" },
-      fields: { kind: "value", valueName: "list", description: "Comma-separated detection fields, including first_timestamp,last_timestamp,src_ip,src_host,summary,grouped_details; default id,detection_type,state,threat,certainty" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated detection fields, including first_timestamp,last_timestamp,src_ip,src_host,summary,grouped_details,is_triaged,triage_rule_id,triage_category,assigned_to,assigned_date,filtered_by_rule,filtered_by_user,filtered_by_ai,is_marked_custom; default id,detection_type,state,threat,certainty" },
       all: { kind: "boolean", description: "Traverse pages within 10 requests, 8 MiB, 60 seconds and 10000 rows; cannot combine with --limit" },
       cursor: { kind: "value", valueName: "cursor", description: "Resume a capped list with its original filters" },
     },
@@ -109,11 +109,11 @@ export const catalogue: Readonly<Record<string, {
     ],
   },
   "detection show": {
-    description: "Show one QUX v2.5 or RUX v3.4 detection's scores, timing, source, description, summary and grouped target details",
+    description: "Show one QUX v2.5 or RUX v3.4 detection's scores, timing, source, description, summary, grouped target details, triage and assignment",
     flags: {
       ...globals,
       id: { kind: "value", valueName: "id", description: "Detection ID to show (positive integer, required)" },
-      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,detection_type,state,threat,certainty,description,first_timestamp,last_timestamp,src_ip,src_host,summary,grouped_details" },
+      fields: { kind: "value", valueName: "list", description: "Comma-separated projection over id,detection_type,state,threat,certainty,description,first_timestamp,last_timestamp,src_ip,src_host,summary,grouped_details,is_triaged,triage_rule_id,triage_category,assigned_to,assigned_date,filtered_by_rule,filtered_by_user,filtered_by_ai,is_marked_custom" },
       full: { kind: "boolean", description: "Show the complete description; default previews long text" },
     },
     examples: [

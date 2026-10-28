@@ -483,6 +483,12 @@ QUX lockdown status requires the corresponding Microsoft Defender ATP or AD Lock
 RUX health and lockdown responses vary with subscriptions; empty or denied results do not establish that a deployment is healthy.
 Triage rules describe automation and do not establish that a detection is benign.
 
+Detection show includes returned triage and assignment fields on QUX and RUX: `is_triaged`, `triage_rule_id`, `triage_category`, `assigned_to`, `assigned_date`, `filtered_by_rule`, `filtered_by_user`, `filtered_by_ai` and `is_marked_custom`.
+Detection list exposes these through `--fields`, retaining its five default columns.
+Assignment details may include user identities; credential redaction still applies to nested values.
+Use `--full` for the complete returned description; it cannot restore fields omitted by the server.
+For additional triage context, use `triage rule list` and `audit list`.
+
 ```sh
 # Local state and explicit connectivity check
 vectra-axi home

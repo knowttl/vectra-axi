@@ -222,7 +222,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
     "--min-id <id>": "Server-side minimum detection ID (positive integer)",
     "--max-id <id>": "Server-side maximum detection ID (positive integer)",
     "--limit <rows>": "Row window for this read; default 100",
-    "--fields <list>": "Comma-separated detection fields, including first_timestamp,last_timestamp,src_ip,src_host,summary,grouped_details; default id,detection_type,state,threat,certainty",
+    "--fields <list>": "Comma-separated detection fields, including first_timestamp,last_timestamp,src_ip,src_host,summary,grouped_details,is_triaged,triage_rule_id,triage_category,assigned_to,assigned_date,filtered_by_rule,filtered_by_user,filtered_by_ai,is_marked_custom; default id,detection_type,state,threat,certainty",
     "--all": "Traverse pages within 10 requests, 8 MiB, 60 seconds and 10000 rows; cannot combine with --limit",
     "--cursor <cursor>": "Resume a capped list with its original filters"
   },
@@ -240,7 +240,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
 
 ## detection show
 
-Show one QUX v2.5 or RUX v3.4 detection's scores, timing, source, description, summary and grouped target details
+Show one QUX v2.5 or RUX v3.4 detection's scores, timing, source, description, summary, grouped target details, triage and assignment
 
 - `qux.detection.show`: QUX API 2.5
 - `rux.detection.show`: RUX API 3.4
@@ -248,13 +248,13 @@ Show one QUX v2.5 or RUX v3.4 detection's scores, timing, source, description, s
 ```json
 {
   "command": "vectra-axi detection show",
-  "description": "Show one QUX v2.5 or RUX v3.4 detection's scores, timing, source, description, summary and grouped target details",
+  "description": "Show one QUX v2.5 or RUX v3.4 detection's scores, timing, source, description, summary, grouped target details, triage and assignment",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
     "--config <path>": "Read an explicit config; default VECTRA_AXI_CONFIG or the platform config directory",
     "--id <id>": "Detection ID to show (positive integer, required)",
-    "--fields <list>": "Comma-separated projection over id,detection_type,state,threat,certainty,description,first_timestamp,last_timestamp,src_ip,src_host,summary,grouped_details",
+    "--fields <list>": "Comma-separated projection over id,detection_type,state,threat,certainty,description,first_timestamp,last_timestamp,src_ip,src_host,summary,grouped_details,is_triaged,triage_rule_id,triage_category,assigned_to,assigned_date,filtered_by_rule,filtered_by_user,filtered_by_ai,is_marked_custom",
     "--full": "Show the complete description; default previews long text"
   },
   "arguments": {
