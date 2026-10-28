@@ -103,7 +103,7 @@ Credential-export routes are blocked even if they use GET.
 Adopt the published schema as evidence; do not commit proprietary bulk documentation or assume full code generation is valid.
 
 CLI-01 extends the Node/TypeScript and Vitest tooling introduced by INV-01 with the command shell and existing AXI SDK, reusing the network-denying test harness.
-See [README.md](../README.md) for development commands.
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for development commands.
 The command catalogue should drive strict leaf parsing, concise help and capability documentation rather than separate lists drifting apart.
 Start with unconfigured home/setup state and implemented commands only.
 Specify accepted global flags, mutually exclusive flags and unknown-input behavior once, then let individual leaves declare their own parameters.
@@ -116,7 +116,7 @@ The CLI-01 handoff uses INV-01 commit `ab4c042` as its prerequisite and changes 
 Its [packaged acceptance suite](../test/cli.test.ts) packs and unpacks the package, resolves its declared binary and reuses installed local dependencies without fetching packages.
 It invokes the binary with closed stdin and an empty synthetic home under the [shared network guard](../test/network-guard.ts).
 It also checks version with the command graph absent and compares version latency with a Node startup floor measured in the same test process.
-See [the command reference](commands.md) for shipped behavior and development commands.
+See [the command reference](commands.md) for shipped behavior and [CONTRIBUTING.md](../CONTRIBUTING.md) for development commands.
 
 ## Phase 1: prove the session with one real user journey
 
@@ -129,9 +129,9 @@ Known secret values are scrubbed from errors as well as ordinary results, debug 
 ### AUTH-01 handoff and acceptance
 
 AUTH-01 uses CLI-01 commit `184a57a` as its prerequisite and changes no inventory records or dispositions.
-See [README.md](../README.md) for shipped configuration and behavior, and [design.md](design.md#evidence-and-api-contracts) for upstream evidence.
+See [configuration.md](configuration.md) for shipped configuration and behavior, and [design.md](design.md#evidence-and-api-contracts) for upstream evidence.
 OAuth remains AUTH-02, authenticated transport remains CORE-01, and cloud profiles remain RUX-01.
-See [README.md](../README.md) for write policy configuration and [design.md](design.md#later-mutation-coordinator) for coordinator enforcement.
+See [writes.md](writes.md) for write policy configuration and [design.md](design.md#later-mutation-coordinator) for coordinator enforcement.
 The [authentication acceptance suite](../test/auth.test.ts) exercises exact profile identifiers and precedence, configuration rejection, token resolution, TLS options, failure codes and sentinel redaction through SDK formatting.
 Its CA material is synthetic text: it verifies option construction, not a TLS handshake or appliance compatibility.
 The [packaged acceptance suite](../test/cli.test.ts) checks configured state, ambiguous-profile guidance, output redaction, ignored local config and offline help with closed stdin and synthetic home.
@@ -147,7 +147,7 @@ The [packaged suite](../test/cli.test.ts) verifies OAuth status remains offline 
 Both use synthetic `.invalid` origins and the [shared external-network guard](../test/network-guard.ts); no live Vectra instance or real credentials are used.
 Fixture acceptance verifies constructed TLS options, not a TLS handshake or unknown appliance compatibility.
 HTTP execution and destination enforcement remain CORE-01.
-See [README.md](../README.md) for write-policy fields.
+See [writes.md](writes.md) for write-policy fields.
 
 ### CORE-01 handoff and acceptance
 
@@ -167,7 +167,7 @@ Do not expose a raw authenticated fetch object to command handlers.
 
 CORE-02 exposes bounded result windows rather than leaking backend page mechanics to callers.
 Its contract covers a limit ending within a page, an empty page with continuation, malformed data, a repeated continuation, a later-page failure and cancellation while waiting for Retry-After.
-See [README.md](../README.md) for shipped window and policy defaults; endpoint-specific deviations require reviewed evidence.
+See [output.md](output.md) for shipped window and policy defaults; endpoint-specific deviations require reviewed evidence.
 The cursor preserves any unreturned rows or offset and validates the original query context before resuming.
 Read retry policy and clock behavior are exercised with fake time.
 The [collection acceptance suite](../test/collections.test.ts) exercises these cases through the real session with synthetic fixtures, a fake `RawTransport` and a manual clock under the [external-network guard](../test/network-guard.ts).
