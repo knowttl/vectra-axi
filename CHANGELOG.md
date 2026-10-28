@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.12](https://github.com/knowttl/vectra-axi/compare/v0.1.11...v0.1.12) (2026-10-28)
+
+
+### Bug Fixes
+
+* align README and CLI help with the axi documentation standard ([#96](https://github.com/knowttl/vectra-axi/issues/96)) ([669f518](https://github.com/knowttl/vectra-axi/commit/669f5188274cf53fae14825db806fb85561e9c5c))
+* guide agents through bounded read-only investigations ([#100](https://github.com/knowttl/vectra-axi/issues/100)) ([e603b85](https://github.com/knowttl/vectra-axi/commit/e603b85f6b48ec84231dfdcd82ea24f91b958dce))
+
 ## [0.1.11](https://github.com/knowttl/vectra-axi/compare/v0.1.10...v0.1.11) (2026-10-28)
 
 
