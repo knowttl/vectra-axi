@@ -141,7 +141,7 @@ it("checks the env profile with doctor and keeps follow-up commands usable witho
   const result = await runDoctor({ loaded, names: doctorTargets(loaded.config), redactor: new SecretRedactor(), transport });
   expect(result.failed).toBe(false);
   expect(result.output.help).toEqual(["Run `vectra-axi detection list` to start an investigation"]);
-  expect(transport).toHaveBeenCalledWith(expect.objectContaining({ url: "https://env.invalid/api/v2.5/detections" }));
+  expect(transport).toHaveBeenCalledWith(expect.objectContaining({ url: "https://env.invalid/api/v2.5/detections?page_size=100" }));
 });
 
 it("doctor ignores partial env fields when a file profile is explicitly selected", async () => {
@@ -151,7 +151,7 @@ it("doctor ignores partial env fields when a file profile is explicitly selected
   const transport = vi.fn().mockResolvedValue({ status: 200, bodyText: '{"results":[],"count":0}' });
   const result = await runDoctor({ loaded, names: doctorTargets(loaded.config, "lab"), profileFlag: "lab", redactor: new SecretRedactor(), transport });
   expect(result.failed).toBe(false);
-  expect(transport).toHaveBeenCalledWith(expect.objectContaining({ url: "https://fixture.invalid/api/v2.5/detections" }));
+  expect(transport).toHaveBeenCalledWith(expect.objectContaining({ url: "https://fixture.invalid/api/v2.5/detections?page_size=100" }));
 });
 
 it.each([0o620, 0o602])("rejects writable config mode %s before parsing", (mode) => {

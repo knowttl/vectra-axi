@@ -112,7 +112,7 @@ it.each([false, true])("finds a host by name in one page without --all (RUX: %s)
   };
   const owned = rux ? cloudSession(cloudFixture(respond)) : session(async (request) => respond(request.url));
   const result = await runHostList(owned, flags(["host", "list", "--name", "web-01"]));
-  expect(urls).toEqual([`https://fixture.invalid/api/v${rux ? "3.4/hosts/?name=web-01&page_size=100" : "2.5/hosts?name=web-01"}`]);
+  expect(urls).toEqual([`https://fixture.invalid/api/v${rux ? "3.4/hosts/" : "2.5/hosts"}?name=web-01&page_size=100`]);
   expect(result).toMatchObject({ failed: false, output: { complete: true, total: 1, hosts: [host(1, { name: "web-01" })] } });
 });
 
@@ -134,7 +134,35 @@ it.each([
   expect(result.failed).toBe(false);
   expect(result.output[key]).toHaveLength(102);
   expect(result.output).toMatchObject({ complete: true, profile: "lab" });
-  expect(urls).toEqual([`https://fixture.invalid/api/v2.5/${route}`, next]);
+  expect(urls).toEqual([`https://fixture.invalid/api/v2.5/${route}?page_size=100`, next]);
+});
+
+it.each([
+  ["host", "min-id"], ["host", "max-id"], ["account", "min-id"], ["account", "max-id"],
+] as const)("rejects zero --%s for %s list before HTTP", async (noun, flag) => {
+  let calls = 0;
+  const transport: RawTransport = async () => {
+    calls += 1;
+    return listPage([]);
+  };
+  const run = noun === "host" ? runHostList : runAccountList;
+  await expect(run(session(transport), flags([noun, "list", `--${flag}`, "0"])))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR", message: `--${flag} must be a positive integer` });
+  expect(calls).toBe(0);
+});
+
+it.each([
+  ["host", "min-id"], ["host", "max-id"], ["account", "min-id"], ["account", "max-id"],
+] as const)("accepts --%s at the positive ID boundary for %s list", async (noun, flag) => {
+  let url = "";
+  const transport: RawTransport = async (request) => {
+    url = request.url;
+    return listPage([]);
+  };
+  const run = noun === "host" ? runHostList : runAccountList;
+  const result = await run(session(transport), flags([noun, "list", `--${flag}`, "1"]));
+  expect(result.failed).toBe(false);
+  expect(new URL(url).searchParams.get(flag.replace("-", "_"))).toBe("1");
 });
 
 it("maps host flags to the wire score keys before any HTTP", async () => {
@@ -146,7 +174,7 @@ it("maps host flags to the wire score keys before any HTTP", async () => {
   };
   const result = await runHostList(session(spy),
     flags(["host", "list", "--threat-gte", "70", "--certainty-gte", "50", "--min-id", "1"]));
-  expect(url).toBe("https://fixture.invalid/api/v2.5/hosts?min_id=1&t_score_gte=70&c_score_gte=50");
+  expect(url).toBe("https://fixture.invalid/api/v2.5/hosts?min_id=1&t_score_gte=70&c_score_gte=50&page_size=100");
   expect(result).toEqual({ failed: false, output: {
     profile: "lab",
     total: 1,
@@ -166,14 +194,14 @@ it("routes the entity facade by --type to the matching route", async () => {
   };
   const owned = session(transport);
   const hosts = await runEntityList(owned, flags(["entity", "list", "--type", "host"]));
-  expect(urls).toEqual(["https://fixture.invalid/api/v2.5/hosts"]);
+  expect(urls).toEqual(["https://fixture.invalid/api/v2.5/hosts?page_size=100"]);
   expect(hosts.output).toMatchObject({ profile: "lab", type: "host", count: "1 hosts" });
   expect(hosts.output.entities).toEqual([
     { id: 1, name: "synthetic-host-1", threat: 90, certainty: 80 }]);
   expect(hosts.output.help).toEqual(
     ["Run `vectra-axi entity show --profile lab --type host --id 1` for full detail"]);
   const accounts = await runEntityList(owned, flags(["entity", "list", "--type", "account"]));
-  expect(urls[1]).toBe("https://fixture.invalid/api/v2.5/accounts");
+  expect(urls[1]).toBe("https://fixture.invalid/api/v2.5/accounts?page_size=100");
   expect(accounts.output).toMatchObject({ profile: "lab", type: "account", count: "1 accounts" });
 });
 
@@ -260,7 +288,7 @@ it.each([
   ["account", "min_id", "accounts", account],
   ["account", "max_id", "accounts", account],
 ])("collects %s facade pages using %s continuation", async (kind, key, route, row) => {
-  const initial = `https://fixture.invalid/api/v2.5/${route}?t_score_gte=5`;
+  const initial = `https://fixture.invalid/api/v2.5/${route}?t_score_gte=5&page_size=100`;
   const next = `/api/v2.5/${route}?t_score_gte=5&${key}=2`;
   const urls: string[] = [];
   const transport: RawTransport = async (request) => {
@@ -284,7 +312,7 @@ it.each([
   ["account", "min_id", "accounts", account],
   ["account", "max_id", "accounts", account],
 ])("resumes %s facade pages using %s continuation", async (kind, key, route, row) => {
-  const initial = `https://fixture.invalid/api/v2.5/${route}?t_score_gte=5`;
+  const initial = `https://fixture.invalid/api/v2.5/${route}?t_score_gte=5&page_size=100`;
   const next = `https://fixture.invalid/api/v2.5/${route}?t_score_gte=5&${key}=2`;
   const urls: string[] = [];
   const transport: RawTransport = async (request) => {

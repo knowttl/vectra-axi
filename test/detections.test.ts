@@ -87,6 +87,28 @@ const listPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
 });
 const nextPage = "https://fixture.invalid/api/v2.5/detections?min_id=2";
 
+it.each(["min-id", "max-id", "host-id"])("rejects zero --%s before HTTP", async (flag) => {
+  let calls = 0;
+  const transport: RawTransport = async () => {
+    calls += 1;
+    return listPage([]);
+  };
+  await expect(runDetectionList(session(transport), flags(["detection", "list", `--${flag}`, "0"])))
+    .rejects.toMatchObject({ code: "VALIDATION_ERROR", message: `--${flag} must be a positive integer` });
+  expect(calls).toBe(0);
+});
+
+it.each(["min-id", "max-id", "host-id"])("accepts --%s at the positive ID boundary", async (flag) => {
+  let url = "";
+  const transport: RawTransport = async (request) => {
+    url = request.url;
+    return listPage([]);
+  };
+  const result = await runDetectionList(session(transport), flags(["detection", "list", `--${flag}`, "1"]));
+  expect(result.failed).toBe(false);
+  expect(new URL(url).searchParams.get(flag.replace("-", "_"))).toBe("1");
+});
+
 it("traverses detection pages with --all beyond the default window", async () => {
   const requests: string[] = [];
   const transport: RawTransport = async (request) => {
@@ -101,7 +123,7 @@ it("traverses detection pages with --all beyond the default window", async () =>
   expect(result.output.detections).toHaveLength(102);
   expect(result.output).toMatchObject({ complete: true, total: 102 });
   expect(result.output.cursor).toBeUndefined();
-  expect(requests).toEqual(["https://fixture.invalid/api/v2.5/detections", nextPage]);
+  expect(requests).toEqual(["https://fixture.invalid/api/v2.5/detections?page_size=100", nextPage]);
 });
 
 it.each(["detection", "host", "account", "entity"])("rejects --all with --limit for %s lists", (noun) => {
@@ -139,7 +161,7 @@ it("maps catalogue flags to server-side query keys before any HTTP", async () =>
   };
   const result = await runDetectionList(session(spy),
     flags(["detection", "list", "--state", "active", "--threat-gte", "70", "--min-id", "1"]));
-  expect(url).toBe("https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=1");
+  expect(url).toBe("https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=1&page_size=100");
   expect(result).toEqual({ failed: false, output: {
     profile: "lab",
     total: 1,
@@ -380,7 +402,7 @@ it("retains validated rows across pages and resumes at a malformed row", async (
   expect(second).toMatchObject({ failed: false, output: {
     detections: [{ id: 3 }, { id: 4 }], complete: true,
   } });
-  expect(urls).toEqual(["https://fixture.invalid/api/v2.5/detections", nextPage, nextPage]);
+  expect(urls).toEqual(["https://fixture.invalid/api/v2.5/detections?page_size=100", nextPage, nextPage]);
 });
 
 it("retains validated rows when a resumed split page contains a malformed row", async () => {
@@ -515,7 +537,7 @@ it("lists a detection, shows it with the same profile, and resumes the capped li
   const seen = [...listed.output.detections as unknown[], ...resumed.output.detections as unknown[]];
   expect(seen).toHaveLength(2);
   expect(calls).toEqual([
-    "https://fixture.invalid/api/v2.5/detections?state=active",
+    "https://fixture.invalid/api/v2.5/detections?state=active&page_size=100",
     "https://fixture.invalid/api/v2.5/detections/1",
     nextPage,
   ]);

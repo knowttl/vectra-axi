@@ -53,8 +53,8 @@ function invalid(message: string, ...suggestions: string[]): never {
 function integerFlag(flags: ReadonlyMap<string, string | boolean>, name: string): number | undefined {
   const raw = flags.get(name);
   if (raw === undefined) return undefined;
-  if (typeof raw !== "string" || !/^\d+$/.test(raw)) {
-    invalid(`--${name} must be a non-negative integer`, `Example: --${name} 42`);
+  if (typeof raw !== "string" || !/^\d+$/.test(raw) || !Number.isSafeInteger(Number(raw)) || Number(raw) < 1) {
+    invalid(`--${name} must be a positive integer`, `Example: --${name} 42`);
   }
   return Number(raw);
 }

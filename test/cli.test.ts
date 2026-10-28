@@ -276,7 +276,7 @@ it("investigates a detection through the packaged list, show, full and resume co
   expect(resumedOutput).not.toHaveProperty("cursor");
   const requests = readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line));
   expect(requests).toEqual([
-    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&page_size=100" },
     { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/1" },
     { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/1" },
     { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2" },
@@ -341,7 +341,7 @@ it("reads allowlisted operations through the packaged api get command", () => {
   expect(feed.stdout).toContain("not raw-addressable");
   const requests = readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line));
   expect(requests).toEqual([
-    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&page_size=100" },
     { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2" },
     { method: "GET", url: "https://fixture.invalid/api/v2.5/detections/1" },
   ]);
@@ -377,7 +377,7 @@ it("keeps the same numeric host and account IDs distinct through the entity faca
   expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
     { method: "GET", url: "https://fixture.invalid/api/v2.5/hosts/7" },
     { method: "GET", url: "https://fixture.invalid/api/v2.5/accounts/7" },
-    { method: "GET", url: "https://fixture.invalid/api/v2.5/hosts?t_score_gte=70" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/hosts?t_score_gte=70&page_size=100" },
   ]);
 });
 
@@ -1220,8 +1220,8 @@ it("checks profiles through the packaged doctor command", () => {
   expect(invalid.stderr).toBe("");
   expect(invalid.stdout).toContain("code: CONFIG_INVALID");
   expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
-    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections" },
-    { method: "GET", url: "https://denied.invalid/api/v2.5/detections" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?page_size=100" },
+    { method: "GET", url: "https://denied.invalid/api/v2.5/detections?page_size=100" },
   ]);
 });
 
@@ -1558,7 +1558,7 @@ it("forwards inline descending ordering through the packaged list command", () =
   expect(decode(result.stdout)).toMatchObject({ profile: "lab", complete: true,
     detections: [{ id: 2 }, { id: 1 }] });
   expect(readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line))).toEqual([
-    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?ordering=-id" },
+    { method: "GET", url: "https://fixture.invalid/api/v2.5/detections?ordering=-id&page_size=100" },
   ]);
 });
 
@@ -1834,9 +1834,9 @@ it.each([
   { args: ["entity", "list", "--type", "host", "--fields", "state"], message: "Unknown --fields value: state" },
   { args: ["detection", "show", "--id", "0"], message: "--id must be a positive integer" },
   { args: ["detection", "show", "--id", "1.5"], message: "--id must be a positive integer" },
-  { args: ["detection", "list", "--host-id", "1.5"], message: "--host-id must be a non-negative integer" },
-  { args: ["detection", "list", "--min-id", "1.5"], message: "--min-id must be a non-negative integer" },
-  { args: ["detection", "list", "--max-id", "1.5"], message: "--max-id must be a non-negative integer" },
+  { args: ["detection", "list", "--host-id", "1.5"], message: "--host-id must be a positive integer" },
+  { args: ["detection", "list", "--min-id", "1.5"], message: "--min-id must be a positive integer" },
+  { args: ["detection", "list", "--max-id", "1.5"], message: "--max-id must be a positive integer" },
   { args: ["detection", "list", "--certainty-gte", "high"], message: "--certainty-gte must be a number" },
   { args: ["detection", "list", "--threat-gte", "high"], message: "--threat-gte must be a number" },
   { args: ["detection", "list", "--limit", "0"], message: "--limit must be a positive integer" },
