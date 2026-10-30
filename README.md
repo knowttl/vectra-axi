@@ -139,7 +139,9 @@ Without a selected or default profile, doctor checks all configured profiles.
 
 <a id="toon-output-behavior"></a>
 
-Structured results, help and errors use TOON on stdout; diagnostics use stderr.
+Structured results, help and errors use TOON on stdout, including bounded response-invalid diagnostics.
+Response-invalid errors report HTTP status, content type and a bounded response shape, never response values or validator messages.
+Arrays show only their first element's shape; unsafe object keys become placeholders, and registered secrets are redacted.
 Lists use compact fields and a default 100-row window; supported `--fields` vary by command and deployment.
 Long text is previewed; `--full` expands returned text without recovering server omissions.
 Supported collections use `--all` and resumable `--cursor`; partial failures retain validated rows and report `complete: false`.
@@ -159,6 +161,7 @@ See [output and pagination](docs/output.md) for traversal budgets, checkpoints a
 | `CONFIG_MOVED` | Follow the emitted move command for legacy config or journal |
 | `PROFILE_AMBIGUOUS` | Pass `--profile <name>` or configure `defaultProfile` |
 | `AUTH_REQUIRED` | Supply the referenced environment secret or protected secret file |
+| `RESPONSE_INVALID`, `MALFORMED_RESPONSE` | Check the selected profile's API contract using the bounded shape, HTTP status and content type; do not blindly retry accepted writes |
 | `VERSION_CONFLICT` | Read current state and review a fresh preview |
 
 ## Contributing

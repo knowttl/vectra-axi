@@ -324,7 +324,9 @@ https.request = ((options: RequestOptions, callback: (response: IncomingMessage)
     || ruxExchange || ruxResource)) {
     throw new Error(`Unexpected synthetic request: ${options.method} ${url}`);
   }
-  const response = Object.assign(new PassThrough(), { statusCode: fixture.status, headers: {} });
+  const diagnosticCase = process.env.DIAGNOSTIC_CASE;
+  const response = Object.assign(new PassThrough(), { statusCode: fixture.status,
+    headers: { "content-type": diagnosticCase === "html" ? "text/html; charset=utf-8" : "application/json" } });
   const sent: Buffer[] = [];
   const pending = Object.assign(new EventEmitter(), {
     write: (chunk: string, encoding: BufferEncoding = "utf8"): boolean => {
@@ -341,7 +343,9 @@ https.request = ((options: RequestOptions, callback: (response: IncomingMessage)
           : { body: sent.length ? JSON.parse(Buffer.concat(sent).toString("utf8")) as unknown : {} } : {}) }) + "\n");
       queueMicrotask(() => {
         callback(response as unknown as IncomingMessage);
-        response.end(JSON.stringify(fixture.body));
+        response.end(diagnosticCase === "html" ? "<html>synthetic-login-secret</html>"
+          : diagnosticCase === "schema" ? JSON.stringify({ results: [{ id: "synthetic-private-id" }], count: 1 })
+          : JSON.stringify(fixture.body));
       });
     },
     destroy: (error?: Error): EventEmitter => {

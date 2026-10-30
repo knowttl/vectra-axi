@@ -7,7 +7,10 @@ For checkpoint feeds, this covers the current batch, not future events available
 A bounded window with a cursor reports `complete: false` and exits 0; a failed read reports `complete: false` and exits 1.
 On cursor resume, completeness describes exhaustion from that position, not whether earlier rows were included again.
 
-- Structured results, help, and errors go to stdout; diagnostics go to stderr.
+- Structured results, help, errors and bounded response-invalid diagnostics go to stdout.
+- `RESPONSE_INVALID` and `MALFORMED_RESPONSE` diagnostics include HTTP status, bounded content type and response shape without values or validator messages.
+  Arrays sample one element, unsafe keys become placeholders, and registered secrets are redacted.
+  Invalid JSON reports an undefined root shape because no parsed body is available.
 - Collection lists use compact fields, counts, and a default 100-row window.
   Supported `--fields` values depend on the command and deployment.
   Detection `--fields triage_category` preserves the API value, including null, and omits the field when the API does not supply it.

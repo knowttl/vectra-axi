@@ -218,6 +218,19 @@ it("sends the authorization header with If-Match when provided", async () => {
   });
 });
 
+it("records malformed accepted mutation diagnostics without replaying the write", async () => {
+  const transport = vi.fn<RawTransport>().mockResolvedValue({ status: 202, contentType: "text/html; charset=utf-8",
+    bodyText: "<html>synthetic-login-secret</html>" });
+  const { coordinator: writes, redactor } = coordinator({ transport });
+  const result = await writes.execute(mutation, { execute: true, readState });
+  expect(result.kind).toBe("success");
+  expect(redactor.responseDiagnostics.forError({ code: "RESPONSE_INVALID" })).toEqual({
+    status: 202, contentType: "text/html", shape: [{ path: "$", type: "undefined" }], shapeTruncated: false,
+  });
+  expect(transport).toHaveBeenCalledTimes(1);
+  expect(JSON.stringify(result)).not.toContain("synthetic-login-secret");
+});
+
 it("records redacted intent and outcome on success", async () => {
   const transport = vi.fn<RawTransport>().mockResolvedValue(ok({ id: 1 }));
   const { coordinator: writes } = coordinator({ transport });

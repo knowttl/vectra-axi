@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { AxiError, installSessionStartHooks, runAxiCli } from "axi-sdk-js";
+import { AxiError, exitCodeForError, installSessionStartHooks, runAxiCli } from "axi-sdk-js";
+import { encode } from "@toon-format/toon";
 import { rawFields, rawLimit, rawOperation, rawPathParams, rawQuery,
   runApiGet, type LeafResult as ApiLeafResult } from "./api-get.js";
 import { runAuditEventList, type LeafResult as AuditEventLeafResult } from "./audit-events.js";
@@ -90,6 +91,15 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     argv: argv.length === 0 ? [] : ["shell"],
     topLevelHelp: "",
     stdout,
+    formatError: (error) => ({
+      output: `${encode(redactor.value({
+        error: error instanceof Error ? error.message : String(error),
+        code: error instanceof AxiError ? error.code : "UNKNOWN",
+        ...redactor.responseDiagnostics.forError(error),
+        help: error instanceof AxiError ? error.suggestions : [],
+      }))}\n`,
+      exitCode: error instanceof AxiError ? exitCodeForError(error) : 1,
+    }),
     home: () => guarded(async () => state()),
     commands: {
       // Leaf validation throws before any profile or transport work, so
@@ -284,7 +294,10 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
   // so the SDK only receives scrubbed errors.
   async function guarded<T>(work: () => Promise<T>): Promise<T> {
     try {
-      return await work();
+      const result = await work();
+      // Collection failures retain rows and return an error code instead of throwing.
+      return result && typeof result === "object"
+        ? Object.assign(result, redactor.value(redactor.responseDiagnostics.forError(result))) : result;
     } catch (error) {
       return redactor.boundary((): T => { throw error; });
     }

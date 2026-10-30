@@ -629,8 +629,13 @@ it("reports an unmapped failure status without retrying", async () => {
 });
 
 it("rejects a non-JSON success body", async () => {
-  const transport = vi.fn<RawTransport>().mockResolvedValue({ status: 200, bodyText: "<html>nope</html>" });
-  await expect(session(transport).request("qux.health.list")).rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+  const redactor = new SecretRedactor();
+  const transport = vi.fn<RawTransport>().mockResolvedValue({ status: 200, contentType: "text/html; charset=utf-8",
+    bodyText: "<html>synthetic-login-secret</html>" });
+  const error = await session(transport, tokenProfile, redactor).request("qux.health.list").catch((error: unknown) => error);
+  expect(error).toMatchObject({ code: "RESPONSE_INVALID" });
+  expect(redactor.responseDiagnostics.forError(error)).toEqual({ status: 200, contentType: "text/html",
+    shape: [{ path: "$", type: "undefined" }], shapeTruncated: false });
 });
 
 it("maps a TLS transport failure without retry or raw cause", async () => {

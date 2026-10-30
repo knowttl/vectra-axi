@@ -360,7 +360,7 @@ function decodePage(body: unknown, operation: string): { rows: unknown[]; total:
   const invalid = (detail: string): AxiError => new AxiError(
     `Vectra collection page for ${operation} is malformed: ${detail}`,
     "RESPONSE_INVALID",
-    ["Check the QUX v2.5 API contract for this operation; validated rows were retained"],
+    ["Check the selected profile's API contract using the bounded shape, status and content type; validated rows were retained"],
   );
   if (typeof body !== "object" || body === null || Array.isArray(body)) throw invalid("expected a JSON object");
   const page = body as Record<string, unknown>;

@@ -78,7 +78,7 @@ function decodeRow(row: unknown): Record<string, unknown> {
   const result = auditRowSchema.safeParse(row);
   if (!result.success) {
     throw new AxiError("Vectra audit response is malformed: expected valid audit fields",
-      "RESPONSE_INVALID", ["Check the QUX v2.5 API contract for this operation"]);
+      "RESPONSE_INVALID", ["Check the selected profile's API contract using the bounded shape, status and content type"]);
   }
   return result.data;
 }

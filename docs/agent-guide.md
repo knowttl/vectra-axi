@@ -100,7 +100,8 @@ Exit 0 means success, 1 runtime failure, and 2 usage failure.
 | `REQUEST_FAILED` | Inspect HTTP status: 401/403 needs credentials, permissions or licence review; 404 needs target/deployment review; 429 needs backoff. |
 | `TRANSPORT_FAILED` | Check connectivity and TLS trust; never disable verification. |
 | `REQUEST_BUDGET_EXCEEDED`, `ROW_BUDGET_EXCEEDED`, `DEADLINE_EXCEEDED`, `BYTE_BUDGET_EXCEEDED` | Retain partial evidence, resume the returned cursor if present or narrow filters/window. |
-| `RESPONSE_INVALID`, `CONTINUATION_REPEATED` | Stop blind retries; inspect upstream response or repeated pagination. |
+| `RESPONSE_INVALID`, `MALFORMED_RESPONSE` | Stop blind retries; check the selected profile's API contract using the bounded shape, HTTP status and content type. Response values and validator messages are omitted. |
+| `CONTINUATION_REPEATED` | Stop blind retries; inspect repeated pagination. |
 | `OPERATION_UNKNOWN`, `OPERATION_BLOCKED`, `DESTINATION_DENIED` | Check supported deployment and allowlisted operation; do not bypass the boundary. |
 
 ## State-changing commands

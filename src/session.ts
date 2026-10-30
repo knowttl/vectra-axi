@@ -21,7 +21,7 @@ export type RawTransport = (request: {
   body?: string;
   tls: ReturnType<typeof tlsOptions>;
   signal?: AbortSignal;
-}) => Promise<{ status: number; location?: string; retryAfter?: string; bodyText: string }>;
+}) => Promise<{ status: number; location?: string; retryAfter?: string; contentType?: string; bodyText: string }>;
 
 export type SessionRequestOptions = {
   signal?: AbortSignal;
@@ -243,7 +243,7 @@ function resolveLink(
 async function sendRaw(
   profile: SelectedProfile, configPath: LoadedConfig["path"], redactor: SecretRedactor, transport: RawTransport,
   request: { method: "GET" | MutationMethod; url: string; headers: Record<string, string>; body?: string; signal?: AbortSignal },
-): Promise<{ status: number; location?: string; retryAfter?: string; bodyText: string }> {
+): ReturnType<RawTransport> {
   const tls = tlsOptions(profile, configPath);
   try {
     ensureActive(request.signal);
@@ -263,7 +263,7 @@ async function sendRaw(
   }
 }
 
-function decodeResourceBody(profile: SelectedProfile, response: { status: number; bodyText: string; retryAfter?: string }): unknown {
+function decodeResourceBody(profile: SelectedProfile, response: Awaited<ReturnType<RawTransport>>, redactor: SecretRedactor): unknown {
   const mapped = authFailure({ status: response.status });
   if (mapped) throw mapped;
   if (response.status !== 200) {
@@ -273,11 +273,14 @@ function decodeResourceBody(profile: SelectedProfile, response: { status: number
     recordFailure(failure, { status: response.status, retryAfter: response.retryAfter });
     throw failure;
   }
+  redactor.responseDiagnostics.record(response.status, new Headers(response.contentType ? { "content-type": response.contentType } : {}), undefined);
   try {
-    return JSON.parse(response.bodyText);
+    const body: unknown = JSON.parse(response.bodyText);
+    redactor.responseDiagnostics.record(response.status, new Headers(response.contentType ? { "content-type": response.contentType } : {}), body);
+    return body;
   } catch {
     throw new AxiError("Vectra response is not valid JSON", "RESPONSE_INVALID", [
-      `Check the ${generationLabel(profile)} API contract for this operation; the response body was discarded`,
+      `Check the ${generationLabel(profile)} API contract using the bounded shape, status and content type; response values are omitted`,
     ]);
   }
 }
@@ -398,7 +401,7 @@ export function createSession(args: {
         { method: "GET", url: current, headers: { Authorization: authorization, Accept: "application/json" },
           ...(signal ? { signal } : {}) });
       if (response.status < 300 || response.status > 399) {
-        const body = decodeResourceBody(profile, response);
+        const body = decodeResourceBody(profile, response, redactor);
         const exportSettings = /^qux\.setting\.(syslog|kafka)\.show$/.test(operation);
         return { status: 200, body: exportSettings ? redactExportSettings(body, redactor) : redactor.payload(body),
           ...(exportSettings ? { bodyDigest: resourceDigest(body) } : {}) };
@@ -500,7 +503,7 @@ export function mutationAccepted(error: unknown): boolean {
   return false;
 }
 
-function decodeMutationBody(response: { status: number; bodyText: string; retryAfter?: string }): unknown {
+function decodeMutationBody(response: Awaited<ReturnType<RawTransport>>, redactor: SecretRedactor): unknown {
   const mapped = authFailure({ status: response.status });
   if (mapped) {
     throw mutationFailure(mapped.message, mapped.code, mapped.suggestions, { httpStatus: response.status });
@@ -512,12 +515,15 @@ function decodeMutationBody(response: { status: number; bodyText: string; retryA
     recordFailure(failure, { status: response.status, retryAfter: response.retryAfter });
     throw mutationFailure(failure.message, failure.code, failure.suggestions, { httpStatus: response.status });
   }
+  redactor.responseDiagnostics.record(response.status, new Headers(response.contentType ? { "content-type": response.contentType } : {}), undefined);
   try {
-    return response.bodyText ? JSON.parse(response.bodyText) as unknown : {};
+    const body: unknown = response.bodyText ? JSON.parse(response.bodyText) : {};
+    redactor.responseDiagnostics.record(response.status, new Headers(response.contentType ? { "content-type": response.contentType } : {}), body);
+    return body;
   } catch {
     // The server accepted the mutation; only its response body was discarded.
     throw mutationFailure("Vectra mutation response is not valid JSON", "RESPONSE_INVALID",
-      ["The server accepted the mutation but its response body was discarded"],
+      ["The server accepted the mutation; inspect the bounded shape, status and content type without replaying the write"],
       { httpStatus: response.status, accepted: true });
   }
 }
@@ -604,7 +610,7 @@ export function createMutationSender(args: {
         ...(options?.signal ? { signal: options.signal } : {}),
       });
       ensureActive(options?.signal);
-      return { status: response.status, body: redactor.payload(decodeMutationBody(response)) };
+      return { status: response.status, body: redactor.payload(decodeMutationBody(response, redactor)) };
     } catch (error) {
       if (!handedOff && error instanceof Error) mutationsNotSent.add(error);
       throw error;
@@ -662,6 +668,7 @@ export function nodeTransport(): RawTransport {
               status: response.statusCode ?? 0,
               ...(location ? { location: Array.isArray(location) ? location[0] : location } : {}),
               ...(retryAfter ? { retryAfter } : {}),
+              ...(response.headers["content-type"] ? { contentType: response.headers["content-type"] } : {}),
               bodyText: Buffer.concat(chunks).toString("utf8"),
             });
           });

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { AxiError } from "axi-sdk-js";
+import { ResponseDiagnostics } from "./response-diagnostics.js";
 
 const REDACTED = "***redacted***";
 
@@ -21,6 +22,7 @@ export function redactExportSettings(value: unknown, redactor = new SecretRedact
 
 // One invocation owns this registry, including secrets from every configured profile.
 export class SecretRedactor {
+  readonly responseDiagnostics = new ResponseDiagnostics(this, ["RESPONSE_INVALID", "MALFORMED_RESPONSE"]);
   private readonly secrets = new Set<string>();
   private readonly notificationStates = new Map<string, string>();
 

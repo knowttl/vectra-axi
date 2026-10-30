@@ -44,6 +44,29 @@ function invoke(args: string[], extraEnv: Record<string, string> = {}) {
 const guideCommands = readFileSync(join(root, "docs/agent-guide.md"), "utf8")
   .split("\n").filter((line) => line.startsWith("vectra-axi "));
 
+it.each([
+  { diagnosticCase: "html", args: ["detection", "list"] },
+  { diagnosticCase: "schema", args: ["detection", "list"] },
+  { diagnosticCase: "html", args: ["host", "show", "7"] },
+  { diagnosticCase: "schema", args: ["host", "show", "7"] },
+])("reports bounded diagnostics for $diagnosticCase on $args", ({ diagnosticCase, args }) => {
+  const config = join(scratch, "diagnostics.json");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const result = invoke([...args, "--config", config, "--profile", "lab"], {
+    SENTINEL_TOKEN: "packaged-detection-token", DIAGNOSTIC_CASE: diagnosticCase,
+    DETECTION_TRACE: join(scratch, "diagnostics.jsonl"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}`,
+  });
+  expect(result.status).toBe(1);
+  expect(result.stderr).toBe("");
+  expect(decode(result.stdout)).toMatchObject({ code: "RESPONSE_INVALID", status: 200,
+    contentType: diagnosticCase === "html" ? "text/html" : "application/json",
+    shape: expect.arrayContaining([{ path: "$", type: diagnosticCase === "html" ? "undefined" : "object" }]),
+    shapeTruncated: false });
+  expect(result.stdout).not.toMatch(/synthetic-login-secret|synthetic-private-id|packaged-detection-token/);
+});
+
 it.each(guideCommands)("runs the published investigation example: %s", (command) => {
   const config = join(scratch, "agent-guide.json");
   writeFileSync(config, JSON.stringify({ profiles: {
