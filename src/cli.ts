@@ -96,6 +96,7 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         error: error instanceof Error ? error.message : String(error),
         code: error instanceof AxiError ? error.code : "UNKNOWN",
         ...redactor.responseDiagnostics.forError(error),
+        ...(redactor.acceptedMutationDiagnostics.length ? { warnings: redactor.acceptedMutationDiagnostics } : {}),
         help: error instanceof AxiError ? error.suggestions : [],
       }))}\n`,
       exitCode: error instanceof AxiError ? exitCodeForError(error) : 1,
@@ -297,7 +298,10 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
       const result = await work();
       // Collection failures retain rows and return an error code instead of throwing.
       return result && typeof result === "object"
-        ? Object.assign(result, redactor.value(redactor.responseDiagnostics.forError(result))) : result;
+        ? Object.assign(result, redactor.value({
+          ...redactor.responseDiagnostics.forError(result),
+          ...(redactor.acceptedMutationDiagnostics.length ? { warnings: redactor.acceptedMutationDiagnostics } : {}),
+        })) : result;
     } catch (error) {
       return redactor.boundary((): T => { throw error; });
     }

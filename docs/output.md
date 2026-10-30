@@ -11,6 +11,8 @@ On cursor resume, completeness describes exhaustion from that position, not whet
 - `RESPONSE_INVALID` and `MALFORMED_RESPONSE` diagnostics include HTTP status, bounded content type and response shape without values or validator messages.
   Arrays sample one element, unsafe keys become placeholders, and registered secrets are redacted.
   Invalid JSON reports an undefined root shape because no parsed body is available.
+  Doctor keeps diagnostics on each failed profile under `diagnostics`.
+  Accepted mutations with invalid JSON retain exit 0 and emit `warnings` with the operation, target, audit ID and response diagnostics; read back the target without replaying the write.
 - Collection lists use compact fields, counts, and a default 100-row window.
   Supported `--fields` values depend on the command and deployment.
   Detection `--fields triage_category` preserves the API value, including null, and omits the field when the API does not supply it.

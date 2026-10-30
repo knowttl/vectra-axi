@@ -324,7 +324,7 @@ https.request = ((options: RequestOptions, callback: (response: IncomingMessage)
     || ruxExchange || ruxResource)) {
     throw new Error(`Unexpected synthetic request: ${options.method} ${url}`);
   }
-  const diagnosticCase = process.env.DIAGNOSTIC_CASE;
+  const diagnosticCase = process.env.DIAGNOSTIC_MUTATION_ONLY && !mutation ? undefined : process.env.DIAGNOSTIC_CASE;
   const response = Object.assign(new PassThrough(), { statusCode: fixture.status,
     headers: { "content-type": diagnosticCase === "html" ? "text/html; charset=utf-8" : "application/json" } });
   const sent: Buffer[] = [];

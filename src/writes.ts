@@ -378,6 +378,12 @@ export function createMutationCoordinator(args: {
       // replayed; the audit ID plus read-back guidance replaces the retry.
       if (httpStatus > 0 && mutationAccepted(error)) {
         recordAudit({ ...meta, kind: "outcome", httpStatus, outcome: "SUCCESS" });
+        redactor.acceptedMutationDiagnostics.push({
+          operation: definition.operation, target: definition.target, audit: id,
+          code: error instanceof AxiError ? error.code : "RESPONSE_INVALID",
+          ...redactor.responseDiagnostics.forError(error),
+          help: ["The server accepted the mutation; read back the target without replaying the write"],
+        });
         return { kind: "success", preview: seen, auditId: id, status: httpStatus, response: {} };
       }
       if (httpStatus > 0) {

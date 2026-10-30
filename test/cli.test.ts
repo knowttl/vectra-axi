@@ -67,6 +67,51 @@ it.each([
   expect(result.stdout).not.toMatch(/synthetic-login-secret|synthetic-private-id|packaged-detection-token/);
 });
 
+it("emits bounded diagnostics for a failed doctor profile", () => {
+  const config = join(scratch, "doctor-diagnostics.json");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" } } }));
+  const result = invoke(["doctor", "--config", config, "--profile", "lab"], {
+    SENTINEL_TOKEN: "packaged-detection-token", DIAGNOSTIC_CASE: "html",
+    DETECTION_TRACE: join(scratch, "doctor-diagnostics.jsonl"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}`,
+  });
+  expect(result.status).toBe(1);
+  expect(result.stderr).toBe("");
+  expect(decode(result.stdout)).toMatchObject({ profiles: [{ status: "failed", code: "RESPONSE_INVALID",
+    diagnostics: { status: 200, contentType: "text/html", shape: [{ path: "$", type: "undefined" }] },
+  }] });
+  expect(result.stdout).not.toMatch(/synthetic-login-secret|packaged-detection-token/);
+});
+
+it("emits accepted mutation diagnostics without replaying the write", () => {
+  const config = join(scratch, "mutation-diagnostics.json");
+  const trace = join(scratch, "mutation-diagnostics.jsonl");
+  const journal = join(scratch, "mutation-diagnostics.log");
+  writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
+    apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN",
+    writes: { allowWrites: true, operations: ["qux.detection.note.add"] } } } }));
+  const result = invoke(["detection", "note", "add", "--config", config, "--profile", "lab", "--id", "42",
+    "--note", "synthetic note", "--execute", "--confirm", "detection 42"], {
+    SENTINEL_TOKEN: "packaged-detection-token", DIAGNOSTIC_CASE: "html", DIAGNOSTIC_MUTATION_ONLY: "1",
+    DETECTION_TRACE: trace, VECTRA_AXI_WRITE_LOG: journal,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}`,
+  });
+  expect(result.status).toBe(0);
+  expect(result.stderr).toBe("");
+  expect(decode(result.stdout)).toMatchObject({ audit: expect.any(String), warnings: [{
+    operation: "qux.detection.note.add", target: "detection 42", code: "RESPONSE_INVALID",
+    status: 200, contentType: "text/html", shape: [{ path: "$", type: "undefined" }],
+    help: [expect.stringContaining("without replaying")],
+  }] });
+  expect(readFileSync(trace, "utf8").trim().split("\n").map((line) => JSON.parse(line))
+    .filter((request) => request.method === "POST")).toHaveLength(1);
+  expect(readFileSync(journal, "utf8").trim().split("\n").map((line) => JSON.parse(line))).toEqual([
+    expect.objectContaining({ kind: "intent" }), expect.objectContaining({ kind: "outcome", outcome: "SUCCESS" }),
+  ]);
+  expect(result.stdout).not.toMatch(/synthetic-login-secret|packaged-detection-token/);
+});
+
 it.each(guideCommands)("runs the published investigation example: %s", (command) => {
   const config = join(scratch, "agent-guide.json");
   writeFileSync(config, JSON.stringify({ profiles: {

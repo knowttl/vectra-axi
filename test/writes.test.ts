@@ -224,9 +224,10 @@ it("records malformed accepted mutation diagnostics without replaying the write"
   const { coordinator: writes, redactor } = coordinator({ transport });
   const result = await writes.execute(mutation, { execute: true, readState });
   expect(result.kind).toBe("success");
-  expect(redactor.responseDiagnostics.forError({ code: "RESPONSE_INVALID" })).toEqual({
+  expect(redactor.acceptedMutationDiagnostics).toEqual([expect.objectContaining({
+    operation: mutation.operation, target: mutation.target, code: "RESPONSE_INVALID",
     status: 202, contentType: "text/html", shape: [{ path: "$", type: "undefined" }], shapeTruncated: false,
-  });
+  })]);
   expect(transport).toHaveBeenCalledTimes(1);
   expect(JSON.stringify(result)).not.toContain("synthetic-login-secret");
 });
