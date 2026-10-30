@@ -661,7 +661,7 @@ it("exposes a cloud snapshot with no appliance release", () => {
 
 it("exposes no raw transport, fetch handle or credential material", async () => {
   const owned = session(vi.fn<RawTransport>().mockResolvedValue(ok({})));
-  expect(Object.keys(owned).sort()).toEqual(["profile", "request", "resolveContinuation"]);
+  expect(Object.keys(owned).sort()).toEqual(["diagnosticsForError", "profile", "request", "resolveContinuation"]);
   expect(owned.profile).toEqual({ name: "lab", kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5" });
   expect("transport" in owned && "fetch" in owned).toBe(false);
   expect(JSON.stringify(owned)).not.toContain(token);
