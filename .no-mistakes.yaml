@@ -21,6 +21,9 @@ document:
     Keep future capabilities explicitly planned; an inventory route never claims runtime support.
 review:
   path_instructions:
+    - path: "**"
+      instructions: |
+        Test quality: apply the "Test quality" rules in CONTRIBUTING.md to every added or changed test. Flag each violation as a finding naming the rule number, the test file:line and the evidence. Respect the listed exemptions. Never ask for a test to be written first or only to raise coverage.
     - path: "inventory/**"
       instructions: |
         Require pinned sources and exact deployment/API/appliance-release constraints.
