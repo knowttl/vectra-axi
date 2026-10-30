@@ -87,7 +87,7 @@ QUX audits have no cursor; narrow the date window instead.
 Use the failing leaf's help when its error guidance is insufficient; do not start each investigation with help.
 Do not combine `--help` with `--profile`.
 Incomplete commands exit 2 with focused help.
-Structured results and errors are TOON on stdout; diagnostics use stderr.
+See the [output contract](https://github.com/knowttl/vectra-axi/blob/main/docs/output.md#toon-output-behavior) for stdout, response diagnostics and exit behavior.
 Exit 0 means success, 1 runtime failure, and 2 usage failure.
 
 | Error code | Adjustment |
@@ -98,7 +98,7 @@ Exit 0 means success, 1 runtime failure, and 2 usage failure.
 | `REQUEST_FAILED` | Inspect HTTP status: 401/403 needs credentials, permissions or licence review; 404 needs target/deployment review; 429 needs backoff. |
 | `TRANSPORT_FAILED` | Check connectivity and TLS trust; never disable verification. |
 | `REQUEST_BUDGET_EXCEEDED`, `ROW_BUDGET_EXCEEDED`, `DEADLINE_EXCEEDED`, `BYTE_BUDGET_EXCEEDED` | Retain partial evidence, resume the returned cursor if present or narrow filters/window. |
-| `RESPONSE_INVALID`, `MALFORMED_RESPONSE` | Stop blind retries; check the selected profile's API contract using the bounded shape, HTTP status and content type. Response values and validator messages are omitted. |
+| `RESPONSE_INVALID`, `MALFORMED_RESPONSE` | Follow the [response diagnostics and read-back guidance](https://github.com/knowttl/vectra-axi/blob/main/docs/output.md#toon-output-behavior). |
 | `CONTINUATION_REPEATED` | Stop blind retries; inspect repeated pagination. |
 | `OPERATION_UNKNOWN`, `OPERATION_BLOCKED`, `DESTINATION_DENIED` | Check supported deployment and allowlisted operation; do not bypass the boundary. |
 

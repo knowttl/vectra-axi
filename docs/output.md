@@ -8,12 +8,16 @@ A bounded window with a cursor reports `complete: false` and exits 0; a failed r
 On cursor resume, completeness describes exhaustion from that position, not whether earlier rows were included again.
 
 - Structured results, help, errors and bounded response-invalid diagnostics go to stdout.
-- `RESPONSE_INVALID` and `MALFORMED_RESPONSE` diagnostics include HTTP status, bounded content type and response shape without values or validator messages.
+- `RESPONSE_INVALID` and `MALFORMED_RESPONSE` diagnostics for resource responses include `status`, `contentType`, `shape` and `shapeTruncated` without values or validator messages.
+  Missing or invalid status and content type are reported as null.
   Arrays sample one element, unsafe keys become placeholders, and registered secrets are redacted.
+  Shapes stop at four levels, 64 entries, 256 characters per path or 4,096 total path characters; `shapeTruncated` indicates omitted structure.
   Invalid JSON reports an undefined root shape because no parsed body is available.
-  Doctor keeps diagnostics on each failed profile under `diagnostics`.
+  Doctor keeps response-invalid diagnostics on each failed profile under `diagnostics`.
   Bulk tag results keep response-invalid diagnostics on each refused target under `diagnostics`.
-  Accepted mutations with invalid JSON retain exit 0 and emit `warnings` with the operation, target, audit ID and response diagnostics; read back the target without replaying the write.
+  RUX threat-feed list failures retain their error code and response diagnostics alongside any validated rows.
+  Accepted mutations with invalid JSON retain success and emit `warnings` with the operation, target, audit ID and response diagnostics; read back the target without replaying the write.
+  The parse failure alone does not change exit 0 to failure; other failures in the same invocation can still produce exit 1.
 - Collection lists use compact fields, counts, and a default 100-row window.
   Supported `--fields` values depend on the command and deployment.
   Detection `--fields triage_category` preserves the API value, including null, and omits the field when the API does not supply it.
