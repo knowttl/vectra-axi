@@ -253,8 +253,8 @@ Do not enable a version before its contract tests pass or silently change existi
 
 Use Vitest conventions consistent with az-axi once the shell is built.
 Deny external network in automated tests and use synthetic .invalid origins and credentials.
-Inject only genuine seams such as HTTP, clock and randomness.
-Test session outcomes rather than private helpers; reserve packaged CLI E2E tests for critical journeys lower levels miss.
+Follow the [Test quality rules in CONTRIBUTING.md](../CONTRIBUTING.md#local-validation).
+Reserve packaged CLI E2E tests for critical journeys lower levels miss.
 Important cases include same numeric host/account IDs, cross-origin redirects/next links, credential sentinels in errors, expiry, malformed responses, denied versus empty data, oversized audits, repeated checkpoints, mid-page caps, partial failures and mutation acceptance followed by timeout.
 Use fake time, no sleeps, and repeated runs for async/clock/I/O cases.
 VAT's instance-backed tests are research evidence, not the test setup to reuse.

@@ -17,6 +17,24 @@ corepack pnpm run docs:check
 
 The [test workflow](.github/workflows/ci.yml) defines push and pull-request checks for main on Linux and Windows.
 Local validation is required before merge, and the release publish job repeats these checks before publishing.
+
+Canonical source: knowttl/bstack revision feeccb1e6f1ae119bf4c74277c8bad328b05afe8, skills/verification/references/testing.md.
+<!-- BEGIN canonical test-quality rules -->
+**Test quality.** Write and review every test against these rules.
+Tests are never required first; a change is verified end to end against the behaviour the user expects.
+
+1. Trust upstream invariants: do not test states that types, schemas or database constraints already rule out.
+   Test invalid input only at the boundary that validates it.
+2. Assert outcomes from an agreed source (spec, domain rule, ground-truth fixture), never values copied from what the code returns today.
+3. Mock only true external boundaries, with schema-valid or recorded payloads.
+   Never mock in-process code.
+   Delete tests that only check how a mock was set up or called, unless that call is the requirement.
+4. Test through the public interface: no private helpers, internal state or internal call counts.
+5. Every assertion must be able to fail when the behaviour breaks: no existence-, type- or constant-only assertions.
+
+Exempt: validation-boundary tests, contract tests against an agreed schema or recording, and regression tests that cite the bug they reproduce.
+<!-- END canonical test-quality rules -->
+
 Tests use temporary HOME and XDG directories, synthetic credentials and fixtures, and deny external network access.
 Do not use real services, credentials or customer data for automated validation.
 Use `node scripts/isolated.mjs node bin/vectra-axi.js --help` for an offline manual CLI check.
