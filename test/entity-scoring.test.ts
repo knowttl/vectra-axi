@@ -169,7 +169,7 @@ it("caps a batch at the output limit and resumes the remainder from its cursor",
   const owned = cloudSession(transport);
   const capped = await runEntityScoringList(owned,
     flags(["entity", "scoring", "list", "--profile", "cloud", "--type", "host", "--limit", "1"]));
-  expect(capped.output).toMatchObject({ count: "1 entity scoring events", complete: true });
+  expect(capped.output).toMatchObject({ count: "1 entity scoring events", complete: false });
   expect(capped.output.events).toEqual([firstScore]);
   const cursor = capped.output.cursor as string;
   expect(typeof cursor).toBe("string");

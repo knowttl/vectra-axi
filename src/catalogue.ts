@@ -1654,6 +1654,9 @@ export function help(leaf?: string): Record<string, unknown> {
       commands: Object.fromEntries(Object.entries(catalogue).map(([name, entry]) => [name, entry.description])),
       version: "-v, -V, --version: Bare flag only; print version",
     }),
+    ...(leaf === undefined || entry?.flags.cursor ? {
+      completeness: "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
+    } : {}),
     flags: Object.fromEntries(Object.entries(entry?.flags ?? globals).map(([name, flag]) => [flagSyntax(name, flag), flag.description])),
     ...(entry?.flags.id ? { arguments: { "<id>": "Resource ID; use either a positional ID or --id, never both" } } : {}),
     combinations: exclusiveFlags.map(([left, right]) => `--${left} cannot be combined with --${right}`),

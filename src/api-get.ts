@@ -306,7 +306,7 @@ export async function runApiGet(session: Session, flags: ReadonlyMap<string, str
       total: result.total,
       count,
       rows,
-      complete: true,
+      complete: result.complete,
       ...(result.cursor ? { cursor: result.cursor } : {}),
       ...(help.length > 0 ? { help } : {}),
     } };

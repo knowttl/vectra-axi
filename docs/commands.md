@@ -467,6 +467,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
   "command": "vectra-axi detection list",
   "description": "List detections on QUX v2.5 or RUX v3.4 with server-side filters and a bounded window",
   "pagination": "QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported",
+  "completeness": "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -544,6 +545,7 @@ RUX: checkpoint batch; --cursor/--from continuation, no --all
   "command": "vectra-axi detection event list",
   "description": "List RUX detection events from a checkpoint with a bounded window",
   "pagination": "RUX: checkpoint batch; --cursor/--from continuation, no --all",
+  "completeness": "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -580,6 +582,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
   "command": "vectra-axi host list",
   "description": "List hosts on QUX v2.5 or RUX v3.4 with server-side filters and a bounded window",
   "pagination": "QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported",
+  "completeness": "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -653,6 +656,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
   "command": "vectra-axi account list",
   "description": "List accounts on QUX v2.5 or RUX v3.4 with server-side filters and a bounded window",
   "pagination": "QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported",
+  "completeness": "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -724,6 +728,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
   "command": "vectra-axi entity list",
   "description": "List entities of one kind on QUX v2.5 or RUX v3.4 with a bounded window; score filters are QUX-only",
   "pagination": "QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported",
+  "completeness": "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -794,6 +799,7 @@ RUX: checkpoint batch; --cursor/--from continuation, no --all
   "command": "vectra-axi entity scoring list",
   "description": "List RUX entity scoring events from a checkpoint with a bounded window",
   "pagination": "RUX: checkpoint batch; --cursor/--from continuation, no --all",
+  "completeness": "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -2046,6 +2052,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
   "command": "vectra-axi assignment list",
   "description": "List QUX or RUX assignments with server-side filters and a bounded window",
   "pagination": "QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported",
+  "completeness": "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -3095,6 +3102,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
   "command": "vectra-axi assignment outcome list",
   "description": "List QUX or RUX assignment outcomes with a bounded window",
   "pagination": "QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported",
+  "completeness": "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -3261,6 +3269,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
   "command": "vectra-axi user list",
   "description": "List QUX or RUX users with a bounded window; username filtering is QUX-only",
   "pagination": "QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported",
+  "completeness": "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -3327,6 +3336,7 @@ QUX: date window; narrow dates to bound the response, no --all; RUX: checkpoint 
   "command": "vectra-axi audit list",
   "description": "List QUX audits in a bounded inclusive UTC date window or RUX audit events from a checkpoint",
   "pagination": "QUX: date window; narrow dates to bound the response, no --all; RUX: checkpoint batch; --cursor/--from continuation, no --all",
+  "completeness": "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -3365,6 +3375,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
   "command": "vectra-axi group list",
   "description": "List groups on QUX v2.5 or RUX v3.4 with server-side filters and a bounded window",
   "pagination": "QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported",
+  "completeness": "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -3648,6 +3659,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
   "command": "vectra-axi group member list",
   "description": "List one group's members on QUX v2.5 (appliance 9.2+) or RUX v3.4 through the paged member route",
   "pagination": "QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported",
+  "completeness": "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -3689,6 +3701,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
   "command": "vectra-axi triage rule list",
   "description": "List triage rules on QUX v2.5 or RUX v3.4 with server-side filters and a bounded window",
   "pagination": "QUX: collection pages; bounded --all supported; RUX: collection pages; bounded --all supported",
+  "completeness": "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -3926,6 +3939,7 @@ QUX: checkpoint batch; --cursor/--from continuation, no --all; RUX: checkpoint b
   "command": "vectra-axi health event list",
   "description": "List QUX or RUX health events from a checkpoint with a bounded window",
   "pagination": "QUX: checkpoint batch; --cursor/--from continuation, no --all; RUX: checkpoint batch; --cursor/--from continuation, no --all",
+  "completeness": "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",
@@ -3961,6 +3975,7 @@ Network command; reads one allowlisted QUX or RUX GET operation through the conf
 {
   "command": "vectra-axi api get",
   "description": "Read one allowlisted GET operation by inventory ID with its recorded query and field policy",
+  "completeness": "complete is true only when the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events. Bounded windows with a cursor set complete: false and exit 0; failed reads exit 1.",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",

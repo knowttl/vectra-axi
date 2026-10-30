@@ -325,7 +325,7 @@ it.each([
   const first = await runEntityList(owned,
     flags(["entity", "list", "--type", kind, "--threat-gte", "5", "--limit", "1"]));
   expect(first).toMatchObject({ failed: false, output: {
-    complete: true, entities: [{ id: 1 }], cursor: expect.any(String),
+    complete: false, entities: [{ id: 1 }], cursor: expect.any(String),
   } });
   const second = await runEntityList(owned,
     flags(["entity", "list", "--type", kind, "--threat-gte", "5", "--cursor", first.output.cursor as string]));
@@ -415,7 +415,7 @@ it("caps a list window with a cursor and resumes the same filters without losing
   const first = await runHostList(owned,
     flags(["host", "list", "--threat-gte", "70", "--limit", "1"]));
   expect(first.output).toMatchObject({
-    count: "1 of 2 hosts", complete: true, cursor: expect.any(String),
+    count: "1 of 2 hosts", complete: false, cursor: expect.any(String),
   });
   const second = await runHostList(owned,
     flags(["host", "list", "--threat-gte", "70", "--cursor", first.output.cursor as string]));
@@ -759,7 +759,7 @@ it("caps a cloud entity window with a cursor and resumes without losing a row", 
   const first = await runEntityList(owned,
     flags(["entity", "list", "--profile", "cloud", "--type", "host", "--limit", "1"]));
   expect(first.output).toMatchObject({
-    count: "1 of 2 hosts", complete: true, cursor: expect.any(String),
+    count: "1 of 2 hosts", complete: false, cursor: expect.any(String),
   });
   const second = await runEntityList(owned,
     flags(["entity", "list", "--profile", "cloud", "--type", "host",

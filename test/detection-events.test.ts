@@ -164,7 +164,7 @@ it("caps a batch at the output limit and resumes the remainder from its cursor",
   const owned = cloudSession(transport);
   const capped = await runDetectionEventList(owned,
     flags(["detection", "event", "list", "--profile", "cloud", "--limit", "1"]));
-  expect(capped.output).toMatchObject({ count: "1 detection events", complete: true });
+  expect(capped.output).toMatchObject({ count: "1 detection events", complete: false });
   expect(capped.output.events).toEqual([firstEvent]);
   const cursor = capped.output.cursor as string;
   expect(typeof cursor).toBe("string");

@@ -100,7 +100,7 @@ export type CollectionResult<T = unknown> = {
   // Known server count, or null when the pages carry no usable count.
   // remaining_count is never treated as a stable total.
   total: number | null;
-  // False means partial: validated rows retained, error explains the stop.
+  // True only when the matching collection is exhausted with no cursor or error.
   complete: boolean;
   // Present when resumption may return more rows, including after failures.
   cursor?: string;
@@ -456,7 +456,7 @@ async function runPages<T>(run: PageRun<T>): Promise<CollectionResult<T>> {
     return { rows, total, complete: false, cursor: cursorFor(pending.page, pending.offset, left), error: failure };
   };
   const capped = (page: Record<string, Scalar>, at: number): CollectionResult<T> => {
-    if (!run.all) return { rows, total, complete: true, cursor: cursorFor(page, at, DEFAULT_COLLECTION_LIMIT) };
+    if (!run.all) return { rows, total, complete: false, cursor: cursorFor(page, at, DEFAULT_COLLECTION_LIMIT) };
     pending = { page, offset: at };
     return partial(new AxiError(
       `Collection read exceeded its ${ALL_COLLECTION_LIMIT} row budget`, "ROW_BUDGET_EXCEEDED",

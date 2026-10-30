@@ -2,9 +2,15 @@
 
 ## TOON output behavior
 
+`complete: true` means the matching result is exhausted without error and no cursor remains.
+For checkpoint feeds, this covers the current batch, not future events available through the returned checkpoint.
+A bounded window with a cursor reports `complete: false` and exits 0; a failed read reports `complete: false` and exits 1.
+On cursor resume, completeness describes exhaustion from that position, not whether earlier rows were included again.
+
 - Structured results, help, and errors go to stdout; diagnostics go to stderr.
 - Collection lists use compact fields, counts, and a default 100-row window.
   Supported `--fields` values depend on the command and deployment.
+  Detection `--fields triage_category` preserves the API value, including null, and omits the field when the API does not supply it.
 - Resume collections with `--cursor` and the original filters and target context.
   A successful bounded window can still have more rows; cursors do not provide snapshot isolation.
 - Detection, host, account, type-qualified entity, assignment, assignment outcome, user, group, group member and triage rule lists support `--all` on QUX and RUX.
@@ -19,7 +25,7 @@
   Checkpoint event feeds and date-window audits also do not accept `--all`.
   Every list's help and the generated [skill command table](../skills/vectra-axi/SKILL.md) state its pagination contract for each supported deployment.
 - QUX audits require both inclusive UTC dates and have no cursor; use smaller date windows if the response exceeds the byte budget.
-- Partial reads retain validated rows, report `complete: false`, and exit 1.
+- Failed reads retain validated rows, report `complete: false`, and exit 1.
   Access or licence denial is an error, never an empty success.
 - Exit codes are 0 for success, 1 for runtime failure, and 2 for usage failure.
 

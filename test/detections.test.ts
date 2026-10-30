@@ -72,11 +72,11 @@ it.each(["qux", "rux"])("projects %s triage fields only when requested in lists"
 });
 
 it.each(["qux", "rux"])("preserves %s null assignment and false triage values", async (kind) => {
-  const values = { is_triaged: false, triage_rule_id: null, assigned_to: null, assigned_date: null };
+  const values = { is_triaged: false, triage_rule_id: null, triage_category: null, assigned_to: null, assigned_date: null };
   const respond = () => ({ status: 200, bodyText: JSON.stringify(detection(42, values)) });
   const owned = kind === "rux" ? cloudSession(cloudFixture(respond)) : session(async () => respond());
   const shown = await runDetectionShow(owned,
-    flags(["detection", "show", "--id", "42", "--fields", "id,is_triaged,triage_rule_id,assigned_to,assigned_date"]));
+    flags(["detection", "show", "--id", "42", "--fields", "id,is_triaged,triage_rule_id,triage_category,assigned_to,assigned_date"]));
   expect(shown.output).toEqual({ profile: kind === "rux" ? "cloud" : "lab", id: 42, ...values });
 });
 
@@ -129,6 +129,34 @@ const listPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
   status: 200, bodyText: JSON.stringify({ results: rows, ...extra }),
 });
 const nextPage = "https://fixture.invalid/api/v2.5/detections?min_id=2";
+
+it.each(["qux", "rux"])("reports %s completeness through every detection window", async (kind) => {
+  const route = kind === "rux" ? "/api/v3.4/detections/" : "/api/v2.5/detections";
+  const respond = (url: string) => {
+    const page = Number(new URL(url).searchParams.get("page") ?? 1);
+    return listPage([detection(page, { triage_category: "synthetic-triage" })], {
+      count: 3, previous: page > 1 ? `https://fixture.invalid${route}?page=${page - 1}` : null,
+      next: page < 3 ? `https://fixture.invalid${route}?page=${page + 1}` : null,
+    });
+  };
+  const owned = kind === "rux" ? cloudSession(cloudFixture(respond)) : session(async (request) => respond(request.url));
+  const argv = ["detection", "list", "--limit", "1", "--fields", "id,triage_category"];
+  const first = await runDetectionList(owned, flags(argv));
+  expect(first).toMatchObject({ failed: false, output: {
+    complete: false, total: 3, cursor: expect.any(String),
+    detections: [{ id: 1, triage_category: "synthetic-triage" }],
+  } });
+  const middle = await runDetectionList(owned, flags([...argv, "--cursor", first.output.cursor as string]));
+  expect(middle).toMatchObject({ failed: false, output: {
+    complete: false, total: 3, cursor: expect.any(String),
+    detections: [{ id: 2, triage_category: "synthetic-triage" }],
+  } });
+  const last = await runDetectionList(owned, flags([...argv, "--cursor", middle.output.cursor as string]));
+  expect(last).toMatchObject({ failed: false, output: {
+    complete: true, total: 3, detections: [{ id: 3, triage_category: "synthetic-triage" }],
+  } });
+  expect(last.output).not.toHaveProperty("cursor");
+});
 
 it.each(["min-id", "max-id", "host-id"])("rejects zero --%s before HTTP", async (flag) => {
   let calls = 0;
@@ -331,7 +359,7 @@ it("caps a list window with a cursor and resumes the same filters without losing
   const first = await runDetectionList(owned,
     flags(["detection", "list", "--state", "active", "--limit", "1"]));
   expect(first.output).toMatchObject({
-    count: "1 of 2 detections", complete: true, cursor: expect.any(String),
+    count: "1 of 2 detections", complete: false, cursor: expect.any(String),
   });
   const second = await runDetectionList(owned,
     flags(["detection", "list", "--state", "active", "--cursor", first.output.cursor as string]));
@@ -555,7 +583,7 @@ it("lists a detection, shows it with the same profile, and resumes the capped li
     flags(["detection", "list", "--profile", "lab", "--state", "active", "--limit", "1"]));
   expect(listed).toMatchObject({ failed: false });
   expect(listed.output).toMatchObject({
-    profile: "lab", count: "1 of 2 detections", complete: true, cursor: expect.any(String),
+    profile: "lab", count: "1 of 2 detections", complete: false, cursor: expect.any(String),
   });
   const [row] = listed.output.detections as Record<string, unknown>[];
   // Follow the suggested show command with the same profile and read full detail.
@@ -716,7 +744,7 @@ it("lists a cloud detection, shows it, and resumes the capped window", async () 
   const listed = await runDetectionList(owned,
     flags(["detection", "list", "--profile", "cloud", "--state", "active", "--limit", "1"]));
   expect(listed.output).toMatchObject({
-    profile: "cloud", count: "1 of 2 detections", complete: true, cursor: expect.any(String),
+    profile: "cloud", count: "1 of 2 detections", complete: false, cursor: expect.any(String),
   });
   expect(listed.output.help).toContain("Run `vectra-axi detection show --profile cloud --id 1` for full detail");
   const shown = await runDetectionShow(owned,

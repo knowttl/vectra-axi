@@ -74,7 +74,8 @@ Host detail preserves every returned field rather than the list's compact projec
 Collection lists (detections, hosts, accounts, entities, assignments, groups, group members and triage rules) support `--all` instead of `--limit`.
 One invocation traverses at most 10 requests including retries, 8 MiB, 60 seconds and 10,000 rows.
 Resume a returned `--cursor <cursor>` with the original profile, filters and entity type; keep `--all` when resuming an all-pages read.
-Partial reads retain validated rows, set `complete: false` and exit 1; a successful bounded window can also have a continuation cursor.
+`complete: true` means the matching result is exhausted without error and no cursor remains; for checkpoint feeds it covers the current batch, not future events.
+A successful bounded window with a cursor sets `complete: false` and exits 0; failed reads retain validated rows, set `complete: false` and exit 1.
 Notes, tags, health snapshots and lockdown status are nonpaged and reject `--all`.
 Event feeds and audits reject `--all`: drain an in-batch cursor with the original filters and without `--from`, then continue with `--from <returned-checkpoint>`.
 QUX audits have no cursor; narrow the date window instead.
