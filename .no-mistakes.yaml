@@ -1,4 +1,10 @@
-agent: pi
+agent: codex
+agent_args_override:
+  codex:
+    - -m
+    - gpt-6.1-sol
+    - -c
+    - model_reasoning_effort="medium"
 no_ci: true
 commands:
   prepare: 'corepack pnpm install --frozen-lockfile --ignore-scripts --config.confirm-modules-purge=false'
