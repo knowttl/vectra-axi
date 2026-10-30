@@ -288,7 +288,7 @@ it("investigates a detection through the packaged list, show, full and resume co
   expect(listed.status).toBe(0);
   expect(listed.stderr).toBe("");
   const listOutput = decode(listed.stdout) as Record<string, unknown>;
-  expect(listOutput).toMatchObject({ profile: "lab", count: "1 of 2 detections", complete: true,
+  expect(listOutput).toMatchObject({ profile: "lab", count: "1 of 2 detections", complete: false,
     detections: [{ id: 1, state: "active", threat: null }], cursor: expect.any(String) });
   const showHint = (listOutput.help as string[]).find((hint) => hint.startsWith("Run `"))!;
   const showCommand = /^Run `vectra-axi (detection show .*?)` for full detail$/.exec(showHint)![1]!;
@@ -363,7 +363,7 @@ it("reads allowlisted operations through the packaged api get command", () => {
   expect(listed.stderr).toBe("");
   const listOutput = decode(listed.stdout) as Record<string, unknown>;
   expect(listOutput).toMatchObject({ profile: "lab", operation: "qux.detection.list",
-    count: "1 of 2 rows", rows: [{ id: 1, state: "active" }], complete: true,
+    count: "1 of 2 rows", rows: [{ id: 1, state: "active" }], complete: false,
     cursor: expect.any(String) });
   const cursor = listOutput.cursor as string;
   const resumed = invoke(["api", "get", ...context, "--operation", "qux.detection.list",
@@ -1014,7 +1014,7 @@ it("reads unresolved assignments, the outcome taxonomy and the assignee as disti
   expect(listed.status).toBe(0);
   expect(listed.stderr).toBe("");
   const listOutput = decode(listed.stdout) as Record<string, unknown>;
-  expect(listOutput).toMatchObject({ profile: "lab", count: "1 of 2 assignments", complete: true,
+  expect(listOutput).toMatchObject({ profile: "lab", count: "1 of 2 assignments", complete: false,
     assignments: [{ id: 11, host_id: 7, account_id: null, date_resolved: null, status: "unresolved" }],
     cursor: expect.any(String) });
   const resumed = invoke(["assignment", "list", ...context, "--resolved", "false",

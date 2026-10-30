@@ -191,7 +191,7 @@ it("caps the default read at 100 rows with a continuation", async () => {
   const transport = vi.fn<RawTransport>().mockResolvedValue(page(ids(150), { count: 150, next: nextPage }));
   const result = await collect(session(transport), "qux.detection.list");
   expect(result.rows).toHaveLength(100);
-  expect(result).toMatchObject({ total: 150, complete: true });
+  expect(result).toMatchObject({ total: 150, complete: false });
   expect(result.cursor).toBeDefined();
   expect(transport).toHaveBeenCalledTimes(1);
 });
@@ -201,7 +201,7 @@ it("preserves unreturned rows when the limit ends inside a page", async () => {
   const owned = session(transport);
   const first = await collect(owned, "qux.detection.list", { limit: 2 });
   expect(first.rows).toEqual(ids(2));
-  expect(first).toMatchObject({ total: 5, complete: true });
+  expect(first).toMatchObject({ total: 5, complete: false });
   expect(first.cursor).toBeDefined();
   const second = await resume(owned, "qux.detection.list", first.cursor!);
   expect(second).toEqual({ rows: ids(3, 3), total: 5, complete: true });
@@ -261,7 +261,7 @@ it("stops a multi-page cycle across page-boundary resumes", async () => {
     .mockResolvedValueOnce(page(ids(100, 101), { next: "https://fixture.invalid/api/v2.5/detections?page_size=100" }));
   const owned = session(transport);
   const first = await collect(owned, "qux.detection.list");
-  expect(first).toMatchObject({ rows: ids(100), complete: true, cursor: expect.any(String) });
+  expect(first).toMatchObject({ rows: ids(100), complete: false, cursor: expect.any(String) });
   const second = await resume(owned, "qux.detection.list", first.cursor!);
   expect(second).toMatchObject({ rows: ids(100, 101), complete: false,
     error: { code: "CONTINUATION_REPEATED" } });
@@ -278,9 +278,9 @@ it("keeps cycle history across within-page resumes without rejecting the pending
     .mockResolvedValueOnce(page(ids(2, 3), { next: "https://fixture.invalid/api/v2.5/detections?page_size=100" }));
   const owned = session(transport);
   const first = await collect(owned, "qux.detection.list", { limit: 1 });
-  expect(first).toMatchObject({ rows: ids(1), complete: true });
+  expect(first).toMatchObject({ rows: ids(1), complete: false });
   const second = await resume(owned, "qux.detection.list", first.cursor!, { limit: 1 });
-  expect(second).toMatchObject({ rows: ids(1, 2), complete: true });
+  expect(second).toMatchObject({ rows: ids(1, 2), complete: false });
   const third = await resume(owned, "qux.detection.list", second.cursor!);
   expect(third).toMatchObject({ rows: ids(2, 3), complete: false, error: { code: "CONTINUATION_REPEATED" } });
   expect(transport).toHaveBeenCalledTimes(3);

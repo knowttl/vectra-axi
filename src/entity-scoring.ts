@@ -314,7 +314,7 @@ export async function runEntityScoringList(
       ...base,
       count: `${window.length} entity scoring events`,
       events: window,
-      complete: true,
+      complete: false,
       cursor,
       help: [`Run \`${continuation("cursor", cursor)}\` for the rest of this batch`],
     } };

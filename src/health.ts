@@ -547,7 +547,7 @@ export async function runHealthEventList(
       ...base,
       count: `${window.length} health events`,
       events: window,
-      complete: true,
+      complete: false,
       cursor,
       help: ["Pass --cursor <cursor> with the same filters for the rest of this batch",
         ...(typeof checkpoint === "string" && checkpoint

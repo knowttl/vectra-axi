@@ -133,7 +133,7 @@ it("resumes group windows at the next page with their filters", async () => {
   const owned = session(transport);
   const first = await runGroupList(owned, flags(["group", "list", "--type", "host", "--limit", "1"]));
   expect(first).toMatchObject({ failed: false, output: {
-    groups: [hostGroup], count: "1 of 2 groups", complete: true, cursor: expect.any(String),
+    groups: [hostGroup], count: "1 of 2 groups", complete: false, cursor: expect.any(String),
   } });
   const result = await runGroupList(owned,
     flags(["group", "list", "--type", "host", "--cursor", first.output.cursor as string]));
@@ -554,7 +554,7 @@ describe("RUX groups, members and triage rules", () => {
     const first = await runGroupList(owned,
       flags(["group", "list", "--profile", "cloud", "--type", "host", "--limit", "1"]));
     expect(first).toMatchObject({ failed: false, output: {
-      groups: [ruxGroup], count: "1 of 2 groups", complete: true, cursor: expect.any(String),
+      groups: [ruxGroup], count: "1 of 2 groups", complete: false, cursor: expect.any(String),
     } });
     const result = await runGroupList(owned,
       flags(["group", "list", "--profile", "cloud", "--type", "host",

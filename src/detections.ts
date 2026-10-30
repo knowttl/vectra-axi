@@ -230,7 +230,7 @@ export async function runDetectionList(
     total: result.total,
     count,
     detections: rows,
-    complete: true,
+    complete: result.complete,
     ...(result.cursor ? { cursor: result.cursor } : {}),
     help: [
       ...(result.cursor ? ["Pass --cursor <cursor> with the same filters for the next window"] : []),

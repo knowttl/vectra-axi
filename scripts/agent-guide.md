@@ -74,7 +74,7 @@ Host detail preserves every returned field rather than the list's compact projec
 Collection lists (detections, hosts, accounts, entities, assignments, groups, group members and triage rules) support `--all` instead of `--limit`.
 One invocation traverses at most 10 requests including retries, 8 MiB, 60 seconds and 10,000 rows.
 Resume a returned `--cursor <cursor>` with the original profile, filters and entity type; keep `--all` when resuming an all-pages read.
-Partial reads retain validated rows, set `complete: false` and exit 1; a successful bounded window can also have a continuation cursor.
+See [output and pagination](output.md) for `complete` semantics and how successful bounded windows differ from failed reads.
 Notes, tags, health snapshots and lockdown status are nonpaged and reject `--all`.
 Event feeds and audits reject `--all`: drain an in-batch cursor with the original filters and without `--from`, then continue with `--from <returned-checkpoint>`.
 QUX audits have no cursor; narrow the date window instead.
@@ -88,7 +88,7 @@ Use the failing leaf's help when its error guidance is insufficient; do not star
 Do not combine `--help` with `--profile`.
 Incomplete commands exit 2 with focused help.
 Structured results and errors are TOON on stdout; diagnostics use stderr.
-Exit 0 means success, 1 runtime failure (including partial reads), and 2 usage failure.
+Exit 0 means success, 1 runtime failure, and 2 usage failure.
 
 | Error code | Adjustment |
 | --- | --- |

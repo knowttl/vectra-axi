@@ -256,7 +256,7 @@ export async function runCheckpointFeed(
       ...base,
       count: `${window.length} ${config.noun}s`,
       events: window,
-      complete: true,
+      complete: false,
       cursor,
       help: [`Run \`${continuation("cursor", cursor)}\` for the rest of this batch`],
     } };

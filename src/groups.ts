@@ -373,7 +373,7 @@ async function runCollectionList(
     total: window.total,
     count,
     [leaf.rowsKey]: rows,
-    complete: true,
+    complete: window.complete,
     ...(window.cursor ? { cursor: window.cursor } : {}),
     help: [
       ...(window.cursor ? ["Pass --cursor <cursor> with the same filters for the next window"] : []),

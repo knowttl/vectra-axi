@@ -288,7 +288,7 @@ async function runKindList(
     total: result.total,
     count,
     [rowsKey]: rows,
-    complete: true,
+    complete: result.complete,
     ...(result.cursor ? { cursor: result.cursor } : {}),
     help: [
       ...(result.cursor ? ["Pass --cursor <cursor> with the same filters for the next window"] : []),

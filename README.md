@@ -148,7 +148,7 @@ See [output and pagination](docs/output.md) for traversal budgets, checkpoints a
 | Code | Meaning |
 | --- | --- |
 | 0 | Success |
-| 1 | Runtime failure, including partial reads |
+| 1 | Runtime failure |
 | 2 | Usage failure |
 
 ## Troubleshooting

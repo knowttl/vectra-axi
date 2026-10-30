@@ -202,7 +202,7 @@ it("caps a batch at the output limit and resumes the remainder from its cursor",
   };
   const owned = session(transport);
   const capped = await runHealthEventList(owned, flags(["health", "event", "list", "--limit", "1"]));
-  expect(capped.output).toMatchObject({ count: "1 health events", complete: true });
+  expect(capped.output).toMatchObject({ count: "1 health events", complete: false });
   expect(capped.output.events).toEqual([firstEvent]);
   const cursor = capped.output.cursor as string;
   expect(typeof cursor).toBe("string");
