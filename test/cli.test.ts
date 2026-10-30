@@ -67,6 +67,26 @@ it.each([
   expect(result.stdout).not.toMatch(/synthetic-login-secret|synthetic-private-id|packaged-detection-token/);
 });
 
+it.each(["html", "schema"])("emits bounded diagnostics for a RUX threat-feed list with %s", (diagnosticCase) => {
+  const config = join(scratch, "threat-feed-diagnostics.json");
+  writeFileSync(config, JSON.stringify({ profiles: { cloud: { kind: "rux", origin: "https://fixture.invalid",
+    apiVersion: "3.4", auth: "oauth", clientId: "synthetic-client", secretEnv: "CLOUD_SECRET" } } }));
+  const result = invoke(["threat-feed", "list", "--config", config, "--profile", "cloud"], {
+    CLOUD_SECRET: "synthetic-secret", DIAGNOSTIC_CASE: diagnosticCase,
+    DETECTION_TRACE: join(scratch, "threat-feed-diagnostics.jsonl"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}`,
+  });
+  expect(result.status).toBe(1);
+  expect(result.stderr).toBe("");
+  expect(decode(result.stdout)).toMatchObject({
+    code: diagnosticCase === "html" ? "RESPONSE_INVALID" : "MALFORMED_RESPONSE", status: 200,
+    contentType: diagnosticCase === "html" ? "text/html" : "application/json",
+    shape: expect.arrayContaining([{ path: "$", type: diagnosticCase === "html" ? "undefined" : "object" }]),
+    shapeTruncated: false,
+  });
+  expect(result.stdout).not.toMatch(/synthetic-login-secret|synthetic-private-id|synthetic-secret|packaged-rux-token/);
+});
+
 it("emits bounded diagnostics for a failed doctor profile", () => {
   const config = join(scratch, "doctor-diagnostics.json");
   writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",

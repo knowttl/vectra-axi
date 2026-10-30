@@ -12,6 +12,7 @@ On cursor resume, completeness describes exhaustion from that position, not whet
   Arrays sample one element, unsafe keys become placeholders, and registered secrets are redacted.
   Invalid JSON reports an undefined root shape because no parsed body is available.
   Doctor keeps diagnostics on each failed profile under `diagnostics`.
+  Bulk tag results keep response-invalid diagnostics on each refused target under `diagnostics`.
   Accepted mutations with invalid JSON retain exit 0 and emit `warnings` with the operation, target, audit ID and response diagnostics; read back the target without replaying the write.
 - Collection lists use compact fields, counts, and a default 100-row window.
   Supported `--fields` values depend on the command and deployment.

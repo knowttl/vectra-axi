@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseInvocation } from "../src/catalogue.js";
 import { createSession, type RawTransport, type Session } from "../src/session.js";
 import { loadConfig, selectProfile, type SelectedProfile } from "../src/profiles.js";
@@ -312,6 +312,59 @@ it("rejects a malformed preview read before any send", async () => {
   await expect(run(["host", "tag", "bulk-set", "--ids", "7", "--tags", "b",
     "--execute", "--confirm", "1 target: host 7"], "host", "bulk-set"))
     .rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+});
+
+describe.each(["qux", "rux"] as const)("%s bulk tag diagnostics", (generation) => {
+  it.each([
+    ["host", "bulk-set"], ["host", "bulk-delete"],
+    ["account", "bulk-set"], ["account", "bulk-delete"],
+    ["detection", "bulk-set"], ["detection", "bulk-delete"],
+  ] as const)("retains originating diagnostics for %s %s after later targets succeed", async (kind, action) => {
+    const seen: Seen[] = [];
+    const reads = new Map<string, number>();
+    const profile = selected({ kind: generation, origin: "https://fixture.invalid",
+      apiVersion: generation === "qux" ? "2.5" : "3.4",
+      ...(generation === "qux" ? { auth: "token", tokenEnv: "SENTINEL_TOKEN" }
+        : { auth: "oauth", clientId: "synthetic-client", secretEnv: "SENTINEL_TOKEN" }),
+      writes: { allowWrites: true, operations: [`${generation}.${kind}.tag.${action}`] } });
+    const transport = bulkTransport(new Map([[7, ["a"]], [8, ["a"]], [9, ["a"]]]), seen);
+    const { run } = harness({ profile, transport: async (request) => {
+      if (request.method !== "GET") return transport(request);
+      const count = (reads.get(request.url) ?? 0) + 1;
+      reads.set(request.url, count);
+      const id = Number(new URL(request.url).pathname.split("/").filter(Boolean).pop());
+      if (id === 7 && count === 2) {
+        seen.push({ method: request.method, url: request.url });
+        return { status: 200, contentType: "text/html", bodyText: "<html>private-login</html>" };
+      }
+      if (id === 8 && count === 3) {
+        seen.push({ method: request.method, url: request.url });
+        return { status: 200, contentType: "application/json", bodyText: '{"tags":["private-tag",7]}' };
+      }
+      return transport(request);
+    } });
+    const result = await run([kind, "tag", action, "--ids", "7,8,9", "--tags", "a,b",
+      "--execute", "--confirm", `3 targets: ${kind} 7, ${kind} 8, ${kind} 9`], kind, action);
+    expect(result).toMatchObject({ failed: true, output: { results: [
+      { id: 7, outcome: "refused", code: "RESPONSE_INVALID", diagnostics: {
+        status: 200, contentType: "text/html", shape: [{ path: "$", type: "undefined" }], shapeTruncated: false,
+      } },
+      { id: 8, outcome: "refused", code: "RESPONSE_INVALID", diagnostics: {
+        status: 200, contentType: "application/json", shape: expect.arrayContaining([
+          { path: '$["tags"][*]', type: "string" },
+        ]), shapeTruncated: false,
+      } },
+      { id: 9, outcome: "applied" },
+    ] } });
+    expect(seen.filter((request) => request.method === "PATCH")).toEqual([
+      expect.objectContaining({ url: expect.stringContaining(`/${kind}/9`) }),
+    ]);
+    expect(auditLines().filter((row) => row.kind === "outcome")).toEqual([
+      expect.objectContaining({ target: `${kind} 8`, outcome: "NOT_SENT" }),
+      expect.objectContaining({ target: `${kind} 9`, outcome: "SUCCESS" }),
+    ]);
+    expect(JSON.stringify(result)).not.toMatch(/private-login|private-tag|fake-token-SENTINEL|synthetic-access/);
+  });
 });
 
 it("reports OUTCOME_UNKNOWN without replay when one send times out", async () => {

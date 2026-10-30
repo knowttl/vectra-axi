@@ -222,7 +222,7 @@ export type BulkTagTargetResult =
   | { id: number; outcome: "noop" }
   | { id: number; outcome: "failed"; error: string; audit: string }
   | { id: number; outcome: "unknown"; error: string; audit: string; code?: string; suggestions?: string[] }
-  | { id: number; outcome: "refused"; error: string; code?: string; suggestions?: string[] };
+  | { id: number; outcome: "refused"; error: string; code?: string; suggestions?: string[]; diagnostics?: Record<string, unknown> };
 
 export async function runTagBulk(
   session: Session,
@@ -340,8 +340,10 @@ export async function runTagBulk(
         throw new Error(`Unreachable bulk tag result for ${target}: dry runs never execute`);
       }
     } catch (error) {
+      const diagnostics = session.diagnosticsForError(error);
       const details = error instanceof AxiError
-        ? { code: error.code, suggestions: error.suggestions } : {};
+        ? { code: error.code, suggestions: error.suggestions,
+          ...(Object.keys(diagnostics).length ? { diagnostics } : {}) } : {};
       if (error instanceof AxiError && error.code === "OUTCOME_NOT_RECORDED") {
         results.push({ id, outcome: "unknown", audit: intentId,
           error: `${errorMessage(error)}; the mutation may have been applied; read back ${target} before doing anything else; never replay this intent`,

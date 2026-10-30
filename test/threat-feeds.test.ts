@@ -32,6 +32,7 @@ function harness(options: {
   kind?: "qux" | "rux"; state?: (url: string, reads: number) => unknown;
   writes?: { allowWrites: boolean; operations: string[] }; status?: number; timeout?: boolean;
   afterRead?: (reads: number) => void;
+  readResponse?: Awaited<ReturnType<RawTransport>>;
 } = {}) {
   const kind = options.kind ?? "rux";
   writeFileSync(configPath, JSON.stringify({ profiles: { lab: {
@@ -56,7 +57,7 @@ function harness(options: {
       const state = options.state ? options.state(request.url, reads) : request.url.includes("/3") ? feed
         : kind === "qux" ? { threatFeeds: [] } : { count: 0, results: [], next: null };
       options.afterRead?.(reads);
-      return { status: 200, bodyText: JSON.stringify(state) };
+      return options.readResponse ?? { status: 200, contentType: "application/json", bodyText: JSON.stringify(state) };
     }
     if (options.timeout) throw new Error("synthetic timeout");
     return { status: options.status ?? 200, bodyText: "{}" };
@@ -83,6 +84,20 @@ it.each(["qux", "rux"] as const)("reads list and show on %s without exposing STI
 
 it("reports an explicit empty state", async () => {
   expect((await harness().read("list")).output).toMatchObject({ count: 0, feeds: [], help: ["No threat feeds are configured on this instance"] });
+});
+
+it.each([
+  ["HTML", "text/html", "<html>private-login</html>", "RESPONSE_INVALID", "undefined"],
+  ["page schema", "application/json", '{"results":"private-rows"}', "RESPONSE_INVALID", "object"],
+  ["feed schema", "application/json", '{"count":1,"results":[{"id":"private-id"}]}', "MALFORMED_RESPONSE", "object"],
+])("retains diagnostics when a RUX list consumes a malformed %s response", async (_name, contentType, bodyText, code, type) => {
+  const { read } = harness({ readResponse: { status: 200, contentType, bodyText: bodyText! } });
+  const result = await read("list");
+  expect(result).toMatchObject({ failed: true, output: {
+    code, status: 200, contentType, shapeTruncated: false,
+    shape: expect.arrayContaining([{ path: "$", type }]),
+  } });
+  expect(JSON.stringify(result)).not.toMatch(/private-login|private-rows|private-id|synthetic-secret|synthetic-access/);
 });
 
 it("traverses RUX pages through the bounded reader", async () => {

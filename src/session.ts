@@ -54,6 +54,7 @@ export type Session = {
     // keeps it structurally optional instead of Pick-ing a QUX-only key.
     & { applianceRelease?: string };
   request(operation: string, options?: SessionRequestOptions): Promise<SessionResponse>;
+  diagnosticsForError(error: unknown): Record<string, unknown>;
   resolveContinuation(operation: string, next: string, options?: Pick<SessionRequestOptions, "pathParams">): string;
 };
 
@@ -437,7 +438,8 @@ export function createSession(args: {
     return url.href;
   }
 
-  return { profile: snapshot, request, resolveContinuation };
+  return { profile: snapshot, request, resolveContinuation,
+    diagnosticsForError: (error) => redactor.responseDiagnostics.forError(error) };
 }
 
 // WRITE-00 authorized mutation transport. Reads stay on Session.request;
