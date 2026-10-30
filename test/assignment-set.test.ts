@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseInvocation } from "../src/catalogue.js";
-import { runAssignmentSet } from "../src/assignment-set.js";
+import { readOpenAssignment, runAssignmentSet } from "../src/assignment-set.js";
 import { createSession, type RawTransport, type Session } from "../src/session.js";
 import { loadConfig, selectProfile, type SelectedProfile } from "../src/profiles.js";
 import { SecretRedactor } from "../src/redact.js";
@@ -106,6 +106,33 @@ const auditLines = (): Record<string, unknown>[] =>
 
 const sends = (seen: SeenCall[]): SeenCall[] =>
   seen.filter((call) => ["POST", "PUT", "DELETE"].includes(call.method));
+
+it.each([
+  ["qux", "host"], ["qux", "account"], ["rux", "host"], ["rux", "account"],
+] as const)("validates the originating %s %s assignment page before advancing", async (generation, kind) => {
+  const redactor = new SecretRedactor();
+  const profile = selected(generation === "qux" ? enabledProfile : cloudProfile);
+  const urls: string[] = [];
+  const transport: RawTransport = async (request) => {
+    if (request.url.endsWith("/oauth2/token")) {
+      return { status: 200, bodyText: JSON.stringify({ access_token: token, token_type: "Bearer", expires_in: 3600 }) };
+    }
+    urls.push(request.url);
+    const row = { id: 11, [`${kind}_id`]: 7, date_resolved: null,
+      ...(urls.length > 1 ? { assigned_to: { id: 5 } } : {}) };
+    return { status: 200, contentType: "application/json", bodyText: JSON.stringify({
+      results: [row], count: 2, next: urls.length === 1 ? `${request.url}&page=2` : null,
+    }) };
+  };
+  const session = createSession({ profile, configPath, redactor, transport });
+  await expect(readOpenAssignment(session, kind, 7, "assignment set")).rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+  expect(urls).toHaveLength(1);
+  const diagnostics = redactor.responseDiagnostics.forError({ code: "RESPONSE_INVALID" });
+  expect(diagnostics).toMatchObject({ status: 200, contentType: "application/json" });
+  expect(diagnostics.shape).not.toEqual(expect.arrayContaining([
+    expect.objectContaining({ path: '$["results"][*]["assigned_to"]' }),
+  ]));
+});
 
 describe.each(["host", "account"] as const)("RUX %s assignment set", (kind) => {
   // RUX-04b uses host_id/account_id and date_resolved. The v3.4 Assignment

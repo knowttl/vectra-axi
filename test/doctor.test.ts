@@ -100,6 +100,28 @@ it("reports an empty detection window as an ok profile", async () => {
     profiles: [{ name: "lab", status: "ok", detail: "0 detections" }] });
 });
 
+it("retains each failed profile's diagnostics before checking the next profile", async () => {
+  let calls = 0;
+  const transport: RawTransport = async () => {
+    calls += 1;
+    if (calls === 1) return { status: 200, contentType: "text/html", bodyText: "<html>private-login</html>" };
+    if (calls === 2) return { ...body({ results: [{ id: "private-id" }], count: 1 }), contentType: "application/json" };
+    return body({ results: [detection], count: 1 });
+  };
+  const result = await doctor(["html", "schema", "healthy"], transport);
+  expect(result.failed).toBe(true);
+  expect(result.output).toMatchObject({ profiles: [
+    { name: "html", status: "failed", code: "RESPONSE_INVALID", diagnostics: {
+      status: 200, contentType: "text/html", shape: [{ path: "$", type: "undefined" }],
+    } },
+    { name: "schema", status: "failed", code: "RESPONSE_INVALID", diagnostics: {
+      status: 200, contentType: "application/json", shape: expect.arrayContaining([{ path: "$", type: "object" }]),
+    } },
+    { name: "healthy", status: "ok" },
+  ] });
+  expect(JSON.stringify(result)).not.toMatch(/private-login|private-id/);
+});
+
 it.each([
   ["denied access", 403, "ACCESS_DENIED"],
   ["rejected credential", 401, "AUTH_FAILED"],

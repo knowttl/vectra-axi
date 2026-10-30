@@ -1,0 +1,135 @@
+[
+  {
+    "name": "pagination bounds issue code",
+    "status": 200,
+    "data": { "pageSize": 2147483648 },
+    "issues": [{ "path": ["pageSize"], "code": "too_big", "message": "private bound" }],
+    "expected": { "status": 200, "contentType": null, "shape": [{ "path": "$", "type": "object" }, { "path": "$[\"pageSize\"]", "type": "number" }], "shapeTruncated": false, "issues": [{ "path": "$[\"pageSize\"]", "received": "number", "expected": "unknown", "code": "too_big" }], "issuePaths": ["$[\"pageSize\"]"], "issuePathsTruncated": false }
+  },
+  {
+    "name": "untrusted validator code is omitted",
+    "status": 200,
+    "data": {},
+    "issues": [{ "path": ["pageSize"], "code": "private-response-value", "expected": "number" }],
+    "expected": { "status": 200, "contentType": null, "shape": [{ "path": "$", "type": "object" }], "shapeTruncated": false, "issues": [{ "path": "$[\"pageSize\"]", "received": "undefined", "expected": "number" }], "issuePaths": ["$[\"pageSize\"]"], "issuePathsTruncated": false }
+  },
+  {
+    "name": "HTML login page",
+    "status": 200,
+    "contentType": "text/html; charset=utf-8",
+    "data": "<html>synthetic login secret</html>",
+    "expected": { "status": 200, "contentType": "text/html", "shape": [{ "path": "$", "type": "string" }], "shapeTruncated": false }
+  },
+  {
+    "name": "tenant keys and values",
+    "status": 202,
+    "contentType": "application/json",
+    "data": { "tenant.example.test": "private", "user@example.test": 42, "af2504e04f8911d39a0c0305e82c3301": null, "a3f2504e_4f89_11d3_9a0c_0305e82c3301": false, "00000000-0000-4000-8000-000000000001": true },
+    "expected": { "status": 202, "contentType": "application/json", "shape": [{ "path": "$", "type": "object" }, { "path": "$[\"<key>\"]", "type": "string" }, { "path": "$[\"<key>\"]", "type": "number" }, { "path": "$[\"<key>\"]", "type": "null" }, { "path": "$[\"<key>\"]", "type": "boolean" }, { "path": "$[\"<key>\"]", "type": "boolean" }], "shapeTruncated": false }
+  },
+  {
+    "name": "hostile key and validator message",
+    "status": 200,
+    "contentType": "invalid private header",
+    "data": { "\"\n[0]<script>private</script>": "private" },
+    "issues": [{ "path": ["\"\n[0]<script>private</script>"], "expected": "private", "message": "private validator message" }],
+    "expected": { "issues": [{"path":"$[\"<key>\"]","received":"string","expected":"unknown"}], "status": 200, "contentType": null, "shape": [{ "path": "$", "type": "object" }, { "path": "$[\"<key>\"]", "type": "string" }], "shapeTruncated": false, "issuePaths": ["$[\"<key>\"]"], "issuePathsTruncated": false }
+  },
+  {
+    "name": "validator received and expected type",
+    "status": 200,
+    "data": [{ "field": 123 }, { "field": "private" }],
+    "issues": [{ "path": [0, "field"], "expected": "string", "message": "private" }],
+    "expected": { "issues": [{"path":"$[*][\"field\"]","received":"number","expected":"string"}], "status": 200, "contentType": null, "shape": [{ "path": "$", "type": "array", "count": 2 }, { "path": "$[*]", "type": "object" }, { "path": "$[*][\"field\"]", "type": "number", "expected": "string" }], "shapeTruncated": false, "issuePaths": ["$[*][\"field\"]"], "issuePathsTruncated": false }
+  },
+  {
+    "name": "truncated issue does not annotate its ancestor",
+    "status": 200,
+    "data": { "Resources": [{ "attributes": [{ "name": 123 }] }] },
+    "issues": [{ "path": ["Resources", 0, "attributes", 0, "name"], "expected": "string" }],
+    "expected": { "issues": [{"path":"$[\"Resources\"][*][\"attributes\"][*]","received":"number","expected":"string","pathTruncated":true}], "status": 200, "contentType": null, "shape": [{ "path": "$", "type": "object" }, { "path": "$[\"Resources\"]", "type": "array", "count": 1 }, { "path": "$[\"Resources\"][*]", "type": "object" }, { "path": "$[\"Resources\"][*][\"attributes\"]", "type": "array", "count": 1 }, { "path": "$[\"Resources\"][*][\"attributes\"][*]", "type": "object" }], "shapeTruncated": true, "issuePaths": ["$[\"Resources\"][*][\"attributes\"][*]"], "issuePathsTruncated": true }
+  },
+  {
+    "name": "later array element does not annotate the sampled element",
+    "status": 200,
+    "data": [{ "field": "private" }, { "field": 123 }],
+    "issues": [{ "path": [1, "field"], "expected": "string" }],
+    "expected": { "issues": [{"path":"$[*][\"field\"]","received":"number","expected":"string"}], "status": 200, "contentType": null, "shape": [{ "path": "$", "type": "array", "count": 2 }, { "path": "$[*]", "type": "object" }, { "path": "$[*][\"field\"]", "type": "string" }], "shapeTruncated": false, "issuePaths": ["$[*][\"field\"]"], "issuePathsTruncated": false }
+  },
+  {
+    "name": "nested array indices preserve sampled node identity",
+    "status": 200,
+    "data": [[123, "private"], [false]],
+    "issues": [{ "path": [0, 0], "expected": "string" }, { "path": [0, 1], "expected": "number" }, { "path": [1, 0], "expected": "object" }],
+    "expected": { "issues": [{"path":"$[*][*]","received":"number","expected":"string"},{"path":"$[*][*]","received":"string","expected":"number"},{"path":"$[*][*]","received":"boolean","expected":"object"}], "status": 200, "contentType": null, "shape": [{ "path": "$", "type": "array", "count": 2 }, { "path": "$[*]", "type": "array", "count": 2 }, { "path": "$[*][*]", "type": "number", "expected": "string" }], "shapeTruncated": false, "issuePaths": ["$[*][*]", "$[*][*]", "$[*][*]"], "issuePathsTruncated": false }
+  },
+  {
+    "name": "placeholder keys preserve distinct node identity",
+    "status": 200,
+    "data": { "first.example.test": "private", "second.example.test": 123 },
+    "issues": [{ "path": ["second.example.test"], "expected": "string" }],
+    "expected": { "issues": [{"path":"$[\"<key>\"]","received":"number","expected":"string"}], "status": 200, "contentType": null, "shape": [{ "path": "$", "type": "object" }, { "path": "$[\"<key>\"]", "type": "string" }, { "path": "$[\"<key>\"]", "type": "number", "expected": "string" }], "shapeTruncated": false, "issuePaths": ["$[\"<key>\"]"], "issuePathsTruncated": false }
+  },
+  {
+    "name": "redacted keys preserve distinct node identity",
+    "status": 200,
+    "secrets": ["SECRETONE", "SECRETTWO"],
+    "data": { "SECRETONE": "private", "SECRETTWO": 123 },
+    "issues": [{ "path": ["SECRETTWO"], "expected": "string" }],
+    "expected": { "issues": [{"path":"$[\"***redacted***\"]","received":"number","expected":"string"}], "status": 200, "contentType": null, "shape": [{ "path": "$", "type": "object" }, { "path": "$[\"***redacted***\"]", "type": "string" }, { "path": "$[\"***redacted***\"]", "type": "number", "expected": "string" }], "shapeTruncated": false, "issuePaths": ["$[\"***redacted***\"]"], "issuePathsTruncated": false }
+  },
+  {
+    "name": "numeric object keys remain object keys",
+    "status": 200,
+    "data": { "0": 123 },
+    "issues": [{ "path": ["0"], "expected": "string" }],
+    "expected": { "issues": [{"path":"$[\"<key>\"]","received":"number","expected":"string"}], "status": 200, "contentType": null, "shape": [{ "path": "$", "type": "object" }, { "path": "$[\"<key>\"]", "type": "number", "expected": "string" }], "shapeTruncated": false, "issuePaths": ["$[\"<key>\"]"], "issuePathsTruncated": false }
+  },
+  {
+    "name": "absent required token fields",
+    "status": 200,
+    "data": {},
+    "issues": [{ "path": ["access_token"], "expected": "string" }, { "path": ["token_type"], "expected": "string" }, { "path": ["expires_in"], "expected": "number" }],
+    "expected": { "status": 200, "contentType": null, "shape": [{ "path": "$", "type": "object" }], "shapeTruncated": false, "issues": [{ "path": "$[\"access_token\"]", "received": "undefined", "expected": "string" }, { "path": "$[\"token_type\"]", "received": "undefined", "expected": "string" }, { "path": "$[\"expires_in\"]", "received": "undefined", "expected": "number" }], "issuePaths": ["$[\"access_token\"]", "$[\"token_type\"]", "$[\"expires_in\"]"], "issuePathsTruncated": false }
+  },
+  {
+    "name": "missing task id",
+    "status": 200,
+    "data": {},
+    "issues": [{ "path": ["id"], "expected": "string" }],
+    "expected": { "status": 200, "contentType": null, "shape": [{ "path": "$", "type": "object" }], "shapeTruncated": false, "issues": [{ "path": "$[\"id\"]", "received": "undefined", "expected": "string" }], "issuePaths": ["$[\"id\"]"], "issuePathsTruncated": false }
+  },
+  {
+    "name": "empty arrays",
+    "status": 204,
+    "data": [],
+    "expected": { "status": 204, "contentType": null, "shape": [{ "path": "$", "type": "array", "count": 0 }], "shapeTruncated": false }
+  },
+  {
+    "name": "oversized array collapses to first element",
+    "status": 200,
+    "data": [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+    "expected": { "status": 200, "contentType": null, "shape": [{ "path": "$", "type": "array", "count": 65 }, { "path": "$[*]", "type": "null" }], "shapeTruncated": false }
+  },
+  {
+    "name": "depth limit",
+    "status": 200,
+    "data": [[[[["private"]]]]],
+    "expected": { "status": 200, "contentType": null, "shape": [{ "path": "$", "type": "array", "count": 1 }, { "path": "$[*]", "type": "array", "count": 1 }, { "path": "$[*][*]", "type": "array", "count": 1 }, { "path": "$[*][*][*]", "type": "array", "count": 1 }, { "path": "$[*][*][*][*]", "type": "array", "count": 1 }], "shapeTruncated": true }
+  },
+  {
+    "name": "oversized media type and key",
+    "status": 600,
+    "contentType": "application/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "data": { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": "private" },
+    "expected": { "status": null, "contentType": null, "shape": [{ "path": "$", "type": "object" }, { "path": "$[\"<key>\"]", "type": "string" }], "shapeTruncated": false }
+  },
+  {
+    "name": "known secret redactor injection",
+    "status": 200,
+    "contentType": "application/SYNTHETIC_SECRET; private=ignored",
+    "secrets": ["SYNTHETIC_SECRET"],
+    "data": { "SYNTHETIC_SECRET": "private" },
+    "expected": { "status": 200, "contentType": "application/***redacted***", "shape": [{ "path": "$", "type": "object" }, { "path": "$[\"***redacted***\"]", "type": "string" }], "shapeTruncated": false }
+  }
+]

@@ -158,12 +158,13 @@ export async function readOpenAssignment(
   // never select a PUT/DELETE target.
   const query: Record<string, string | number | boolean> =
     kind === "host" ? { hosts: id, resolved: "false" } : { accounts: id, resolved: "false" };
-  const collected = await collect(session, `${session.profile.kind}.assignment.list`, { query });
+  const collected = await collect(session, `${session.profile.kind}.assignment.list`, {
+    query, decodeRow: (row) => decodeRow(kind, id, row),
+  });
   // A denied or partial window cannot establish the current state: refuse
   // instead of routing a mutation off incomplete reads.
   if (collected.error) throw collected.error;
   const open = collected.rows
-    .map((row) => decodeRow(kind, id, row))
     .filter((row): row is { assignmentId: number; assignee: number | null } => row !== null);
   if (open.length > 1) {
     throw new AxiError(

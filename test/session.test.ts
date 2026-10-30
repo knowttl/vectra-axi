@@ -629,8 +629,13 @@ it("reports an unmapped failure status without retrying", async () => {
 });
 
 it("rejects a non-JSON success body", async () => {
-  const transport = vi.fn<RawTransport>().mockResolvedValue({ status: 200, bodyText: "<html>nope</html>" });
-  await expect(session(transport).request("qux.health.list")).rejects.toMatchObject({ code: "RESPONSE_INVALID" });
+  const redactor = new SecretRedactor();
+  const transport = vi.fn<RawTransport>().mockResolvedValue({ status: 200, contentType: "text/html; charset=utf-8",
+    bodyText: "<html>synthetic-login-secret</html>" });
+  const error = await session(transport, tokenProfile, redactor).request("qux.health.list").catch((error: unknown) => error);
+  expect(error).toMatchObject({ code: "RESPONSE_INVALID" });
+  expect(redactor.responseDiagnostics.forError(error)).toEqual({ status: 200, contentType: "text/html",
+    shape: [{ path: "$", type: "undefined" }], shapeTruncated: false });
 });
 
 it("maps a TLS transport failure without retry or raw cause", async () => {
@@ -656,7 +661,7 @@ it("exposes a cloud snapshot with no appliance release", () => {
 
 it("exposes no raw transport, fetch handle or credential material", async () => {
   const owned = session(vi.fn<RawTransport>().mockResolvedValue(ok({})));
-  expect(Object.keys(owned).sort()).toEqual(["profile", "request", "resolveContinuation"]);
+  expect(Object.keys(owned).sort()).toEqual(["diagnosticsForError", "profile", "request", "resolveContinuation"]);
   expect(owned.profile).toEqual({ name: "lab", kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5" });
   expect("transport" in owned && "fetch" in owned).toBe(false);
   expect(JSON.stringify(owned)).not.toContain(token);

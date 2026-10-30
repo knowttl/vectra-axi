@@ -37,6 +37,7 @@ const ruxHealthEvent2 = { id: 102, health_check_name: "disk", status: "WARNING",
   event_timestamp: "2026-10-01T12:05:00Z" };
 const next = "https://fixture.invalid/api/v2.5/detections?state=active&threat_gte=70&min_id=2";
 const responses = new Map<string, { status: number; body: unknown }>([
+  ["https://fixture.invalid/api/v3.4/threatFeeds/?page_size=100", { status: 200, body: { results: [], count: 0 } }],
   ["https://fixture.invalid/api/v2.5/detections?host_id=7&page_size=100",
     { status: 200, body: { results: [timeline42], count: 1 } }],
   ["https://fixture.invalid/api/v3.4/detections/?host_id=7&page_size=100",
@@ -324,7 +325,9 @@ https.request = ((options: RequestOptions, callback: (response: IncomingMessage)
     || ruxExchange || ruxResource)) {
     throw new Error(`Unexpected synthetic request: ${options.method} ${url}`);
   }
-  const response = Object.assign(new PassThrough(), { statusCode: fixture.status, headers: {} });
+  const diagnosticCase = ruxExchange || process.env.DIAGNOSTIC_MUTATION_ONLY && !mutation ? undefined : process.env.DIAGNOSTIC_CASE;
+  const response = Object.assign(new PassThrough(), { statusCode: fixture.status,
+    headers: { "content-type": diagnosticCase === "html" ? "text/html; charset=utf-8" : "application/json" } });
   const sent: Buffer[] = [];
   const pending = Object.assign(new EventEmitter(), {
     write: (chunk: string, encoding: BufferEncoding = "utf8"): boolean => {
@@ -341,7 +344,9 @@ https.request = ((options: RequestOptions, callback: (response: IncomingMessage)
           : { body: sent.length ? JSON.parse(Buffer.concat(sent).toString("utf8")) as unknown : {} } : {}) }) + "\n");
       queueMicrotask(() => {
         callback(response as unknown as IncomingMessage);
-        response.end(JSON.stringify(fixture.body));
+        response.end(diagnosticCase === "html" ? "<html>synthetic-login-secret</html>"
+          : diagnosticCase === "schema" ? JSON.stringify({ results: [{ id: "synthetic-private-id" }], count: 1 })
+          : JSON.stringify(fixture.body));
       });
     },
     destroy: (error?: Error): EventEmitter => {

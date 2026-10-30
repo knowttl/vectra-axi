@@ -78,8 +78,10 @@ export async function runDoctor(args: {
         const result = await runDetectionList(session, flags);
         if (result.failed) {
           const output = result.output as { code: unknown; error: unknown };
+          const diagnostics = redactor.responseDiagnostics.forError(output);
           rows.push({ name, auth: selected.auth, check, status: "failed",
-            code: output.code, error: output.error });
+            code: output.code, error: output.error,
+            ...(Object.keys(diagnostics).length ? { diagnostics } : {}) });
           note(recovery);
         } else {
           ok += 1;
@@ -89,8 +91,10 @@ export async function runDoctor(args: {
       }
     } catch (error) {
       if (!(error instanceof AxiError)) throw error;
+      const diagnostics = redactor.responseDiagnostics.forError(error);
       rows.push({ name, auth: selected.auth, check, status: "failed",
-        code: error.code, error: error.message });
+        code: error.code, error: error.message,
+        ...(Object.keys(diagnostics).length ? { diagnostics } : {}) });
       for (const hint of [error.message, ...error.suggestions]) note(`[${name}] ${hint}`);
       note(recovery);
     }

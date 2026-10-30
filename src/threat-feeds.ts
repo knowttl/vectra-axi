@@ -73,7 +73,8 @@ export async function runThreatFeedRead(
   const rows = completeRows.slice(0, limit);
   const total = result?.total ?? completeRows.length;
   return { failed: result?.error !== undefined, output: { profile: session.profile.name, count: rows.length, total,
-    ...(result?.error ? { error: result.error.message } : {}),
+    ...(result?.error ? { error: result.error.message, code: result.error.code,
+      ...session.diagnosticsForError(result.error) } : {}),
     feeds: rows.map(({ id, name, defaults }) => ({ id, name, category: defaults.category, certainty: defaults.certainty })),
     help: result?.complete === false || rows.length < total
       ? [session.profile.kind === "rux" ? `Run \`vectra-axi threat-feed list --profile ${session.profile.name} --all\` for bounded traversal`
