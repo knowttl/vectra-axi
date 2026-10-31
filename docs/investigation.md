@@ -25,7 +25,7 @@ Help cannot be combined with `--profile`.
 Bare `-v`, `-V` or `--version` prints the package version.
 
 ```sh
-# Local state and explicit connectivity check
+# Home context and explicit connectivity check (see output.md#home-context)
 vectra-axi home
 vectra-axi doctor --profile onprem
 

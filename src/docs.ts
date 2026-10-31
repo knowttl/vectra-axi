@@ -94,7 +94,7 @@ export function commandDocument(): string {
 // scripts/generate-docs.mjs writes those files; test/generated.test.ts
 // and docs:check fail when they are stale.
 
-// One row per executable leaf in catalogue order, matching the home-view
+// One row per executable leaf in catalogue order, matching the root
 // help. Every leaf is implemented by a vectra-axi handler (native).
 // Local views stay offline; QUX and RUX reads use the read-only session, tag
 // replaces, bulk tag changes, note appends, note edits/deletes, assignment

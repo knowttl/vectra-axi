@@ -3,7 +3,7 @@
 ## Home context
 
 No arguments and `home` select the same profile as explicit reads.
-QUX v2.5 supports personal tokens or OAuth; RUX v3.4 supports OAuth only.
+See [Profiles and SecretRefs](configuration.md#profiles-and-secretrefs) for supported deployment and authentication combinations.
 Unsupported deployment, version or authentication combinations fail configuration validation before any service call.
 Home reads only `state=active` detections, retaining the native threat/certainty scores on both deployments.
 Entities, health and other detection states are not queried or represented as empty.
@@ -11,7 +11,7 @@ The explicit `setup` command remains offline, and only `setup hooks` installs se
 
 Home fetches at most one collection page with `page_size=5`, a five-row output limit, no retries and a ten-second deadline, using the session's existing response byte limit.
 The deadline also covers OAuth authentication; the named token exchange is the only possible POST and grants no response-operation permission.
-Detection type and state previews stop at 80 characters; the scoped `detection show` hint recovers full text.
+Detection type and state previews stop at 80 characters; add `--full` to the scoped `detection show` hint for complete returned text.
 `total` is the server count or null when unknown, never a local estimate or an entity total.
 `shown` counts validated rows in this window, including when a later row is malformed.
 
@@ -23,7 +23,7 @@ Detection type and state previews stop at 80 characters; the scoped `detection s
 | `denied` | API role, permission or licence denial; total unknown | 1 |
 | `authentication_failed` | Missing or rejected credential; no successful detection read | 1 |
 | `incomplete` | Malformed response, inconsistent count, or budget failure; validated rows retained | 1 |
-| `unavailable` | Detection service request failed; no empty-success claim | 1 |
+| `unavailable` | Detection request or OAuth exchange service failure; no empty-success claim | 1 |
 
 Failure output retains the error code and diagnostic guidance.
 The next read keeps the selected config, profile and active filter; environment-only profiles retain their environment selection.
