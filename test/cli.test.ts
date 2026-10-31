@@ -269,6 +269,50 @@ it.each(["lab", "cloud"])("reads host detection details without per-detection re
   ]);
 });
 
+const hostNameSuccess = { complete: true, host: { id: 7, name: "synthetic-host-7" },
+  detections: [{ id: 42, summary: { dst_ips: ["10.0.0.2"] },
+    grouped_details: [{ dst_ips: ["10.0.0.2"], target_domains: ["example.test:443"] }] }],
+};
+it.each([
+  { kind: "qux", scenario: "success", exit: 0, reads: 2, detectionReads: 1, exchanges: 0, expected: hostNameSuccess },
+  { kind: "rux", scenario: "success", exit: 0, reads: 2, detectionReads: 1, exchanges: 1, expected: hostNameSuccess },
+  { kind: "qux", scenario: "ambiguous", exit: 1, reads: 1, detectionReads: 0, exchanges: 0,
+    expected: { complete: false, code: "HOST_AMBIGUOUS",
+      hosts: [{ id: 7, name: "synthetic-host-7" }, { id: 8, name: "web-02" }],
+      help: ["Use host list --name <text> to inspect matches, then detection list --host-id <id>"],
+    } },
+  { kind: "qux", scenario: "lookup-partial", exit: 1, reads: 2, detectionReads: 0, exchanges: 0,
+    expected: { complete: false, code: "ACCESS_DENIED", hosts: [{ id: 7, name: "synthetic-host-7" }] } },
+  { kind: "qux", scenario: "budget", exit: 1, reads: 10, detectionReads: 9, exchanges: 0,
+    expected: { complete: false, code: "REQUEST_BUDGET_EXCEEDED", cursor: expect.any(String),
+      detections: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }, { id: 6 }, { id: 7 }, { id: 8 }, { id: 9 }],
+    } },
+  { kind: "qux", scenario: "detection-partial", exit: 1, reads: 3, detectionReads: 2, exchanges: 0,
+    expected: { complete: false, code: "ACCESS_DENIED", cursor: expect.any(String),
+      detections: [{ id: 42, summary: { dst_ips: ["10.0.0.2"] } }],
+    } },
+])("resolves host names through the packaged $kind CLI: $scenario", ({ kind, scenario, exit, reads, detectionReads, exchanges, expected }) => {
+  const config = join(scratch, `host-name-${kind}-${scenario}.json`);
+  const trace = join(scratch, `host-name-${kind}-${scenario}.jsonl`);
+  writeFileSync(config, JSON.stringify({ profiles: { lab: kind === "qux"
+    ? { kind, origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN" }
+    : { kind, origin: "https://fixture.invalid", apiVersion: "3.4", auth: "oauth", clientId: "synthetic-client", secretEnv: "CLOUD_SECRET" },
+  } }));
+  const result = invoke(["detection", "list", "--config", config, "--profile", "lab",
+    "--host-name", "web", "--fields", "id,summary,grouped_details", "--all"], {
+    VECTRA_AXI_READ_ONLY: "1", HOST_NAME_CASE: scenario,
+    SENTINEL_TOKEN: "packaged-detection-token", CLOUD_SECRET: "synthetic-secret", DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}`,
+  });
+  expect(result.status, result.stdout + result.stderr).toBe(exit);
+  expect(decode(result.stdout)).toMatchObject(expected);
+  const requests = readFileSync(trace, "utf8").trimEnd().split("\n").map((line) => JSON.parse(line));
+  expect(requests.filter((request) => request.method === "GET")).toHaveLength(reads);
+  expect(requests.filter((request) => new URL(request.url).pathname.includes("/detections"))).toHaveLength(detectionReads);
+  expect(requests.filter((request) => request.method !== "GET" && new URL(request.url).pathname !== "/oauth2/token")).toEqual([]);
+  expect(requests.filter((request) => request.method === "POST")).toHaveLength(exchanges);
+});
+
 it.each(["qux", "rux"])("shows every %s host field through the packaged CLI", (kind) => {
   const config = join(scratch, `host-detail-${kind}.json`);
   const profile = kind === "qux"

@@ -116,7 +116,14 @@ export type CollectionArgs<T = unknown> = {
   clock?: Clock;
   policy?: Partial<CollectionPolicy>;
   decodeRow?: (row: unknown) => T;
+  budget?: CollectionBudget;
 };
+
+// Composite reads share traversal costs across their collection operations.
+export type CollectionBudget = { requests: number; bytes: number; rows: number; deadlineAt?: number };
+export function collectionBudget(): CollectionBudget {
+  return { requests: 0, bytes: 0, rows: 0 };
+}
 
 type Scalar = string | number | boolean;
 
@@ -307,18 +314,18 @@ async function fetchPageWithRetry(args: {
   clock: Clock;
   signal: AbortSignal | undefined;
   deadlineAt: number;
-  counter: { count: number };
+  counter: CollectionBudget;
 }): Promise<unknown> {
   const { session, operation, pathParams, pageQuery, policy, clock, signal, deadlineAt, counter } = args;
   let attempt = 0;
   for (;;) {
     ensureLive(signal, clock, deadlineAt, policy.deadlineMs);
-    if (counter.count >= policy.maxRequests) {
+    if (counter.requests >= policy.maxRequests) {
       throw new AxiError(`Collection read exceeded its ${policy.maxRequests} request budget`, "REQUEST_BUDGET_EXCEEDED", [
         "Resume the read with the returned cursor to fetch the remaining pages",
       ]);
     }
-    counter.count += 1;
+    counter.requests += 1;
     try {
       const controller = new AbortController();
       const onAbort = (): void => controller.abort();
@@ -399,6 +406,7 @@ class AdvanceFailed extends Error {
 }
 
 type PageRun<T> = {
+  budget?: CollectionBudget;
   all: boolean;
   session: Session;
   operation: string;
@@ -418,15 +426,14 @@ type PageRun<T> = {
 
 async function runPages<T>(run: PageRun<T>): Promise<CollectionResult<T>> {
   const { session, operation, pathParams, contextQuery, policy, clock, signal } = run;
-  const deadlineAt = clock.now() + policy.deadlineMs;
+  const counter = run.budget ?? collectionBudget();
+  const deadlineAt = counter.deadlineAt ??= clock.now() + policy.deadlineMs;
   const profile = session.profile;
   const rows: T[] = [];
   let total: number | null = run.startTotal;
   let totalKnown = run.startTotal !== null;
-  let usedBytes = 0;
   let pagesFetched = 0;
   const seen = new Set(run.visited);
-  const counter = { count: 0 };
   let pageQuery = run.startQuery;
   let offset = run.offset;
   let remaining = run.remaining;
@@ -478,8 +485,8 @@ async function runPages<T>(run: PageRun<T>): Promise<CollectionResult<T>> {
         total = page.total;
         totalKnown = true;
       }
-      usedBytes += Buffer.byteLength(JSON.stringify(body), "utf8");
-      if (usedBytes > policy.maxBytes) {
+      counter.bytes += Buffer.byteLength(JSON.stringify(body), "utf8");
+      if (counter.bytes > policy.maxBytes) {
         throw new AxiError(
           `Collection read exceeded its ${policy.maxBytes} byte budget`,
           "BYTE_BUDGET_EXCEEDED",
@@ -489,7 +496,12 @@ async function runPages<T>(run: PageRun<T>): Promise<CollectionResult<T>> {
       const available = page.rows.slice(offset);
       const take = Math.min(available.length, remaining);
       for (const row of available.slice(0, take)) {
+        if (run.budget && counter.rows >= ALL_COLLECTION_LIMIT) {
+          throw new AxiError(`Collection read exceeded its ${ALL_COLLECTION_LIMIT} row budget`,
+            "ROW_BUDGET_EXCEEDED", ["Use --host-id with the resolved ID to continue the detection read"]);
+        }
         rows.push(run.decodeRow(row));
+        counter.rows += 1;
         offset += 1;
         pending.offset = offset;
         remaining -= 1;
@@ -536,6 +548,7 @@ export async function collect<T = unknown>(
   const query = { ...(args.query ?? {}) };
   const pathParams = { ...(args.pathParams ?? {}) };
   return runPages({
+    budget: args.budget,
     all: args.all === true,
     session,
     operation,
@@ -577,6 +590,7 @@ export async function resume<T = unknown>(
   const record = collectionRecord(session, operation);
   const policy = readPolicy(args);
   return runPages({
+    budget: args.budget,
     all: args.all === true,
     session,
     operation,

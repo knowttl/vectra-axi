@@ -1,6 +1,6 @@
 import { AxiError } from "axi-sdk-js";
 import { z } from "zod";
-import { collect, collectionLimit, resume } from "./collections.js";
+import { collect, collectionBudget, collectionLimit, resume } from "./collections.js";
 import { embeddedNoteSummary } from "./notes.js";
 import type { Session } from "./session.js";
 
@@ -77,6 +77,12 @@ function numberFlag(flags: ReadonlyMap<string, string | boolean>, name: string):
 // with --cursor replays the bound query, so the original filters must be
 // repeated; resume() rejects a changed query context explicitly.
 export function listQuery(flags: ReadonlyMap<string, string | boolean>): ListQuery {
+  if (flags.has("host-name")) {
+    if (flags.has("host-id")) invalid("--host-name cannot be combined with --host-id", "Choose one host selector");
+    if (typeof flags.get("host-name") !== "string" || !String(flags.get("host-name")).trim()) {
+      invalid("--host-name must be non-empty search text", "Example: --host-name web-01");
+    }
+  }
   const query: ListQuery = {};
   for (const [flag, key] of Object.entries(FILTER_FLAGS)) {
     const raw = flags.get(flag);
@@ -142,6 +148,7 @@ const detectionSchema = z.object({
   is_marked_custom: z.unknown().optional(),
 });
 const detailSchema = detectionSchema.extend({ description: z.string().nullable().optional() });
+const hostMatchSchema = z.object({ id: z.number().int().positive(), name: z.string().nullable().optional() });
 
 function decodeDetection<T>(value: unknown, schema: z.ZodType<T>): T {
   const result = schema.safeParse(value);
@@ -187,11 +194,37 @@ export async function runDetectionList(
   const all = flags.has("all");
   const fields = listFields(flags);
   const cursor = flags.get("cursor");
+  const budget = flags.has("host-name") ? collectionBudget() : undefined;
+  let host: { id: number; name?: string | null } | undefined;
+  if (budget) {
+    const hosts = await collect(session, session.profile.kind === "rux" ? "rux.host.list" : "qux.host.list", {
+      query: { name: String(flags.get("host-name")) }, budget,
+      decodeRow: (row) => {
+        const parsed = hostMatchSchema.safeParse(row);
+        if (!parsed.success) throw new AxiError("Vectra host response is malformed", "RESPONSE_INVALID", []);
+        return parsed.data;
+      },
+    });
+    const candidates = [...new Map(hosts.rows.map((row) => [row.id, row])).values()];
+    const complete = hosts.complete && (hosts.total === null || hosts.total === hosts.rows.length);
+    if (hosts.error || !complete || candidates.length !== 1) {
+      return { failed: true, output: {
+        profile: session.profile.name, complete: false, hosts: candidates,
+        error: hosts.error?.message ?? (!complete ? "Host name lookup is incomplete"
+          : candidates.length ? "Host name search is ambiguous" : "No hosts matched the host name search"),
+        code: hosts.error?.code ?? (!complete ? "HOST_LOOKUP_INCOMPLETE"
+          : candidates.length ? "HOST_AMBIGUOUS" : "HOST_NOT_FOUND"),
+        help: ["Use host list --name <text> to inspect matches, then detection list --host-id <id>"],
+      } };
+    }
+    host = candidates[0]!;
+    query.host_id = host.id;
+  }
   const decodeRow = (row: unknown): Record<string, unknown> => decodeDetection(row, detectionSchema);
   const operation = session.profile.kind === "rux" ? RUX_DETECTION_LIST_OPERATION : DETECTION_LIST_OPERATION;
   const result = typeof cursor === "string"
-    ? await resume(session, operation, cursor, { query, limit, all, decodeRow })
-    : await collect(session, operation, { query, limit, all, decodeRow });
+    ? await resume(session, operation, cursor, { query, limit, all, decodeRow, budget })
+    : await collect(session, operation, { query, limit, all, decodeRow, budget });
   const rows = result.rows.map((row) =>
     Object.fromEntries(fields.filter((field) => Object.hasOwn(row, field)).map((field) => [field, row[field]])));
   const shown = rows.length;
@@ -203,6 +236,7 @@ export async function runDetectionList(
     const failure = result.error;
     return { failed: true, output: {
       profile,
+      ...(host ? { host } : {}),
       total: result.total,
       count,
       detections: rows,
@@ -217,6 +251,7 @@ export async function runDetectionList(
   if (shown === 0) {
     return { failed: false, output: {
       profile,
+      ...(host ? { host } : {}),
       total: result.total,
       count,
       detections: `0 detections found ${summarizeFilters(query)}`,
@@ -227,6 +262,7 @@ export async function runDetectionList(
   const firstId = result.rows[0]!.id;
   return { failed: false, output: {
     profile,
+    ...(host ? { host } : {}),
     total: result.total,
     count,
     detections: rows,

@@ -319,7 +319,26 @@ https.request = ((options: RequestOptions, callback: (response: IncomingMessage)
   const homeFixture = homeCase && homeCase !== "provenance"
     && /^\/api\/v(2\.5|3\.4)\/detections\/?$/.test(new URL(url).pathname)
     ? homeResponses[homeCase] : undefined;
-  const fixture = homeFixture ?? mutation ?? responses.get(url);
+  const hostNameCase = process.env.HOST_NAME_CASE;
+  const parsed = new URL(url);
+  const isHostLookup = /\/hosts\/?$/.test(parsed.pathname) && parsed.searchParams.get("name") === "web";
+  const isHostDetections = /\/detections\/?$/.test(parsed.pathname) && parsed.searchParams.get("host_id") === "7";
+  const page = Number(parsed.searchParams.get("page") ?? 1);
+  const hostNameFixture = !hostNameCase ? undefined : isHostLookup
+    ? hostNameCase === "lookup-partial" && page === 2 ? { status: 403, body: {} }
+      : { status: 200, body: { count: hostNameCase === "ambiguous" || hostNameCase === "lookup-partial" ? 2 : 1,
+        results: hostNameCase === "ambiguous" ? [host7, { id: 8, name: "web-02" }] : [host7],
+        ...(hostNameCase === "lookup-partial" ? { next: `${parsed.origin}${parsed.pathname}?name=web&page=2` } : {}),
+      } }
+    : isHostDetections && hostNameCase === "budget"
+      ? { status: 200, body: { results: [{ ...first, id: page }], count: 10,
+        next: `${parsed.origin}${parsed.pathname}?host_id=7&page=${page + 1}` } }
+      : isHostDetections && hostNameCase === "detection-partial"
+        ? page === 2 ? { status: 403, body: {} }
+          : { status: 200, body: { results: [timeline42], count: 2,
+            next: `${parsed.origin}${parsed.pathname}?host_id=7&page=2` } }
+        : undefined;
+  const fixture = hostNameFixture ?? homeFixture ?? mutation ?? responses.get(url);
   const headers = options.headers as Record<string, string>;
   const ruxExchange = (url === "https://fixture.invalid/oauth2/token" || url === "https://fixture.invalid/api/v2.5/oauth2/token") && options.method === "POST"
     && (headers.Authorization ?? "").startsWith("Basic ")
