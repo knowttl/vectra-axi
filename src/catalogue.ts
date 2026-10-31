@@ -90,7 +90,8 @@ export const catalogue: Readonly<Record<string, {
       state: { kind: "value", valueName: "state", description: "Filter by server-side detection state" },
       "detection-type": { kind: "value", valueName: "type", description: "Filter by server-side detection type" },
       "detection-category": { kind: "value", valueName: "category", description: "Filter by server-side detection category" },
-      "host-id": { kind: "value", valueName: "id", description: "Filter by server-side host ID (positive integer); find it with host list --name <text>, then detection list --host-id <id>" },
+      "host-id": { kind: "value", valueName: "id", description: "Filter by server-side host ID (positive integer); cannot combine with --host-name" },
+      "host-name": { kind: "value", valueName: "text", description: "Resolve a server-side host name search before listing detections; requires one unique ID in a complete bounded lookup, shares traversal budgets; cannot combine with --host-id" },
       tags: { kind: "value", valueName: "tags", description: "Filter by server-side tags" },
       "certainty-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum certainty" },
       "threat-gte": { kind: "value", valueName: "score", description: "Filter by server-side minimum threat" },
@@ -104,6 +105,7 @@ export const catalogue: Readonly<Record<string, {
     },
     examples: [
       "vectra-axi detection list --profile <name> --state active --limit 100",
+      "vectra-axi detection list --profile <name> --host-name web-01 --fields id,summary,grouped_details",
       "vectra-axi detection list --profile <name> --threat-gte 70 --fields id,state,threat",
       "vectra-axi detection list --profile <name> --cursor <cursor>",
     ],

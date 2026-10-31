@@ -55,7 +55,7 @@ On cursor resume, completeness describes exhaustion from that position, not whet
 - Resume collections with `--cursor` and the original filters and target context.
   A successful bounded window can still have more rows; cursors do not provide snapshot isolation.
 - Detection, host, account, type-qualified entity, assignment, assignment outcome, user, group, group member and triage rule lists support `--all` on QUX and RUX.
-  It traverses pages within 10 requests (including retries), 8 MiB of decoded page bodies, 60 seconds and 10,000 output rows per invocation.
+  It traverses pages within 10 requests (including retries), 8 MiB of decoded page bodies, 60 seconds and 10,000 rows per invocation, including lookup rows for [host name resolution](#host-name-resolution).
   `--all` cannot be combined with `--limit`.
   Exhausted budgets retain validated rows, report `complete: false` with an error and continuation cursor, and exit 1.
   Resume with `--all --cursor <cursor>` and the original profile, filters and entity type to start fresh budgets at the next unread position.
@@ -74,4 +74,23 @@ On cursor resume, completeness describes exhaustion from that position, not whet
 It does not accept arbitrary URLs, headers, methods, or credential-export operations.
 Quote `--path` and `--query` pairs joined with `&`, and percent-encode reserved characters inside values.
 Checkpoint and date-window operations use their named commands instead.
+
+## Host name resolution
+
+On QUX and RUX, `detection list --host-name <text>` performs a read-only server-side host name search before listing detections.
+The search uses the same `name` query as `host list --name <text>`, without client-side exact-match filtering; exact/partial and case matching are unspecified by the API guides.
+The text must be non-empty and cannot be combined with `--host-id`.
+The lookup reads at most 100 host rows, regardless of detection `--limit` or `--all`.
+Detections are read only when the lookup exhausts successfully, any known server count matches the number of returned host rows, and those rows contain exactly one unique host ID.
+
+An empty, ambiguous or incomplete lookup exits 1 with `complete: false` and validated candidates under `hosts`, including IDs and names when supplied.
+The codes are `HOST_NOT_FOUND`, `HOST_AMBIGUOUS` and `HOST_LOOKUP_INCOMPLETE`, respectively; a lookup failure retains its underlying error code instead.
+No detections are requested and no host lookup cursor is returned in these cases.
+Use `host list --name <text>` to inspect matches, then `detection list --host-id <id>` to select the host explicitly.
+
+Successful resolution adds `host` with the resolved ID and the name when supplied to the detection result, including empty results and partial detection failures.
+The lookup and detection traversal share the request, byte, time and row budgets described above, so lookup rows reduce the available detection rows.
+Detection failures retain validated detection rows and a continuation cursor when available.
+Resume a detection cursor with the original profile and other filters, using either the original `--host-name` (which repeats the lookup) or `--host-id <resolved-id>` to avoid another lookup.
+Keep `--all` when resuming an all-pages read.
 

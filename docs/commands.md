@@ -475,7 +475,8 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
     "--state <state>": "Filter by server-side detection state",
     "--detection-type <type>": "Filter by server-side detection type",
     "--detection-category <category>": "Filter by server-side detection category",
-    "--host-id <id>": "Filter by server-side host ID (positive integer); find it with host list --name <text>, then detection list --host-id <id>",
+    "--host-id <id>": "Filter by server-side host ID (positive integer); cannot combine with --host-name",
+    "--host-name <text>": "Resolve a server-side host name search before listing detections; requires one unique ID in a complete bounded lookup, shares traversal budgets; cannot combine with --host-id",
     "--tags <tags>": "Filter by server-side tags",
     "--certainty-gte <score>": "Filter by server-side minimum certainty",
     "--threat-gte <score>": "Filter by server-side minimum threat",
@@ -493,6 +494,7 @@ QUX: collection pages; bounded --all supported; RUX: collection pages; bounded -
   ],
   "examples": [
     "vectra-axi detection list --profile <name> --state active --limit 100",
+    "vectra-axi detection list --profile <name> --host-name web-01 --fields id,summary,grouped_details",
     "vectra-axi detection list --profile <name> --threat-gte 70 --fields id,state,threat",
     "vectra-axi detection list --profile <name> --cursor <cursor>"
   ]

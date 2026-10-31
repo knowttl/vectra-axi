@@ -19,7 +19,8 @@ This works on QUX and RUX and avoids a `detection show` call per row.
 It projects fields returned by the list API; it cannot restore upstream omissions.
 The row window can span pages, so one invocation can make several HTTP requests.
 Check counts and the returned cursor before concluding that all detections were read.
-If only the host name is known, use `host list --name <text>` first, select the matching ID, then pivot with `--host-id`; no combined name-to-detections command exists.
+If only the host name is known, use `detection list --host-name <text> --fields id,summary,grouped_details`.
+See [host name resolution](output.md#host-name-resolution) for lookup bounds, candidate disclosure, shared budgets and cursor recovery with `--host-id`.
 Reads are synchronous; no start/poll sequence is needed.
 
 ## Frequent read commands

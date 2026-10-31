@@ -6,7 +6,7 @@ user-invocable: false
 
 # vectra-axi
 
-Start investigations with the [compact agent guide](https://github.com/knowttl/vectra-axi/blob/main/docs/agent-guide.md), including host-scoped detail reads, output bounds, safe commands and failure recovery.
+Start investigations with the [compact agent guide](https://github.com/knowttl/vectra-axi/blob/main/docs/agent-guide.md), including `detection list --host-name <text>` for an unambiguous bounded host lookup, host-scoped detail reads, output bounds, safe commands and failure recovery.
 
 Agent-ergonomic CLI for Vectra AI, read-only by default, through token-efficient TOON output.
 Covers QUX (on-prem v2.5) and RUX (cloud v3.4) detection, host, account, type-qualified entity, note, tag, assignment, outcome, user, group, member, triage-rule, audit, health, lockdown, detection-event and entity-scoring reads, plus the reviewed `api get` raw-read leaf over allowlisted GET operations.

@@ -29,7 +29,7 @@ const check = process.argv.includes("--check");
 const table = skillCommandTable();
 const skill = withTable(readFileSync(skillPath, "utf8").replace(/\r\n/g, "\n"), table, skillPath)
   .replace(/(# vectra-axi\n\n)(?:Start investigations with[^\n]*\n\n)?/,
-    "$1Start investigations with the [compact agent guide](https://github.com/knowttl/vectra-axi/blob/main/docs/agent-guide.md), including host-scoped detail reads, output bounds, safe commands and failure recovery.\n\n");
+    "$1Start investigations with the [compact agent guide](https://github.com/knowttl/vectra-axi/blob/main/docs/agent-guide.md), including `detection list --host-name <text>` for an unambiguous bounded host lookup, host-scoped detail reads, output bounds, safe commands and failure recovery.\n\n");
 const coverage = coverageDocument();
 const commands = commandDocument();
 if (check) {
