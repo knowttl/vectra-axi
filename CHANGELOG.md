@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.13](https://github.com/knowttl/vectra-axi/compare/v0.1.12...v0.1.13) (2026-10-30)
+
+
+### Bug Fixes
+
+* preserve safe diagnostics for invalid upstream responses ([#104](https://github.com/knowttl/vectra-axi/issues/104)) ([d6aae56](https://github.com/knowttl/vectra-axi/commit/d6aae56ed82576ac07b8d9179851d4946d7b8ba1))
+* report incomplete results while continuation cursors remain ([#102](https://github.com/knowttl/vectra-axi/issues/102)) ([2fb2eb9](https://github.com/knowttl/vectra-axi/commit/2fb2eb924f3a16352140dc43bca6ec320bf04f23))
+
 ## [0.1.12](https://github.com/knowttl/vectra-axi/compare/v0.1.11...v0.1.12) (2026-10-28)
 
 
