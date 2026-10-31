@@ -256,6 +256,7 @@ export async function runDetectionHome(
   const failed = !!result.error || inconsistent;
   const status = result.error?.code === "ACCESS_DENIED" ? "denied"
     : ["REQUEST_FAILED", "TRANSPORT_FAILED", "AUTH_EXCHANGE_FAILED"].includes(result.error?.code ?? "") ? "unavailable"
+    : result.error?.code === "AUTH_RESPONSE_INVALID" ? "incomplete"
     : result.error?.code.startsWith("AUTH_") ? "authentication_failed"
     : failed ? "incomplete" : result.complete ? (result.rows.length ? "complete" : "empty") : "windowed";
   return { failed, output: {

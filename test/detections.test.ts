@@ -157,6 +157,24 @@ it.each(["qux", "rux"].flatMap((kind) => ["503", "ECONNREFUSED", "ENOTFOUND"].ma
   } });
 });
 
+it.each(["qux", "rux"].flatMap((kind) => [
+  { access_token: undefined }, { access_token: "invalid token" }, { token_type: "invalid" }, { expires_in: "invalid" },
+].map((invalid) => ({ kind, invalid }))))
+("reports $kind malformed OAuth response $invalid as incomplete", async ({ kind, invalid }) => {
+  writeFileSync(path, JSON.stringify({ profiles: { lab: {
+    ...ruxProfile, kind, apiVersion: kind === "rux" ? "3.4" : "2.5",
+  } } }));
+  const loaded = loadConfig(path, new SecretRedactor());
+  const owned = createSession({ profile: selectProfile(loaded.config, "lab"), configPath: loaded.path,
+    redactor: new SecretRedactor(), transport: async () => ({ status: 200, bodyText: JSON.stringify({
+      access_token: "fake-access-token", token_type: "Bearer", expires_in: 3600, ...invalid,
+    }) }) });
+  const result = await runDetectionHome(owned, { envProfile: false });
+  expect(result).toMatchObject({ failed: true, output: {
+    status: "incomplete", code: "AUTH_RESPONSE_INVALID", shown: 0, total: null, complete: false,
+  } });
+});
+
 it.each(["qux", "rux"].flatMap((kind) => ["exhausted", "next", "oversized", "partial"].map((shape) => ({ kind, shape }))))
 ("rejects $kind $shape home totals below validated rows", async ({ kind, shape }) => {
   const rows: unknown[] = Array.from({ length: shape === "oversized" ? 6 : 5 }, (_, i) => detection(i + 1));
