@@ -1,7 +1,7 @@
 # Contributing
 
 Keep changes focused and describe the problem, resulting behavior and validation in the pull request.
-Use Node.js 22.12 or later and pnpm 10.34.6 through Corepack.
+Use Node.js 24 and pnpm 10.34.6 through Corepack for local development.
 
 ## Local validation
 
@@ -37,7 +37,7 @@ Exempt: validation-boundary tests, contract tests against an agreed schema or re
 
 Tests use temporary HOME and XDG directories, synthetic credentials and fixtures, and deny external network access.
 Do not use real services, credentials or customer data for automated validation.
-Use `node scripts/isolated.mjs node bin/vectra-axi.js --help` for an offline manual CLI check.
+Use `node scripts/isolated.ts node bin/vectra-axi.js --help` for an offline manual CLI check.
 
 After changing the command catalogue or capability inventory, rebuild and run `corepack pnpm run docs:generate`, then repeat `docs:check`.
 Do not edit generated command tables, coverage records, the command reference or the agent guide by hand. Edit `scripts/agent-guide.md` for guide changes, then regenerate.

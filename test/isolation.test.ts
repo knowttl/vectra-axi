@@ -8,7 +8,7 @@ const outerHome = mkdtempSync(join(root, ".cli-test-outer-home-"));
 afterAll(() => rmSync(outerHome, { recursive: true, force: true }));
 
 it("keeps test subprocess writes out of the invoking HOME and XDG directories", () => {
-  const result = spawnSync(process.execPath, [join(root, "scripts/isolated.mjs"), process.execPath, "-e", `
+  const result = spawnSync(process.execPath, [join(root, "scripts/isolated.ts"), process.execPath, "-e", `
     const fs = require('node:fs');
     const path = require('node:path');
     const home = require('node:os').homedir();

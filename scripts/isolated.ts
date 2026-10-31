@@ -6,7 +6,7 @@ import { join } from "node:path";
 const home = mkdtempSync(join(tmpdir(), "vectra-axi-validation-"));
 try {
   const [command, ...args] = process.argv.slice(2);
-  const result = spawnSync(command, args, {
+  const result = spawnSync(command!, args, {
     stdio: "inherit",
     env: { ...process.env, HOME: home, USERPROFILE: home,
       XDG_CONFIG_HOME: join(home, ".config"), XDG_DATA_HOME: join(home, ".local/share"),
