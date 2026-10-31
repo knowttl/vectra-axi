@@ -2,11 +2,15 @@ import { rawAllowed } from "./api-get.js";
 import { catalogue, help, inventory, listPaging } from "./catalogue.js";
 
 const COMPOSITE_DEPLOYMENTS: Readonly<Record<string, readonly string[]>> = {
+  home: ["QUX", "RUX"],
   doctor: ["QUX", "RUX"],
   "api get": ["QUX", "RUX"],
 };
 
 function compositeDocumentLines(leaf: string): string[] | undefined {
+  if (leaf === "home") {
+    return ["Network command when configured; reads one bounded active-detection page through the selected QUX v2.5 or RUX v3.4 profile."];
+  }
   if (leaf === "doctor") {
     const qux = inventory.operations.find((operation) => operation.id === "qux.detection.list");
     const quxLabel = qux ? `${qux.deployment.toUpperCase()} API ${qux.apiVersion}` : "QUX API";
@@ -90,7 +94,7 @@ export function commandDocument(): string {
 // scripts/generate-docs.mjs writes those files; test/generated.test.ts
 // and docs:check fail when they are stale.
 
-// One row per executable leaf in catalogue order, matching the home-view
+// One row per executable leaf in catalogue order, matching the root
 // help. Every leaf is implemented by a vectra-axi handler (native).
 // Local views stay offline; QUX and RUX reads use the read-only session, tag
 // replaces, bulk tag changes, note appends, note edits/deletes, assignment

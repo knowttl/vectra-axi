@@ -1,0 +1,19 @@
+{
+  "provenance": "Synthetic recordings of the existing QUX v2.5 guide and RUX v3.4 detection fixture contracts; no live service or customer data.",
+  "complete": { "status": 200, "body": { "count": 1, "next": null, "results": [{ "id": 1, "detection_type": "synthetic-type", "state": "active", "threat": 71, "certainty": 80 }] } },
+  "empty": { "status": 200, "body": { "count": 0, "next": null, "results": [] } },
+  "unknown-total": { "status": 200, "body": { "next": null, "results": [{ "id": 1, "detection_type": "synthetic-type", "state": "active", "threat": 71, "certainty": 80 }] } },
+  "denied": { "status": 403, "body": {} },
+  "unauthorized": { "status": 401, "body": {} },
+  "unavailable": { "status": 503, "body": {} },
+  "inconsistent": { "status": 200, "body": { "count": 7, "next": null, "results": [] } },
+  "partial": { "status": 200, "body": { "count": 2, "next": null, "results": [{ "id": 1, "detection_type": "synthetic-type", "state": "active", "threat": 71, "certainty": 80 }, { "id": 2, "threat": "high" }] } },
+  "windowed": { "status": 200, "body": { "count": 6, "results": [
+    { "id": 1, "detection_type": "synthetic-type", "state": "active", "threat": 71, "certainty": 80 },
+    { "id": 2, "detection_type": "synthetic-type", "state": "active", "threat": 71, "certainty": 80 },
+    { "id": 3, "detection_type": "synthetic-type", "state": "active", "threat": 71, "certainty": 80 },
+    { "id": 4, "detection_type": "synthetic-type", "state": "active", "threat": 71, "certainty": 80 },
+    { "id": 5, "detection_type": "synthetic-type", "state": "active", "threat": 71, "certainty": 80 },
+    { "id": 6, "detection_type": "synthetic-type", "state": "active", "threat": 71, "certainty": 80 }
+  ] } }
+}

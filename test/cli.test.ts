@@ -44,6 +44,101 @@ function invoke(args: string[], extraEnv: Record<string, string> = {}) {
 const guideCommands = readFileSync(join(root, "docs/agent-guide.md"), "utf8")
   .split("\n").filter((line) => line.startsWith("vectra-axi "));
 
+const homeProfiles = [
+  { kind: "qux", apiVersion: "2.5", auth: "token" },
+  { kind: "qux", apiVersion: "2.5", auth: "oauth" },
+  { kind: "rux", apiVersion: "3.4", auth: "oauth" },
+];
+const homeCases = [
+  { scenario: "complete", status: "complete", exit: 0, shown: 1, total: 1, complete: true },
+  { scenario: "empty", status: "empty", exit: 0, shown: 0, total: 0, complete: true },
+  { scenario: "unknown-total", status: "complete", exit: 0, shown: 1, total: null, complete: true },
+  { scenario: "windowed", status: "windowed", exit: 0, shown: 5, total: 6, complete: false },
+  { scenario: "denied", status: "denied", exit: 1, shown: 0, total: null, complete: false, code: "ACCESS_DENIED" },
+  { scenario: "unauthorized", status: "authentication_failed", exit: 1, shown: 0, total: null, complete: false, code: "AUTH_FAILED" },
+  { scenario: "partial", status: "incomplete", exit: 1, shown: 1, total: 2, complete: false, code: "RESPONSE_INVALID" },
+  { scenario: "inconsistent", status: "incomplete", exit: 1, shown: 0, total: 7, complete: false, code: "RESPONSE_INVALID" },
+  { scenario: "unavailable", status: "unavailable", exit: 1, shown: 0, total: null, complete: false, code: "REQUEST_FAILED" },
+];
+
+it.each(homeProfiles.flatMap((profile) => homeCases.map((scenario) => ({ ...profile, ...scenario }))))
+("packaged $kind $auth home reports $scenario with its original scope", ({ kind, apiVersion, auth, scenario, status, exit, shown, total, complete, ...failure }) => {
+  const config = join(scratch, `home-${kind}-${auth}-${scenario}.json`);
+  const trace = join(scratch, `home-${kind}-${auth}-${scenario}.jsonl`);
+  writeFileSync(config, JSON.stringify({ version: 1, defaultProfile: "lab", profiles: { lab: {
+    kind, apiVersion, auth, origin: "https://fixture.invalid",
+    ...(auth === "token" ? { token: { env: "SENTINEL_TOKEN" } }
+      : { clientId: "synthetic-client", clientSecret: { env: "SENTINEL_TOKEN" } }),
+  } } }));
+  const before = readdirSync(home);
+  const fixtureEnv = { VECTRA_AXI_CONFIG: config, SENTINEL_TOKEN: "packaged-detection-token", HOME_CASE: scenario,
+    DETECTION_TRACE: trace,
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const result = invoke([], fixtureEnv);
+  expect(result.status).toBe(exit);
+  expect(result.stderr).toBe("");
+  const output = decode(result.stdout) as { live: { detections: unknown[]; help: string[] } };
+  expect(output).toMatchObject({ state: "configured", profile: { name: "lab", kind, apiVersion, auth, origin: "https://fixture.invalid" },
+    live: { status, shown, total, complete, ...failure, scope: "active detections only; entities and other detection states were not queried" } });
+  expect(output.live.detections).toHaveLength(shown);
+  expect(output.live.help.join("\n")).toContain(config);
+  expect(output.live.help.join("\n")).toContain("--profile lab --state active --limit 20");
+  expect(result.stdout.length).toBeLessThan(5000);
+  expect(output).not.toHaveProperty("capabilities");
+  expect(result.stdout).not.toMatch(/packaged-detection-token|packaged-rux-token|synthetic-client/);
+  expect(readdirSync(home)).toEqual(before);
+  const requests = readFileSync(trace, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+  expect(requests).toEqual([
+    ...(auth === "oauth" ? [{ method: "POST", url: `https://fixture.invalid${kind === "rux" ? "" : "/api/v2.5"}/oauth2/token` }] : []),
+    { method: "GET", url: `https://fixture.invalid/api/v${apiVersion}/detections${kind === "rux" ? "/" : ""}?state=active&page_size=5` },
+  ]);
+});
+
+it("rejects configured home typos before exchanging OAuth credentials", () => {
+  const config = join(scratch, "home-typo.json");
+  const trace = join(scratch, "home-typo.jsonl");
+  writeFileSync(config, JSON.stringify({ version: 1, profiles: { cloud: { kind: "rux", apiVersion: "3.4", auth: "oauth",
+    origin: "https://fixture.invalid", clientId: "synthetic-client", clientSecret: { env: "SENTINEL_TOKEN" } } } }));
+  const result = invoke(["--typo", "--config", config], { SENTINEL_TOKEN: "packaged-detection-token", HOME_CASE: "complete",
+    DETECTION_TRACE: trace, NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` });
+  expect(result.status).toBe(2);
+  expect(decode(result.stdout)).toMatchObject({ code: "VALIDATION_ERROR", error: "Unknown flag: --typo" });
+  expect(() => readFileSync(trace)).toThrow();
+  expect(result.stderr).toBe("");
+});
+
+it.each([
+  { kind: "rux", apiVersion: "3.4", auth: "token", token: { env: "SENTINEL_TOKEN" } },
+  { kind: "qux", apiVersion: "2.4", auth: "token", token: { env: "SENTINEL_TOKEN" } },
+  { kind: "unknown", apiVersion: "2.5", auth: "token", token: { env: "SENTINEL_TOKEN" } },
+])("refuses unsupported home deployment $kind $apiVersion $auth before service access", (profile) => {
+  const config = join(scratch, "unsupported-home.json");
+  writeFileSync(config, JSON.stringify({ version: 1, profiles: { lab: { ...profile, origin: "https://fixture.invalid" } } }));
+  const result = invoke(["home", "--config", config]);
+  expect(result.status).toBe(1);
+  expect(decode(result.stdout)).toMatchObject({ code: "CONFIG_INVALID", help: expect.arrayContaining([
+    "Use kind qux with apiVersion 2.5, or kind rux with apiVersion 3.4 and auth oauth; QUX auth token uses token, OAuth requires clientId and clientSecret",
+  ]) });
+  expect(result.stderr).toBe("");
+});
+
+it("recovers the home window using the scoped list and its continuation cursor", () => {
+  const config = join(scratch, "home-recovery.json");
+  writeFileSync(config, JSON.stringify({ version: 1, profiles: { lab: { kind: "qux", apiVersion: "2.5", auth: "token",
+    origin: "https://fixture.invalid", token: { env: "SENTINEL_TOKEN" } } } }));
+  const fixtureEnv = { HOME_CASE: "windowed", SENTINEL_TOKEN: "packaged-detection-token", DETECTION_TRACE: join(scratch, "home-recovery.jsonl"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}` };
+  const context = ["--config", config, "--profile", "lab"];
+  const listed = invoke(["detection", "list", ...context, "--state", "active", "--limit", "2"], fixtureEnv);
+  expect(listed.status).toBe(0);
+  const first = decode(listed.stdout) as { cursor: string };
+  expect(first).toMatchObject({ total: 6, complete: false, detections: [{ id: 1 }, { id: 2 }] });
+  const resumed = invoke(["detection", "list", ...context, "--state", "active", "--cursor", first.cursor, "--limit", "20"], fixtureEnv);
+  expect(resumed.status).toBe(0);
+  expect(decode(resumed.stdout)).toMatchObject({ total: 6, complete: true, detections: [{ id: 3 }, { id: 4 }, { id: 5 }, { id: 6 }] });
+  expect(resumed.stderr).toBe("");
+});
+
 it.each([
   { diagnosticCase: "html", args: ["detection", "list"] },
   { diagnosticCase: "schema", args: ["detection", "list"] },
@@ -1084,6 +1179,8 @@ it.each([
     writes: { allowWrites: true, operations: ["qux.host.tag.set"] } } } }));
   const result = invoke([...path, "--config", config], {
     SENTINEL_TOKEN: "packaged-detection-token", VECTRA_AXI_READ_ONLY: readOnly,
+    HOME_CASE: "empty", DETECTION_TRACE: join(scratch, "home-writes.jsonl"),
+    NODE_OPTIONS: `${env.NODE_OPTIONS} --import=${pathToFileURL(join(root, "dist/test/detection-transport.js")).href}`,
   });
   expect(result.status).toBe(0);
   expect(result.stdout).toContain(`writes: ${writes}`);
@@ -1664,12 +1761,13 @@ it("reads cloud health and lockdown status through the packaged RUX journey", ()
   ]);
 }, 15_000);
 
-it("shows a packaged cloud profile without a credential exchange", () => {
+it("reports missing cloud credentials without claiming an empty live result", () => {
   const config = join(scratch, "rux-home.json");
   writeFileSync(config, JSON.stringify({ profiles: { cloud: { kind: "rux", origin: "https://fixture.invalid",
     apiVersion: "3.4", auth: "oauth", clientId: "synthetic-client", secretEnv: "UNSET_RUX_SECRET" } } }));
   const result = invoke(["home", "--config", config]);
-  expect(result.status).toBe(0);
+  expect(result.status).toBe(1);
+  expect(decode(result.stdout)).toMatchObject({ live: { status: "authentication_failed", total: null, complete: false, code: "AUTH_REQUIRED" } });
   expect(result.stdout).toContain("kind: rux");
   expect(result.stdout).toContain("auth: oauth");
   expect(result.stdout).toContain("writes: disabled");
@@ -1721,12 +1819,12 @@ it.each(["-v", "-V", "--version"])("prints only the package version for %s", (fl
   expect(result.stderr).toBe("");
 });
 
-it("shows a packaged token profile without emitting or resolving its secret", () => {
+it("shows a packaged token profile through offline setup without emitting its secret", () => {
   const config = join(scratch, "profile.json");
   const sentinel = "fake-secret-packaged-SENTINEL";
   writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
     apiVersion: "2.5", auth: "token", tokenEnv: "SENTINEL_TOKEN", applianceRelease: "9.4" } } }));
-  const result = invoke(["home", "--config", config], { SENTINEL_TOKEN: sentinel });
+  const result = invoke(["setup", "--config", config], { SENTINEL_TOKEN: sentinel });
   expect(result.status).toBe(0);
   expect(result.stdout).toContain("state: configured");
   expect(result.stdout).toContain("name: lab");
@@ -1790,11 +1888,11 @@ it("reports packaged ambiguous-profile guidance", () => {
   expect(result.stderr).toBe("");
 });
 
-it("shows a packaged OAuth profile with no credential exchange or secret required", () => {
+it("shows a packaged OAuth profile through offline setup without requiring a secret", () => {
   const config = join(scratch, "oauth.json");
   writeFileSync(config, JSON.stringify({ profiles: { lab: { kind: "qux", origin: "https://fixture.invalid",
     apiVersion: "2.5", auth: "oauth", clientId: "synthetic-client", secretEnv: "UNSET_OAUTH_SECRET" } } }));
-  const result = invoke(["home", "--config", config]);
+  const result = invoke(["setup", "--config", config]);
   expect(result.status).toBe(0);
   expect(result.stdout).toContain("state: configured");
   expect(result.stdout).toContain("auth: oauth");
@@ -1839,10 +1937,12 @@ it("shows unconfigured state with closed stdin and a clean home", () => {
   expect(result.stdout).toContain("bin:");
   expect(result.stdout).toContain("vectra-axi.js");
   expect(result.stdout).toContain("state: unconfigured\nprofiles: 0");
-  expect(result.stdout).toContain("https://github.com/knowttl/vectra-axi/blob/main/README.md#command-surface-and-subcommands");
+  expect(result.stdout.length).toBeLessThan(1100);
+  expect(decode(result.stdout)).not.toHaveProperty("capabilities");
+  expect(decode(invoke(["--help"]).stdout)).toHaveProperty("commands");
   expect(result.stdout).not.toContain("src/");
   expect(result.stdout).not.toContain("skills/vectra-axi/SKILL.md");
-  expect(result.stdout).toContain("Run vectra-axi setup hooks");
+  expect(result.stdout).toContain("Run vectra-axi setup for configuration and opt-in hooks");
   expect(result.stderr).toBe("");
   expect(readdirSync(home)).toEqual([]);
 });

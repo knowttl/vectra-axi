@@ -33,6 +33,9 @@ profiles: 0
 
 Run `vectra-axi setup` to print the config path and example without writing files.
 Save the [QUX token or RUX OAuth profile](docs/configuration.md#profiles-and-secretrefs) there and supply the referenced secret through your secret manager or a protected file.
+After configuration, `vectra-axi` (or `vectra-axi home`) reads a small live window of active detections for the selected profile.
+It shows deployment identity, server total when available, and at most five detections; entities and other detection states are not queried.
+Use `vectra-axi --help` for the full command inventory and [output contracts](docs/output.md#home-context) for startup limits and failure states.
 Then check the profile and read detections:
 
 ```sh
@@ -65,7 +68,7 @@ Keep other integrations and Codex's shared hooks setting intact.
 
 | Groups | Purpose | Access | Reference |
 | --- | --- | --- | --- |
-| `home`, `setup`, `profile`, `config`, `auth`, `doctor` | Local state, integration setup and explicit connectivity checks | Local; doctor reads | [Configuration](docs/configuration.md) |
+| `home`, `setup`, `profile`, `config`, `auth`, `doctor` | Live detection context, local configuration and integration setup, connectivity checks | Home and doctor read; setup is local | [Configuration](docs/configuration.md) |
 | `detection`, `host`, `account`, `entity` | Investigate detections and entities; manage notes, tags and state | Read / gated write | [Investigation](docs/investigation.md) |
 | `assignment`, `user` | Inspect users, assign work and resolve outcomes | Read / gated write | [Commands](docs/commands.md) |
 | `group`, `triage` | Inspect groups and manage membership and triage automation | Read / gated write | [Writes](docs/writes.md) |
