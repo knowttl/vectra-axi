@@ -22,7 +22,7 @@ Detection type and state previews stop at 80 characters; the scoped `detection s
 | `windowed` | Five-row limit reached with more data available | 0 |
 | `denied` | API role, permission or licence denial; total unknown | 1 |
 | `authentication_failed` | Missing or rejected credential; no successful detection read | 1 |
-| `incomplete` | Malformed response, inconsistent exhausted count, or budget failure; validated rows retained | 1 |
+| `incomplete` | Malformed response, inconsistent count, or budget failure; validated rows retained | 1 |
 | `unavailable` | Detection service request failed; no empty-success claim | 1 |
 
 Failure output retains the error code and diagnostic guidance.

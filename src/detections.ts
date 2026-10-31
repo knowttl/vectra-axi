@@ -251,11 +251,12 @@ export async function runDetectionHome(
     policy: { pageSize: 5, maxRequests: 1, maxAttempts: 1, deadlineMs: 10_000 },
     decodeRow: (row) => decodeDetection(row, detectionSchema),
   });
-  const inconsistent = result.complete && result.total !== null && result.total !== result.rows.length;
+  const inconsistent = result.total !== null
+    && (result.total < result.rows.length || result.complete && result.total !== result.rows.length);
   const failed = !!result.error || inconsistent;
   const status = result.error?.code === "ACCESS_DENIED" ? "denied"
+    : ["REQUEST_FAILED", "TRANSPORT_FAILED", "AUTH_EXCHANGE_FAILED"].includes(result.error?.code ?? "") ? "unavailable"
     : result.error?.code.startsWith("AUTH_") ? "authentication_failed"
-    : result.error?.code === "REQUEST_FAILED" ? "unavailable"
     : failed ? "incomplete" : result.complete ? (result.rows.length ? "complete" : "empty") : "windowed";
   return { failed, output: {
     scope: "active detections only; entities and other detection states were not queried",
@@ -271,7 +272,7 @@ export async function runDetectionHome(
     })),
     ...(result.error ? { error: result.error.message, code: result.error.code,
       diagnostics: session.diagnosticsForError(result.error) } : {}),
-    ...(inconsistent ? { error: "Detection count disagrees with the exhausted response", code: "RESPONSE_INVALID" } : {}),
+    ...(inconsistent ? { error: "Detection count disagrees with the validated response", code: "RESPONSE_INVALID" } : {}),
     help: [
       ...(result.error ? result.error.suggestions : []),
       `Run vectra-axi detection list ${scope} --state active --limit 20 for a larger window and continuation cursor`,

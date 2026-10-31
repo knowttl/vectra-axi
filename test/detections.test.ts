@@ -6,7 +6,7 @@ import { parseInvocation } from "../src/catalogue.js";
 import { createSession, type RawTransport, type Session } from "../src/session.js";
 import { loadConfig, selectProfile } from "../src/profiles.js";
 import { SecretRedactor } from "../src/redact.js";
-import { DETECTION_TRUNCATE_AT, runDetectionList, runDetectionShow } from "../src/detections.js";
+import { DETECTION_TRUNCATE_AT, runDetectionHome, runDetectionList, runDetectionShow } from "../src/detections.js";
 
 const scratch = mkdtempSync(join(import.meta.dirname, ".detections-test-"));
 const path = join(scratch, "config.json");
@@ -129,6 +129,47 @@ const listPage = (rows: unknown[], extra: Record<string, unknown> = {}) => ({
   status: 200, bodyText: JSON.stringify({ results: rows, ...extra }),
 });
 const nextPage = "https://fixture.invalid/api/v2.5/detections?min_id=2";
+
+it.each(["qux", "rux"].flatMap((kind) => ["ECONNREFUSED", "ENOTFOUND"].map((code) => ({ kind, code }))))
+("reports $kind detection transport $code as unavailable", async ({ kind, code }) => {
+  const failure = () => { throw Object.assign(new Error("Synthetic connection failure"), { code }); };
+  const owned = kind === "rux" ? cloudSession(cloudFixture(failure)) : session(async () => failure());
+  const result = await runDetectionHome(owned, { envProfile: false });
+  expect(result).toMatchObject({ failed: true, output: {
+    status: "unavailable", code: "TRANSPORT_FAILED", shown: 0, total: null, complete: false,
+  } });
+});
+
+it.each(["qux", "rux"].flatMap((kind) => ["503", "ECONNREFUSED", "ENOTFOUND"].map((failure) => ({ kind, failure }))))
+("reports $kind OAuth exchange $failure as unavailable", async ({ kind, failure }) => {
+  writeFileSync(path, JSON.stringify({ profiles: { lab: {
+    ...ruxProfile, kind, apiVersion: kind === "rux" ? "3.4" : "2.5",
+  } } }));
+  const loaded = loadConfig(path, new SecretRedactor());
+  const owned = createSession({ profile: selectProfile(loaded.config, "lab"), configPath: loaded.path,
+    redactor: new SecretRedactor(), transport: async () => {
+      if (failure === "503") return { status: 503, bodyText: "{}" };
+      throw Object.assign(new Error("Synthetic connection failure"), { code: failure });
+    } });
+  const result = await runDetectionHome(owned, { envProfile: false });
+  expect(result).toMatchObject({ failed: true, output: {
+    status: "unavailable", code: "AUTH_EXCHANGE_FAILED", shown: 0, total: null, complete: false,
+  } });
+});
+
+it.each(["qux", "rux"].flatMap((kind) => ["exhausted", "next", "oversized", "partial"].map((shape) => ({ kind, shape }))))
+("rejects $kind $shape home totals below validated rows", async ({ kind, shape }) => {
+  const rows: unknown[] = Array.from({ length: shape === "oversized" ? 6 : 5 }, (_, i) => detection(i + 1));
+  if (shape === "partial") rows.splice(1, 0, { id: 99, threat: "high" });
+  const respond = () => listPage(rows, { count: 0, ...(shape === "next" ? {
+    next: `https://fixture.invalid/api/v${kind === "rux" ? "3.4/detections/" : "2.5/detections"}?state=active&page=2`,
+  } : {}) });
+  const owned = kind === "rux" ? cloudSession(cloudFixture(respond)) : session(async () => respond());
+  const result = await runDetectionHome(owned, { envProfile: false });
+  expect(result).toMatchObject({ failed: true, output: {
+    status: "incomplete", code: "RESPONSE_INVALID", shown: shape === "partial" ? 1 : 5, total: 0, complete: false,
+  } });
+});
 
 it.each(["qux", "rux"])("reports %s completeness through every detection window", async (kind) => {
   const route = kind === "rux" ? "/api/v3.4/detections/" : "/api/v2.5/detections";
