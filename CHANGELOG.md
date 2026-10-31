@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.14](https://github.com/knowttl/vectra-axi/compare/v0.1.13...v0.1.14) (2026-10-31)
+
+
+### Bug Fixes
+
+* replace startup catalog dump with bounded live detection context ([#107](https://github.com/knowttl/vectra-axi/issues/107)) ([3fbbc69](https://github.com/knowttl/vectra-axi/commit/3fbbc695bcaac6ac2894f9e18ef0a3f17e7f4fac))
+
 ## [0.1.13](https://github.com/knowttl/vectra-axi/compare/v0.1.12...v0.1.13) (2026-10-30)
 
 
