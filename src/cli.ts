@@ -18,10 +18,10 @@ import { GROUP_LIST_FIELDS, groupQuery, runGroupList, runGroupMemberList, runGro
   MEMBER_LIST_FIELDS, memberQuery, RULE_LIST_FIELDS, ruleQuery, runRuleList, runRuleShow,
   RUX_MEMBER_LIST_FIELDS, groupId, ruleId, listFields as groupListFields, listLimit as groupListLimit,
   type LeafResult as GroupLeafResult } from "./groups.js";
-import { catalogue, DESCRIPTION, help, inventory, parseInvocation } from "./catalogue.js";
+import { DESCRIPTION, help, parseInvocation } from "./catalogue.js";
 import { detectionEventFlags, runDetectionEventList, type LeafResult as DetectionEventLeafResult } from "./detection-events.js";
 import { entityScoringFlags, runEntityScoringList, type LeafResult as EntityScoringLeafResult } from "./entity-scoring.js";
-import { listFields, listLimit, listQuery, runDetectionList, runDetectionShow, showFields, showId, type LeafResult } from "./detections.js";
+import { listFields, listLimit, listQuery, runDetectionHome, runDetectionList, runDetectionShow, showFields, showId, type LeafResult } from "./detections.js";
 import { doctorTargets, runDoctor } from "./doctor.js";
 import { stableHookTarget } from "./hook-target.js";
 import { lockdownKind, runLockdownList, type LeafResult as LockdownLeafResult } from "./lockdown.js";
@@ -681,13 +681,13 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
     if (result.failed) process.exitCode = 1;
     return result.output;
   }
-  function state(): Record<string, unknown> {
+  async function state(): Promise<Record<string, unknown>> {
     readOnlyForced();
     const loaded = loadConfig(invocation.flags.get("config") as string | undefined, redactor);
     const count = Object.keys(loaded.config.profiles).length;
     const selected = count || invocation.flags.has("profile") || process.env.VECTRA_AXI_PROFILE || envProfile()
       ? selectProfile(loaded.config, invocation.flags.get("profile") as string | undefined) : undefined;
-    return {
+    const identity = {
       ...(invocation.home ? {} : { command: `vectra-axi ${invocation.leaf}` }),
       state: selected ? "configured" : "unconfigured",
       profiles: count,
@@ -698,17 +698,24 @@ export async function main(argv = process.argv.slice(2), transport: RawTransport
         auth: selected.auth, tls: selected.caBundle ? "verified with private CA" : "verified with system CAs",
         writes: !readOnlyForced() && selected.writes?.allowWrites === true ? selected.writes.operations.join(",") : "disabled",
       } } : {}),
-      setup: {
+    };
+    if (invocation.leaf === "home") {
+      const help = ["Run vectra-axi --help for the command inventory",
+        ...(bareHome && needsSkillHint(process.env) ? [SKILL_HINT_LINE] : [])];
+      if (!selected) return { ...identity, help: ["Run vectra-axi setup for configuration and opt-in hooks", ...help] };
+      const session = createSession({ profile: selected, configPath: loaded.path, redactor, transport });
+      const result = await runDetectionHome(session, {
+        config: existsSync(loaded.path) ? loaded.path : undefined,
+        envProfile: selected.source === "env-profile",
+      });
+      if (result.failed) process.exitCode = 1;
+      return { ...identity, live: result.output, help };
+    }
+    return { ...identity, setup: {
         config: loaded.path,
         guidance: "Hand-edit profiles in this user config or select --config <path>; secrets use token or clientSecret SecretRefs",
         example: { version: 1, defaultProfile: "lab", profiles: { lab: { kind: "qux", origin: "https://fixture.invalid", apiVersion: "2.5", auth: "token", token: { env: "VECTRA_AXI_TOKEN" } } } },
         integration: "Run vectra-axi setup hooks to install agent session hooks; setup itself writes nothing",
-      },
-      capabilities: {
-        implemented: Object.keys(catalogue),
-        api: "https://github.com/knowttl/vectra-axi/blob/main/README.md#command-surface-and-subcommands",
-        planned: inventory.operations.filter((operation) => operation.disposition === "planned").length,
-        blocked: inventory.operations.filter((operation) => operation.disposition === "blocked").length,
       },
       help: ["Run vectra-axi setup --help", "Run vectra-axi --help",
         ...(bareHome && needsSkillHint(process.env) ? [SKILL_HINT_LINE] : [])],

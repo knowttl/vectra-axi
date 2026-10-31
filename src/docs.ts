@@ -2,11 +2,15 @@ import { rawAllowed } from "./api-get.js";
 import { catalogue, help, inventory, listPaging } from "./catalogue.js";
 
 const COMPOSITE_DEPLOYMENTS: Readonly<Record<string, readonly string[]>> = {
+  home: ["QUX", "RUX"],
   doctor: ["QUX", "RUX"],
   "api get": ["QUX", "RUX"],
 };
 
 function compositeDocumentLines(leaf: string): string[] | undefined {
+  if (leaf === "home") {
+    return ["Network command when configured; reads one bounded active-detection page through the selected QUX v2.5 or RUX v3.4 profile."];
+  }
   if (leaf === "doctor") {
     const qux = inventory.operations.find((operation) => operation.id === "qux.detection.list");
     const quxLabel = qux ? `${qux.deployment.toUpperCase()} API ${qux.apiVersion}` : "QUX API";

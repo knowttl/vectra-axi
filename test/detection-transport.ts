@@ -5,6 +5,7 @@ import https, { type RequestOptions } from "node:https";
 import type { ClientRequest, IncomingMessage } from "node:http";
 import { syncBuiltinESMExports } from "node:module";
 import { PassThrough } from "node:stream";
+import homeResponses from "./fixtures/home-responses.json" with { type: "json" };
 
 const first = { id: 1, detection_type: "synthetic-type", state: "active", threat: null, certainty: 80 };
 const second = { ...first, id: 2, threat: 72 };
@@ -178,6 +179,8 @@ const responses = new Map<string, { status: number; body: unknown }>([
   ["https://fixture.invalid/oauth2/token",
     { status: 200, body: { access_token: "packaged-rux-token", token_type: "Bearer", expires_in: 3600,
       refresh_token: "packaged-rux-refresh" } }],
+  ["https://fixture.invalid/api/v2.5/oauth2/token",
+    { status: 200, body: { access_token: "packaged-rux-token", token_type: "Bearer", expires_in: 3600 } }],
   // RUX-02: the packaged cloud read journey lists detections and entities
   // through the documented v3.4 routes with Bearer resource use. Cloud IDs
   // stay scoped to the cloud profile; urgency/importance never fold into
@@ -312,9 +315,13 @@ https.request = ((options: RequestOptions, callback: (response: IncomingMessage)
   // Mutation fixtures answer PATCH/POST writes; every other request,
   // including the form-encoded OAuth exchange POST, uses the read map.
   const mutation = options.method === "GET" ? undefined : mutations.get(url);
-  const fixture = mutation ?? responses.get(url);
+  const homeCase = process.env.HOME_CASE as keyof typeof homeResponses | undefined;
+  const homeFixture = homeCase && homeCase !== "provenance"
+    && /^\/api\/v(2\.5|3\.4)\/detections\/?$/.test(new URL(url).pathname)
+    ? homeResponses[homeCase] : undefined;
+  const fixture = homeFixture ?? mutation ?? responses.get(url);
   const headers = options.headers as Record<string, string>;
-  const ruxExchange = url === "https://fixture.invalid/oauth2/token" && options.method === "POST"
+  const ruxExchange = (url === "https://fixture.invalid/oauth2/token" || url === "https://fixture.invalid/api/v2.5/oauth2/token") && options.method === "POST"
     && (headers.Authorization ?? "").startsWith("Basic ")
     && headers["Content-Type"] === "application/x-www-form-urlencoded";
   const allowedMethod = options.method === "GET" || options.method === "PATCH" || options.method === "POST"

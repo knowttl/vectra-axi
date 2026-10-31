@@ -239,6 +239,47 @@ export async function runDetectionList(
   } };
 }
 
+// Session-start context uses one small page, never an exhaustive traversal.
+export async function runDetectionHome(
+  session: Session, context: { config?: string; envProfile: boolean },
+): Promise<LeafResult> {
+  const scope = `${context.config ? `--config ${shellQuote(context.config)} ` : ""}`
+    + `${context.envProfile ? "" : `--profile ${shellQuote(session.profile.name)}`}`;
+  const operation = session.profile.kind === "rux" ? RUX_DETECTION_LIST_OPERATION : DETECTION_LIST_OPERATION;
+  const result = await collect(session, operation, {
+    query: { state: "active" }, limit: 5,
+    policy: { pageSize: 5, maxRequests: 1, maxAttempts: 1, deadlineMs: 10_000 },
+    decodeRow: (row) => decodeDetection(row, detectionSchema),
+  });
+  const inconsistent = result.complete && result.total !== null && result.total !== result.rows.length;
+  const failed = !!result.error || inconsistent;
+  const status = result.error?.code === "ACCESS_DENIED" ? "denied"
+    : result.error?.code.startsWith("AUTH_") ? "authentication_failed"
+    : result.error?.code === "REQUEST_FAILED" ? "unavailable"
+    : failed ? "incomplete" : result.complete ? (result.rows.length ? "complete" : "empty") : "windowed";
+  return { failed, output: {
+    scope: "active detections only; entities and other detection states were not queried",
+    status,
+    shown: result.rows.length,
+    total: result.total,
+    complete: result.complete && !inconsistent,
+    detections: result.rows.map((row) => ({
+      id: row.id,
+      detection_type: typeof row.detection_type === "string" ? row.detection_type.slice(0, 80) : row.detection_type,
+      state: typeof row.state === "string" ? row.state.slice(0, 80) : row.state,
+      threat: row.threat, certainty: row.certainty,
+    })),
+    ...(result.error ? { error: result.error.message, code: result.error.code,
+      diagnostics: session.diagnosticsForError(result.error) } : {}),
+    ...(inconsistent ? { error: "Detection count disagrees with the exhausted response", code: "RESPONSE_INVALID" } : {}),
+    help: [
+      ...(result.error ? result.error.suggestions : []),
+      `Run vectra-axi detection list ${scope} --state active --limit 20 for a larger window and continuation cursor`,
+      ...(result.rows.length ? [`Run vectra-axi detection show ${scope} --id ${result.rows[0]!.id} for full detection text`] : []),
+    ],
+  } };
+}
+
 export function showId(flags: ReadonlyMap<string, string | boolean>): number {
   const raw = flags.get("id");
   if (raw === undefined) {

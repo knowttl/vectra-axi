@@ -10,7 +10,7 @@ Run `vectra-axi <command> --help` for flags and examples. Deployment support bel
 
 | Domain | Commands | Deployment |
 | --- | --- | --- |
-| `home` | `home` | Local |
+| `home` | `home` | QUX, RUX |
 | `setup` | `setup`, `setup hooks` | Local |
 | `doctor` | `doctor` | QUX, RUX |
 | `auth` | `auth status` | Local |
@@ -266,14 +266,14 @@ Run `vectra-axi <command> --help` for flags and examples. Deployment support bel
 
 ## home
 
-Show local setup state; also the no-arguments view
+Show up to five live active detections for the selected QUX/RUX profile; also the no-arguments view
 
-Local command; no Vectra API request.
+Network command when configured; reads one bounded active-detection page through the selected QUX v2.5 or RUX v3.4 profile.
 
 ```json
 {
   "command": "vectra-axi home",
-  "description": "Show local setup state; also the no-arguments view",
+  "description": "Show up to five live active detections for the selected QUX/RUX profile; also the no-arguments view",
   "flags": {
     "--help": "Show concise help; default false",
     "--profile <name>": "Select a profile by name; default environment, config default, then sole profile",

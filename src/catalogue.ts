@@ -34,7 +34,7 @@ export const catalogue: Readonly<Record<string, {
   examples: readonly string[];
 }>> = {
   home: {
-    description: "Show local setup state; also the no-arguments view",
+    description: "Show up to five live active detections for the selected QUX/RUX profile; also the no-arguments view",
     flags: globals,
     examples: ["vectra-axi", "vectra-axi home", "vectra-axi home --profile <name>"],
   },
