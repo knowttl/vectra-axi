@@ -28,10 +28,10 @@
   "packageManager": "pnpm@10.34.6",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "node scripts/isolated.mjs node node_modules/vitest/vitest.mjs run",
-    "lint": "tsc --noEmit -p tsconfig.json",
-    "docs:generate": "node scripts/generate-docs.mjs",
-    "docs:check": "node scripts/generate-docs.mjs --check"
+    "test": "node scripts/isolated.ts node node_modules/vitest/vitest.mjs run",
+    "lint": "tsc --noEmit -p tsconfig.json && tsc -p tsconfig.scripts.json",
+    "docs:generate": "node scripts/generate-docs.ts",
+    "docs:check": "node scripts/generate-docs.ts --check"
   },
   "dependencies": {
     "@toon-format/toon": "2.3.1",
