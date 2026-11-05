@@ -8,8 +8,8 @@ agent_args_override:
 no_ci: true
 commands:
   prepare: 'corepack pnpm install --frozen-lockfile --ignore-scripts --config.confirm-modules-purge=false'
-  test: 'node scripts/isolated.mjs corepack pnpm run build && corepack pnpm test'
-  lint: 'node scripts/isolated.mjs corepack pnpm run lint'
+  test: 'node scripts/isolated.ts corepack pnpm run build && corepack pnpm test'
+  lint: 'node scripts/isolated.ts corepack pnpm run lint'
 document:
   instructions: |
     README.md owns product orientation and quickstart; docs/commands.md and the skill own the generated command reference.
