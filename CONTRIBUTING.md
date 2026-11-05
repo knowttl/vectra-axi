@@ -15,8 +15,7 @@ corepack pnpm test
 corepack pnpm run docs:check
 ```
 
-The [test workflow](.github/workflows/ci.yml) defines push and pull-request checks for main on Linux and Windows.
-Local validation is required before merge, and the release publish job repeats these checks before publishing.
+Local validation is required before merge.
 
 Canonical source: knowttl/bstack revision feeccb1e6f1ae119bf4c74277c8bad328b05afe8, skills/verification/references/testing.md.
 <!-- BEGIN canonical test-quality rules -->
